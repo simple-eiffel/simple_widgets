@@ -40,6 +40,8 @@ feature {NONE} -- Initialization
 			create statusbar.make
 			create combo.make_with_options
 			create seg.make
+			create fleet_grid.make (240.0)
+			create grid_filter_box.make_single_line ("")
 			create stepper.make
 			create accordion.make
 			create rating.make (3, 5, Void)
@@ -138,7 +140,7 @@ feature {NONE} -- Initialization
 			body.put (tabs_card (theme))
 			body.put (list_card (theme))
 			statusbar.set_left ("ready %/8212/ every pixel drawn by simple_widgets")
-			statusbar.set_right ("47 widgets and counting")
+			statusbar.set_right ("51 widgets and counting")
 			create body_scroll.make (400.0)
 			body_scroll.set_child (body)
 			root.put (body_scroll.growing)
@@ -208,6 +210,20 @@ feature {NONE} -- Initialization
 			empty.set_action ("Create the first thing", agent on_empty_action)
 			page.put (empty)
 			tabs.add_page ("Wave 3", page)
+			create page.make
+			page := page.with_gap (8.0)
+			grid_filter_box.set_clear_button (True)
+			grid_filter_box.set_spellcheck (False)
+			grid_filter_box.set_on_change (agent on_grid_filter_changed)
+			page.put (grid_filter_box)
+			fleet_grid.add_column (create {SW_GRID_COLUMN [TUPLE [name: STRING_32; wave: INTEGER; category: STRING_32]]}.make ("Widget", 190.0, agent grid_name))
+			fleet_grid.add_column ((create {SW_GRID_COLUMN [TUPLE [name: STRING_32; wave: INTEGER; category: STRING_32]]}.make ("Wave", 80.0, agent grid_wave_text)).with_key (agent grid_wave_key))
+			fleet_grid.add_column (create {SW_GRID_COLUMN [TUPLE [name: STRING_32; wave: INTEGER; category: STRING_32]]}.make ("Category", 200.0, agent grid_category))
+			seed_fleet_grid
+			fleet_grid.set_on_select (agent on_grid_row_selected)
+			page.put (fleet_grid)
+			page.put ((create {SW_LABEL}.make_ui ("Click a header to sort (again for descending; Wave sorts as numbers). Drag a divider to resize. Filter above.")).as_muted)
+			tabs.add_page ("Grid", page)
 			tabs.set_on_change (agent on_tab_changed)
 			create Result.make_striped (a_theme.warning)
 			Result.put ((create {SW_LABEL}.make_ui ("SW_TABS %/8212/ pages swap; hover the bar")).as_muted)
@@ -366,6 +382,69 @@ feature {NONE} -- Initialization
 			col.put (create {SW_RATING}.make (2, 5, Void))
 			col.put ((create {SW_LABEL}.make_ui ("Click outside to dismiss.")).as_muted)
 			window.show_popover (col, 96.0, 46.0, 260.0)
+		end
+
+	fleet_grid: SW_DATA_GRID [TUPLE [name: STRING_32; wave: INTEGER; category: STRING_32]]
+
+	grid_filter_box: SW_TEXT_BOX
+
+	grid_name (a_r: TUPLE [name: STRING_32; wave: INTEGER; category: STRING_32]): STRING_32
+		do
+			Result := a_r.name
+		end
+
+	grid_wave_text (a_r: TUPLE [name: STRING_32; wave: INTEGER; category: STRING_32]): STRING_32
+		do
+			Result := a_r.wave.out.to_string_32
+		end
+
+	grid_wave_key (a_r: TUPLE [name: STRING_32; wave: INTEGER; category: STRING_32]): COMPARABLE
+		do
+			Result := a_r.wave
+		end
+
+	grid_category (a_r: TUPLE [name: STRING_32; wave: INTEGER; category: STRING_32]): STRING_32
+		do
+			Result := a_r.category
+		end
+
+	grid_row_passes (a_r: TUPLE [name: STRING_32; wave: INTEGER; category: STRING_32]): BOOLEAN
+		do
+			Result := grid_filter_box.text.is_empty
+				or else a_r.name.as_lower.has_substring (grid_filter_box.text.as_lower)
+				or else a_r.category.as_lower.has_substring (grid_filter_box.text.as_lower)
+		end
+
+	on_grid_filter_changed
+		do
+			fleet_grid.set_filter (agent grid_row_passes)
+		end
+
+	on_grid_row_selected (a_model: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "grid: " + fleet_grid.rows.i_th (a_model).name)
+		end
+
+	seed_fleet_grid
+		local
+			g: like fleet_grid
+		do
+			g := fleet_grid
+			g.add_row ([{STRING_32} "SW_BUTTON", 1, {STRING_32} "input"])
+			g.add_row ([{STRING_32} "SW_TEXT_BOX", 1, {STRING_32} "text engine"])
+			g.add_row ([{STRING_32} "SW_LIST", 1, {STRING_32} "data"])
+			g.add_row ([{STRING_32} "SW_MENU", 1, {STRING_32} "chrome"])
+			g.add_row ([{STRING_32} "SW_SPLITTER", 1, {STRING_32} "layout"])
+			g.add_row ([{STRING_32} "SW_COMBO", 2, {STRING_32} "input"])
+			g.add_row ([{STRING_32} "SW_TOOLBAR", 2, {STRING_32} "chrome"])
+			g.add_row ([{STRING_32} "SW_FILE_DIALOG", 2, {STRING_32} "dialogs"])
+			g.add_row ([{STRING_32} "SW_IMAGE", 2, {STRING_32} "media"])
+			g.add_row ([{STRING_32} "SW_RATING", 3, {STRING_32} "indicator"])
+			g.add_row ([{STRING_32} "SW_ACCORDION", 3, {STRING_32} "disclosure"])
+			g.add_row ([{STRING_32} "SW_DRAWER", 3, {STRING_32} "disclosure"])
+			g.add_row ([{STRING_32} "SW_CANVAS", 3, {STRING_32} "custom drawing"])
+			g.add_row ([{STRING_32} "SW_SHEET", 3, {STRING_32} "data"])
+			g.add_row ([{STRING_32} "SW_DATA_GRID", 3, {STRING_32} "data - the crown"])
 		end
 
 	scroll_split_card (a_theme: SW_THEME): SW_CARD

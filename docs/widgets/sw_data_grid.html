@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_DATA_GRID [G] - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_DATA_GRID [G]</h1>
+        <p class="tagline">Typed rows, first-class columns: numeric sorting, live filtering, resizable dividers - selection follows the object.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_DATA_GRID is generic over the row type: your records go in as they are (<code>set_rows</code> / <code>add_row</code>), and <strong>SW_GRID_COLUMN [G]</strong> objects give each column its meaning - a title, a width, a <code>value</code> agent rendering a row to text, and an optional <code>key</code> agent returning a COMPARABLE so numbers sort as numbers (9 &lt; 30 &lt; 100, where text ordering would lie).</p>
+            <p>Clicking a header sorts ascending; again, descending; a third time clears to model order - with a drawn direction triangle. Dragging a header divider resizes the column (clamped at a minimum by the column's own invariant; the divider wears a hover affordance). <code>set_filter</code> takes a host predicate over G - wire it from any text box for find-as-you-type. The view (filter then sort) is a mapping onto model indices; only the visible band ever draws (the SW_LIST virtualization idiom), under a frozen header, with zebra striping and both-axis wheel scrolling.</p>
+            <p><strong>Selection follows the row OBJECT</strong>, not its position: re-sorting keeps your record selected at its new place, and a filter that excludes it clears the selection honestly. <code>on_select</code> and <code>on_activate</code> (double-click) report MODEL indices; <code>selected_object</code> hands back the G itself.</p>
+            <p>Read-only by design in v1 - editing composes outside (activation opens your editor), the same domain/presentation split SW_SHEET enforces. In the three-tier doctrine this is tier two: SHEET (the grid organ) &rarr; DATA_GRID (columns first-class) &rarr; SPREADSHEET (Wave 5 composite).</p>
+            <p class="muted"><em>Source: <code>src/sw_data_grid.e</code> &middot; since Wave 3 crown (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A typed grid over tuples</h2>
+<pre><code>fleet: <span class="type">SW_DATA_GRID</span> [<span class="type">TUPLE</span> [name: <span class="type">STRING_32</span>; wave: <span class="type">INTEGER</span>; category: <span class="type">STRING_32</span>]]
+
+<span class="keyword">create</span> fleet.make (240.0)
+fleet.add_column (<span class="keyword">create</span> {<span class="type">SW_GRID_COLUMN</span> [<span class="type">TUPLE</span> [name: <span class="type">STRING_32</span>; wave: <span class="type">INTEGER</span>; category: <span class="type">STRING_32</span>]]}.make (<span <span class="keyword">class</span>="string">&quot;Widget&quot;</span>, 190.0, <span class="keyword">agent</span> grid_name))
+fleet.add_column ((<span class="keyword">create</span> {<span class="type">SW_GRID_COLUMN</span> [<span class="type">TUPLE</span> [name: <span class="type">STRING_32</span>; wave: <span class="type">INTEGER</span>; category: <span class="type">STRING_32</span>]]}.make (<span <span class="keyword">class</span>="string">&quot;Wave&quot;</span>, 80.0, <span class="keyword">agent</span> wave_text)).with_key (<span class="keyword">agent</span> wave_key))
+fleet.add_row ([{<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot;<span class="type">SW_BUTTON</span>&quot;</span>, 1, {<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot;input&quot;</span>])
+fleet.set_on_select (<span class="keyword">agent</span> on_row_selected)
+fleet.set_filter (<span class="keyword">agent</span> row_passes)   <span class="comment">-- any predicate over the row type</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Single-row selection (multi-select ranges queued).</li>
+                <li>Uniform row height; no cell renderers yet (text via the value agent only).</li>
+                <li>Insertion sort on the view: right for human-scale row counts; thousands-of-rows sorting is an S04 item (the DRAW is already virtualized for thousands).</li>
+                <li>No in-place editing (by design in v1 - activation composes your editor).</li>
+                <li>No horizontal scrollbar drawn yet (Shift+wheel scrolls X).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Give numeric columns a key agent or they sort as text - the assault suite pins the difference with 9/30/100.</li>
+                <li>on_select reports MODEL indices - stable across sort and filter; do not confuse them with view positions.</li>
+                <li>The filter predicate closes over your state (a text box, say): re-call set_filter after that state changes - the grid cannot see through your closure.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Multi-select with range vocabulary; cell renderer agents (chips, bars in cells).</li>
+                <li>O(n log n) sort for big row counts; column show/hide and reorder by drag.</li>
+                <li>In-place typed editors per column (tier-three groundwork).</li>
+                <li>Tree-table descendant (Wave 5) sharing this engine.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

@@ -37,6 +37,7 @@ Toolkit-wide near-term items (from the same read):
 
 
 
+
 ## SW_WINDOW
 
 Planned extensions:
@@ -51,7 +52,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 - cairo.dll must sit beside the executable. Every finalize wipes F_code, deleting the DLL; the exe then dies at load looking exactly like a code crash. Copy it back after every build.
 - run blocks. Everything after it executes only when the window closes.
-- Window geometry is physical pixels. If a DPI-unaware shell moves the window (MoveWindow from PowerShell), the OS scales the coordinates - at 150% they land 1.5x away from where you aimed.
+- Window geometry is physical pixels. If a DPI-unaware shell moves the window (MoveWindow from PowerShell), the OS scales the coordinates - at 150% they land 1.5&times; away from where you aimed.
 - Popups close on the next button-down anywhere; if a menu 'never appeared', something (or someone) clicked between open and look.
 
 Limits to push:
@@ -1003,3 +1004,27 @@ Limits to push:
 - [ ] Single-cell selection; no ranges, no block clipboard yet (Wave 5 composite).
 - [ ] The in-place editor is minimal (append/backspace/commit/cancel) - not the full SW_TEXT_BOX engine.
 - [ ] No scrollbars drawn yet - wheel and keyboard only (bars come with the grid work).
+
+
+## SW_DATA_GRID [G]
+
+Planned extensions:
+
+- [ ] Multi-select with range vocabulary; cell renderer agents (chips, bars in cells).
+- [ ] O(n log n) sort for big row counts; column show/hide and reorder by drag.
+- [ ] In-place typed editors per column (tier-three groundwork).
+- [ ] Tree-table descendant (Wave 5) sharing this engine.
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- Give numeric columns a key agent or they sort as text - the assault suite pins the difference with 9/30/100.
+- on_select reports MODEL indices - stable across sort and filter; do not confuse them with view positions.
+- The filter predicate closes over your state (a text box, say): re-call set_filter after that state changes - the grid cannot see through your closure.
+
+Limits to push:
+
+- [ ] Single-row selection (multi-select ranges queued).
+- [ ] Uniform row height; no cell renderers yet (text via the value agent only).
+- [ ] Insertion sort on the view: right for human-scale row counts; thousands-of-rows sorting is an S04 item (the DRAW is already virtualized for thousands).
+- [ ] No in-place editing (by design in v1 - activation composes your editor).
+- [ ] No horizontal scrollbar drawn yet (Shift+wheel scrolls X).

@@ -38,6 +38,9 @@ feature {NONE} -- Initialization
 			print ("%N=== 7GUIS ENGINES ===%N")
 			run_guis7_tests
 
+			print ("%N=== DATA GRID ===%N")
+			run_grid_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -91,6 +94,20 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_theme_invariants_both_ways, "theme_invariants_both_ways")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
+		end
+
+	grid_tests: SW_GRID_ASSAULT
+
+	run_grid_tests
+		do
+			create grid_tests
+			run_test (agent grid_tests.test_text_sort_ascending, "grid_text_sort_ascending")
+			run_test (agent grid_tests.test_typed_sort_beats_text, "grid_typed_sort_beats_text")
+			run_test (agent grid_tests.test_filter_composes_with_sort, "grid_filter_composes_with_sort")
+			run_test (agent grid_tests.test_selection_survives_resort, "grid_selection_survives_resort")
+			run_test (agent grid_tests.test_selection_cleared_when_filtered_out, "grid_selection_cleared_when_filtered")
+			run_test (agent grid_tests.test_column_resize_clamps, "grid_column_resize_clamps")
+			run_test (agent grid_tests.test_view_row_at_guards, "grid_view_row_at_guards")
 		end
 
 	guis7_tests: SW_7GUIS_ASSAULT

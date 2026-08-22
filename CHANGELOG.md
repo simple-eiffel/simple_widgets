@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — Wave 3 in progress
 
 ### Added
+- SW_DATA_GRID [G] + SW_GRID_COLUMN [G] - the Wave 3 crown: typed rows,
+  first-class columns (value + optional COMPARABLE key agents: numbers
+  sort as numbers), header-click sort asc/desc/clear with drawn
+  triangle, drag-divider resize (invariant-clamped), host filter
+  predicate, virtualized zebra rows under a frozen header, both-axis
+  wheel. Selection follows the ROW OBJECT across re-sorts; filtered-out
+  selections clear honestly. Seven assaults; suite at 59/59
 - 7GUIs (Eugen Kiss's benchmark) implemented spec-exact as target
   sw_7guis: Counter, Temperature, Flight Booker, Timer, CRUD, Circle
   Drawer, Cells - every behaviour synthetically proven. Forced four
