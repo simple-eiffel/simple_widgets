@@ -25,8 +25,16 @@ feature -- Access
 				i >= n
 			loop
 				c := buf.read_natural_16 (i * 2)
-				Result.append_character (c.to_character_32)
-				i := i + 1
+				if c >= 0xD800 and c <= 0xDBFF and i + 1 < n then
+						-- surrogate pair: one code point across two units (R8)
+					Result.append_code (0x10000
+						+ (c.to_natural_32 - 0xD800) * 0x400
+						+ (buf.read_natural_16 ((i + 1) * 2).to_natural_32 - 0xDC00))
+					i := i + 2
+				else
+					Result.append_character (c.to_character_32)
+					i := i + 1
+				end
 			end
 		end
 

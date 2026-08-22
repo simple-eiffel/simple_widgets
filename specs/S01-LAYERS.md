@@ -98,6 +98,16 @@ remain fair game; OS-drawn WIDGETS do not. The one pixel-bearing
 exception is the window frame itself, until SW owns borderless
 chrome.
 
+R8 — **Unicode-first (Larry: all controls UTF-8 compliant).** The
+text model is STRING_32 (whole code points) everywhere inside the
+toolkit; the cairo boundary converts to UTF-8 (simple_cairo
+show_text); the OS boundaries speak UTF-16 and are PAIRED at entry -
+WM_CHAR surrogates combine in the window before any widget sees
+them, and the clipboard read combines pairs the same way. Honest
+limit, on the roadmap: cairo's toy text API does no font fallback or
+complex shaping, so glyph coverage is the loaded face's; a shaping
+layer (harfbuzz-class) is future SURFACE work.
+
 ## 3. What tonight's V0 already honours
 
 - Painter monopoly (R2) - built in from the first commit.

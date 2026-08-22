@@ -208,6 +208,20 @@ feature -- Input
 		do
 		end
 
+	pending_menu: detachable SW_MENU
+			-- A menu this widget wants presented after its click was
+			-- handled - the dropdown handshake: the widget declares
+			-- during handle_click, the window presents and clears.
+
+	take_pending_menu: detachable SW_MENU
+			-- The pending menu, consumed.
+		do
+			Result := pending_menu
+			pending_menu := Void
+		ensure
+			consumed: pending_menu = Void
+		end
+
 	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
 			-- The menu this widget offers at the point, if any. The
 			-- window presents it; every widget is right-clickable, and

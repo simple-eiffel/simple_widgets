@@ -21,10 +21,15 @@ feature {NONE} -- Initialization
 			chips: SW_ROW
 			buttons: SW_ROW
 		do
-			create theme.make_light
+			create theme.make_dark
 			create counter_label.make ("clicks: 0  %/8212/ buttons report HERE", {SW_PAINTER}.Role_mono, 14.0, True)
 			create progress.make (0.0)
 			progress.set_shows_caption (True)
+			create kind_select.make
+			kind_select.add_option ("Info")
+			kind_select.add_option ("Success")
+			kind_select.add_option ("Warning")
+			kind_select.add_option ("Danger")
 			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on running until the wrap engine breaks the line exactly where the measured advances say it must.")
 			create window.make ("simple_widgets demo", 8, 8, 900, 560, theme)
 				-- agents only from here down: every attached attribute is set
@@ -65,6 +70,11 @@ feature {NONE} -- Initialization
 			buttons.put (danger_button)
 			buttons.put (create {SW_CHECK_BOX}.make ("Danger armed", True, agent on_toggle_danger))
 			card.put (buttons)
+			create buttons.make
+			buttons.put (kind_select)
+			buttons.put (create {SW_BUTTON}.make ("Toast It", agent on_toast))
+			buttons.put ((create {SW_BUTTON}.make ("Delete%/8230/", agent on_delete)).as_kind ({SW_BUTTON}.Kind_danger))
+			card.put (buttons)
 			root.put (card)
 
 			create card.make_striped (theme.warning)
@@ -97,6 +107,35 @@ feature {NONE} -- Behaviour
 
 	danger_button: SW_BUTTON
 
+	kind_select: SW_SELECT
+
+	on_toast
+		do
+			window.toast ({STRING_32} "A " + kind_select.selected_text + " toast %/8212/ drawn, queued, fading",
+				kind_select.selected_index.max (1))
+		end
+
+	on_delete
+		local
+			d: SW_DIALOG
+		do
+			create d.make ({SW_DIALOG}.Kind_danger, "Delete everything?",
+				"This is the toolkit%'s own drawn modal over a dimmed backdrop %/8212/ no MessageBox anywhere in the process. Nothing will actually be deleted.")
+			d.add_button ("Cancel", False, agent on_kept)
+			d.add_button ("Delete", True, agent on_deleted)
+			window.show_dialog (d)
+		end
+
+	on_deleted
+		do
+			window.toast ("Deleted! (not really)", 4)
+		end
+
+	on_kept
+		do
+			window.toast ("Kept. Wise.", 1)
+		end
+
 	on_toggle_danger
 		do
 			danger_button.set_enabled (not danger_button.is_enabled)
@@ -117,21 +156,23 @@ feature {NONE} -- Behaviour
 			window.log_line ("demo: text now " + edit_box.text.count.out + " chars")
 		end
 
-	is_dark: BOOLEAN
+	is_light: BOOLEAN
 
 	on_toggle_theme
 		local
 			th: SW_THEME
 		do
-			is_dark := not is_dark
-			if is_dark then
-				create th.make_dark
-			else
+			is_light := not is_light
+			if is_light then
 				create th.make_light
+			else
+				create th.make_dark
 			end
 			window.set_theme (th)
-			counter_label.set_text ("theme: " + (if is_dark then "dark" else "light" end))
+			counter_label.set_text ("theme: " + (if is_light then "light" else "dark" end))
 			window.log_line ("demo: theme toggled")
 		end
+
+
 
 end

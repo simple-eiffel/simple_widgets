@@ -167,12 +167,65 @@ feature {NONE} -- Dispatch
 
 	dispatch (a_type, a_x, a_y: INTEGER)
 		do
-			if attached popup as m then
+			if attached dialog as d then
+				dispatch_to_dialog (d, a_type, a_x, a_y)
+			elseif attached popup as m then
 				dispatch_to_popup (m, a_type, a_x, a_y)
 			else
 				dispatch_normal (a_type, a_x, a_y)
 			end
 		end
+
+	dispatch_to_dialog (a_d: SW_DIALOG; a_type, a_x, a_y: INTEGER)
+			-- Modality: only the dialog's buttons and Escape act;
+			-- everything else is swallowed.
+		local
+			idx: INTEGER
+			act: detachable PROCEDURE
+		do
+			inspect a_type
+			when 2 then
+				idx := a_d.button_at (a_x, a_y)
+				if idx > 0 then
+					act := a_d.buttons.i_th (idx).action
+					close_dialog
+					if attached act as a then
+						a.call
+					end
+					after_input
+				end
+			when 3 then
+				if a_x = 27 then
+					close_dialog
+					after_input
+				end
+			when 6 then
+				blit
+			when 7 then
+				age_toasts
+			else
+			end
+		end
+
+feature -- Dialogs
+
+	show_dialog (a_d: SW_DIALOG)
+		do
+			a_d.measure (painter, win_w, win_h)
+			dialog := a_d
+			after_input
+		ensure
+			shown: dialog = a_d
+		end
+
+	close_dialog
+		do
+			dialog := Void
+		ensure
+			closed: dialog = Void
+		end
+
+feature {NONE} -- Dispatch internals
 
 	dispatch_to_popup (a_m: SW_MENU; a_type, a_x, a_y: INTEGER)
 			-- While a popup is up it owns the pointer and Escape;
@@ -241,9 +294,23 @@ feature {NONE} -- Dispatch
 				end
 				after_input
 			when 3 then
-				if attached focused as w then
-					w.handle_char (a_x)
-					after_input
+					-- UTF-16 arrives in units; astral characters come as a
+					-- surrogate pair across two WM_CHARs. Pair them here so
+					-- widgets only ever see whole code points (R8).
+				if a_x >= 0xD800 and a_x <= 0xDBFF then
+					pending_surrogate := a_x
+				elseif a_x >= 0xDC00 and a_x <= 0xDFFF and pending_surrogate /= 0 then
+					if attached focused as w then
+						w.handle_char (0x10000 + (pending_surrogate - 0xD800) * 0x400 + (a_x - 0xDC00))
+						after_input
+					end
+					pending_surrogate := 0
+				else
+					pending_surrogate := 0
+					if attached focused as w then
+						w.handle_char (a_x)
+						after_input
+					end
 				end
 			when 4 then
 				if attached focused as w then
@@ -283,6 +350,7 @@ feature {NONE} -- Dispatch
 						after_input
 					end
 				end
+				age_toasts
 			when 13 then
 				update_hover (a_x, a_y)
 			when 14 then
@@ -373,6 +441,10 @@ feature {NONE} -- Dispatch
 			end
 			if attached Result as cw and then not a_double and then cw.is_enabled then
 				cw.set_pressed (True)
+				if attached cw.take_pending_menu as pm then
+					show_popup (pm, cw.x.truncated_to_integer,
+						(cw.y + cw.height + 2.0).truncated_to_integer)
+				end
 			end
 		end
 
@@ -419,9 +491,17 @@ feature {NONE} -- Rendering
 			if attached popup as m then
 				m.draw (painter)
 			end
-			if tooltip_visible and then attached hovered as hw and then not hw.tooltip.is_empty then
+			if tooltip_visible and then attached hovered as hw and then not hw.tooltip.is_empty
+				and then dialog = Void
+			then
 				draw_tooltip (hw)
 			end
+			if attached dialog as d then
+				painter.set_color_alpha (0x000000, 0.45)
+				painter.fill_rect (0.0, 0.0, win_w, win_h)
+				d.draw (painter)
+			end
+			draw_toasts
 			if not frame_echo_path.is_empty then
 				offscreen.write_png (frame_echo_path).do_nothing
 			end
@@ -445,6 +525,89 @@ feature {NONE} -- Rendering
 			painter.rrect_fill (tx, ty, tw, 26.0, t.radius)
 			painter.set_color (t.background)
 			painter.text (tx + 9.0, ty + 17.5, a_w.tooltip)
+		end
+
+feature -- Notifications
+
+	toast (a_text: READABLE_STRING_GENERAL; a_kind: INTEGER)
+			-- Queue a transient notification; kinds follow the chip
+			-- vocabulary (1 accent, 2 success, 3 warning, 4 danger).
+		local
+			s: STRING_32
+		do
+			create s.make_from_string_general (a_text)
+			toasts.extend ([s, a_kind, Toast_life])
+			after_input
+		ensure
+			queued: toasts.count = old toasts.count + 1
+		end
+
+	Toast_life: INTEGER = 7
+			-- Timer ticks a toast lives (about 3.5 seconds).
+
+feature {NONE} -- Notification internals
+
+	age_toasts
+		local
+			i: INTEGER
+			changed: BOOLEAN
+		do
+			from
+				i := toasts.count
+			until
+				i < 1
+			loop
+				toasts.i_th (i).life := toasts.i_th (i).life - 1
+				if toasts.i_th (i).life <= 0 then
+					toasts.go_i_th (i)
+					toasts.remove
+				end
+				changed := True
+				i := i - 1
+			end
+			if changed then
+				after_input
+			end
+		end
+
+	draw_toasts
+		local
+			t: SW_THEME
+			ty, tw: REAL_64
+			i: INTEGER
+			it: TUPLE [txt: STRING_32; tkind: INTEGER; life: INTEGER]
+			kc: NATURAL_32
+		do
+			t := theme
+			ty := win_h - 18.0
+			from
+				i := toasts.count
+			until
+				i < 1
+			loop
+				it := toasts.i_th (i)
+				painter.font ({SW_PAINTER}.Role_ui, 11.5, False)
+				tw := painter.advance (it.txt) + 40.0
+				ty := ty - 36.0
+				painter.set_color (t.ink)
+				painter.rrect_fill (win_w - 18.0 - tw, ty, tw, 30.0, t.radius)
+				inspect it.tkind
+				when 2 then
+					kc := t.success
+				when 3 then
+					kc := t.warning
+				when 4 then
+					kc := t.danger
+				else
+					kc := t.accent
+				end
+				painter.set_color (kc)
+				painter.fill_rect (win_w - 18.0 - tw, ty + 3.0, 4.0, 24.0)
+				painter.set_color (t.background)
+				painter.text (win_w - 18.0 - tw + 14.0, ty + 20.0, it.txt)
+				ty := ty - 8.0
+				i := i - 1
+			end
 		end
 
 	blit
@@ -476,6 +639,17 @@ feature {NONE} -- State
 
 	popup: detachable SW_MENU
 			-- The open popup menu, drawn above everything.
+
+	dialog: detachable SW_DIALOG
+			-- The open modal dialog; owns all input while present.
+
+	toasts: ARRAYED_LIST [TUPLE [txt: STRING_32; tkind: INTEGER; life: INTEGER]]
+		attribute
+			create Result.make (4)
+		end
+
+	pending_surrogate: INTEGER
+			-- High half of a UTF-16 pair awaiting its partner.
 
 	dwell_ticks: INTEGER
 			-- Timer ticks the pointer has rested on the hovered widget.

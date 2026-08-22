@@ -108,6 +108,18 @@ feature -- Shapes
 			context.set_line_width (a_w).do_nothing
 		end
 
+	set_color_alpha (a_rgb: NATURAL_32; a_alpha: REAL_64)
+			-- Colour with transparency, for backdrops and washes.
+		require
+			alpha_in_range: a_alpha >= 0.0 and a_alpha <= 1.0
+		do
+			context.set_color_rgba (
+				a_rgb.bit_shift_right (16).bit_and (0xFF) / 255.0,
+				a_rgb.bit_shift_right (8).bit_and (0xFF) / 255.0,
+				a_rgb.bit_and (0xFF) / 255.0,
+				a_alpha).do_nothing
+		end
+
 	line (a_x1, a_y1, a_x2, a_y2, a_width: REAL_64)
 			-- A stroked segment in the current colour.
 		require
