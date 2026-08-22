@@ -92,11 +92,9 @@ feature -- Drawing
 			else
 				a_p.set_color (t.ink_muted)
 			end
-			a_p.context.arc (kx, cy, Knob_r - (if shows_hover or is_pressed then 0.0 else 2.0 end), 0.0, 6.2832).do_nothing
-			a_p.context.fill.do_nothing
+			a_p.circle_fill (kx, cy, Knob_r - (if shows_hover or is_pressed then 0.0 else 2.0 end))
 			a_p.set_color (t.surface)
-			a_p.context.arc (kx, cy, 3.0, 0.0, 6.2832).do_nothing
-			a_p.context.fill.do_nothing
+			a_p.circle_fill (kx, cy, 3.0)
 		end
 
 feature -- Input

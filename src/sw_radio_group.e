@@ -48,8 +48,14 @@ feature -- Element change
 		do
 			create s.make_from_string_general (a_text)
 			options.extend (s)
+			if selected_index = 0 then
+					-- a radio group always has exactly one choice; the
+					-- first option starts as it, silently.
+				selected_index := 1
+			end
 		ensure
 			grew: options.count = old options.count + 1
+			something_chosen: selected_index >= 1
 		end
 
 	with_option (a_text: READABLE_STRING_GENERAL): like Current
@@ -131,8 +137,7 @@ feature -- Drawing
 					a_p.set_color (t.outline)
 					a_p.set_line_width (1.5)
 				end
-				a_p.context.arc (cx + Dot_s / 2.0, cy, Dot_s / 2.0 - 1.0, 0.0, 6.2832).do_nothing
-				a_p.context.stroke.do_nothing
+				a_p.circle_stroke (cx + Dot_s / 2.0, cy, Dot_s / 2.0 - 1.0)
 				a_p.set_line_width (1.0)
 				if i = selected_index then
 					if is_enabled then
@@ -140,8 +145,7 @@ feature -- Drawing
 					else
 						a_p.set_color (t.ink_muted)
 					end
-					a_p.context.arc (cx + Dot_s / 2.0, cy, Dot_s / 2.0 - 6.0, 0.0, 6.2832).do_nothing
-					a_p.context.fill.do_nothing
+					a_p.circle_fill (cx + Dot_s / 2.0, cy, Dot_s / 2.0 - 6.0)
 				end
 				if is_enabled then
 					a_p.set_color (t.ink)

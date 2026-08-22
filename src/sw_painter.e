@@ -157,6 +157,31 @@ feature -- Shapes
 			fill_rect (a_x, a_y, 1.0, a_h)
 		end
 
+feature -- Circles
+
+	circle_stroke (a_cx, a_cy, a_r: REAL_64)
+			-- Outline a circle. Hygiene lives here: cairo's arc joins
+			-- from the current point with a straight line, so the path
+			-- is reset first - the 'dash through the circle' bug.
+		require
+			positive: a_r > 0.0
+		do
+			context.new_path.do_nothing
+			context.arc (a_cx, a_cy, a_r, 0.0, Two_pi).do_nothing
+			context.stroke.do_nothing
+		end
+
+	circle_fill (a_cx, a_cy, a_r: REAL_64)
+		require
+			positive: a_r > 0.0
+		do
+			context.new_path.do_nothing
+			context.arc (a_cx, a_cy, a_r, 0.0, Two_pi).do_nothing
+			context.fill.do_nothing
+		end
+
+	Two_pi: REAL_64 = 6.28319
+
 feature -- Images
 
 	draw_image (a_img: CAIRO_SURFACE; a_x, a_y, a_w, a_h: REAL_64)

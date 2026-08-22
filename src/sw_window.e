@@ -281,6 +281,38 @@ feature {NONE} -- Dispatch internals
 			shown: popup = a_m
 		end
 
+feature -- Sheets
+
+	show_sheet (a_content: SW_WIDGET; a_width: REAL_64)
+			-- Present `a_content' modally on a dimmed backdrop: the
+			-- sheet becomes the input root until closed. Popups still
+			-- open above it, so sheet widgets keep their menus.
+		require
+			positive: a_width > 0.0
+		do
+			sheet := a_content
+			sheet_width := a_width
+			if attached focused as f then
+				f.set_focused (False)
+			end
+			focused := Void
+		ensure
+			shown: sheet = a_content
+		end
+
+	close_sheet
+		do
+			sheet := Void
+			if attached focused as f then
+				f.set_focused (False)
+			end
+			focused := Void
+		ensure
+			closed: sheet = Void
+		end
+
+feature {NONE} -- Popup lifecycle
+
 	close_popup
 		do
 			popup := Void
@@ -308,7 +340,7 @@ feature {NONE} -- Dispatch internals
 			inspect a_type
 			when 2 then
 				if attached pick_pebble as pb then
-					if attached root as r then
+					if attached active_root as r then
 						w := r.widget_at (a_x, a_y)
 					end
 					if attached w as tw and then tw.is_enabled and then tw.accepts_pebble (pb) then
@@ -359,7 +391,7 @@ feature {NONE} -- Dispatch internals
 		do
 			inspect a_type
 			when 2 then
-				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
+				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
 					if w.accepts_focus and then w /= focused then
 						if attached focused as prev then
 							prev.set_focused (False)
@@ -384,7 +416,10 @@ feature {NONE} -- Dispatch internals
 					pending_surrogate := 0
 				else
 					pending_surrogate := 0
-					if attached focused as w then
+					if a_x = 27 and then sheet /= Void and then focused = Void then
+						close_sheet
+						after_input
+					elseif attached focused as w then
 						w.handle_char (a_x)
 						after_input
 					end
@@ -397,7 +432,7 @@ feature {NONE} -- Dispatch internals
 			when 6 then
 				blit
 			when 8 then
-				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
+				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
 					capture := bubble_click (w, a_x, a_y, True)
 				end
 				after_input
@@ -436,23 +471,23 @@ feature {NONE} -- Dispatch internals
 					after_input
 				end
 			when 17 then
-				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
+				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
 					pick_from (w, a_x, a_y)
 				end
 				after_input
 
 			when 15 then
-				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
+				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
 					bubble_wheel (w, ev_buf.read_integer_32 (12))
 				end
 				after_input
 			when 11 then
-				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
+				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
 					bubble_context (w, a_x, a_y)
 				end
 				after_input
 			when 12 then
-				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
+				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
 					if w.handle_triple_click (a_x, a_y) then
 					end
 				end
@@ -606,7 +641,7 @@ feature {NONE} -- Dispatch internals
 		local
 			w: detachable SW_WIDGET
 		do
-			if attached root as r then
+			if attached active_root as r then
 				w := r.widget_at (a_x, a_y)
 			end
 			if attached w as pw then
@@ -648,6 +683,18 @@ feature {NONE} -- Rendering
 			if attached pick_pebble as pb then
 				draw_pick_trajectory (pb)
 			end
+			if attached sheet as s then
+				painter.set_color_alpha (0x000000, 0.45)
+				painter.fill_rect (0.0, 0.0, win_w, win_h)
+				s.set_bounds ((win_w - sheet_width) / 2.0, 80.0, sheet_width,
+					s.preferred_height (painter, sheet_width).min (win_h - 160.0))
+				painter.set_color (theme.surface)
+				painter.rrect_fill (s.x - 16.0, s.y - 16.0, s.width + 32.0, s.height + 32.0, theme.radius + 4.0)
+				painter.set_color (theme.outline)
+				painter.rrect_stroke (s.x - 15.5, s.y - 15.5, s.width + 31.0, s.height + 31.0, theme.radius + 4.0)
+				s.arrange (painter)
+				s.draw (painter)
+			end
 			if attached popup as m then
 				m.draw (painter)
 			end
@@ -683,7 +730,7 @@ feature {NONE} -- Rendering
 			w: detachable SW_WIDGET
 			ok: BOOLEAN
 		do
-			if attached root as r then
+			if attached active_root as r then
 				w := r.widget_at (pick_cur_x, pick_cur_y)
 			end
 			if attached w as tw then
@@ -836,6 +883,21 @@ feature {NONE} -- State
 
 	popup: detachable SW_MENU
 			-- The open popup menu, drawn above everything.
+
+	sheet: detachable SW_WIDGET
+			-- The modal sheet content, if one is up.
+
+	sheet_width: REAL_64
+
+	active_root: detachable SW_WIDGET
+			-- Where input lands: the sheet while one is up, else root.
+		do
+			if attached sheet as s then
+				Result := s
+			else
+				Result := root
+			end
+		end
 
 	dialog: detachable SW_DIALOG
 			-- The open modal dialog; owns all input while present.

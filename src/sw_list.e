@@ -18,7 +18,7 @@ inherit
 	SW_WIDGET
 		redefine
 			widget_at, handle_wheel, handle_click, handle_drag,
-			wants_hover_point, pebble_at
+			wants_hover_point, pebble_at, handle_double_click
 		end
 
 create
@@ -53,6 +53,9 @@ feature -- Access
 			-- Draws one row: (painter, index, x, y, width, height).
 
 	on_select: detachable PROCEDURE [INTEGER]
+
+	on_activate: detachable PROCEDURE [INTEGER]
+			-- Fired when a row is double-clicked (after selection).
 
 	row_pebble: detachable FUNCTION [INTEGER, detachable ANY]
 			-- Supplies the pebble a given row offers to pick-and-drop.
@@ -148,6 +151,13 @@ feature -- Element change
 			set: row_renderer = a_r
 		end
 
+	set_on_activate (a_action: PROCEDURE [INTEGER])
+		do
+			on_activate := a_action
+		ensure
+			set: on_activate = a_action
+		end
+
 	set_row_pebble (a_f: FUNCTION [INTEGER, detachable ANY])
 		do
 			row_pebble := a_f
@@ -175,17 +185,23 @@ feature -- Element change
 		end
 
 	scroll_to_row (a_i: INTEGER)
-			-- Bring row `a_i' into the viewport.
+			-- Bring row `a_i' into the viewport. Before layout there
+			-- is no viewport: the call degrades to 'top the list at
+			-- that row', and visibility is only promised once laid
+			-- out. (Found by this very postcondition, in live fire.)
 		require
 			in_range: a_i >= 1 and a_i <= row_count
 		do
-			if (a_i - 1) * row_height < scroll_y then
+			if height <= 0.0 then
+				scroll_y := (a_i - 1) * row_height
+			elseif (a_i - 1) * row_height < scroll_y then
 				scroll_y := (a_i - 1) * row_height
 			elseif a_i * row_height > scroll_y + height then
 				scroll_y := (a_i * row_height - height).max (0.0)
 			end
 		ensure
-			visible: a_i >= first_visible and a_i <= last_visible
+			visible_once_laid_out: height > 0.0 implies
+				(a_i >= first_visible and a_i <= last_visible)
 		end
 
 feature -- Layout
@@ -212,6 +228,7 @@ feature -- Drawing
 			ry, inner_w, track_h, thumb_h, thumb_y: REAL_64
 		do
 			t := a_p.theme
+			scroll_y := scroll_y.min (max_scroll)
 			a_p.push_clip (x, y, width, height)
 			inner_w := width - Bar_w - 4.0
 			if row_count > 0 and then attached row_renderer as rr then
@@ -278,6 +295,20 @@ feature -- Input
 				i := row_at (a_py)
 				if i > 0 then
 					select_row (i)
+				end
+			end
+			Result := True
+		end
+
+	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
+		local
+			i: INTEGER
+		do
+			i := row_at (a_py)
+			if i > 0 and a_px < x + width - Bar_w then
+				select_row (i)
+				if attached on_activate as a then
+					a.call (i)
 				end
 			end
 			Result := True

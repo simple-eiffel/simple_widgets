@@ -299,6 +299,8 @@ feature {NONE} -- Behaviour
 			create Result.make
 			Result.add_item ("New Session", "Ctrl+N", True, agent on_menu_new)
 			Result.add_item ("Save", "Ctrl+S", True, agent on_menu_save)
+			Result.add_item ("Open%/8230/", "", True, agent on_open_file)
+			Result.add_item ("Save As%/8230/", "", True, agent on_save_file)
 			Result.add_separator
 			Result.add_item ("Quit (decorative)", "", False, Void)
 		end
@@ -327,6 +329,38 @@ feature {NONE} -- Behaviour
 		do
 			window.toast ("Saved (nothing, honestly)", 2)
 			statusbar.set_left ("save requested")
+		end
+
+	on_open_file
+		local
+			fd: SW_FILE_DIALOG
+		do
+			create fd.make_open ("D:/prod/simple_widgets")
+			fd.set_on_accept (agent on_file_chosen)
+			fd.set_on_cancel (agent on_file_cancelled)
+			window.show_sheet (fd, 560.0)
+		end
+
+	on_save_file
+		local
+			fd: SW_FILE_DIALOG
+		do
+			create fd.make_save ("D:/prod/simple_widgets", "untitled.txt")
+			fd.set_on_accept (agent on_file_chosen)
+			fd.set_on_cancel (agent on_file_cancelled)
+			window.show_sheet (fd, 560.0)
+		end
+
+	on_file_chosen (a_path: STRING_32)
+		do
+			window.close_sheet
+			statusbar.set_left ({STRING_32} "file: " + a_path)
+			window.toast ({STRING_32} "Chosen: " + a_path, 2)
+		end
+
+	on_file_cancelled
+		do
+			window.close_sheet
 		end
 
 	on_about
