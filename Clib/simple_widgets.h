@@ -4,8 +4,8 @@
    BitBlts straight into a caller-supplied cairo ARGB32 buffer (the
    pure-route replacement for EV_SCREEN.sub_pixmap). */
 
-#ifndef OCR_CAIRO_WIN_H
-#define OCR_CAIRO_WIN_H
+#ifndef SIMPLE_WIDGETS_H
+#define SIMPLE_WIDGETS_H
 
 #include <windows.h>
 #pragma comment(lib, "shell32.lib")
@@ -42,6 +42,10 @@ static LRESULT CALLBACK sw_wndproc(HWND h, UINT m, WPARAM w, LPARAM l) {
             return 0;
         case WM_LBUTTONDBLCLK:
             sw_push(8, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
+            return 0;
+        case WM_RBUTTONDOWN:
+            SetFocus(h);
+            sw_push(11, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
             return 0;
         case WM_MOUSEMOVE:
             if (w & MK_LBUTTON)
@@ -315,7 +319,6 @@ static int sw_minutes_of_day(void) {
     return (int)st.wHour * 60 + (int)st.wMinute;
 }
 
-#endif /* OCR_CAIRO_WIN_H */
 
 /* Private font loading: the vendored TTFs become selectable by family name
    through Cairo's Win32 font backend, process-only (FR_PRIVATE), no install. */
@@ -326,3 +329,56 @@ static int sw_add_font (const char *path) {
 static int sw_shift_down(void) {
     return (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0;
 }
+
+/* ---- clipboard (CF_UNICODETEXT) ---- */
+static int sw_clip_set (const wchar_t *s) {
+    size_t n; HGLOBAL h; wchar_t *dst;
+    if (!OpenClipboard(s_sw_hwnd)) return 0;
+    EmptyClipboard();
+    n = wcslen(s);
+    h = GlobalAlloc(GMEM_MOVEABLE, (n + 1) * sizeof(wchar_t));
+    if (h) {
+        dst = (wchar_t*)GlobalLock(h);
+        memcpy(dst, s, (n + 1) * sizeof(wchar_t));
+        GlobalUnlock(h);
+        SetClipboardData(CF_UNICODETEXT, h);
+    }
+    CloseClipboard();
+    return h ? 1 : 0;
+}
+
+static int sw_clip_get (wchar_t *buf, int cap) {
+    HANDLE h; wchar_t *src; int n = 0;
+    if (!OpenClipboard(s_sw_hwnd)) return 0;
+    h = GetClipboardData(CF_UNICODETEXT);
+    if (h) {
+        src = (wchar_t*)GlobalLock(h);
+        if (src) {
+            while (n < cap - 1 && src[n]) { buf[n] = src[n]; n++; }
+            buf[n] = 0;
+            GlobalUnlock(h);
+        }
+    }
+    CloseClipboard();
+    return n;
+}
+
+static int sw_clip_has_text (void) {
+    return IsClipboardFormatAvailable(CF_UNICODETEXT) ? 1 : 0;
+}
+
+/* ---- native text context menu: returns 1 Cut, 2 Copy, 3 Paste, 4 Select All, 0 none ---- */
+static int sw_text_menu (int can_cut, int can_copy, int can_paste, int can_select) {
+    HMENU m; POINT pt; int r;
+    m = CreatePopupMenu();
+    AppendMenuW(m, can_cut ? MF_STRING : MF_STRING | MF_GRAYED, 1, L"Cu&t	Ctrl+X");
+    AppendMenuW(m, can_copy ? MF_STRING : MF_STRING | MF_GRAYED, 2, L"&Copy	Ctrl+C");
+    AppendMenuW(m, can_paste ? MF_STRING : MF_STRING | MF_GRAYED, 3, L"&Paste	Ctrl+V");
+    AppendMenuW(m, MF_SEPARATOR, 0, 0);
+    AppendMenuW(m, can_select ? MF_STRING : MF_STRING | MF_GRAYED, 4, L"Select &All	Ctrl+A");
+    GetCursorPos(&pt);
+    r = (int)TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, s_sw_hwnd, 0);
+    DestroyMenu(m);
+    return r;
+}
+#endif

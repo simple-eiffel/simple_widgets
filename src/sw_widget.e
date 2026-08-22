@@ -125,6 +125,11 @@ feature -- Input
 		do
 		end
 
+	handle_context (a_px, a_py: REAL_64): BOOLEAN
+			-- React to a right-click; True when consumed.
+		do
+		end
+
 	handle_char (a_code: INTEGER)
 		do
 		end

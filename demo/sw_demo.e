@@ -22,7 +22,7 @@ feature {NONE} -- Initialization
 			buttons: SW_ROW
 		do
 			create theme.make_light
-			create counter_label.make_mono ("clicks: 0")
+			create counter_label.make ("clicks: 0  %/8212/ buttons report HERE", {SW_PAINTER}.Role_mono, 14.0, True)
 			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on running until the wrap engine breaks the line exactly where the measured advances say it must.")
 			create window.make ("simple_widgets demo", 8, 8, 900, 560, theme)
 			window.add_font ("D:\prod\simple_narrate\fonts\Archivo.ttf").do_nothing
@@ -77,12 +77,13 @@ feature {NONE} -- Behaviour
 	on_click_me
 		do
 			clicks := clicks + 1
-			counter_label.set_text ("clicks: " + clicks.out)
+			counter_label.set_text ("clicks: " + clicks.out + "  %/8212/ Click Me works!")
 			window.log_line ("demo: clicked " + clicks.out)
 		end
 
 	on_log_only
 		do
+			counter_label.set_text ("Log Only pressed %/8212/ also wrote sw_session.log")
 			window.log_line ("demo: log-only button")
 		end
 

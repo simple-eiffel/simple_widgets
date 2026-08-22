@@ -198,7 +198,29 @@ feature {NONE} -- Dispatch
 				end
 			when 10 then
 				capture := Void
+			when 11 then
+				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
+					bubble_context (w, a_x, a_y)
+				end
+				after_input
 			else
+			end
+		end
+
+	bubble_context (a_target: SW_WIDGET; a_x, a_y: INTEGER)
+		local
+			w: detachable SW_WIDGET
+			handled: BOOLEAN
+		do
+			from
+				w := a_target
+			until
+				handled or w = Void
+			loop
+				handled := w.handle_context (a_x, a_y)
+				if not handled then
+					w := w.parent
+				end
 			end
 		end
 

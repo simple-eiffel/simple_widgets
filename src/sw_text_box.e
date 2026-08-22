@@ -19,7 +19,7 @@ inherit
 	SW_WIDGET
 		redefine
 			accepts_focus, handle_click, handle_double_click,
-			handle_drag, handle_char, handle_key
+			handle_drag, handle_char, handle_key, handle_context
 		end
 
 create
@@ -80,6 +80,59 @@ feature -- Status
 			end
 		ensure
 			empty_without_selection: not has_selection implies Result.is_empty
+		end
+
+feature -- Clipboard and selection commands
+
+	select_all
+		do
+			sel_anchor := 0
+			caret := text.count
+		ensure
+			all_selected: text.count > 0 implies has_selection
+		end
+
+	copy_selection
+		local
+			clip: SW_CLIPBOARD
+		do
+			if has_selection then
+				create clip
+				clip.set_text (selected_text)
+			end
+		end
+
+	cut_selection
+		do
+			if not is_read_only and then has_selection then
+				copy_selection
+				delete_selection
+				changed
+			end
+		end
+
+	paste_clipboard
+		local
+			clip: SW_CLIPBOARD
+			s: STRING_32
+		do
+			if not is_read_only then
+				create clip
+				s := clip.text
+				s.prune_all ('%R')
+				if is_single_line then
+					s.replace_substring_all ({STRING_32} "%N", {STRING_32} " ")
+				end
+				if not s.is_empty then
+					if has_selection then
+						delete_selection
+					end
+					text.insert_string (s, caret + 1)
+					caret := caret + s.count
+					sel_anchor := caret
+					changed
+				end
+			end
 		end
 
 feature -- Element change
@@ -224,7 +277,15 @@ feature -- Input
 
 	handle_char (a_code: INTEGER)
 		do
-			if not is_read_only then
+			if a_code = 1 then -- Ctrl+A
+				select_all
+			elseif a_code = 3 then -- Ctrl+C
+				copy_selection
+			elseif a_code = 24 then -- Ctrl+X
+				cut_selection
+			elseif a_code = 22 then -- Ctrl+V
+				paste_clipboard
+			elseif not is_read_only then
 				if a_code = 8 then
 					if has_selection then
 						delete_selection
@@ -247,6 +308,39 @@ feature -- Input
 					sel_anchor := caret
 					changed
 				end
+			end
+		end
+
+	handle_context (a_px, a_py: REAL_64): BOOLEAN
+			-- The standard text menu. A right-click outside the current
+			-- selection moves the caret there first, as every editor does.
+		local
+			menu: SW_NATIVE_MENU
+			clip: SW_CLIPBOARD
+			c: INTEGER
+		do
+			Result := True
+			c := offset_at (a_px, a_py)
+			if not (has_selection and then c >= sel_anchor.min (caret) and then c <= sel_anchor.max (caret)) then
+				caret := c
+				sel_anchor := c
+			end
+			create menu
+			create clip
+			inspect menu.text_context_menu (
+				has_selection and not is_read_only,
+				has_selection,
+				clip.has_text and not is_read_only,
+				text.count > 0)
+			when 1 then
+				cut_selection
+			when 2 then
+				copy_selection
+			when 3 then
+				paste_clipboard
+			when 4 then
+				select_all
+			else
 			end
 		end
 
