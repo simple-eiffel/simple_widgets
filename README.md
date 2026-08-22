@@ -38,6 +38,16 @@ binds through agents.
   input hooks. Containers (`SW_ROW`, `SW_COLUMN`, `SW_CARD`) place
   children; nobody else does coordinate arithmetic.
 
+## Platform notes
+
+- The toolkit is Windows-only by charter (pure Win32 + simple_cairo).
+- SW_SPELLER rides Windows' inbox ISpellChecker (Windows 8+): the
+  spelling squiggles and suggestions are a WINDOWS-ONLY service and
+  do not exist elsewhere. A future port would swap this seam for a
+  portable engine (SymSpell, MIT).
+- SW_CLIPBOARD, SW_KEYS and the font loader are likewise Win32
+  services behind SURFACE-layer seams.
+
 ## Status
 
 V0 - harvested from two production faces (simple_ocr_capture 1.8.0

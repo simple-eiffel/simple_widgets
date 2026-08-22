@@ -4,6 +4,12 @@ note
 		SURFACE-layer service - the zero-model, zero-license AI-assist:
 		misspelling ranges for a text, suggestions for a word. Absent
 		language support degrades to no findings, never to failure.
+
+		WINDOWS-ONLY: ISpellChecker is a Windows 8+ platform service.
+		On any other OS this class must be replaced (SymSpell, MIT, is
+		the portable path) - it will not merely degrade, it will not
+		exist. The toolkit itself is currently Win32-only by charter,
+		but any future port must treat this service as a seam.
 	]"
 
 class
