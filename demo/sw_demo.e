@@ -44,6 +44,7 @@ feature {NONE} -- Initialization
 			create cal.make
 			create fleet_tree.make (200.0)
 			create color_picker.make (0x4D8FD6)
+			create dropzone.make ("Drop files here from Explorer")
 			create date_us.make_picker
 			create date_iso.make_picker
 			create time_12.make_picker
@@ -147,7 +148,7 @@ feature {NONE} -- Initialization
 			body.put (tabs_card (theme))
 			body.put (list_card (theme))
 			statusbar.set_left ("ready %/8212/ every pixel drawn by simple_widgets")
-			statusbar.set_right ("58 widgets and counting")
+			statusbar.set_right ("59 widgets and counting")
 			create body_scroll.make (400.0)
 			body_scroll.set_child (body)
 			root.put (body_scroll.growing)
@@ -263,6 +264,8 @@ feature {NONE} -- Initialization
 			page.put (fleet_tree)
 			color_picker.set_on_change (agent on_color_changed)
 			page.put (color_picker)
+			dropzone.set_on_drop (agent on_files_dropped)
+			page.put (dropzone)
 			page.put ((create {SW_LABEL}.make_ui ("SW_TREE %/8212/ lazy children via agents; arrows navigate, left/right fold. SW_COLOR_PICKER %/8212/ drag the field and the bar.")).as_muted)
 			tabs.add_page ("Tree & Color", page)
 			tabs.set_on_change (agent on_tab_changed)
@@ -426,6 +429,15 @@ feature {NONE} -- Initialization
 		end
 
 	fleet_tree: SW_TREE [DEMO_NODE]
+
+	dropzone: SW_DROPZONE
+
+	on_files_dropped (a_paths: ARRAYED_LIST [STRING_32])
+		do
+			statusbar.set_left ({STRING_32} "dropped " + a_paths.count.out
+				+ {STRING_32} " file(s): " + a_paths.first)
+			window.toast ({STRING_32} "Received " + a_paths.count.out + {STRING_32} " file(s)", 2)
+		end
 
 	color_picker: SW_COLOR_PICKER
 

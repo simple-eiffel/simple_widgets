@@ -546,6 +546,8 @@ feature {NONE} -- Popup lifecycle
 					hovered := Void
 					after_input
 				end
+			when 18 then
+				deliver_drop (a_x, a_y)
 			when 17 then
 				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
 					pick_from (w, a_x, a_y)
@@ -686,6 +688,70 @@ feature {NONE} -- Popup lifecycle
 			end
 		ensure
 			fits: win_w <= alloc_w and win_h <= alloc_h
+		end
+
+	deliver_drop (a_x, a_y: INTEGER)
+			-- Files landed at (a_x, a_y): fetch the paths from the
+			-- pump's buffer, then walk the spine from the widget
+			-- under the point to the first that welcomes files.
+		local
+			paths: ARRAYED_LIST [STRING_32]
+			w: detachable SW_WIDGET
+		do
+			paths := take_dropped_paths
+			if not paths.is_empty and then attached active_root as r then
+				w := r.widget_at (a_x, a_y)
+				from
+				until
+					w = Void or else (w.is_enabled and then w.accepts_files)
+				loop
+					w := w.parent
+				end
+				if attached w as tw then
+					tw.receive_files (paths, a_x, a_y)
+					after_input
+				end
+			end
+		end
+
+	take_dropped_paths: ARRAYED_LIST [STRING_32]
+			-- The pump's dropped paths, surrogate-paired (R8), split
+			-- on the newline joins; the buffer clears on read.
+		local
+			buf: MANAGED_POINTER
+			n, i: INTEGER
+			c: NATURAL_16
+			cur: STRING_32
+		do
+			create Result.make (4)
+			create buf.make (32768)
+			n := c_drop_paths (buf.item, 16384)
+			create cur.make (64)
+			from
+				i := 0
+			until
+				i >= n
+			loop
+				c := buf.read_natural_16 (i * 2)
+				if c = 10 then
+					if not cur.is_empty then
+						Result.extend (cur.twin)
+						cur.wipe_out
+					end
+					i := i + 1
+				elseif c >= 0xD800 and c <= 0xDBFF and i + 1 < n then
+					cur.append_code (0x10000
+						+ (c.to_natural_32 - 0xD800) * 0x400
+						+ (buf.read_natural_16 ((i + 1) * 2).to_natural_32 - 0xDC00))
+					i := i + 2
+				else
+					cur.append_character (c.to_character_32)
+					i := i + 1
+				end
+			end
+			if not cur.is_empty then
+				Result.extend (cur)
+			end
 		end
 
 	pick_from (a_target: SW_WIDGET; a_x, a_y: INTEGER)
@@ -1341,6 +1407,13 @@ feature {NONE} -- Externals
 			"C inline use %"simple_widgets.h%""
 		alias
 			"return sw_add_font((const char*)$a_path);"
+		end
+
+	c_drop_paths (a_buf: POINTER; a_cap: INTEGER): INTEGER
+		external
+			"C inline use %"simple_widgets.h%""
+		alias
+			"return sw_drop_paths((wchar_t*)$a_buf, $a_cap);"
 		end
 
 	c_shift_down: INTEGER

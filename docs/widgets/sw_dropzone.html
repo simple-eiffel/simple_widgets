@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_DROPZONE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_DROPZONE</h1>
+        <p class="tagline">Files from the shell: WM_DROPFILES caught in the pump, walked up the spine, delivered to on_drop.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_DROPZONE is the visible half of a window-wide capability: the pump now accepts shell drags (<code>DragAcceptFiles</code>) and answers <code>WM_DROPFILES</code> by buffering every dropped path (wide, newline-joined - the clipboard pull pattern, since the event queue carries only integers) and pushing event 18 with the drop point. The window parses the buffer (surrogate-paired, R8), splits the paths, and walks the spine from the widget under the point to the first whose <strong><code>accepts_files</code></strong> is true, handing it <code>receive_files (paths, x, y)</code> - the pebble protocol's file-shaped sibling, available to ANY widget that opts in.</p>
+            <p>The zone itself draws a tray-and-arrow glyph with an invitation line, brightens on hover, and fires <code>on_drop (paths)</code>; <code>last_paths</code> keeps the most recent delivery. Proven both ways on day one: a forged HDROP through the full chain, and Larry's real drag from Explorer.</p>
+            <p class="muted"><em>Source: <code>src/sw_dropzone.e</code> &middot; since Wave 3 finale (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Receiving files</h2>
+<pre><code><span class="keyword">create</span> dropzone.make (<span <span class="keyword">class</span>="string">&quot;Drop files here <span class="keyword">from</span> Explorer&quot;</span>)
+dropzone.set_on_drop (<span class="keyword">agent</span> on_files_dropped)
+page.put (dropzone)
+
+on_files_dropped (a_paths: <span class="type">ARRAYED_LIST</span> [<span class="type">STRING_32</span>])
+    <span class="keyword">do</span>
+        statusbar.set_left ({<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot;dropped &quot;</span> + a_paths.count.out
+            + {<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot; file(s): &quot;</span> + a_paths.first)
+    <span class="keyword">end</span>
+
+<span class="comment">-- ANY widget may opt in instead:</span>
+<span class="comment">--   redefine accepts_files (True when willing) and receive_files.</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No drag-OVER tracking: WM_DROPFILES delivers only the final drop, so there is no highlight-while-dragging (that is OLE DnD - an S04 future). Hover highlight is mouse-based.</li>
+                <li>Paths only - no in-memory data formats (also OLE territory).</li>
+                <li>The pump's drop buffer holds 16K wide characters; a pathological thousand-file drop truncates (count arrives intact).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Drops route through active_root like clicks: a drop while a modal sheet is up lands in the sheet's tree, not the page beneath - consistent, and occasionally surprising.</li>
+                <li>receive_files requires accepts_files (a contract): redefine them TOGETHER.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>OLE DnD for drag-over feedback, drag-out (exporting), and data formats.</li>
+                <li>Extension filtering convenience on the zone (the file dialog's suffix rule).</li>
+                <li>Directory drops expanded to contents on request.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — Wave 3 in progress
 
 ### Added
+- SW_DROPZONE + the file-drop protocol: the pump accepts shell drags
+  (DragAcceptFiles) and answers WM_DROPFILES by buffering wide paths
+  (clipboard pull pattern) and pushing event 18 with the drop point;
+  the window surrogate-parses, splits, and walks the spine to the
+  first widget whose accepts_files welcomes - receive_files is the
+  pebble protocol's file-shaped sibling, open to ANY widget. Proven
+  by a forged HDROP through the full chain AND Larry's real Explorer
+  drag. 74/74 assaults. (No drag-over tracking - that is OLE DnD,
+  an S04 future.)
 - SW_TREE [G]: hierarchy over host nodes via agents (roots/children/
   label); children called LAZILY (probe counting is test-pinned:
   grandchildren of collapsed nodes are never touched); expansion and

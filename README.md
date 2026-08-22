@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-73%2F73-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-74%2F74-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -16,8 +16,8 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-🚧 **Waves 1–2 complete, Wave 3 underway** — 58 classes
-- 73 contract-assault tests passing, five consecutive clean runs
+🚧 **Waves 1–2 complete, Wave 3 underway** — 59 classes
+- 74 contract-assault tests passing, five consecutive clean runs
 - Every widget frame-proven in the live showroom (`demo/sw_demo.e`)
 - Windows-only today (the SURFACE layer is Win32); everything above it is portable by design
 
@@ -59,7 +59,8 @@ drawn menus (built fresh on every open), menu bar (builder agents), toolbar
 
 **Dialogs & media** — drawn modal alerts, a complete drawn **file dialog**
 (open/save, dirs-first listing, extension filter — base PATH/DIRECTORY only),
-PNG display with contain scaling.
+PNG display with contain scaling; a shell-drop zone (WM_DROPFILES
+through the widget spine to any opted-in control).
 
 **Services** — clipboard (Unicode, surrogate-safe, hardened against
 clipboard-history races), modifier keys, ISpellChecker wrapper.
@@ -134,8 +135,8 @@ cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 
 Wave 3 is nearly closed (tree, data grid, calendar/date/time pickers,
 drawers with peek-and-pin, popovers, accordion, stepper, badges, avatars,
-canvas, sheet, colour picker — all shipped); its finale is SW_DROPZONE
-(WM_DROPFILES) and the dev-mode SW_INSPECTOR (reflection-driven, compiled
+canvas, sheet, colour picker — all shipped); its finale is the dev-mode SW_INSPECTOR
+(SW_DROPZONE shipped: real Explorer drags land) (reflection-driven, compiled
 out of release builds via `debug ("dev_mode")`). Then Wave 4 charts on
 SW_PAINTER, Wave 5 enterprise composites (spreadsheet doctrine:
 SHEET -> DATA_GRID -> SPREADSHEET; true docking), Wave 6 media +

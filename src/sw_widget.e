@@ -342,6 +342,20 @@ feature -- Input
 			Result := pebble_item
 		end
 
+	accepts_files: BOOLEAN
+			-- Does this widget welcome files dropped from the shell?
+			-- The pebble protocol's file-shaped sibling.
+		do
+		end
+
+	receive_files (a_paths: ARRAYED_LIST [STRING_32]; a_px, a_py: REAL_64)
+			-- Take the dropped paths (drop point in widget space).
+		require
+			welcome: accepts_files
+			something: not a_paths.is_empty
+		do
+		end
+
 	pebble_at (a_px, a_py: REAL_64): detachable ANY
 			-- The pebble offered at a specific point - by default the
 			-- widget-wide `pebble'. Virtualized widgets redefine this

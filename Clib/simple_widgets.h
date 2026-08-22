@@ -8,6 +8,7 @@
 #define SIMPLE_WIDGETS_H
 
 #include <windows.h>
+#include <shellapi.h>
 #pragma comment(lib, "shell32.lib")
 
 /* Event queue: [type, a, b, c] per slot.
@@ -20,6 +21,8 @@ static int  s_sw_tracking = 0;
 static int  s_sw_dbl_x = 0, s_sw_dbl_y = 0;
 static HWND s_sw_overlay = 0;
 static int  s_sw_q[SW_QCAP][4];
+static wchar_t s_sw_drops[16384];
+static int  s_sw_drops_len = 0;
 static int  s_sw_qhead = 0, s_sw_qtail = 0;
 
 static void sw_push(int t, int a, int b, int c) {
@@ -100,6 +103,29 @@ static LRESULT CALLBACK sw_wndproc(HWND h, UINT m, WPARAM w, LPARAM l) {
                     sw_push(16, (int)LOWORD(l), (int)HIWORD(l), 0);
             }
             return 0;
+        case WM_DROPFILES: {
+            /* join every dropped path with newline into the static
+               buffer; Eiffel pulls it on event 18 (the clipboard
+               pull pattern - the queue carries only ints) */
+            HDROP hd = (HDROP)w;
+            POINT dp;
+            UINT n, i, len;
+            s_sw_drops_len = 0;
+            DragQueryPoint(hd, &dp);
+            n = DragQueryFileW(hd, 0xFFFFFFFF, NULL, 0);
+            for (i = 0; i < n; i++) {
+                len = DragQueryFileW(hd, i, NULL, 0);
+                if (s_sw_drops_len + (int)len + 2 >= 16384) break;
+                if (s_sw_drops_len > 0)
+                    s_sw_drops[s_sw_drops_len++] = L'\n';
+                DragQueryFileW(hd, i, s_sw_drops + s_sw_drops_len, 16384 - s_sw_drops_len);
+                s_sw_drops_len += (int)len;
+            }
+            s_sw_drops[s_sw_drops_len] = 0;
+            DragFinish(hd);
+            sw_push(18, (int)dp.x, (int)dp.y, (int)n);
+            return 0;
+        }
         case WM_MOUSEWHEEL: {
             POINT wp;
             int last;
@@ -209,6 +235,7 @@ static void* sw_create_window(const wchar_t* title, int px, int py, int cw, int 
         ShowWindow(h, SW_SHOW);
         UpdateWindow(h);
         SetTimer(h, 1, 250, 0);
+        DragAcceptFiles(h, TRUE);
     }
     return (void*)h;
 }
@@ -406,6 +433,15 @@ static int sw_shift_down(void) {
 }
 
 /* ---- clipboard (CF_UNICODETEXT) ---- */
+static int sw_drop_paths (wchar_t *buf, int cap) {
+    int n = s_sw_drops_len;
+    if (n >= cap) n = cap - 1;
+    memcpy(buf, s_sw_drops, n * sizeof(wchar_t));
+    buf[n] = 0;
+    s_sw_drops_len = 0;
+    return n;
+}
+
 static int sw_clip_set (const wchar_t *s) {
     size_t n; HGLOBAL h; wchar_t *dst;
     if (!OpenClipboard(s_sw_hwnd)) return 0;

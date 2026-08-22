@@ -101,6 +101,37 @@ feature -- Tree
 				attached tr.selected_node as sn2 and then sn2.label.same_string_general ("a2"))
 		end
 
+feature -- Dropzone
+
+	test_dropzone_contract
+		local
+			dz: SW_DROPZONE
+			paths: ARRAYED_LIST [STRING_32]
+		do
+			create dz.make ("Drop here")
+			assert ("welcomes files when enabled", dz.accepts_files)
+			dz.set_enabled (False)
+			assert ("disabled refuses", not dz.accepts_files)
+			dz.set_enabled (True)
+			create paths.make (2)
+			paths.extend ({STRING_32} "C:/one.txt")
+			paths.extend ({STRING_32} "C:/two.png")
+			dropped_count := 0
+			dz.set_on_drop (agent record_drop)
+			dz.receive_files (paths, 10.0, 10.0)
+			assert_integers_equal ("agent told twice-blessed", 2, dropped_count)
+			assert ("last drop kept", dz.last_paths = paths)
+		end
+
+feature {NONE} -- Drop recording
+
+	dropped_count: INTEGER
+
+	record_drop (a_paths: ARRAYED_LIST [STRING_32])
+		do
+			dropped_count := a_paths.count
+		end
+
 feature -- Colour
 
 	test_hsv_to_rgb_known_values
