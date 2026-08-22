@@ -31,7 +31,7 @@ feature {NONE} -- Initialization
 			kind_select.add_option ("Warning")
 			kind_select.add_option ("Danger")
 			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on running until the wrap engine breaks the line exactly where the measured advances say it must.")
-			create window.make ("simple_widgets demo", 2920, 8, 900, 780, theme)
+			create window.make ("simple_widgets demo", 2560, 8, 900, 780, theme)
 				-- agents only from here down: every attached attribute is set
 			create danger_button.make ("Danger", Void)
 			danger_button.set_on_click (agent on_log_only)
@@ -74,6 +74,7 @@ feature {NONE} -- Initialization
 			buttons.put (kind_select)
 			buttons.put (create {SW_BUTTON}.make ("Toast It", agent on_toast))
 			buttons.put ((create {SW_BUTTON}.make ("Delete%/8230/", agent on_delete)).as_kind ({SW_BUTTON}.Kind_danger))
+			buttons.put (((create {SW_BUTTON}.make ("I grow with the window", Void)).disabled).growing)
 			card.put (buttons)
 			root.put (card)
 

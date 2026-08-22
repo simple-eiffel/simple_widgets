@@ -76,6 +76,84 @@ feature -- Geometry
 				and then a_py >= y and then a_py <= y + height
 		end
 
+feature -- Sizing policy (the containership vocabulary)
+
+	grow: REAL_64
+			-- Share of a container's leftover space this widget claims;
+			-- 0 = natural size only (the default). Vision2's expanded
+			-- item and the web's flex-grow, unified.
+
+	min_width: REAL_64
+	min_height: REAL_64
+	max_width: REAL_64
+	max_height: REAL_64
+			-- Anchors; 0 means unset.
+
+	set_grow (a_g: REAL_64)
+		require
+			non_negative: a_g >= 0.0
+		do
+			grow := a_g
+		ensure
+			set: grow = a_g
+		end
+
+	growing: like Current
+			-- Fluent: claim leftover space with weight 1. (Vision2
+			-- called this expanded - an Eiffel keyword, so: growing.)
+		do
+			grow := 1.0
+			Result := Current
+		ensure
+			growing: grow = 1.0
+			chained: Result = Current
+		end
+
+	with_min_size (a_w, a_h: REAL_64): like Current
+			-- Fluent minimum anchors (0 leaves an axis unset).
+		require
+			sane: a_w >= 0.0 and a_h >= 0.0
+		do
+			min_width := a_w
+			min_height := a_h
+			Result := Current
+		ensure
+			chained: Result = Current
+		end
+
+	with_max_size (a_w, a_h: REAL_64): like Current
+			-- Fluent maximum anchors (0 leaves an axis unset).
+		require
+			sane: a_w >= 0.0 and a_h >= 0.0
+		do
+			max_width := a_w
+			max_height := a_h
+			Result := Current
+		ensure
+			chained: Result = Current
+		end
+
+	clamped_width (a_natural: REAL_64): REAL_64
+			-- `a_natural' pulled inside the anchors.
+		do
+			Result := a_natural.max (min_width)
+			if max_width > 0.0 then
+				Result := Result.min (max_width)
+			end
+		ensure
+			at_least_minimum: Result >= min_width
+		end
+
+	clamped_height (a_natural: REAL_64): REAL_64
+		do
+			Result := a_natural.max (min_height)
+			if max_height > 0.0 then
+				Result := Result.min (max_height)
+			end
+		ensure
+			at_least_minimum: Result >= min_height
+		end
+
 feature -- Layout
 
 	preferred_width (a_p: SW_PAINTER): REAL_64
@@ -250,5 +328,8 @@ feature {NONE} -- Implementation
 invariant
 	sane_size: width >= 0.0 and height >= 0.0
 	pressed_only_when_enabled: is_pressed implies is_enabled
+	grow_non_negative: grow >= 0.0
+	anchors_sane: min_width >= 0.0 and min_height >= 0.0
+		and max_width >= 0.0 and max_height >= 0.0
 
 end

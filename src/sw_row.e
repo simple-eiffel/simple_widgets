@@ -76,18 +76,45 @@ feature -- Layout
 		end
 
 	arrange (a_p: SW_PAINTER)
+			-- Natural widths first; leftover space then splits among
+			-- growers by weight - the containership pass.
 		local
-			cx, cw, ch: REAL_64
+			cx, cw, ch, natural, leftover, total_grow: REAL_64
+			widths: ARRAYED_LIST [REAL_64]
+			i: INTEGER
 		do
-			cx := x
+			create widths.make (children.count)
 			across
 				children as c
 			loop
-				cw := c.preferred_width (a_p)
-				ch := c.preferred_height (a_p, cw)
-				c.set_bounds (cx, y + (height - ch) / 2.0, cw, ch)
-				c.arrange (a_p)
+				widths.extend (c.clamped_width (c.preferred_width (a_p)))
+				natural := natural + widths.last
+				total_grow := total_grow + c.grow
+			end
+			if children.count > 1 then
+				natural := natural + gap * (children.count - 1)
+			end
+			leftover := width - natural
+			cx := x
+			from
+				i := 1
+			until
+				i > children.count
+			loop
+				cw := widths.i_th (i)
+				if leftover > 0.0 and total_grow > 0.0 and children.i_th (i).grow > 0.0 then
+					cw := children.i_th (i).clamped_width
+						(cw + leftover * children.i_th (i).grow / total_grow)
+				end
+				ch := children.i_th (i).clamped_height
+					(children.i_th (i).preferred_height (a_p, cw))
+				if ch > height then
+					ch := height
+				end
+				children.i_th (i).set_bounds (cx, y + (height - ch) / 2.0, cw, ch)
+				children.i_th (i).arrange (a_p)
 				cx := cx + cw + gap
+				i := i + 1
 			end
 		end
 

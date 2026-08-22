@@ -89,18 +89,41 @@ feature -- Layout
 		end
 
 	arrange (a_p: SW_PAINTER)
+			-- Natural heights first; leftover container height splits
+			-- among growers by weight.
 		local
-			cy, inner, ch: REAL_64
+			cy, inner, ch, natural, leftover, total_grow: REAL_64
+			heights: ARRAYED_LIST [REAL_64]
+			i: INTEGER
 		do
 			inner := (width - 2.0 * padding).max (0.0)
-			cy := y + padding
+			create heights.make (children.count)
 			across
 				children as c
 			loop
-				ch := c.preferred_height (a_p, inner)
-				c.set_bounds (x + padding, cy, inner, ch)
-				c.arrange (a_p)
+				heights.extend (c.clamped_height (c.preferred_height (a_p, inner)))
+				natural := natural + heights.last
+				total_grow := total_grow + c.grow
+			end
+			if children.count > 1 then
+				natural := natural + gap * (children.count - 1)
+			end
+			leftover := height - 2.0 * padding - natural
+			cy := y + padding
+			from
+				i := 1
+			until
+				i > children.count
+			loop
+				ch := heights.i_th (i)
+				if leftover > 0.0 and total_grow > 0.0 and children.i_th (i).grow > 0.0 then
+					ch := children.i_th (i).clamped_height
+						(ch + leftover * children.i_th (i).grow / total_grow)
+				end
+				children.i_th (i).set_bounds (x + padding, cy, inner, ch)
+				children.i_th (i).arrange (a_p)
 				cy := cy + ch + gap
+				i := i + 1
 			end
 		end
 

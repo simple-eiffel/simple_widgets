@@ -89,6 +89,17 @@ static LRESULT CALLBACK sw_wndproc(HWND h, UINT m, WPARAM w, LPARAM l) {
                     sw_push(13, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
             }
             return 0;
+        case WM_SIZE:
+            if (w != SIZE_MINIMIZED) {
+                /* coalesce like moves: replace a queued resize */
+                int last = (s_sw_qtail + SW_QCAP - 1) % SW_QCAP;
+                if (s_sw_qtail != s_sw_qhead && s_sw_q[last][0] == 16) {
+                    s_sw_q[last][1] = (int)LOWORD(l);
+                    s_sw_q[last][2] = (int)HIWORD(l);
+                } else
+                    sw_push(16, (int)LOWORD(l), (int)HIWORD(l), 0);
+            }
+            return 0;
         case WM_MOUSEWHEEL: {
             POINT wp;
             wp.x = (int)(short)LOWORD(l);
@@ -174,9 +185,9 @@ static void* sw_create_window(const wchar_t* title, int px, int py, int cw, int 
     wc.lpszClassName = L"SimpleViewWindow";
     RegisterClassW(&wc);
     r.left = 0; r.top = 0; r.right = cw; r.bottom = ch;
-    AdjustWindowRect(&r, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, FALSE);
+    AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
     h = CreateWindowExW(0, L"SimpleViewWindow", title,
-        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+        WS_OVERLAPPEDWINDOW,
         px, py,
         r.right - r.left, r.bottom - r.top, 0, 0, GetModuleHandleW(0), 0);
     s_sw_hwnd = h;

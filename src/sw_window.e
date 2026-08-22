@@ -203,6 +203,8 @@ feature {NONE} -- Dispatch
 				blit
 			when 7 then
 				age_toasts
+			when 16 then
+				resize_surface (a_x, a_y)
 			else
 			end
 		end
@@ -359,6 +361,8 @@ feature {NONE} -- Dispatch internals
 					hovered := Void
 					after_input
 				end
+			when 16 then
+				resize_surface (a_x, a_y)
 			when 15 then
 				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
 					bubble_wheel (w, ev_buf.read_integer_32 (12))
@@ -450,6 +454,25 @@ feature {NONE} -- Dispatch internals
 					show_popup (pm, cw.x.truncated_to_integer,
 						(cw.y + cw.height + 2.0).truncated_to_integer)
 				end
+			end
+		end
+
+	resize_surface (a_w, a_h: INTEGER)
+			-- The user resized the frame: new offscreen, new painter,
+			-- full re-layout - the containership tree reflows.
+		do
+			if a_w > 0 and a_h > 0 and (a_w /= win_w or a_h /= win_h) then
+				win_w := a_w
+				win_h := a_h
+				ctx.destroy
+				offscreen.destroy
+				offscreen := cairo.create_surface (win_w, win_h)
+				create ctx.make (offscreen)
+				create painter.make (ctx, theme)
+				if attached dialog as d then
+					d.measure (painter, win_w, win_h)
+				end
+				after_input
 			end
 		end
 
