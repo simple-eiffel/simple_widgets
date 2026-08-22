@@ -1,5 +1,4 @@
 EIFGENs/
 *.log
-sw_demo_frame.png
-proof_*.png
-crop_*.png
+/*.png
+assault_fixture/
