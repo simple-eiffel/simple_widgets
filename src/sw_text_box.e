@@ -31,6 +31,7 @@ feature {NONE} -- Initialization
 	make (a_text: READABLE_STRING_GENERAL)
 		do
 			create text.make_from_string_general (a_text)
+			create extra_ranges.make (4)
 			create lay_x.make (text.count + 8)
 			create lay_adv.make (text.count + 8)
 			create lay_line.make (text.count + 8)
@@ -56,7 +57,12 @@ feature -- Access
 			-- Insertion position, 0 .. text.count.
 
 	sel_anchor: INTEGER
-			-- Other end of the selection; equal to caret when empty.
+			-- Other end of the primary selection; equal to caret when empty.
+
+	extra_ranges: ARRAYED_LIST [TUPLE [lo, hi: INTEGER]]
+			-- Additional selected ranges beyond the primary one - the
+			-- fruit of Invert Selection. Each covers characters
+			-- lo+1 .. hi; kept sorted, disjoint and non-empty.
 
 	is_single_line: BOOLEAN
 
@@ -69,15 +75,37 @@ feature -- Status
 
 	has_selection: BOOLEAN
 		do
-			Result := sel_anchor /= caret
+			Result := sel_anchor /= caret or else not extra_ranges.is_empty
+		end
+
+	is_char_selected (a_i: INTEGER): BOOLEAN
+			-- Is character `a_i' inside any selected range?
+		require
+			in_text: a_i >= 1 and a_i <= text.count
+		do
+			Result := a_i > sel_anchor.min (caret) and a_i <= sel_anchor.max (caret)
+			across
+				extra_ranges as r
+			loop
+				Result := Result or else (a_i > r.lo and a_i <= r.hi)
+			end
 		end
 
 	selected_text: STRING_32
+			-- All selected pieces in text order; disjoint pieces join
+			-- with a newline, the multi-select copy convention.
+		local
+			pieces: ARRAYED_LIST [TUPLE [lo, hi: INTEGER]]
 		do
-			if has_selection then
-				Result := text.substring (sel_anchor.min (caret) + 1, sel_anchor.max (caret))
-			else
-				create Result.make_empty
+			create Result.make_empty
+			pieces := all_ranges
+			across
+				pieces as r
+			loop
+				if not Result.is_empty then
+					Result.append_character ('%N')
+				end
+				Result.append (text.substring (r.lo + 1, r.hi))
 			end
 		ensure
 			empty_without_selection: not has_selection implies Result.is_empty
@@ -87,6 +115,7 @@ feature -- Clipboard and selection commands
 
 	select_all
 		do
+			extra_ranges.wipe_out
 			sel_anchor := 0
 			caret := text.count
 		ensure
@@ -94,12 +123,56 @@ feature -- Clipboard and selection commands
 		end
 
 	select_none
-			-- Collapse the selection to the caret.
+			-- Collapse every selection to the caret.
 		do
 			sel_anchor := caret
+			extra_ranges.wipe_out
 		ensure
 			collapsed: not has_selection
 			caret_unmoved: caret = old caret
+		end
+
+	invert_selection
+			-- Select exactly what was not selected; deselect the rest.
+			-- May yield disjoint ranges - the primary becomes the last
+			-- complement range, the others ride extra_ranges.
+		local
+			sel, comp: ARRAYED_LIST [TUPLE [lo, hi: INTEGER]]
+			pos: INTEGER
+			last_r: TUPLE [lo, hi: INTEGER]
+		do
+			sel := all_ranges
+			create comp.make (sel.count + 1)
+			pos := 0
+			across
+				sel as r
+			loop
+				if r.lo > pos then
+					comp.extend ([pos, r.lo])
+				end
+				pos := r.hi
+			end
+			if pos < text.count then
+				comp.extend ([pos, text.count])
+			end
+			extra_ranges.wipe_out
+			if comp.is_empty then
+				sel_anchor := caret
+			else
+				last_r := comp.last
+				comp.finish
+				comp.remove
+				across
+					comp as r
+				loop
+					extra_ranges.extend (r)
+				end
+				sel_anchor := last_r.lo
+				caret := last_r.hi
+			end
+		ensure
+			nothing_becomes_everything: (old all_ranges.is_empty and text.count > 0) implies
+				(sel_anchor.min (caret) = 0 and sel_anchor.max (caret) = text.count)
 		end
 
 	copy_selection
@@ -211,7 +284,7 @@ feature -- Drawing
 				gx := x + Pad_x + lay_x.i_th (i)
 				gy := y + Pad_y + lay_line.i_th (i) * t.line_height + t.line_height - 8.0
 				gw := lay_adv.i_th (i)
-				seln := is_focused and then has_selection and then i > lo and then i <= hi
+				seln := is_focused and then has_selection and then is_char_selected (i)
 				if seln then
 					a_p.set_color (t.accent)
 					a_p.fill_rect (gx - 1.0, gy - 15.0, gw + 2.0, 21.0)
@@ -241,9 +314,17 @@ feature -- Input
 		end
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
+			-- Click places the caret; Shift+Click keeps the anchor and
+			-- selects everything between it and the click point.
+		local
+			keys: SW_KEYS
 		do
+			create keys
 			caret := offset_at (a_px, a_py)
-			sel_anchor := caret
+			if not keys.shift_down then
+				sel_anchor := caret
+				extra_ranges.wipe_out
+			end
 			Result := True
 		end
 
@@ -352,6 +433,7 @@ feature -- Input
 			Result.add_separator
 			Result.add_item ("Select All", "Ctrl+A", text.count > 0, agent select_all)
 			Result.add_item ("Select None", "Esc", has_selection, agent select_none)
+			Result.add_item ("Invert Selection", "", has_selection, agent invert_selection)
 		ensure then
 			offered: Result /= Void
 		end
@@ -575,6 +657,47 @@ feature {NONE} -- Engine
 			in_range: Result >= 0 and Result <= text.count
 		end
 
+	all_ranges: ARRAYED_LIST [TUPLE [lo, hi: INTEGER]]
+			-- Primary plus extras, normalized, sorted, non-empty only.
+		local
+			lo, hi, i, j: INTEGER
+			r, s: TUPLE [lo, hi: INTEGER]
+		do
+			create Result.make (extra_ranges.count + 1)
+			across
+				extra_ranges as er
+			loop
+				Result.extend (er)
+			end
+			lo := sel_anchor.min (caret)
+			hi := sel_anchor.max (caret)
+			if hi > lo then
+				Result.extend ([lo, hi])
+			end
+				-- insertion sort by lo; lists are tiny
+			from
+				i := 2
+			until
+				i > Result.count
+			loop
+				from
+					j := i
+				until
+					j <= 1 or else Result.i_th (j - 1).lo <= Result.i_th (j).lo
+				loop
+					r := Result.i_th (j)
+					s := Result.i_th (j - 1)
+					Result.put_i_th (r, j - 1)
+					Result.put_i_th (s, j)
+					j := j - 1
+				end
+				i := i + 1
+			end
+		ensure
+			sorted: across 2 |..| Result.count as k all
+				Result.i_th (k - 1).lo <= Result.i_th (k).lo end
+		end
+
 	collapse_unless (a_extend: BOOLEAN)
 		do
 			if not a_extend then
@@ -585,13 +708,27 @@ feature {NONE} -- Engine
 		end
 
 	delete_selection
+			-- Remove every selected range; the caret lands where the
+			-- first one began.
 		local
-			lo: INTEGER
+			pieces: ARRAYED_LIST [TUPLE [lo, hi: INTEGER]]
+			i, first_lo: INTEGER
 		do
-			lo := sel_anchor.min (caret)
-			text.remove_substring (lo + 1, sel_anchor.max (caret))
-			caret := lo
-			sel_anchor := lo
+			pieces := all_ranges
+			if not pieces.is_empty then
+				first_lo := pieces.first.lo
+				from
+					i := pieces.count
+				until
+					i < 1
+				loop
+					text.remove_substring (pieces.i_th (i).lo + 1, pieces.i_th (i).hi)
+					i := i - 1
+				end
+				caret := first_lo
+				sel_anchor := first_lo
+				extra_ranges.wipe_out
+			end
 		ensure
 			collapsed: not has_selection
 		end
@@ -608,5 +745,8 @@ invariant
 	text_attached: text /= Void
 	caret_in_range: caret >= 0 and caret <= text.count
 	anchor_in_range: sel_anchor >= 0 and sel_anchor <= text.count
+	extras_attached: extra_ranges /= Void
+	extras_well_formed: across extra_ranges as r all
+		r.lo >= 0 and r.lo < r.hi and r.hi <= text.count end
 
 end
