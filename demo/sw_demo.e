@@ -193,6 +193,7 @@ feature {NONE} -- Initialization
 		do
 			create lst.make (170.0)
 			lst.set_row_count (10000)
+			lst.set_on_select (agent on_big_row)
 			lst.set_row_height (30.0)
 			lst.set_row_renderer (agent draw_demo_row)
 			lst.set_on_select (agent on_row_selected)
@@ -223,37 +224,50 @@ feature {NONE} -- Initialization
 		end
 
 	scroll_split_card (a_theme: SW_THEME): SW_CARD
-			-- A splitter whose left pane scrolls 24 rows in a viewport.
+			-- A splitter whose left pane is a selectable SW_LIST; every
+			-- row also offers a pebble to the middle-click pick.
 		local
-			tall, right_col: SW_COLUMN
-			sa: SW_SCROLL_AREA
-			i: INTEGER
-			lbl: SW_LABEL
+			lst: SW_LIST
+			right_col: SW_COLUMN
 		do
-			create tall.make
-			tall := tall.with_gap (6.0)
-			from
-				i := 1
-			until
-				i > 24
-			loop
-				create lbl.make_mono ("row " + (if i < 10 then "0" else "" end) + i.out + "  %/8212/  middle-click picks me")
-				if i \\ 6 = 0 then
-					lbl.set_color (a_theme.accent)
-				end
-				lbl.set_pebble ("[from row " + i.out + "] ")
-				tall.put (lbl)
-				i := i + 1
-			end
-			create sa.make (150.0)
-			sa.set_child (tall)
+			create lst.make (150.0)
+			lst.set_row_count (24)
+			lst.set_row_renderer (agent render_split_row)
+			lst.set_row_pebble (agent split_row_pebble)
+			lst.set_on_select (agent on_split_row)
 			create right_col.make
 			right_col := right_col.with_gap (8.0)
 			right_col.put (create {SW_LABEL}.make_body ("The divider between these panes drags; the ratio is contract-clamped so neither side can vanish."))
 			right_col.put (create {SW_CHIP}.make ("SW_SPLITTER + SW_SCROLL_AREA", {SW_CHIP}.Kind_accent))
 			create Result.make_striped (a_theme.accent)
-			Result.put ((create {SW_LABEL}.make_ui ("scroll and split %/8212/ clipped, wheeled, dragged")).as_muted)
-			Result.put (create {SW_SPLITTER}.make (sa, right_col))
+			Result.put ((create {SW_LABEL}.make_ui ("scroll and split %/8212/ click selects, wheel scrolls, middle-click picks")).as_muted)
+			Result.put (create {SW_SPLITTER}.make (lst, right_col))
+		end
+
+	render_split_row (a_p: SW_PAINTER; a_i: INTEGER; a_x, a_y, a_w, a_h: REAL_64)
+		do
+			a_p.font ({SW_PAINTER}.Role_mono, 13.0, False)
+			if a_i \\ 6 = 0 then
+				a_p.set_color (a_p.theme.accent)
+			else
+				a_p.set_color (a_p.theme.ink)
+			end
+			a_p.text (a_x + 8.0, a_y + a_h - 9.0, "row " + (if a_i < 10 then "0" else "" end) + a_i.out + " %/8212/ select or middle-pick")
+		end
+
+	split_row_pebble (a_i: INTEGER): detachable ANY
+		do
+			Result := "[from row " + a_i.out + "] "
+		end
+
+	on_split_row (a_i: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "split list: row " + a_i.out + {STRING_32} " selected")
+		end
+
+	on_big_row (a_i: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "big list: item " + a_i.out + {STRING_32} " selected")
 		end
 
 feature {NONE} -- Behaviour

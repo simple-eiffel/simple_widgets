@@ -342,6 +342,14 @@ feature -- Input
 			Result := pebble_item
 		end
 
+	pebble_at (a_px, a_py: REAL_64): detachable ANY
+			-- The pebble offered at a specific point - by default the
+			-- widget-wide `pebble'. Virtualized widgets redefine this
+			-- to offer per-row or per-cell pebbles.
+		do
+			Result := pebble
+		end
+
 	set_pebble (a_pebble: detachable ANY)
 		do
 			pebble_item := a_pebble

@@ -571,7 +571,7 @@ feature {NONE} -- Dispatch internals
 			until
 				pick_pebble /= Void or w = Void
 			loop
-				if w.is_enabled and then attached w.pebble as pb then
+				if w.is_enabled and then attached w.pebble_at (a_x, a_y) as pb then
 					begin_pick (pb, a_x, a_y)
 				else
 					w := w.parent

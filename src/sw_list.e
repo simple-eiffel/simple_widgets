@@ -18,7 +18,7 @@ inherit
 	SW_WIDGET
 		redefine
 			widget_at, handle_wheel, handle_click, handle_drag,
-			wants_hover_point
+			wants_hover_point, pebble_at
 		end
 
 create
@@ -53,6 +53,35 @@ feature -- Access
 			-- Draws one row: (painter, index, x, y, width, height).
 
 	on_select: detachable PROCEDURE [INTEGER]
+
+	row_pebble: detachable FUNCTION [INTEGER, detachable ANY]
+			-- Supplies the pebble a given row offers to pick-and-drop.
+
+	row_at (a_py: REAL_64): INTEGER
+			-- The row index under viewport y `a_py'; 0 outside content.
+		do
+			if row_count > 0 then
+				Result := ((a_py - y + scroll_y) / row_height).truncated_to_integer + 1
+				if Result < 1 or Result > row_count then
+					Result := 0
+				end
+			end
+		ensure
+			in_range: Result >= 0 and Result <= row_count
+		end
+
+	pebble_at (a_px, a_py: REAL_64): detachable ANY
+			-- Rows offer their own pebbles; the scrollbar offers none.
+		local
+			r: INTEGER
+		do
+			r := row_at (a_py)
+			if r > 0 and then a_px < x + width - Bar_w and then attached row_pebble as rp then
+				Result := rp.item ([r])
+			else
+				Result := pebble
+			end
+		end
 
 	content_height: REAL_64
 		do
@@ -117,6 +146,13 @@ feature -- Element change
 			row_renderer := a_r
 		ensure
 			set: row_renderer = a_r
+		end
+
+	set_row_pebble (a_f: FUNCTION [INTEGER, detachable ANY])
+		do
+			row_pebble := a_f
+		ensure
+			set: row_pebble = a_f
 		end
 
 	set_on_select (a_action: PROCEDURE [INTEGER])
@@ -239,8 +275,8 @@ feature -- Input
 			if a_px >= x + width - Bar_w and max_scroll > 0.0 then
 				scroll_y := ((a_py - y) / height * max_scroll).max (0.0).min (max_scroll)
 			elseif row_count > 0 then
-				i := ((a_py - y + scroll_y) / row_height).truncated_to_integer + 1
-				if i >= 1 and i <= row_count then
+				i := row_at (a_py)
+				if i > 0 then
 					select_row (i)
 				end
 			end
