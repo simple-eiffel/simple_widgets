@@ -142,18 +142,22 @@ cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 
 ## Roadmap
 
-Wave 3 is nearly closed (tree, data grid, calendar/date/time pickers,
-drawers with peek-and-pin, popovers, accordion, stepper, badges, avatars,
-canvas, sheet, colour picker — all shipped); **Wave 3 is COMPLETE**: SW_DROPZONE
-(real Explorer drags land) and the dev-mode suite closed it:
-SW_INSPECTOR reveals, the SW_MESH force graph, and SW_DEV_STUDIO
-(mesh + live pane, floating sheet or docked drawer with the page
-still live) — all devkit-only classes, compiled out of release-shaped
-builds via the ECF override cluster and PROVEN absent by binary scan.
-Then Wave 4 charts on
-SW_PAINTER, Wave 5 enterprise composites (spreadsheet doctrine:
-SHEET -> DATA_GRID -> SPREADSHEET; true docking), Wave 6 media +
-conversational (dictation via whisper.cpp queued as a text-box service).
+**Waves 1–4 are COMPLETE.** Wave 3 closed with the dropzone and the
+dev-mode suite (inspector, force mesh, dev studio — devkit-only classes,
+binary-proven absent from release shapes). Wave 4 shipped all fifteen
+visualization concepts in six movements — the SW_SCALE axis engine,
+line/bar/area/scatter, pie/donut + funnel + shared legend, gauge +
+sparkline, heatmap + treemap, sankey ribbons, the coarse world map and
+the public force diagram — plus the timezone coda (pickable band map +
+live world clock). The same day delivered the event layer (SW_EVENT,
+ACTION_SEQUENCE architecture), Vision2-style sensitivity
+(set_enabled_when), and subscribable render bells.
+
+**Next: Wave 5 enterprise composites** (spreadsheet doctrine:
+SHEET -> DATA_GRID -> SPREADSHEET with ranges, aggregates, formula bar,
+TSV clipboard, CSV, command undo; true docking from the overlay engine;
+tree table; and friends), then Wave 6 media + conversational (dictation
+via whisper.cpp queued as a text-box service).
 
 **The full plan:** [What's Still Coming](https://simple-eiffel.github.io/simple_widgets/roadmap.html)
 — per-wave detail; `specs/S04-ROADMAP.md` is the per-control checkbox

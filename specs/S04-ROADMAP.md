@@ -36,11 +36,25 @@ Toolkit-wide near-term items (from the same read):
       map each to an existing simple_* library or flag a backfill hole.
       simple_datetime adoption was the live example; the file dialog's
       base PATH/DIRECTORY is the first candidate (simple_file).
-- [ ] Timezone tools (Larry): SW_WORLD_CLOCK (per-zone ticking times on
-      the heartbeat over simple_datetime) and SW_TIMEZONE_PICKER - band
-      map v1, true world map when Wave 4 'maps' lands; DST honesty via
-      Windows ICU when depth is needed.
+- [x] Timezone tools (Larry) - SHIPPED 2026-08-22: SW_WORLD_CLOCK
+      (per-zone ticking on the heartbeat over SIMPLE_DATE_TIME.make_now_utc,
+      minute offsets first-class, locale-lawful, honest +1d/-1d) and
+      SW_TIMEZONE_PICKER riding the SHIPPED Wave 4 SW_MAP (band pick,
+      offset_at assaulted). DST deliberately not computed - offsets are
+      the caller's law; ICU depth remains future.
 - [ ] Overlay auto-close-on-pick hook (date picker popovers).
+- [x] WAVE 4 - COMPLETE 2026-08-22, fifteen concepts in six movements plus
+      the timezone coda, every row of the roadmap table SHIPPED with
+      assaults and pages: SW_SCALE (1/2/5 ladder), SW_CHART chassis
+      (+ polyline/polygon_fill/wedges/ribbon on the painter),
+      SW_LINE_CHART (with_area, rolling, crosshair, legend row),
+      SW_BAR_CHART, SW_SCATTER_CHART, SW_PIE_CHART (true donut ring),
+      SW_FUNNEL_CHART (descending by contract), SW_GAUGE (zones,
+      clamped truth), SW_SPARKLINE (honest flat midline), SW_HEATMAP
+      (assaulted blend), SW_TREEMAP (EXACT area=share), SW_SANKEY
+      (contiguous moorings), SW_MAP (coarse world, assaulted geography),
+      SW_DIAGRAM (mesh physics public), SW_TIMEZONE_PICKER +
+      SW_WORLD_CLOCK (the day-one idea kept). Suite 125/125.
 - [x] SW_INSPECTOR - SHIPPED 2026-08-22 with SW_MESH + SW_DEV_STUDIO (devkit override gate, binary-proven absent from release shapes); was: design pinned in S02; lands at Wave 3 tail behind the
       debug ("dev_mode") gate.
 
@@ -848,7 +862,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Count-up animation on the heartbeat when the value changes.
-- [ ] Sparkline pairing when the Wave 4 charts cluster lands.
+- [x] Sparkline pairing - SHIPPED 2026-08-22: SW_SPARKLINE sits beside SW_STATISTIC in the demo, both fed by after_render_actions.
 - [ ] Number formatting helpers (thousands separators, units).
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -858,7 +872,7 @@ Gotcha docket (fix where a plan exists; else design around):
 Limits to push:
 
 - [ ] Static text values - no number formatting/animation built in.
-- [ ] One delta; no sparkline pairing yet (charts are Wave 4).
+- [x] Sparkline pairing SHIPPED 2026-08-22 (SW_SPARKLINE beside it in the demo); one delta remains the design.
 
 
 ## SW_INSPECTOR
@@ -1049,7 +1063,7 @@ Planned extensions:
 - [ ] Locale-aware number formatting (thousands, the carried decimal mark) for SW_NUMBER_BOX and SW_STATISTIC.
 - [ ] Collation hooks for SW_DATA_GRID sorting.
 - [ ] Windows ICU bridge for full CLDR names when a consumer demands it.
-- [ ] Timezone tools (Larry, 2026-08-22): SW_WORLD_CLOCK on the heartbeat and a band-map SW_TIMEZONE_PICKER graduating to the Wave 4 map.
+- [x] Timezone tools (Larry, 2026-08-22) - SHIPPED same day the map landed: SW_WORLD_CLOCK + SW_TIMEZONE_PICKER over SW_MAP.
 
 Gotcha docket (fix where a plan exists; else design around):
 
