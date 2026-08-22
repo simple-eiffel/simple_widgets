@@ -30,6 +30,7 @@ feature {NONE} -- Initialization
 			kind_select.add_option ("Success")
 			kind_select.add_option ("Warning")
 			kind_select.add_option ("Danger")
+			kind_select.set_tooltip ("Chooses the kind for Toast It %/8212/ picking one previews it")
 			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on runing untill the wrap engine breaks the line exactly where the measured advances say it must.")
 			create window.make ("simple_widgets demo", 2200, 10, 900, 1000, theme)
 				-- agents only from here down: every attached attribute is set
@@ -85,6 +86,7 @@ feature {NONE} -- Initialization
 			create card.make_striped (theme.warning)
 			card.put ((create {SW_LABEL}.make_ui ("SW_TEXT_BOX %/8212/ click, drag, double-click, shift+arrows, type")).as_muted)
 			edit_box.set_on_change (agent on_text_changed)
+			kind_select.set_on_change (agent on_kind_changed)
 			card.put (edit_box)
 			root.put (card)
 
@@ -187,6 +189,12 @@ feature {NONE} -- Behaviour
 	danger_button: SW_BUTTON
 
 	kind_select: SW_SELECT
+
+	on_kind_changed
+			-- The choice speaks for itself: preview the chosen kind.
+		do
+			window.toast ({STRING_32} "" + kind_select.selected_text + " selected %/8212/ toasts of this kind look like me", kind_select.selected_index.max (1))
+		end
 
 	on_toast
 		do
