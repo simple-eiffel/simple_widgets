@@ -103,11 +103,57 @@ feature -- Input
 			-- Does this widget hold the keyboard focus?
 			-- Maintained by the window; drawn by the widget.
 
+	is_hovered: BOOLEAN
+			-- Is the pointer over this widget? Window-maintained.
+
+	is_pressed: BOOLEAN
+			-- Is the pointer held down on this widget? Window-maintained.
+
+	is_enabled: BOOLEAN
+			-- Does this widget accept input? Disabled widgets draw muted
+			-- and are skipped by dispatch.
+		do
+			Result := not is_disabled
+		end
+
 	set_focused (a_focused: BOOLEAN)
 		do
 			is_focused := a_focused
 		ensure
 			set: is_focused = a_focused
+		end
+
+	set_hovered (a_hovered: BOOLEAN)
+		do
+			is_hovered := a_hovered
+		ensure
+			set: is_hovered = a_hovered
+		end
+
+	set_pressed (a_pressed: BOOLEAN)
+		require
+			only_enabled_press: a_pressed implies is_enabled
+		do
+			is_pressed := a_pressed
+		ensure
+			set: is_pressed = a_pressed
+		end
+
+	set_enabled (a_enabled: BOOLEAN)
+		do
+			is_disabled := not a_enabled
+		ensure
+			set: is_enabled = a_enabled
+		end
+
+	disabled: like Current
+			-- Fluent: Current, disabled.
+		do
+			set_enabled (False)
+			Result := Current
+		ensure
+			off: not is_enabled
+			chained: Result = Current
 		end
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
@@ -143,7 +189,13 @@ feature -- Input
 		do
 		end
 
+feature {NONE} -- Implementation
+
+	is_disabled: BOOLEAN
+			-- Stored inverted so a fresh widget is enabled by default.
+
 invariant
 	sane_size: width >= 0.0 and height >= 0.0
+	pressed_only_when_enabled: is_pressed implies is_enabled
 
 end

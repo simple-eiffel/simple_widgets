@@ -16,6 +16,7 @@
 #define SW_QCAP 1024
 static HWND s_sw_hwnd = 0;
 static LONG s_sw_dbl_time = 0;
+static int  s_sw_tracking = 0;
 static int  s_sw_dbl_x = 0, s_sw_dbl_y = 0;
 static HWND s_sw_overlay = 0;
 static int  s_sw_q[SW_QCAP][4];
@@ -67,8 +68,30 @@ static LRESULT CALLBACK sw_wndproc(HWND h, UINT m, WPARAM w, LPARAM l) {
             sw_push(11, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
             return 0;
         case WM_MOUSEMOVE:
+            if (!s_sw_tracking) {
+                TRACKMOUSEEVENT tme;
+                tme.cbSize = sizeof(tme);
+                tme.dwFlags = TME_LEAVE;
+                tme.hwndTrack = h;
+                tme.dwHoverTime = 0;
+                TrackMouseEvent(&tme);
+                s_sw_tracking = 1;
+            }
             if (w & MK_LBUTTON)
                 sw_push(9, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
+            else {
+                /* coalesce plain moves: replace a queued move instead of flooding */
+                int last = (s_sw_qtail + SW_QCAP - 1) % SW_QCAP;
+                if (s_sw_qtail != s_sw_qhead && s_sw_q[last][0] == 13) {
+                    s_sw_q[last][1] = (int)(short)LOWORD(l);
+                    s_sw_q[last][2] = (int)(short)HIWORD(l);
+                } else
+                    sw_push(13, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
+            }
+            return 0;
+        case WM_MOUSELEAVE:
+            s_sw_tracking = 0;
+            sw_push(14, 0, 0, 0);
             return 0;
         case WM_CHAR:
             sw_push(3, (int)w, 0, 0);

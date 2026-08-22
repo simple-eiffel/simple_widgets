@@ -53,15 +53,24 @@ SW_POPOVER, SW_ACCORDION, SW_STEPPER, SW_BADGE, SW_AVATAR,
 SW_SEGMENTED, SW_RATING, SW_SKELETON, SW_EMPTY_STATE, SW_DROPZONE,
 drag-and-drop system, SW_STATISTIC, SW_TIMELINE.
 
-### Explicit non-goals for simple_widgets proper
+### Waves 4-6 - the full-coverage charter
 
-- Charts family (15 concepts) -> a future simple_charts on the same
-  SW_PAINTER; one painter, two libraries.
-- Enterprise composites (scheduler, gantt, kanban, pivot,
-  spreadsheet) -> per-need libraries, never preemptive.
-- Conversational/AI cluster -> application territory (simple_narrate
-  is itself one).
-- WEL-era relics: MDI, rebar, resource-template dialogs.
+**Charter (Larry, 2026-08-22): ALL of it - the 232 web concepts and
+the 80 WEL/Vision2 concepts - ultimately lives in simple_widgets.**
+No carve-outs; the former non-goals become the final waves.
+
+- Wave 4 - charts and visualization (15 concepts): cartesian suite,
+  pie/donut, gauges, sparkline, heatmap, treemap, funnel, sankey,
+  maps, diagram. All on SW_PAINTER; likely a `charts` cluster within
+  this library rather than a sister repo.
+- Wave 5 - enterprise composites (11): data-grid descendants first
+  (tree table, pivot), then scheduler, gantt, kanban, spreadsheet,
+  file manager, query builder, form generator, org chart.
+- Wave 6 - media + conversational/AI (11): carousel, gallery,
+  players, image tools, PDF view; chat thread, AI prompt view, smart
+  textarea (the engine side rides simple_narrate's plumbing).
+- WEL-era relics (MDI, rebar, resource-template dialogs) remain the
+  sole exclusions unless a consumer demands them.
 
 ## 3. Theming commitments (from today's QA)
 
@@ -73,7 +82,7 @@ drag-and-drop system, SW_STATISTIC, SW_TIMELINE.
   route (theme.toml with the token names as keys). Queued for the
   narrate port, which already speaks TOML.
 
-## 4. The scoreboard
+## 4. The scoreboard (end state: full union, per the charter)
 
 - Web Tier 1: 45 concepts; waves 1+2 reach ~34 of them.
 - WEL/Vision2 union: 80; waves 1-3 cover every non-relic entry.

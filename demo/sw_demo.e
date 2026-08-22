@@ -54,6 +54,7 @@ feature {NONE} -- Initialization
 			buttons.put (create {SW_BUTTON}.make ("Log Only", agent on_log_only))
 			buttons.put ((create {SW_BUTTON}.make ("Disabled", Void)).disabled)
 			buttons.put (create {SW_BUTTON}.make ("Dark / Light", agent on_toggle_theme))
+			buttons.put ((create {SW_BUTTON}.make ("Danger", agent on_log_only)).as_kind ({SW_BUTTON}.Kind_danger))
 			card.put (buttons)
 			root.put (card)
 

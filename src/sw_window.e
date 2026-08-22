@@ -206,7 +206,21 @@ feature {NONE} -- Dispatch
 					after_input
 				end
 			when 10 then
-				capture := Void
+				if attached capture as cw then
+					if cw.is_pressed then
+						cw.set_pressed (False)
+					end
+					capture := Void
+					after_input
+				end
+			when 13 then
+				update_hover (a_x, a_y)
+			when 14 then
+				if attached hovered as hw then
+					hw.set_hovered (False)
+					hovered := Void
+					after_input
+				end
 			when 11 then
 				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
 					bubble_context (w, a_x, a_y)
@@ -240,9 +254,10 @@ feature {NONE} -- Dispatch
 		end
 
 	bubble_click (a_target: SW_WIDGET; a_x, a_y: INTEGER; a_double: BOOLEAN): detachable SW_WIDGET
-			-- Offer the click to `a_target', then up the parent chain
+			-- Offer the click to the target, then up the parent chain
 			-- until someone consumes it; the consumer takes the pointer
-			-- capture. Void when nobody wanted it.
+			-- capture and shows pressed. Disabled widgets are inert and
+			-- the click passes through them.
 		local
 			w: detachable SW_WIDGET
 			handled: BOOLEAN
@@ -252,16 +267,42 @@ feature {NONE} -- Dispatch
 			until
 				handled or w = Void
 			loop
-				if a_double then
-					handled := w.handle_double_click (a_x, a_y)
-				else
-					handled := w.handle_click (a_x, a_y)
+				if w.is_enabled then
+					if a_double then
+						handled := w.handle_double_click (a_x, a_y)
+					else
+						handled := w.handle_click (a_x, a_y)
+					end
 				end
 				if handled then
 					Result := w
 				else
 					w := w.parent
 				end
+			end
+			if attached Result as cw and then not a_double and then cw.is_enabled then
+				cw.set_pressed (True)
+			end
+		end
+
+	update_hover (a_x, a_y: INTEGER)
+			-- Move the hover state to the widget under the pointer;
+			-- re-render only when the target changed.
+		local
+			w: detachable SW_WIDGET
+		do
+			if attached root as r then
+				w := r.widget_at (a_x, a_y)
+			end
+			if w /= hovered then
+				if attached hovered as hw then
+					hw.set_hovered (False)
+				end
+				hovered := w
+				if attached w as nw then
+					nw.set_hovered (True)
+				end
+				after_input
 			end
 		end
 
@@ -310,6 +351,9 @@ feature {NONE} -- State
 
 	capture: detachable SW_WIDGET
 			-- Owner of the pointer between press and release.
+
+	hovered: detachable SW_WIDGET
+			-- Widget currently under the pointer.
 
 	cairo: SIMPLE_CAIRO
 	offscreen: CAIRO_SURFACE
