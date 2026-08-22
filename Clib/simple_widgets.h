@@ -102,10 +102,20 @@ static LRESULT CALLBACK sw_wndproc(HWND h, UINT m, WPARAM w, LPARAM l) {
             return 0;
         case WM_MOUSEWHEEL: {
             POINT wp;
+            int last;
             wp.x = (int)(short)LOWORD(l);
             wp.y = (int)(short)HIWORD(l);
             ScreenToClient(h, &wp);
-            sw_push(15, (int)wp.x, (int)wp.y, (int)(short)HIWORD(w));
+            /* coalesce spins like moves: SUM deltas into a queued
+               wheel event so a fast spin is one scroll + one render,
+               not a render per notch */
+            last = (s_sw_qtail + SW_QCAP - 1) % SW_QCAP;
+            if (s_sw_qtail != s_sw_qhead && s_sw_q[last][0] == 15) {
+                s_sw_q[last][1] = (int)wp.x;
+                s_sw_q[last][2] = (int)wp.y;
+                s_sw_q[last][3] += (int)(short)HIWORD(w);
+            } else
+                sw_push(15, (int)wp.x, (int)wp.y, (int)(short)HIWORD(w));
             return 0;
         }
         case WM_MBUTTONDOWN:
