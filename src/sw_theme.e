@@ -39,7 +39,7 @@ feature {NONE} -- Initialization
 			wash_success := 0xE0F0E9
 			wash_warning := 0xFAF1DD
 			wash_danger := 0xF8E7E2
-			set_families
+			init_families
 			set_metrics
 		end
 
@@ -61,11 +61,11 @@ feature {NONE} -- Initialization
 			wash_success := 0x1D3A2C
 			wash_warning := 0x3D330E
 			wash_danger := 0x40231C
-			set_families
+			init_families
 			set_metrics
 		end
 
-	set_families
+	init_families
 		do
 			create family_ui.make_from_string_general ("Archivo")
 			create family_body.make_from_string_general ("Literata")
@@ -123,6 +123,54 @@ feature -- Metrics
 	size_label: REAL_64
 	size_chip: REAL_64
 	line_height: REAL_64
+
+feature -- Element change
+
+	set_surfaces (a_background, a_surface, a_variant, a_outline, a_ink, a_ink_muted: NATURAL_32)
+			-- Recolour the ground. The invariant still holds: an
+			-- unreadable combination is rejected at the call site.
+		do
+			background := a_background
+			surface := a_surface
+			surface_variant := a_variant
+			outline := a_outline
+			ink := a_ink
+			ink_muted := a_ink_muted
+		ensure
+			set: background = a_background and surface = a_surface
+				and ink = a_ink
+		end
+
+	set_semantics (a_accent, a_success, a_warning, a_danger, a_neutral: NATURAL_32)
+		do
+			accent := a_accent
+			success := a_success
+			warning := a_warning
+			danger := a_danger
+			neutral := a_neutral
+		ensure
+			set: accent = a_accent and danger = a_danger
+		end
+
+	set_washes (a_accent, a_success, a_warning, a_danger: NATURAL_32)
+		do
+			wash_accent := a_accent
+			wash_success := a_success
+			wash_warning := a_warning
+			wash_danger := a_danger
+		ensure
+			set: wash_accent = a_accent and wash_danger = a_danger
+		end
+
+	set_families (a_ui, a_body, a_mono: READABLE_STRING_GENERAL)
+			-- Rename the three type roles.
+		do
+			create family_ui.make_from_string_general (a_ui)
+			create family_body.make_from_string_general (a_body)
+			create family_mono.make_from_string_general (a_mono)
+		ensure
+			set: family_ui.same_string_general (a_ui)
+		end
 
 feature -- Measurement
 

@@ -121,6 +121,11 @@ feature -- Input
 			Result := handle_click (a_px, a_py)
 		end
 
+	handle_triple_click (a_px, a_py: REAL_64): BOOLEAN
+		do
+			Result := handle_double_click (a_px, a_py)
+		end
+
 	handle_drag (a_px, a_py: REAL_64)
 		do
 		end

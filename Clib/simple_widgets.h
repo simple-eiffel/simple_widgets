@@ -15,6 +15,8 @@
    overlay:     12 move(x,y)   | 13 down(x,y) | 14 up(x,y)    | 15 cancel | 16 expose */
 #define SW_QCAP 1024
 static HWND s_sw_hwnd = 0;
+static LONG s_sw_dbl_time = 0;
+static int  s_sw_dbl_x = 0, s_sw_dbl_y = 0;
 static HWND s_sw_overlay = 0;
 static int  s_sw_q[SW_QCAP][4];
 static int  s_sw_qhead = 0, s_sw_qtail = 0;
@@ -31,20 +33,37 @@ static void sw_push(int t, int a, int b, int c) {
 
 static LRESULT CALLBACK sw_wndproc(HWND h, UINT m, WPARAM w, LPARAM l) {
     switch (m) {
-        case WM_LBUTTONDOWN:
+        case WM_LBUTTONDOWN: {
+            int cx = (int)(short)LOWORD(l), cy = (int)(short)HIWORD(l);
             SetFocus(h);
             SetCapture(h);
-            sw_push(2, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
+            if (s_sw_dbl_time != 0
+                && GetMessageTime() - s_sw_dbl_time <= (LONG)GetDoubleClickTime()
+                && abs(cx - s_sw_dbl_x) <= GetSystemMetrics(SM_CXDOUBLECLK)
+                && abs(cy - s_sw_dbl_y) <= GetSystemMetrics(SM_CYDOUBLECLK)) {
+                s_sw_dbl_time = 0;
+                sw_push(12, cx, cy, 0);
+            } else {
+                sw_push(2, cx, cy, 0);
+            }
             return 0;
+        }
         case WM_LBUTTONUP:
             ReleaseCapture();
             sw_push(10, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
             return 0;
         case WM_LBUTTONDBLCLK:
-            sw_push(8, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
+            s_sw_dbl_time = GetMessageTime();
+            s_sw_dbl_x = (int)(short)LOWORD(l);
+            s_sw_dbl_y = (int)(short)HIWORD(l);
+            sw_push(8, s_sw_dbl_x, s_sw_dbl_y, 0);
             return 0;
         case WM_RBUTTONDOWN:
+            /* eat: the menu opens on BUTTON-UP, or the release event
+               dismisses the popup the instant it appears */
             SetFocus(h);
+            return 0;
+        case WM_RBUTTONUP:
             sw_push(11, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
             return 0;
         case WM_MOUSEMOVE:
