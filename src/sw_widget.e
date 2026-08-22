@@ -86,6 +86,17 @@ feature -- Input
 			Result := False
 		end
 
+	is_focused: BOOLEAN
+			-- Does this widget hold the keyboard focus?
+			-- Maintained by the window; drawn by the widget.
+
+	set_focused (a_focused: BOOLEAN)
+		do
+			is_focused := a_focused
+		ensure
+			set: is_focused = a_focused
+		end
+
 	handle_click (a_px, a_py: REAL_64)
 		do
 		end

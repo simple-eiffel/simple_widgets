@@ -161,8 +161,12 @@ feature {NONE} -- Dispatch
 			inspect a_type
 			when 2 then
 				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
-					if w.accepts_focus then
+					if w.accepts_focus and then w /= focused then
+						if attached focused as prev then
+							prev.set_focused (False)
+						end
 						focused := w
+						w.set_focused (True)
 					end
 					w.handle_click (a_x, a_y)
 				end

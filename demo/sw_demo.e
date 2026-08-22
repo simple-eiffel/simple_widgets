@@ -22,6 +22,8 @@ feature {NONE} -- Initialization
 			buttons: SW_ROW
 		do
 			create theme.make_light
+			create counter_label.make_mono ("clicks: 0")
+			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on running until the wrap engine breaks the line exactly where the measured advances say it must.")
 			create window.make ("simple_widgets demo", 8, 8, 900, 560, theme)
 			window.add_font ("D:\prod\simple_narrate\fonts\Archivo.ttf").do_nothing
 			window.add_font ("D:\prod\simple_narrate\fonts\Literata.ttf").do_nothing
@@ -45,7 +47,6 @@ feature {NONE} -- Initialization
 			card.put (chips)
 			root.put (card)
 
-			create counter_label.make_mono ("clicks: 0")
 			create card.make_striped (theme.accent)
 			card.put (counter_label)
 			create buttons.make
@@ -53,6 +54,12 @@ feature {NONE} -- Initialization
 			buttons.put (create {SW_BUTTON}.make ("Log Only", agent on_log_only))
 			buttons.put ((create {SW_BUTTON}.make ("Disabled", Void)).disabled)
 			card.put (buttons)
+			root.put (card)
+
+			create card.make_striped (theme.warning)
+			card.put ((create {SW_LABEL}.make_ui ("SW_TEXT_BOX %/8212/ click, drag, double-click, shift+arrows, type")).as_muted)
+			edit_box.set_on_change (agent on_text_changed)
+			card.put (edit_box)
 			root.put (card)
 
 			window.set_root (root)
@@ -77,6 +84,13 @@ feature {NONE} -- Behaviour
 	on_log_only
 		do
 			window.log_line ("demo: log-only button")
+		end
+
+	edit_box: SW_TEXT_BOX
+
+	on_text_changed
+		do
+			window.log_line ("demo: text now " + edit_box.text.count.out + " chars")
 		end
 
 end
