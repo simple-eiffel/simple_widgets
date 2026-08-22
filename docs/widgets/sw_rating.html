@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_RATING - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_RATING</h1>
+        <p class="tagline">Stars out of five: click to rate, click again to clear, hover to preview.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_RATING draws <code>max_stars</code> stars: filled warning-amber up to <code>value</code>, outlined beyond. Hovering previews the would-be rating in accent. Clicking the k-th star sets k; clicking the star matching the current value clears to 0 - both fire <code>on_change (value)</code>. The invariant pins 0 &le; value &le; max_stars.</p>
+            <p>The stars themselves are the painter's <code>star_fill</code>/<code>star_stroke</code> primitives - ten computed vertices with the same path hygiene the circle primitives learned from the radio-dash bug.</p>
+            <p class="muted"><em>Source: <code>src/sw_rating.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Rate and clear</h2>
+<pre><code><span class="keyword">create</span> rating.make (3, 5, <span class="keyword">agent</span> on_rated)
+rating.set_tooltip (<span <span class="keyword">class</span>="string">&quot;Click a star to rate; click the same star to clear&quot;</span>)
+
+on_rated (a_v: <span class="type">INTEGER</span>)
+    <span class="keyword">do</span>
+        statusbar.set_left ({<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot;rated &quot;</span> + a_v.out + {<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot; of 5&quot;</span>)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Whole stars only - no half-star display or input.</li>
+                <li>Read-write only; a display-only mode is a one-flag addition awaiting a consumer.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><code>star_at</code> clamps rightward overshoot to max but returns 0 left of the field - the same truncation-toward-zero lesson SW_LIST's row_at taught, applied at birth.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Half-star precision (display first, then input by half-zones).</li>
+                <li>Read-only mode with value caption ('4.2 (128)').</li>
+                <li>Custom glyph agent (hearts, thumbs) over the same zone engine.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

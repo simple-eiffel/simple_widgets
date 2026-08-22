@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-25%2F25-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-35%2F35-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -16,8 +16,8 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-🚧 **Waves 1–2 complete** — v0.2.0, 36 classes
-- 25 contract-assault tests passing, five consecutive clean runs
+🚧 **Waves 1–2 complete, Wave 3 underway** — 43 classes
+- 35 contract-assault tests passing, five consecutive clean runs
 - Every widget frame-proven in the live showroom (`demo/sw_demo.e`)
 - Windows-only today (the SURFACE layer is Win32); everything above it is portable by design
 

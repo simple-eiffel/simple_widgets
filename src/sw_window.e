@@ -791,9 +791,11 @@ feature -- Notifications
 feature {NONE} -- Notification internals
 
 	age_toasts
+			-- The heartbeat: age toasts, repaint, flush the echo.
+			-- The repaint is unconditional - it is the toolkit's
+			-- ambient animation clock (skeleton shimmer rides it).
 		local
 			i: INTEGER
-			changed: BOOLEAN
 		do
 			from
 				i := toasts.count
@@ -805,12 +807,9 @@ feature {NONE} -- Notification internals
 					toasts.go_i_th (i)
 					toasts.remove
 				end
-				changed := True
 				i := i - 1
 			end
-			if changed then
-				after_input
-			end
+			after_input
 			flush_frame_echo
 		end
 

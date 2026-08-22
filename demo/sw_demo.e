@@ -17,6 +17,8 @@ feature {NONE} -- Initialization
 		local
 			theme: SW_THEME
 			root: SW_COLUMN
+			body: SW_COLUMN
+			body_scroll: SW_SCROLL_AREA
 			card: SW_CARD
 			chips: SW_ROW
 			buttons: SW_ROW
@@ -37,6 +39,8 @@ feature {NONE} -- Initialization
 			create menubar.make
 			create statusbar.make
 			create combo.make_with_options
+			create seg.make
+			create rating.make (3, 5, Void)
 			create toolbar.make
 			create window.make ("simple_widgets demo", 2200, 10, 900, 1600, theme)
 				-- agents only from here down: every attached attribute is set
@@ -70,9 +74,11 @@ feature {NONE} -- Initialization
 			menubar.add_menu ("Help", agent help_menu)
 			root.put (menubar)
 			root.put (toolbar)
+			create body.make
+			body := body.with_gap (14.0)
 
-			root.put (create {SW_LABEL}.make ("simple_widgets", {SW_PAINTER}.Role_ui, 20.0, True))
-			root.put ((create {SW_LABEL}.make_mono ("the toolkit above simple_cairo %/183/ no Vision2 %/183/ no boilerplate")).as_muted)
+			body.put (create {SW_LABEL}.make ("simple_widgets", {SW_PAINTER}.Role_ui, 20.0, True))
+			body.put ((create {SW_LABEL}.make_mono ("the toolkit above simple_cairo %/183/ no Vision2 %/183/ no boilerplate")).as_muted)
 
 			create card.make_striped (theme.success)
 			card.put (create {SW_LABEL}.make_body ("Every colour, face and metric here comes from the theme; every position from the layout."))
@@ -83,7 +89,7 @@ feature {NONE} -- Initialization
 			chips.put (create {SW_CHIP}.make ("DIRTY", {SW_CHIP}.Kind_warning))
 			chips.put (create {SW_CHIP}.make ("FAILED", {SW_CHIP}.Kind_danger))
 			card.put (chips)
-			root.put (card)
+			body.put (card)
 
 			create card.make_striped (theme.accent)
 			card.put (counter_label)
@@ -108,7 +114,7 @@ feature {NONE} -- Initialization
 			buttons.put ((create {SW_BUTTON}.make ("Delete%/8230/", agent on_delete)).as_kind ({SW_BUTTON}.Kind_danger))
 			buttons.put (((create {SW_BUTTON}.make ("I grow with the window", Void)).disabled).growing)
 			card.put (buttons)
-			root.put (card)
+			body.put (card)
 
 			create card.make_striped (theme.warning)
 			card.put ((create {SW_LABEL}.make_ui ("SW_TEXT_BOX %/8212/ click, drag, double-click, shift+arrows, type")).as_muted)
@@ -122,14 +128,16 @@ feature {NONE} -- Initialization
 			pw.set_tooltip ("A password box %/8212/ the eye reveals, the clipboard still never sees the secret")
 			buttons.put (pw.growing)
 			card.put (buttons)
-			root.put (card)
+			body.put (card)
 
-			root.put (scroll_split_card (theme))
-			root.put (tabs_card (theme))
-			root.put (list_card (theme))
+			body.put (scroll_split_card (theme))
+			body.put (tabs_card (theme))
+			body.put (list_card (theme))
 			statusbar.set_left ("ready %/8212/ every pixel drawn by simple_widgets")
-			statusbar.set_right ("36 widgets and counting")
-			root.put (create {SW_SPACER}.make)
+			statusbar.set_right ("43 widgets and counting")
+			create body_scroll.make (400.0)
+			body_scroll.set_child (body)
+			root.put (body_scroll.growing)
 			root.put (statusbar)
 
 			window.set_root (root)
@@ -144,6 +152,9 @@ feature {NONE} -- Initialization
 			page: SW_COLUMN
 			sl: SW_SLIDER
 			nb: SW_NUMBER_BOX
+			stats: SW_ROW
+			stat2: SW_STATISTIC
+			empty: SW_EMPTY_STATE
 		do
 			create tabs.make
 			create page.make
@@ -163,6 +174,36 @@ feature {NONE} -- Initialization
 			page.put (create {SW_LABEL}.make_ui ("A PNG loaded by cairo, contain-scaled and centered by SW_IMAGE"))
 			page.put ((create {SW_IMAGE}.make_from_file ("D:/prod/simple_widgets/docs/images/logo.png")).with_display_height (170.0))
 			tabs.add_page ("Picture", page)
+			create page.make
+			page := page.with_gap (12.0)
+			create stats.make
+			stats.put (create {SW_STATISTIC}.make ("widgets shipped", "45"))
+			create stat2.make ("assault tests", "25")
+			stat2.set_delta ("+7", True)
+			stats.put (stat2)
+			create stat2.make ("native controls", "0")
+			stat2.set_delta ("forever", True)
+			stats.put (stat2)
+			page.put (stats)
+			create stats.make
+			stats.put (create {SW_AVATAR}.make ("Larry Rix"))
+			stats.put (create {SW_AVATAR}.make ("Claude"))
+			stats.put (create {SW_AVATAR}.make ("simple widgets"))
+			stats.put ((create {SW_BADGE}.make_count (3)))
+			stats.put ((create {SW_BADGE}.make_count (150)))
+			stats.put (create {SW_BADGE}.make_dot)
+			seg := seg.with_segment ("List").with_segment ("Grid").with_segment ("Cards")
+			seg.set_on_change (agent on_view_changed)
+			stats.put (seg)
+			rating.set_on_change (agent on_rated)
+			rating.set_tooltip ("Click a star to rate; click the same star to clear")
+			stats.put (rating)
+			page.put (stats)
+			page.put (create {SW_SKELETON}.make (3))
+			create empty.make ("Nothing here yet", "This region is honest about being empty.")
+			empty.set_action ("Create the first thing", agent on_empty_action)
+			page.put (empty)
+			tabs.add_page ("Wave 3", page)
 			tabs.set_on_change (agent on_tab_changed)
 			create Result.make_striped (a_theme.warning)
 			Result.put ((create {SW_LABEL}.make_ui ("SW_TABS %/8212/ pages swap; hover the bar")).as_muted)
@@ -371,6 +412,25 @@ feature {NONE} -- Behaviour
 				"A drawn widget toolkit for Eiffel on pure Win32 %/8212/ no Vision2, no GTK, no native controls. Every pixel here, including this dialog and the menu you just used, is painted by the toolkit itself.")
 			d.add_button ("Nice", True, Void)
 			window.show_dialog (d)
+		end
+
+	seg: SW_SEGMENTED
+
+	rating: SW_RATING
+
+	on_view_changed (a_i: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "view: " + seg.selected_text)
+		end
+
+	on_rated (a_v: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "rated " + a_v.out + {STRING_32} " of 5")
+		end
+
+	on_empty_action
+		do
+			window.toast ("The first thing exists now", 2)
 		end
 
 	combo: SW_COMBO

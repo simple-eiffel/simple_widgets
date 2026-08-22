@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SEGMENTED - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SEGMENTED</h1>
+        <p class="tagline">Radio semantics in button clothes: a pill of segments, exactly one selected.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SEGMENTED is the one-of-N control worn as buttons: a track pill holding segments, the selected one filled accent, the hovered one raised. The first segment is chosen at birth (same law as the radio group - a choice control always holds a choice); clicking moves the selection and fires <code>on_change (index)</code>; re-selecting the current segment is silent. Use it for view switches (List / Grid / Cards); use <a href='sw_radio_group.html'>SW_RADIO_GROUP</a> when the choice reads as a form field.</p>
+            <p class="muted"><em>Source: <code>src/sw_segmented.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A view switch</h2>
+<pre><code><span class="keyword">create</span> seg.make
+seg := seg.with_segment (<span <span class="keyword">class</span>="string">&quot;List&quot;</span>).with_segment (<span <span class="keyword">class</span>="string">&quot;Grid&quot;</span>).with_segment (<span <span class="keyword">class</span>="string">&quot;Cards&quot;</span>)
+seg.set_on_change (<span class="keyword">agent</span> on_view_changed)
+
+on_view_changed (a_i: <span class="type">INTEGER</span>)
+    <span class="keyword">do</span>
+        statusbar.set_left ({<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot;view: &quot;</span> + seg.selected_text)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Text segments only (icons await the drawn-glyph set).</li>
+                <li>No per-segment disabling yet.</li>
+                <li>Fixed segment widths from label advance - no equalized widths option.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Click zones are measured with the same font the draw uses; if you restyle in a descendant, keep draw and handle_click measuring identically or zones will drift.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Icon segments; equal-width mode; per-segment enabled flags.</li>
+                <li>A sliding selection animation on the heartbeat.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

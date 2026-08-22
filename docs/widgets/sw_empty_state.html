@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_EMPTY_STATE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_EMPTY_STATE</h1>
+        <p class="tagline">Honest nothing: a drawn tray glyph, a title, a message, and one optional action.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_EMPTY_STATE is what a blank region says instead of staying blank: a drawn open-tray glyph, a bold title, a muted message, and optionally one underlined action (<code>set_action (label, agent)</code>) that fires on click in the action zone. Use it in lists with no rows, searches with no hits, fresh documents with no content.</p>
+            <p class="muted"><em>Source: <code>src/sw_empty_state.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>An empty library</h2>
+<pre><code><span class="keyword">create</span> empty.make (<span <span class="keyword">class</span>="string">&quot;Nothing here yet&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Captures will appear <span class="keyword">as</span> you make them.&quot;</span>)
+empty.set_action (<span <span class="keyword">class</span>="string">&quot;Start the first capture&quot;</span>, <span class="keyword">agent</span> on_first_capture)
+page.put (empty)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>One action only; the message is a single non-wrapping line for now.</li>
+                <li>The glyph is fixed (the tray) - no glyph choices yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The action zone is the band below the message - the glyph and title are deliberately inert so stray clicks do nothing.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Wrapped multi-line messages (borrowing SW_LABEL's body wrap).</li>
+                <li>A small glyph set (search, error, offline) chosen by kind.</li>
+                <li>Secondary action slot.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

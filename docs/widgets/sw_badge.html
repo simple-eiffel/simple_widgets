@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_BADGE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_BADGE</h1>
+        <p class="tagline">A count pill or a bare dot - the notification badge, capped honestly at 99+.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_BADGE renders a small danger-red pill with a count, or a bare presence dot (<code>make_dot</code>). Counts beyond 99 display as <strong>99+</strong>; the <code>caption</code> query is public precisely so that truth is testable - the assault suite pins 7 &rarr; '7', 99 &rarr; '99', 150 &rarr; '99+'.</p>
+            <p class="muted"><em>Source: <code>src/sw_badge.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Counts and dots</h2>
+<pre><code>row.put (<span class="keyword">create</span> {<span class="type">SW_BADGE</span>}.make_count (3))
+row.put (<span class="keyword">create</span> {<span class="type">SW_BADGE</span>}.make_count (150))   <span class="comment">-- renders 99+</span>
+row.put (<span class="keyword">create</span> {<span class="type">SW_BADGE</span>}.make_dot)           <span class="comment">-- bare presence</span>
+unread.set_count (unread.count + 1)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Standalone widget for now - no attach-to-corner-of-another-widget overlay yet.</li>
+                <li>Danger red only; semantic kinds are a small addition awaiting a consumer.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><code>set_count (0)</code> renders a pill saying 0 - hide the badge (or use the dot) when zero means nothing to say.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Overlay anchoring: badge attached to any widget's corner (composition-layer helper).</li>
+                <li>Semantic kind parameter (accent/success/warning) mirroring SW_CHIP.</li>
+                <li>Auto-hide-at-zero policy flag.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

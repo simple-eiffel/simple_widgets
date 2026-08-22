@@ -29,6 +29,9 @@ feature {NONE} -- Initialization
 			print ("%N=== FILE DIALOG ===%N")
 			run_file_dialog_tests
 
+			print ("%N=== WAVE 3 INDICATORS ===%N")
+			run_indicator_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -82,6 +85,25 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_theme_invariants_both_ways, "theme_invariants_both_ways")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
+		end
+
+	indicator_tests: SW_INDICATOR_ASSAULT
+
+	run_indicator_tests
+		do
+			create indicator_tests
+			run_test (agent indicator_tests.test_badge_caption_caps, "badge_caption_caps")
+			run_test (agent indicator_tests.test_avatar_initials, "avatar_initials")
+			run_test (agent indicator_tests.test_segmented_first_chosen_at_birth, "segmented_first_chosen")
+			run_test (agent indicator_tests.test_segmented_select_fires_once, "segmented_select_fires_once")
+			run_test (agent indicator_tests.test_segmented_click_zones, "segmented_click_zones")
+			run_test (agent indicator_tests.test_rating_click_sets_and_clears, "rating_click_sets_and_clears")
+			run_test (agent indicator_tests.test_rating_star_at_bounds, "rating_star_at_bounds")
+			run_test (agent indicator_tests.test_statistic_delta, "statistic_delta")
+			run_test (agent indicator_tests.test_empty_state_action_zone, "empty_state_action_zone")
+			run_test (agent indicator_tests.test_skeleton_draw_smoke, "skeleton_draw_smoke")
+			run_test (agent indicator_tests.test_scroll_wheel_step_programmable, "scroll_wheel_step_programmable")
+			run_test (agent indicator_tests.test_scroll_two_axis_clamps, "scroll_two_axis_clamps")
 		end
 
 	run_file_dialog_tests

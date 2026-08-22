@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_AVATAR - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_AVATAR</h1>
+        <p class="tagline">A person as a disc: derived initials on a wash whose hue is a stable hash of the name.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_AVATAR shows up to two initials - first letters of the first and last words of <code>display_name</code>, upper-cased ('Larry Rix' &rarr; LR, 'cher' &rarr; C, blank &rarr; ?) - on a filled disc. The wash colour is chosen by a stable hash of the name, so the same person always wears the same hue across sessions and screens. <code>with_diameter</code> scales the whole disc, initials included.</p>
+            <p class="muted"><em>Source: <code>src/sw_avatar.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A people row</h2>
+<pre><code>row.put (<span class="keyword">create</span> {<span class="type">SW_AVATAR</span>}.make (<span <span class="keyword">class</span>="string">&quot;Larry Rix&quot;</span>))
+row.put (<span class="keyword">create</span> {<span class="type">SW_AVATAR</span>}.make (<span <span class="keyword">class</span>="string">&quot;Claude&quot;</span>))
+row.put ((<span class="keyword">create</span> {<span class="type">SW_AVATAR</span>}.make (<span <span class="keyword">class</span>="string">&quot;Grace Hopper&quot;</span>)).with_diameter (48.0))</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Initials only - no picture support until SW_IMAGE gains clipped (circular) blits.</li>
+                <li>Hash picks among the four theme washes; large rosters will share hues.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The hue hash runs over the exact name string - 'Larry Rix' and 'larry rix' wear different colours. Normalize names upstream if identity matters.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Photo avatars: circular-clipped PNG via a painter clip-to-circle primitive.</li>
+                <li>Presence dot overlay (with SW_BADGE anchoring).</li>
+                <li>Avatar stacks (overlapping groups with a +N tail).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

@@ -180,6 +180,23 @@ feature -- Circles
 			context.fill.do_nothing
 		end
 
+	star_fill (a_cx, a_cy, a_r: REAL_64)
+			-- A filled five-point star; same path hygiene as circles.
+		require
+			positive: a_r > 0.0
+		do
+			star_path (a_cx, a_cy, a_r)
+			context.fill.do_nothing
+		end
+
+	star_stroke (a_cx, a_cy, a_r: REAL_64)
+		require
+			positive: a_r > 0.0
+		do
+			star_path (a_cx, a_cy, a_r)
+			context.stroke.do_nothing
+		end
+
 	Two_pi: REAL_64 = 6.28319
 
 feature -- Images
@@ -194,6 +211,41 @@ feature -- Images
 			context.translate (a_x, a_y).scale (a_w / a_img.width, a_h / a_img.height).do_nothing
 			context.set_source_surface (a_img, 0.0, 0.0).paint.do_nothing
 			context.restore.do_nothing
+		end
+
+feature {NONE} -- Star geometry
+
+	star_path (a_cx, a_cy, a_r: REAL_64)
+			-- Ten vertices alternating outer and inner radius, path
+			-- reset first (cairo joins from the current point).
+		local
+			m: DOUBLE_MATH
+			i: INTEGER
+			ang, rr, px, py: REAL_64
+		do
+			create m
+			context.new_path.do_nothing
+			from
+				i := 0
+			until
+				i >= 10
+			loop
+				ang := -1.5708 + i * Two_pi / 10.0
+				if i \\ 2 = 0 then
+					rr := a_r
+				else
+					rr := a_r * 0.42
+				end
+				px := a_cx + rr * m.cosine (ang)
+				py := a_cy + rr * m.sine (ang)
+				if i = 0 then
+					context.move_to (px, py).do_nothing
+				else
+					context.line_to (px, py).do_nothing
+				end
+				i := i + 1
+			end
+			context.close_path.do_nothing
 		end
 
 feature {NONE} -- Implementation

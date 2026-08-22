@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-25%2F25-brightgreen.svg" alt="25/25 tests">
+            <img src="https://img.shields.io/badge/tests-35%2F35-brightgreen.svg" alt="35/35 tests">
         </div>
     </header>
 
@@ -54,7 +54,8 @@
                 themes swap live, and the whole face is testable headless.
             </p>
             <p>
-                36 classes ship today across two completed waves; the catalog (specs/S02) plans
+                44 pages cover every class shipped across Waves 1-2, Wave 3's first
+                batch, and one planned control kept visible on purpose; the catalog (specs/S02) plans
                 coverage of the full desktop-and-web widget union across six waves.
                 Part of the <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem.
             </p>
@@ -281,6 +282,41 @@
                     <p>PNG, contain-scaled, honest placeholder.</p>
                 </div>
             </div>
+            <h3 class="gallery-group">Indicators (Wave 3)</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_statistic.html">SW_STATISTIC</a></h3>
+                    <p>Big value, muted label, semantic delta.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_badge.html">SW_BADGE</a></h3>
+                    <p>Count pill capped at 99+, or a bare dot.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_avatar.html">SW_AVATAR</a></h3>
+                    <p>Derived initials on a hash-stable wash.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_segmented.html">SW_SEGMENTED</a></h3>
+                    <p>Radio semantics in button clothes.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_rating.html">SW_RATING</a></h3>
+                    <p>Stars: click to rate, again to clear.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_skeleton.html">SW_SKELETON</a></h3>
+                    <p>Loading bars shimmering on the heartbeat.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_empty_state.html">SW_EMPTY_STATE</a></h3>
+                    <p>Honest nothing, with one action.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_inspector.html">SW_INSPECTOR</a></h3>
+                    <p>PLANNED - the dev-mode reveal overlay and mesh.</p>
+                </div>
+            </div>
             <h3 class="gallery-group">Services</h3>
             <div class="feature-grid">
                 <div class="feature-card">
@@ -303,7 +339,7 @@
             <p>
                 The library ships a test target that drives the model layer headless - including
                 drawing, via a painter over an offscreen cairo surface - with <em>every assertion
-                live</em> (F_code with contracts kept). 25 tests across four assault sets; the suite
+                live</em> (F_code with contracts kept). 35 tests across five assault sets; the suite
                 caught three real defects on its first day (a truncation alias in list row math, a
                 clipboard race against history managers, and an ECF namespace clash).
             </p>

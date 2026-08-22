@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_INSPECTOR (planned) - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_INSPECTOR (planned)</h1>
+        <p class="tagline">COMING: the dev-mode overlay - reflection-driven widget reveals, a force-directed mesh, compiled out of release builds.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p><strong>This page describes a planned control - nothing here ships yet.</strong> It exists so the design is public while it waits for its dependencies (the popover/overlay primitives later in Wave 3).</p>
+            <p>SW_INSPECTOR is the dev-mode lens over a running face. With dev mode on, right-clicking any widget opens a reveal overlay instead of (or stacked above) its normal context menu, showing: its class (free at runtime via Eiffel's <code>generating_type</code>), bounds, grow/min/max hints, state flags, and the theme tokens in force. The engine is Eiffel's own reflection - <code>REFLECTOR</code> / <code>TYPE</code>: <code>field_count</code>, <code>field_name</code>, <code>field (i)</code> - so any widget's attributes and live values enumerate generically, with zero per-class authoring. An opt-in <code>dev_note</code> on SW_WIDGET carries only what reflection cannot know: intent, provenance, wiring rationale.</p>
+            <p>The <strong>mesh view</strong> draws the widget graph as a force-directed network - springs on parent/child and agent edges, charge repulsion between nodes, a few dozen relaxation ticks on the heartbeat - the same physics family as EiffelStudio's Diagram Tool, which is the precedent that inspired it.</p>
+            <p><strong>Two gates.</strong> Compile-time: every inspector hook lives inside <code>debug ("dev_mode")</code> instructions, stripped unless the ECF target sets <code>&lt;debug name="dev_mode" enabled="true"/&gt;</code> - production binaries carry neither the machinery nor the menu item, the same axis as Design by Contract itself (present in dev/fat builds, absent from lean releases, enforced by the compiler). Run-time: inside a dev build, a top-menu Dev Mode toggle - itself inside the debug block - opens control-level right-click reveals and the mesh.</p>
+            <p>An <strong>AI-assist narrator</strong> rides later: once structure, state and wiring enumerate, answering 'why does this button look like this?' (which token, which state, which contract) is a small step - and one no desktop toolkit has shipped.</p>
+            <p class="muted"><em>Source: <code>src/sw_inspector.e</code> &middot; since planned - Wave 3 tail; design pinned in specs/S02, 2026-08-22.
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>The planned surface (subject to change)</h2>
+<pre><code><span class="comment">-- ECF, dev target only:</span>
+<span class="comment">--   &lt;debug name=&quot;dev_mode&quot; enabled=&quot;true&quot;/&gt;</span>
+
+debug (<span <span class="keyword">class</span>="string">&quot;dev_mode&quot;</span>)
+    window.menu_bar_adds_dev_toggle
+<span class="keyword">end</span>
+
+<span class="comment">-- with dev mode ON at runtime:</span>
+<span class="comment">--   right-click any widget  -&gt; reveal overlay (class, bounds, state, tokens)</span>
+<span class="comment">--   Dev menu &gt; Mesh         -&gt; force-directed widget graph</span>
+my_button.set_dev_note (<span <span class="keyword">class</span>="string">&quot;primary verb of the capture card; wired to <span class="type">APP</span>.on_save&quot;</span>)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Not implemented - this page is the promise, kept visible on purpose.</li>
+                <li>Depends on the popover/overlay primitives scheduled later in Wave 3.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>When it lands: reflection reads attributes, not computed queries - derived state (like is_hiding) will need the dev_note channel or explicit surfacing.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>The full design is pinned in specs/S02 (Dev mode section) - reveal, metadata protocol, introspection engine, mesh physics, the two gates.</li>
+                <li>AI narrator integration once the reveal data model exists.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>
