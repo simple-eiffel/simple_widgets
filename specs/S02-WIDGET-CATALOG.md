@@ -42,7 +42,8 @@ port second - and (b) desktop idioms promoted above their web tier
 SW_RADIO_GROUP, SW_SWITCH, SW_NUMBER_BOX (spin), SW_COMBO (editable),
 SW_PASSWORD (mode of SW_TEXT_BOX), SW_SLIDER, SW_TABS, SW_STATUS_BAR,
 SW_TOOLBAR, SW_MENU_BAR + drawn SW_MENU, SW_GROUP (titled border),
-SW_SEPARATOR, SW_IMAGE (PNG via cairo), file dialogs (native first).
+SW_SEPARATOR, SW_IMAGE (PNG via cairo), file dialogs (drawn - R7
+allows nothing native).
 
 ### Wave 3 - the desktop long tail
 
@@ -74,6 +75,9 @@ No carve-outs; the former non-goals become the final waves.
 
 ## 3. Theming commitments (from today's QA)
 
+- R7 doctrine: nothing native, everything drawn - the menu that
+  proved it was the first casualty and the first win (a drawn menu
+  is frame-testable; TrackPopupMenu never was).
 - Themes are programmable NOW: SW_THEME exposes set_surfaces /
   set_semantics / set_washes / set_families, with the WCAG contrast
   invariant still standing guard - code can build any theme except an

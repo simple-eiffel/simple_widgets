@@ -20,7 +20,7 @@ inherit
 		redefine
 			accepts_focus, handle_click, handle_double_click,
 			handle_triple_click, handle_drag, handle_char, handle_key,
-			handle_context
+			context_menu
 		end
 
 create
@@ -321,37 +321,27 @@ feature -- Input
 			end
 		end
 
-	handle_context (a_px, a_py: REAL_64): BOOLEAN
+	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
 			-- The standard text menu. A right-click outside the current
 			-- selection moves the caret there first, as every editor does.
 		local
-			menu: SW_NATIVE_MENU
 			clip: SW_CLIPBOARD
 			c: INTEGER
 		do
-			Result := True
 			c := offset_at (a_px, a_py)
 			if not (has_selection and then c >= sel_anchor.min (caret) and then c <= sel_anchor.max (caret)) then
 				caret := c
 				sel_anchor := c
 			end
-			create menu
 			create clip
-			inspect menu.text_context_menu (
-				has_selection and not is_read_only,
-				has_selection,
-				clip.has_text and not is_read_only,
-				text.count > 0)
-			when 1 then
-				cut_selection
-			when 2 then
-				copy_selection
-			when 3 then
-				paste_clipboard
-			when 4 then
-				select_all
-			else
-			end
+			create Result.make
+			Result.add_item ("Cut", "Ctrl+X", has_selection and not is_read_only, agent cut_selection)
+			Result.add_item ("Copy", "Ctrl+C", has_selection, agent copy_selection)
+			Result.add_item ("Paste", "Ctrl+V", clip.has_text and not is_read_only, agent paste_clipboard)
+			Result.add_separator
+			Result.add_item ("Select All", "Ctrl+A", text.count > 0, agent select_all)
+		ensure then
+			offered: Result /= Void
 		end
 
 	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)

@@ -87,6 +87,17 @@ focus and geometry rich enough that a future UIA bridge can walk it, and
 grow SW_TEXT_BOX's edit state as contracted classes, never as "a rect
 with text".
 
+R7 — **Nothing native. We draw everything.** (Larry, 2026-08-22,
+verbatim: "native anything is NOT in the cards for simple_widgets.
+We draw everything ourselves.") No TrackPopupMenu, no common
+dialogs, no MessageBox: every control, menu, and dialog is drawn by
+the toolkit on its own surface - which also makes every one of them
+testable from the frame echo, where native surfaces never were. OS
+SERVICES with no pixels (clipboard, fonts, DPI, file SYSTEM access)
+remain fair game; OS-drawn WIDGETS do not. The one pixel-bearing
+exception is the window frame itself, until SW owns borderless
+chrome.
+
 ## 3. What tonight's V0 already honours
 
 - Painter monopoly (R2) - built in from the first commit.

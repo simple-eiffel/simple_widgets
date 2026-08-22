@@ -167,6 +167,66 @@ feature {NONE} -- Dispatch
 
 	dispatch (a_type, a_x, a_y: INTEGER)
 		do
+			if attached popup as m then
+				dispatch_to_popup (m, a_type, a_x, a_y)
+			else
+				dispatch_normal (a_type, a_x, a_y)
+			end
+		end
+
+	dispatch_to_popup (a_m: SW_MENU; a_type, a_x, a_y: INTEGER)
+			-- While a popup is up it owns the pointer and Escape;
+			-- everything else is swallowed until it closes.
+		local
+			idx: INTEGER
+			act: detachable PROCEDURE
+		do
+			inspect a_type
+			when 2 then
+				idx := a_m.item_at (a_x, a_y)
+				if idx > 0 then
+					act := a_m.items.i_th (idx).action
+				end
+				close_popup
+				if attached act as a then
+					a.call
+				end
+				after_input
+			when 13 then
+				a_m.set_hover_at (a_x, a_y)
+				after_input
+			when 3 then
+				if a_x = 27 then
+					close_popup
+					after_input
+				end
+			when 6 then
+				blit
+			when 11 then
+				close_popup
+				after_input
+			else
+			end
+		end
+
+	show_popup (a_m: SW_MENU; a_x, a_y: INTEGER)
+		do
+			a_m.measure (painter)
+			a_m.place (a_x, a_y, win_w, win_h)
+			popup := a_m
+		ensure
+			shown: popup = a_m
+		end
+
+	close_popup
+		do
+			popup := Void
+		ensure
+			closed: popup = Void
+		end
+
+	dispatch_normal (a_type, a_x, a_y: INTEGER)
+		do
 			inspect a_type
 			when 2 then
 				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
@@ -237,6 +297,9 @@ feature {NONE} -- Dispatch
 		end
 
 	bubble_context (a_target: SW_WIDGET; a_x, a_y: INTEGER)
+			-- Ask the target, then its ancestors, for a declared menu;
+			-- present the first one offered. Falls back to the
+			-- handle_context hook for non-menu reactions.
 		local
 			w: detachable SW_WIDGET
 			handled: BOOLEAN
@@ -246,7 +309,14 @@ feature {NONE} -- Dispatch
 			until
 				handled or w = Void
 			loop
-				handled := w.handle_context (a_x, a_y)
+				if w.is_enabled then
+					if attached w.context_menu (a_x, a_y) as m then
+						show_popup (m, a_x, a_y)
+						handled := True
+					else
+						handled := w.handle_context (a_x, a_y)
+					end
+				end
 				if not handled then
 					w := w.parent
 				end
@@ -323,6 +393,9 @@ feature {NONE} -- Rendering
 				r.arrange (painter)
 				r.draw (painter)
 			end
+			if attached popup as m then
+				m.draw (painter)
+			end
 			if not frame_echo_path.is_empty then
 				offscreen.write_png (frame_echo_path).do_nothing
 			end
@@ -354,6 +427,9 @@ feature {NONE} -- State
 
 	hovered: detachable SW_WIDGET
 			-- Widget currently under the pointer.
+
+	popup: detachable SW_MENU
+			-- The open popup menu, drawn above everything.
 
 	cairo: SIMPLE_CAIRO
 	offscreen: CAIRO_SURFACE

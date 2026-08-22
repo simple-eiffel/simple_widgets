@@ -177,7 +177,16 @@ feature -- Input
 		end
 
 	handle_context (a_px, a_py: REAL_64): BOOLEAN
-			-- React to a right-click; True when consumed.
+			-- React to a right-click; True when consumed. Prefer
+			-- declaring a menu via context_menu and letting the window
+			-- present it; use this hook only for non-menu reactions.
+		do
+		end
+
+	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
+			-- The menu this widget offers at the point, if any. The
+			-- window presents it; every widget is right-clickable, and
+			-- the only question is whether something is defined here.
 		do
 		end
 
