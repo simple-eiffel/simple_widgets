@@ -31,7 +31,7 @@ feature {NONE} -- Initialization
 			kind_select.add_option ("Warning")
 			kind_select.add_option ("Danger")
 			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on runing untill the wrap engine breaks the line exactly where the measured advances say it must.")
-			create window.make ("simple_widgets demo", 2200, 10, 900, 780, theme)
+			create window.make ("simple_widgets demo", 2200, 10, 900, 1000, theme)
 				-- agents only from here down: every attached attribute is set
 			create danger_button.make ("Danger", Void)
 			danger_button.set_on_click (agent on_log_only)
@@ -85,9 +85,47 @@ feature {NONE} -- Initialization
 			root.put (card)
 
 			root.put (scroll_split_card (theme))
+			root.put (list_card (theme))
 
 			window.set_root (root)
 			window.run
+		end
+
+	list_card (a_theme: SW_THEME): SW_CARD
+			-- Ten thousand agent-rendered rows; only the visible band
+			-- ever draws.
+		local
+			lst: SW_LIST
+		do
+			create lst.make (170.0)
+			lst.set_row_count (10000)
+			lst.set_row_height (30.0)
+			lst.set_row_renderer (agent draw_demo_row)
+			lst.set_on_select (agent on_row_selected)
+			create Result.make_striped (a_theme.success)
+			Result.put ((create {SW_LABEL}.make_ui ("SW_LIST %/8212/ 10,000 virtualized rows; wheel, click, drag the bar")).as_muted)
+			Result.put (lst)
+		end
+
+	draw_demo_row (a_p: SW_PAINTER; a_i: INTEGER; a_x, a_y, a_w, a_h: REAL_64)
+			-- One list row: index in mono, a phase tag, a thin baseline.
+		do
+			a_p.font ({SW_PAINTER}.Role_mono, 13.0, False)
+			if a_i \\ 100 = 0 then
+				a_p.set_color (a_p.theme.accent)
+			else
+				a_p.set_color (a_p.theme.ink)
+			end
+			a_p.text (a_x + 12.0, a_y + a_h - 9.0, "item " + a_i.out)
+			a_p.font ({SW_PAINTER}.Role_ui, 11.0, False)
+			a_p.set_color (a_p.theme.ink_muted)
+			a_p.text (a_x + 140.0, a_y + a_h - 10.0, "virtualized %/8212/ only the visible band is drawn")
+		end
+
+	on_row_selected (a_i: INTEGER)
+		do
+			counter_label.set_text ("list row selected: " + a_i.out)
+			window.log_line ("demo: list selected " + a_i.out)
 		end
 
 	scroll_split_card (a_theme: SW_THEME): SW_CARD
