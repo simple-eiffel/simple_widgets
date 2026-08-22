@@ -13,12 +13,26 @@ feature -- Access
 			-- Clipboard content as text; empty when none.
 		local
 			buf: MANAGED_POINTER
-			n, i: INTEGER
+			n, i, attempts: INTEGER
 			c: NATURAL_16
+			env: EXECUTION_ENVIRONMENT
 		do
 			create Result.make_empty
 			create buf.make (Buffer_bytes)
 			n := c_clip_get (buf.item, Buffer_bytes // 2)
+			from
+				attempts := 0
+			until
+				n > 0 or attempts >= 5 or not has_text
+			loop
+					-- the format probe says text exists but the read
+					-- came back empty: OpenClipboard lost the race
+					-- against a history manager - retry briefly.
+				create env
+				env.sleep (10_000_000)
+				n := c_clip_get (buf.item, Buffer_bytes // 2)
+				attempts := attempts + 1
+			end
 			from
 				i := 0
 			until
@@ -46,11 +60,24 @@ feature -- Access
 feature -- Element change
 
 	set_text (a_text: READABLE_STRING_GENERAL)
+			-- Write to the clipboard, retrying briefly: history
+			-- managers grab the clipboard right after every change,
+			-- so the very next OpenClipboard often loses the race.
 		local
 			ns: NATIVE_STRING
+			env: EXECUTION_ENVIRONMENT
+			attempts: INTEGER
 		do
 			create ns.make (a_text)
-			c_clip_set (ns.item).do_nothing
+			from
+				attempts := 0
+			until
+				attempts >= 5 or else c_clip_set (ns.item) = 1
+			loop
+				create env
+				env.sleep (10_000_000)
+				attempts := attempts + 1
+			end
 		end
 
 feature {NONE} -- Implementation

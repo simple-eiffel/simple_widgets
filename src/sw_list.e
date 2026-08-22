@@ -63,7 +63,10 @@ feature -- Access
 	row_at (a_py: REAL_64): INTEGER
 			-- The row index under viewport y `a_py'; 0 outside content.
 		do
-			if row_count > 0 then
+			if row_count > 0 and then a_py >= y then
+					-- the guard matters: truncation rounds toward zero,
+					-- so a point just ABOVE the list would otherwise
+					-- alias to row 1 - the assault suite's first catch.
 				Result := ((a_py - y + scroll_y) / row_height).truncated_to_integer + 1
 				if Result < 1 or Result > row_count then
 					Result := 0
@@ -71,6 +74,7 @@ feature -- Access
 			end
 		ensure
 			in_range: Result >= 0 and Result <= row_count
+			nothing_above_the_top: a_py < y implies Result = 0
 		end
 
 	pebble_at (a_px, a_py: REAL_64): detachable ANY

@@ -82,6 +82,28 @@ feature -- Access
 
 	on_cancel: detachable PROCEDURE
 
+	entry_count: INTEGER
+			-- How many rows the entry list currently shows.
+		do
+			Result := entry_names.count
+		ensure
+			at_least_dotdot: Result >= 1
+		end
+
+	entry_name (a_i: INTEGER): STRING_32
+		require
+			in_range: a_i >= 1 and a_i <= entry_count
+		do
+			Result := entry_names.i_th (a_i)
+		end
+
+	is_entry_directory (a_i: INTEGER): BOOLEAN
+		require
+			in_range: a_i >= 1 and a_i <= entry_count
+		do
+			Result := entry_is_dir.i_th (a_i)
+		end
+
 	chosen_path: STRING_32
 			-- The current directory joined with the name box's text.
 		local
@@ -95,6 +117,15 @@ feature -- Access
 		end
 
 feature -- Element change
+
+	open_entry (a_i: INTEGER)
+			-- Act on entry `a_i' as a double-click would: descend into
+			-- directories, accept files.
+		require
+			in_range: a_i >= 1 and a_i <= entry_count
+		do
+			on_entry_activated (a_i)
+		end
 
 	set_on_accept (a_action: PROCEDURE [STRING_32])
 		do
