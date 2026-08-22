@@ -726,6 +726,8 @@ feature {NONE} -- Behaviour
 		local
 			bc: SW_BAR_CHART
 			sc: SW_SCATTER_CHART
+			pie: SW_PIE_CHART
+			fun: SW_FUNNEL_CHART
 			i: INTEGER
 		do
 			create Result.make
@@ -749,6 +751,19 @@ feature {NONE} -- Behaviour
 				i := i + 1
 			end
 			Result.put (sc.with_title ("48 deterministic points %/8212/ hover finds the nearest"))
+			create pie.make_donut
+			pie.add_slice ("Wave 1", 24.0)
+			pie.add_slice ("Wave 2", 12.0)
+			pie.add_slice ("Wave 3", 25.0)
+			pie.add_slice ("Wave 4", 7.0)
+			pie.add_slice ("devkit", 5.0)
+			Result.put (pie.with_title ("the library as a donut %/8212/ hover a slice or its legend"))
+			create fun.make
+			fun.add_stage ("captured", 1_000.0)
+			fun.add_stage ("OCR clean", 870.0)
+			fun.add_stage ("reviewed", 705.0)
+			fun.add_stage ("exported", 640.0)
+			Result.put (fun.with_title ("a capture pipeline %/8212/ conversion from the first stage"))
 		end
 
 	perf_chart: SW_LINE_CHART

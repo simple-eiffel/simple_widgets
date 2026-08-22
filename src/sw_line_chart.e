@@ -163,6 +163,24 @@ feature {NONE} -- Drawing
 		end
 
 	draw_hover (a_p: SW_PAINTER)
+			-- Legend row first, then the crosshair snapped to the
+			-- first series' nearest sample.
+		local
+			names: ARRAYED_LIST [STRING_32]
+		do
+			if series.count >= 2 then
+				create names.make (series.count)
+				across
+					series as s
+				loop
+					names.extend (s.name)
+				end
+				draw_legend_row (a_p, names)
+			end
+			draw_crosshair (a_p)
+		end
+
+	draw_crosshair (a_p: SW_PAINTER)
 			-- Crosshair snapped to the first series' nearest sample.
 		local
 			k, i: INTEGER

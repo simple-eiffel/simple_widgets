@@ -204,6 +204,44 @@ feature -- Paths
 			context.fill.do_nothing
 		end
 
+feature -- Wedges
+
+	wedge_fill (a_cx, a_cy, a_r_out, a_r_in, a_a0, a_a1: REAL_64)
+			-- A filled slice from angle a0 to a1 (radians, cairo
+			-- convention). r_in = 0 gives a solid wedge to the
+			-- centre; r_in > 0 gives a TRUE ring segment - arc out,
+			-- arc_negative back, no overlay fakery.
+		require
+			radii_sane: a_r_out > 0.0 and a_r_in >= 0.0 and a_r_in < a_r_out
+		do
+			wedge_path (a_cx, a_cy, a_r_out, a_r_in, a_a0, a_a1)
+			context.fill.do_nothing
+		end
+
+	wedge_stroke (a_cx, a_cy, a_r_out, a_r_in, a_a0, a_a1: REAL_64)
+			-- The same slice, outlined.
+		require
+			radii_sane: a_r_out > 0.0 and a_r_in >= 0.0 and a_r_in < a_r_out
+		do
+			wedge_path (a_cx, a_cy, a_r_out, a_r_in, a_a0, a_a1)
+			context.stroke.do_nothing
+		end
+
+feature {NONE} -- Wedge path
+
+	wedge_path (a_cx, a_cy, a_r_out, a_r_in, a_a0, a_a1: REAL_64)
+		do
+			context.new_path.do_nothing
+			if a_r_in <= 0.0 then
+				context.move_to (a_cx, a_cy).do_nothing
+				context.arc (a_cx, a_cy, a_r_out, a_a0, a_a1).do_nothing
+			else
+				context.arc (a_cx, a_cy, a_r_out, a_a0, a_a1).do_nothing
+				context.arc_negative (a_cx, a_cy, a_r_in, a_a1, a_a0).do_nothing
+			end
+			context.close_path.do_nothing
+		end
+
 feature -- Circles
 
 	circle_stroke (a_cx, a_cy, a_r: REAL_64)

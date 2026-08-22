@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (Wave 4, movement two - Proportions)
+- SW_PIE_CHART: slices clockwise from twelve, make_donut with a TRUE
+  ring (SW_PAINTER grew wedge_fill/wedge_stroke: arc out, arc_negative
+  back - no overlay fakery), eight-step palette (semantics then
+  washes), side legend with shares, angle-arithmetic hover (the atan2
+  quadrant dance written out and assaulted: slice_at, percent_of,
+  angle_of all public math). Empty pies say "no data yet".
+- SW_FUNNEL_CHART: centred conversion trapezoids, alpha washed by
+  strength, every band naming label/value/conversion-from-first;
+  add_stage REQUIRES descending values - a widening funnel is a lie
+  the compiler refuses. stage_at/conversion_of assaulted.
+- Shared legend machinery: SW_CHART.draw_legend_row (dots + names,
+  right-aligned); SW_LINE_CHART adopts it for multi-series plots.
+- 3 new assaults (one of which corrected ITS OWN geometry: nine
+  o'clock is 75% around - slice two, not three): suite 109/109.
+
 ### Added (WAVE 4 OPENS - charts)
 - SW_SCALE: the shared axis engine - linear domain-to-range mapping,
   the inverse (hover asks values), the 1/2/5 tick ladder, nice-domain

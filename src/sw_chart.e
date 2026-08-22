@@ -142,6 +142,31 @@ feature -- Drawing
 		do
 		end
 
+	draw_legend_row (a_p: SW_PAINTER; a_names: ARRAYED_LIST [STRING_32])
+			-- The shared legend machinery: colour dots + names in a
+			-- right-aligned row inside the frame's top band.
+		local
+			lx: REAL_64
+			i: INTEGER
+		do
+			a_p.font ({SW_PAINTER}.Role_ui, 11.5, False)
+			lx := x + width - Inset_right
+			from
+				i := a_names.count
+			until
+				i < 1
+			loop
+				lx := lx - a_p.advance (a_names.i_th (i))
+				a_p.set_color (a_p.theme.ink_muted)
+				a_p.text (lx, y + 16.0, a_names.i_th (i))
+				lx := lx - 12.0
+				a_p.set_color (series_color (i, a_p))
+				a_p.circle_fill (lx + 4.0, y + 12.0, 4.0)
+				lx := lx - 14.0
+				i := i - 1
+			end
+		end
+
 feature -- Formatting
 
 	label_of (a_value: REAL_64): STRING_32

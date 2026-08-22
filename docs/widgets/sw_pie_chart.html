@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_PIE_CHART - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_PIE_CHART</h1>
+        <p class="tagline">Slices from twelve o&#x27;clock, a TRUE donut ring, side legend with shares, angle-arithmetic hover.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Labelled slices swept clockwise from twelve o'clock. <code>make_donut</code> gives a hole at 55% of the radius - a TRUE ring: SW_PAINTER grew <code>wedge_fill</code>/<code>wedge_stroke</code> (arc out, <code>arc_negative</code> back, close, fill), no surface-coloured overlay fakery. The palette runs eight distinguishable steps: the four theme semantics, then their washes.</p>
+            <p>A side legend lists every slice with its colour dot and SHARE (percent of the whole); hovering a slice outlines its wedge, brightens its legend row, and a chip restates label, value and share. The math is public and assaulted headless: <code>slice_at</code> (radius band + clockwise angle walk, with the atan2 quadrant dance written out), <code>percent_of</code> (shares sum to 100), <code>angle_of</code> (normalized 0..2pi from twelve, y-down).</p>
+            <p>An empty pie says <em>no data yet</em> instead of pretending.</p>
+            <p class="muted"><em>Source: <code>src/sw_pie_chart.e</code> &middot; since Wave 4, Proportions (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A donut of the library</h2>
+<pre><code><span class="keyword">create</span> pie.make_donut
+pie.add_slice (<span <span class="keyword">class</span>="string">&quot;Wave 1&quot;</span>, 24.0)
+pie.add_slice (<span <span class="keyword">class</span>="string">&quot;Wave 2&quot;</span>, 12.0)
+pie.add_slice (<span <span class="keyword">class</span>="string">&quot;Wave 3&quot;</span>, 25.0)
+page.put (pie.with_title (<span <span class="keyword">class</span>="string">&quot;the library <span class="keyword">as</span> a donut&quot;</span>))
+
+<span class="comment">-- headless truth:</span>
+pie.percent_of (2)          <span class="comment">-- 19.7</span>
+pie.slice_at (px, py)       <span class="comment">-- which wedge is under a point</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Eight palette steps; a ninth slice reuses colours - group small slices first.</li>
+                <li>No exploded slices or per-slice offsets.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Slices sweep in ADD ORDER, clockwise from twelve - order is meaning.</li>
+                <li>The donut hole answers slice_at with 0 - it is honestly nobody.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>An 'other' auto-grouping for long tails; exploded emphasis; click-to-select.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

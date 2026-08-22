@@ -140,4 +140,62 @@ feature -- The charts, headless
 				c.nearest_point (9_999.0, 9_999.0))
 		end
 
+feature -- Proportions
+
+	test_pie_shares_and_slices
+		local
+			c: SW_PIE_CHART
+		do
+			create c.make_donut
+			c.add_slice ("a", 50.0)
+			c.add_slice ("b", 30.0)
+			c.add_slice ("c", 20.0)
+			assert_reals_equal ("the whole is the sum", 100.0, c.total, 0.000_1)
+			assert_reals_equal ("shares are percentages", 30.0, c.percent_of (2), 0.000_1)
+			assert_reals_equal ("shares sum to the whole", 100.0,
+				c.percent_of (1) + c.percent_of (2) + c.percent_of (3), 0.000_1)
+			c.set_bounds (0.0, 0.0, 400.0, 300.0)
+				-- slice 1 spans the first half turn clockwise from
+				-- twelve: three o'clock is inside it
+			assert_integers_equal ("three o'clock lies in the half slice", 1,
+				c.slice_at (c.pie_cx + c.pie_r * 0.8, c.pie_cy))
+				-- nine o'clock is 75% around: inside slice 2 (50..80)
+			assert_integers_equal ("nine o'clock lies in the second slice", 2,
+				c.slice_at (c.pie_cx - c.pie_r * 0.8, c.pie_cy))
+				-- 90% around (upper-left): inside slice 3 (80..100)
+			assert_integers_equal ("ninety percent around lies in the last fifth", 3,
+				c.slice_at (c.pie_cx - c.pie_r * 0.47, c.pie_cy - c.pie_r * 0.647))
+			assert_integers_equal ("the donut hole is nobody", 0,
+				c.slice_at (c.pie_cx, c.pie_cy))
+			assert_integers_equal ("open space is nobody", 0,
+				c.slice_at (c.pie_cx + c.pie_r * 3.0, c.pie_cy))
+		end
+
+	test_pie_empty_is_honest
+		local
+			c: SW_PIE_CHART
+		do
+			create c.make
+			c.set_bounds (0.0, 0.0, 400.0, 300.0)
+			assert_reals_equal ("no slices, no whole", 0.0, c.total, 0.000_1)
+			assert_integers_equal ("no whole, no hits", 0,
+				c.slice_at (c.pie_cx, c.pie_cy - c.pie_r * 0.5))
+		end
+
+	test_funnel_conversion_and_bands
+		local
+			c: SW_FUNNEL_CHART
+		do
+			create c.make
+			c.add_stage ("in", 1_000.0)
+			c.add_stage ("mid", 400.0)
+			c.add_stage ("out", 250.0)
+			assert_reals_equal ("the first converts fully", 100.0, c.conversion_of (1), 0.000_1)
+			assert_reals_equal ("the tail names its share", 25.0, c.conversion_of (3), 0.000_1)
+			c.set_bounds (0.0, 0.0, 400.0, 300.0)
+			assert_integers_equal ("top band answers", 1, c.stage_at (c.plot_y + 1.0))
+			assert_integers_equal ("bottom band answers", 3, c.stage_at (c.plot_y + c.plot_h - 1.0))
+			assert_integers_equal ("outside answers nobody", 0, c.stage_at (c.plot_y - 10.0))
+		end
+
 end

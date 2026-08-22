@@ -261,6 +261,9 @@ feature {NONE} -- Test runners
 			run_test (agent chart_tests.test_line_auto_domains, "line_auto_domains")
 			run_test (agent chart_tests.test_bar_slots_and_domain, "bar_slots_and_domain")
 			run_test (agent chart_tests.test_scatter_nearest, "scatter_nearest")
+			run_test (agent chart_tests.test_pie_shares_and_slices, "pie_shares_and_slices")
+			run_test (agent chart_tests.test_pie_empty_is_honest, "pie_empty_is_honest")
+			run_test (agent chart_tests.test_funnel_conversion_and_bands, "funnel_conversion_and_bands")
 		end
 
 	chart_tests: SW_CHART_ASSAULT

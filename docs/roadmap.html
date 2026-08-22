@@ -88,8 +88,12 @@
                     (crosshair-snap, bar rings, nearest-dot). The demo's line chart streams every
                     frame's render cost live off after_render_actions. Legend + multi-series bars
                     ride the next movement.</td></tr>
-                <tr><td>Proportions</td><td>pie/donut, funnel</td><td>Painter arcs exist
-                    (circle path hygiene already learned).</td></tr>
+                <tr><td>Proportions — <em>SHIPPED 2026-08-22</em></td>
+                    <td>SW_PIE_CHART (pie + true donut ring via wedge_fill/arc_negative,
+                    side legend with shares, angle-hover) and SW_FUNNEL_CHART (conversion
+                    trapezoids, descending-by-contract)</td><td>The painter grew wedges;
+                    the line chart adopted the shared legend row (multi-series names).
+                    An 'other' auto-grouping and cohort funnels ride later.</td></tr>
                 <tr><td>Indicators</td><td>gauges, sparkline</td><td>Sparkline pairs with
                     SW_STATISTIC (already noted on its page).</td></tr>
                 <tr><td>Densities</td><td>heatmap, treemap</td><td>Heatmap shares SW_SHEET's

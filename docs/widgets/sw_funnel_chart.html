@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_FUNNEL_CHART - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_FUNNEL_CHART</h1>
+        <p class="tagline">Pipeline stages as centred trapezoids, each naming its value and its conversion from the first.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Stages narrow with their values, centred symmetrically; each band joins the next by its slanted sides (<code>polygon_fill</code> earns its keep) and is washed by its conversion - stronger alpha for stronger stages. Every band writes its label, value, and <strong>conversion from the first stage</strong> - the number funnels exist to show. Hover solidifies a band and bolds its line.</p>
+            <p>The contract enforces the shape: <code>add_stage</code> requires descending values - a funnel that widens is a lie the compiler now refuses. <code>stage_at</code> and <code>conversion_of</code> are public math, assaulted headless.</p>
+            <p class="muted"><em>Source: <code>src/sw_funnel_chart.e</code> &middot; since Wave 4, Proportions (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A capture pipeline</h2>
+<pre><code><span class="keyword">create</span> fun.make
+fun.add_stage (<span <span class="keyword">class</span>="string">&quot;captured&quot;</span>, 1_000.0)
+fun.add_stage (<span <span class="keyword">class</span>="string">&quot;<span class="type">OCR</span> clean&quot;</span>, 870.0)
+fun.add_stage (<span <span class="keyword">class</span>="string">&quot;reviewed&quot;</span>, 705.0)
+fun.add_stage (<span <span class="keyword">class</span>="string">&quot;exported&quot;</span>, 640.0)
+page.put (fun.with_title (<span <span class="keyword">class</span>="string">&quot;a capture pipeline&quot;</span>))
+
+fun.conversion_of (4)   <span class="comment">-- 64.0 (% of the first stage)</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Strictly descending stages by contract; equal values are allowed, growth is not.</li>
+                <li>Single funnel - no side-by-side cohort comparison yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Labels sit ON the bands; very narrow tails can crowd - keep stage names short.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Cohort comparison (two funnels sharing a scale); stage-to-stage drop annotations.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>
