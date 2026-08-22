@@ -12,6 +12,9 @@ Toolkit-wide near-term items (from the same read):
 - [ ] Window-level automatic scroll policy: when root content exceeds the
       window, the window itself offers the scrollbar (today: compose an
       SW_SCROLL_AREA body, as the demo shell does).
+- [ ] Dual pinned drawers = true DOCKING (content reflow, workbench
+      panels) - Wave 5 enterprise composites; overlays stay one-at-a-time
+      by law until then (Larry, 2026-08-22).
 - [ ] Top and bottom drawer gutters + Mode_top/Mode_bottom (the
       add_drawer_tab API already accepts all four edges).
 - [ ] Overlay slide/ease animation on the heartbeat (drawers expanding
@@ -26,6 +29,7 @@ Toolkit-wide near-term items (from the same read):
 - [ ] Cursor API (I-beam, resize arrows).
 - [ ] SW_INSPECTOR - design pinned in S02; lands at Wave 3 tail behind the
       debug ("dev_mode") gate.
+
 
 
 ## SW_WINDOW
@@ -933,6 +937,7 @@ Limits to push:
 - [ ] One overlay at a time: a drawer displaces an open sheet or popover.
 - [ ] Tab gutters: left and right today; Edge_top/Edge_bottom are accepted by the API but precondition-blocked until their gutters land (S04).
 - [ ] Peeked drawers close on pointer-leave with no grace delay yet.
+- [ ] One overlay at a time by law: dual pinned drawers await true docking (Wave 5).
 
 
 ## SW_POPOVER

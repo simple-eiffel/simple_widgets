@@ -30,6 +30,8 @@
     <main>
         <section id="description">
             <h2>Description</h2>
+            <p><strong>The pushpin</strong>: every open drawer wears a drawn pin in its header, left of the X - <em>filled accent while pinned, hollow while peeking</em> - and the pin is a toggle: click to unpin (auto-hide re-arms; the drawer closes when the pointer leaves), click to pin again. Unpinning is exempt from the interact-pins-implicitly rule, or it would undo itself.</p>
+            <p><strong>Overlap law</strong>: one overlay at a time - opening any sheet, drawer or popover dismisses the previous, and a centered modal sheet blocks tab peeking entirely. Same-edge drawer overlap is meaningless; opposite-edge coexistence (pinned left + pinned right) is really DOCKING - content reflow - and is planned as such (S04, Wave 5 enterprise composites) rather than faked as stacked overlays.</p>
             <p><strong>Tabs, peek and pin</strong> (Larry's design, same day): <code>window.add_drawer_tab (label, builder, edge)</code> registers an edge tab living in a reserved GUTTER - a slim rail outside the content and its scrollbars, so aiming at a scrollbar thumb can never open a drawer by accident. Each tab wears a tiny drawn drawer icon over its stacked letters. <strong>Hovering the tab peeks</strong> the drawer (it closes when the pointer leaves the panel); <strong>clicking pins</strong> it (stays until dismissed); interacting with a peeked drawer pins it implicitly so it cannot vanish mid-use. Content comes from a builder agent - fresh on every open, the menu freshness law. The edge parameter accepts all four edges so the API never churns; left and right are implemented, top and bottom arrive with S04.</p>
             <p>Drawers are an overlay presentation of the window - <code>window.show_drawer (content, width, from_right)</code> slides ANY widget tree in as a full-height edge panel over a lightly dimmed backdrop. Outside clicks, Escape, or your own wiring close it (<code>window.close_sheet</code> closes every overlay kind). The overlay engine is shared: sheets (centered, truly modal), drawers (edge, dismissable), popovers (anchored, light) are one mechanism with four presentations - and popups still open above them all, so drawer widgets keep their menus.</p>
             <p>SW_DRAWER itself is the furniture: an SW_COLUMN with a title header and a drawn close X that fires <code>on_close</code> - wire it to <code>window.close_sheet</code> and the X, the backdrop and Escape all agree.</p>
@@ -63,6 +65,7 @@ on_drawer_close
                 <li>One overlay at a time: a drawer displaces an open sheet or popover.</li>
                 <li>Tab gutters: left and right today; Edge_top/Edge_bottom are accepted by the API but precondition-blocked until their gutters land (S04).</li>
                 <li>Peeked drawers close on pointer-leave with no grace delay yet.</li>
+                <li>One overlay at a time by law: dual pinned drawers await true docking (Wave 5).</li>
             </ul>
         </section>
 

@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dismissable) and POPOVERS (anchored, light) are one mechanism with
   four presentations; outside-click closes the dismissable kinds;
   popups still open above them all
+- Drawer PUSHPIN: filled while pinned, hollow while peeking; click
+  toggles auto-hide (unpin exempt from implicit pinning). Overlap law
+  stated: one overlay at a time; dual pinned drawers await true docking
+  (Wave 5). Fixed: menu-opened drawers no longer inherit stale peek
+  state (present defaults to stay-put)
 - Drawer TABS with peek and pin (Larry's design): edge tabs in reserved
   GUTTERS outside content and scrollbars; hover peeks, click pins,
   interacting with a peek pins implicitly; tiny drawn drawer icon per

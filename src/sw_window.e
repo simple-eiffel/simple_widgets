@@ -424,7 +424,9 @@ feature {NONE} -- Popup lifecycle
 		do
 			inspect a_type
 			when 2 then
-				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
+				if point_on_pin (a_x, a_y) then
+					drawer_pinned := not drawer_pinned
+				elseif attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
 					if w.accepts_focus and then w /= focused then
 						if attached focused as prev then
 							prev.set_focused (False)
@@ -445,9 +447,11 @@ feature {NONE} -- Popup lifecycle
 				if sheet /= Void and then not drawer_pinned
 					and then (sheet_mode = Mode_left or sheet_mode = Mode_right)
 					and then point_in_sheet_panel (a_x, a_y)
+					and then not point_on_pin (a_x, a_y)
 				then
 						-- interacting with a peeked drawer pins it: it
-						-- must not vanish mid-use
+						-- must not vanish mid-use (the pin itself is
+						-- exempt, or unpinning would undo itself)
 					drawer_pinned := True
 				end
 				after_input
@@ -790,6 +794,24 @@ feature {NONE} -- Rendering
 				end
 				s.arrange (painter)
 				s.draw (painter)
+				if sheet_mode = Mode_left or sheet_mode = Mode_right then
+						-- the pushpin, left of the drawer's own close X:
+						-- filled when pinned, hollow while peeking; click
+						-- toggles auto-hide
+					pin_x := sheet_px + sheet_pw - 48.0
+					pin_y := 21.0
+					if drawer_pinned then
+						painter.set_color (theme.accent)
+						painter.circle_fill (pin_x, pin_y - 2.0, 4.5)
+					else
+						painter.set_color (theme.ink_muted)
+						painter.circle_stroke (pin_x, pin_y - 2.0, 4.5)
+					end
+					painter.line (pin_x, pin_y + 2.0, pin_x, pin_y + 8.0, 1.8)
+				else
+					pin_x := 0.0
+					pin_y := 0.0
+				end
 			end
 			if attached popup as m then
 				m.draw (painter)
@@ -1082,6 +1104,7 @@ feature {NONE} -- State
 			sheet_mode := a_mode
 			sheet_ax := a_x
 			sheet_ay := a_y
+			drawer_pinned := True
 			if attached focused as f then
 				f.set_focused (False)
 			end
@@ -1153,6 +1176,18 @@ feature -- Drawer tab (peek and pin)
 			drawer_tabs.extend ([l, a_builder, a_edge = Edge_right])
 		ensure
 			grew: drawer_tabs.count = old drawer_tabs.count + 1
+		end
+
+	pin_x, pin_y: REAL_64
+			-- The pin glyph's centre on an open drawer panel,
+			-- refreshed every render; (0,0) when no drawer is up.
+
+	point_on_pin (a_x, a_y: INTEGER): BOOLEAN
+		do
+			Result := sheet /= Void
+				and then (sheet_mode = Mode_left or sheet_mode = Mode_right)
+				and then a_x >= pin_x - 10.0 and then a_x <= pin_x + 10.0
+				and then a_y >= pin_y - 10.0 and then a_y <= pin_y + 10.0
 		end
 
 	tab_rects: ARRAYED_LIST [TUPLE [rx, ry, rw, rh: REAL_64]]
