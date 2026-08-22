@@ -5,7 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] — Wave 3 in progress
+
+### Added
+- Disclosure batch: SW_ACCORDION (exclusive law by postcondition),
+  SW_STEPPER (only done ground is clickable), SW_TIMELINE (semantic
+  dots, row math pinned by test), SW_DRAWER furniture
+- Overlay engine unified: sheets (centered modal), DRAWERS (edge,
+  dismissable) and POPOVERS (anchored, light) are one mechanism with
+  four presentations; outside-click closes the dismissable kinds;
+  popups still open above them all
+- Drawer TABS with peek and pin (Larry's design): edge tabs in reserved
+  GUTTERS outside content and scrollbars; hover peeks, click pins,
+  interacting with a peek pins implicitly; tiny drawn drawer icon per
+  tab; builder agents keep content fresh per open; add_drawer_tab
+  accepts all four edges (left/right live, top/bottom with S04)
+- Indicator septet: SW_BADGE (99+ cap), SW_AVATAR (hash-stable hues,
+  derived initials), SW_SEGMENTED (first chosen at birth), SW_RATING
+  (star primitives; click again clears), SW_SKELETON (heartbeat
+  shimmer), SW_EMPTY_STATE (tray glyph + one action), SW_STATISTIC
+  (semantic delta)
+- SW_PAINTER.star_fill / star_stroke (computed vertices, path hygiene)
+- Heartbeat repaints unconditionally: the ambient animation clock
+- App-shell demo: pinned chrome, body in a growing two-axis
+  SW_SCROLL_AREA (programmable wheel step, default 96 px/notch;
+  horizontal bar + Shift+wheel when content announces wide)
+- Wheel coalescing in the pump: fast spins are one scroll + one render
+- Assault suite at 44/44 (indicator + disclosure sets added)
+- Docs: pages for all new controls, SW_INSPECTOR PLANNED page,
+  specs/S04-ROADMAP.md harvested from the page sources
+
+### Fixed
+- Keyword casualty #5: `some` (across...some quantifier)
+- CHANGELOG is now append-only history - the docs generator no longer
+  regenerates it (it silently discarded Unreleased entries once)
 
 ## [0.2.0] - 2026-08-22 — Wave 2 complete
 
