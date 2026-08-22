@@ -33,7 +33,9 @@ feature {NONE} -- Initialization
 			create cairo.make
 			create ev_buf.make (16)
 			create frame_echo_path.make_empty
-			offscreen := cairo.create_surface (win_w, win_h)
+			alloc_w := win_w
+			alloc_h := win_h
+			offscreen := cairo.create_surface (alloc_w, alloc_h)
 			create ctx.make (offscreen)
 			create painter.make (ctx, theme)
 		ensure
@@ -458,22 +460,29 @@ feature {NONE} -- Dispatch internals
 		end
 
 	resize_surface (a_w, a_h: INTEGER)
-			-- The user resized the frame: new offscreen, new painter,
-			-- full re-layout - the containership tree reflows.
+			-- The user resized the frame: re-layout always; a NEW
+			-- offscreen only when the window outgrows the allocation,
+			-- and then in 256-pixel steps so a drag reallocates rarely.
 		do
 			if a_w > 0 and a_h > 0 and (a_w /= win_w or a_h /= win_h) then
 				win_w := a_w
 				win_h := a_h
-				ctx.destroy
-				offscreen.destroy
-				offscreen := cairo.create_surface (win_w, win_h)
-				create ctx.make (offscreen)
-				create painter.make (ctx, theme)
+				if win_w > alloc_w or win_h > alloc_h then
+					alloc_w := ((win_w // 256) + 1) * 256
+					alloc_h := ((win_h // 256) + 1) * 256
+					ctx.destroy
+					offscreen.destroy
+					offscreen := cairo.create_surface (alloc_w, alloc_h)
+					create ctx.make (offscreen)
+					create painter.make (ctx, theme)
+				end
 				if attached dialog as d then
 					d.measure (painter, win_w, win_h)
 				end
 				after_input
 			end
+		ensure
+			fits: win_w <= alloc_w and win_h <= alloc_h
 		end
 
 	bubble_wheel (a_target: SW_WIDGET; a_delta: INTEGER)
@@ -551,8 +560,16 @@ feature {NONE} -- Rendering
 				d.draw (painter)
 			end
 			draw_toasts
-			if not frame_echo_path.is_empty then
+			frame_echo_dirty := True
+		end
+
+	flush_frame_echo
+			-- Write the debug frame off the hot path: PNG compression
+			-- on every render made window-grow drags crawl.
+		do
+			if frame_echo_dirty and then not frame_echo_path.is_empty then
 				offscreen.write_png (frame_echo_path).do_nothing
+				frame_echo_dirty := False
 			end
 		end
 
@@ -617,6 +634,7 @@ feature {NONE} -- Notification internals
 			if changed then
 				after_input
 			end
+			flush_frame_echo
 		end
 
 	draw_toasts
@@ -696,6 +714,13 @@ feature {NONE} -- State
 		attribute
 			create Result.make (4)
 		end
+
+	frame_echo_dirty: BOOLEAN
+
+	alloc_w: INTEGER
+	alloc_h: INTEGER
+			-- The offscreen surface's allocated size; grown in steps so
+			-- a corner drag does not reallocate per pixel.
 
 	pending_surrogate: INTEGER
 			-- High half of a UTF-16 pair awaiting its partner.
