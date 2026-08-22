@@ -311,6 +311,17 @@ feature {NONE} -- Dispatch
 			loop
 				if w.is_enabled then
 					if attached w.context_menu (a_x, a_y) as m then
+							-- a right-click focuses its target, as every
+							-- editor does - the menu actions act on state
+							-- the widget will then also DRAW (selection is
+							-- only rendered while focused)
+						if w.accepts_focus and then w /= focused then
+							if attached focused as prev then
+								prev.set_focused (False)
+							end
+							focused := w
+							w.set_focused (True)
+						end
 						show_popup (m, a_x, a_y)
 						handled := True
 					else
