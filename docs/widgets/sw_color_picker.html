@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_COLOR_PICKER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_COLOR_PICKER</h1>
+        <p class="tagline">Colour, fully drawn: a hue-banded SV field, a spectrum bar, live swatch and hex - HSV in the model, RGB at the border.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_COLOR_PICKER draws the classic two-part picker: a saturation/value field banded from the current hue (click or drag to pick), a hue spectrum bar beneath, and a live swatch beside a mono <code>#RRGGBB</code> readout. The model is HSV - <code>hue</code> [0,360), <code>saturation</code> and <code>brightness</code> [0,1], all invariant-clamped - and the border speaks RGB: <code>rgb: NATURAL_32</code>, <code>set_rgb</code>, and <code>on_change</code> delivering 0xRRGGBB on every pick and drag.</p>
+            <p>The conversions are assault-pinned on the corners: pure red, green, blue, cyan, white, black, and round trips through arbitrary colours. ('value' being a loaded word in agent contexts, the V of HSV is named <code>brightness</code>.)</p>
+            <p class="muted"><em>Source: <code>src/sw_color_picker.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Picking, and being told</h2>
+<pre><code><span class="keyword">create</span> color_picker.make (0x4D8FD6)     <span class="comment">-- start on the accent</span>
+color_picker.set_on_change (<span class="keyword">agent</span> on_color_changed)
+
+on_color_changed (a_rgb: <span class="type">NATURAL_32</span>)
+    <span class="keyword">do</span>
+        statusbar.set_left ({<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot;colour: &quot;</span> + color_picker.hex_text)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No alpha channel (the theme's colours are opaque RGB by design).</li>
+                <li>No hex TYPING yet - readout only; input is queued.</li>
+                <li>No palette swatches/recent colours row yet.</li>
+                <li>The banded field renders 288 rects + 36 bar rects per frame - cheap, but a retained-layer future exists if pickers multiply.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>set_rgb derives HSV, so a subsequent rgb query may differ by one bit per channel from rounding - compare colours with tolerance, or store what on_change told you.</li>
+                <li>Dragging fires on_change continuously - debounce expensive reactions, never the visual echo.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Hex input (single-line parse, the picker vocabulary of SW_TEXT_BOX).</li>
+                <li>Palette/recent swatches; eyedropper over the window surface.</li>
+                <li>Alpha variant when a consumer needs translucency.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

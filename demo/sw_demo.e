@@ -42,6 +42,8 @@ feature {NONE} -- Initialization
 			create seg.make
 			create fleet_grid.make (240.0)
 			create cal.make
+			create fleet_tree.make (200.0)
+			create color_picker.make (0x4D8FD6)
 			create date_us.make_picker
 			create date_iso.make_picker
 			create time_12.make_picker
@@ -145,7 +147,7 @@ feature {NONE} -- Initialization
 			body.put (tabs_card (theme))
 			body.put (list_card (theme))
 			statusbar.set_left ("ready %/8212/ every pixel drawn by simple_widgets")
-			statusbar.set_right ("55 widgets and counting")
+			statusbar.set_right ("58 widgets and counting")
 			create body_scroll.make (400.0)
 			body_scroll.set_child (body)
 			root.put (body_scroll.growing)
@@ -252,6 +254,17 @@ feature {NONE} -- Initialization
 			page.put (pick_row)
 			page.put ((create {SW_LABEL}.make_ui ("SW_CALENDAR + SW_DATE_PICKER + SW_TIME_PICKER %/8212/ culture is a setting: US by default, overridable per control. Bad input wears the invalid tint.")).as_muted)
 			tabs.add_page ("Pickers", page)
+			create page.make
+			page := page.with_gap (10.0)
+			fleet_tree.set_label (agent node_label)
+			fleet_tree.set_children (agent node_children)
+			fleet_tree.set_roots (build_fleet_forest)
+			fleet_tree.set_on_select (agent on_tree_selected)
+			page.put (fleet_tree)
+			color_picker.set_on_change (agent on_color_changed)
+			page.put (color_picker)
+			page.put ((create {SW_LABEL}.make_ui ("SW_TREE %/8212/ lazy children via agents; arrows navigate, left/right fold. SW_COLOR_PICKER %/8212/ drag the field and the bar.")).as_muted)
+			tabs.add_page ("Tree & Color", page)
 			tabs.set_on_change (agent on_tab_changed)
 			create Result.make_striped (a_theme.warning)
 			Result.put ((create {SW_LABEL}.make_ui ("SW_TABS %/8212/ pages swap; hover the bar")).as_muted)
@@ -410,6 +423,46 @@ feature {NONE} -- Initialization
 			col.put (create {SW_RATING}.make (2, 5, Void))
 			col.put ((create {SW_LABEL}.make_ui ("Click outside to dismiss.")).as_muted)
 			window.show_popover (col, 96.0, 46.0, 260.0)
+		end
+
+	fleet_tree: SW_TREE [DEMO_NODE]
+
+	color_picker: SW_COLOR_PICKER
+
+	node_label (a_n: DEMO_NODE): STRING_32
+		do
+			Result := a_n.label
+		end
+
+	node_children (a_n: DEMO_NODE): ARRAYED_LIST [DEMO_NODE]
+		do
+			Result := a_n.children
+		end
+
+	build_fleet_forest: ARRAYED_LIST [DEMO_NODE]
+		local
+			w1, w2, w3: DEMO_NODE
+		do
+			create Result.make (3)
+			create w1.make ("Wave 1 %/8212/ foundations")
+			w1 := w1.with_child ("SW_WINDOW").with_child ("SW_TEXT_BOX").with_child ("SW_LIST").with_child ("SW_MENU")
+			create w2.make ("Wave 2 %/8212/ form-complete")
+			w2 := w2.with_child ("SW_COMBO").with_child ("SW_TOOLBAR").with_child ("SW_FILE_DIALOG")
+			create w3.make ("Wave 3 %/8212/ the long tail")
+			w3 := w3.with_child ("SW_DATA_GRID").with_child ("SW_CALENDAR").with_child ("SW_TREE").with_child ("SW_COLOR_PICKER")
+			Result.extend (w1)
+			Result.extend (w2)
+			Result.extend (w3)
+		end
+
+	on_tree_selected (a_n: DEMO_NODE)
+		do
+			statusbar.set_left ({STRING_32} "tree: " + a_n.label)
+		end
+
+	on_color_changed (a_rgb: NATURAL_32)
+		do
+			statusbar.set_left ({STRING_32} "colour: " + color_picker.hex_text)
 		end
 
 	cal: SW_CALENDAR

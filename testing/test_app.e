@@ -44,6 +44,9 @@ feature {NONE} -- Initialization
 			print ("%N=== LOCALE + PICKERS ===%N")
 			run_locale_tests
 
+			print ("%N=== TREE + COLOUR ===%N")
+			run_tree_color_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -97,6 +100,19 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_theme_invariants_both_ways, "theme_invariants_both_ways")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
+		end
+
+	tree_color_tests: SW_TREE_COLOR_ASSAULT
+
+	run_tree_color_tests
+		do
+			create tree_color_tests
+			run_test (agent tree_color_tests.test_flatten_follows_disclosure, "tree_flatten_follows_disclosure")
+			run_test (agent tree_color_tests.test_children_agent_is_lazy_enough, "tree_children_lazy")
+			run_test (agent tree_color_tests.test_selection_is_identity_stable, "tree_selection_identity_stable")
+			run_test (agent tree_color_tests.test_hsv_to_rgb_known_values, "color_hsv_known_values")
+			run_test (agent tree_color_tests.test_rgb_round_trips, "color_rgb_round_trips")
+			run_test (agent tree_color_tests.test_hex_readout, "color_hex_readout")
 		end
 
 	locale_tests: SW_LOCALE_ASSAULT

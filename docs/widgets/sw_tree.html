@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_TREE [G] - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_TREE [G]</h1>
+        <p class="tagline">Hierarchy over YOUR nodes: lazy children by agent, identity-stable selection, virtualized rows.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_TREE applies the data grid's philosophy to hierarchy: your node objects stay yours. Wire three agents - <code>set_roots</code>, <code>set_children</code> (a FUNCTION over G, called <em>lazily</em>: roots are probed for their disclosure triangles, but a collapsed node's grandchildren are never touched - the assault suite counts the probes), and <code>set_label</code> - and the tree renders disclosure triangles, depth indentation, hover bands and a scrollbar over a virtualized flattening of whatever is open.</p>
+            <p>Expansion is tracked by <strong>object identity</strong>, and so is selection: fold the subtree containing the selected node and it stays selected - reopen and it is found again, the same object. Clicks on the triangle toggle; clicks on the row select (<code>on_select (G)</code>); double-click toggles parents and activates leaves (<code>on_activate (G)</code>). Arrows navigate; left collapses, right expands - the desktop grammar.</p>
+            <p class="muted"><em>Source: <code>src/sw_tree.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A forest over app nodes</h2>
+<pre><code>fleet_tree: <span class="type">SW_TREE</span> [<span class="type">DEMO_NODE</span>]
+
+<span class="keyword">create</span> fleet_tree.make (200.0)
+fleet_tree.set_label (<span class="keyword">agent</span> node_label)
+fleet_tree.set_children (<span class="keyword">agent</span> node_children)
+fleet_tree.set_roots (build_forest)
+fleet_tree.set_on_select (<span class="keyword">agent</span> on_tree_selected)
+
+node_children (a_n: <span class="type">DEMO_NODE</span>): <span class="type">ARRAYED_LIST</span> [<span class="type">DEMO_NODE</span>]
+    <span class="keyword">do</span>
+        <span class="keyword">Result</span> := a_n.children   <span class="comment">-- or fetch lazily: files, database rows...</span>
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Uniform row height; labels only (icons await the drawn-glyph set).</li>
+                <li>Single selection; no checkboxes/tri-state yet (queued with SW_CHECK_BOX's).</li>
+                <li>The flatten rebuild walks open subtrees each toggle - fine at desktop scale; incremental flattening is an S04 item for huge lazy trees.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Identity means REFERENCE identity: rebuild your node objects and the tree's expansion memory no longer matches them. Keep node objects stable across refreshes.</li>
+                <li>The children agent runs for triangle probing of every VISIBLE row - keep it cheap (return a stored list; do expensive fetching on first expansion yourself).</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Node icons; per-node checkboxes with tri-state cascade.</li>
+                <li>Incremental flattening for very large lazy trees.</li>
+                <li>SW_TREE_TABLE (Wave 5): this engine married to SW_DATA_GRID columns.</li>
+                <li>The SW_INSPECTOR's widget-tree panel is exactly SW_TREE [SW_WIDGET].</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

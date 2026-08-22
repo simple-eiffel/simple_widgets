@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — Wave 3 in progress
 
 ### Added
+- SW_TREE [G]: hierarchy over host nodes via agents (roots/children/
+  label); children called LAZILY (probe counting is test-pinned:
+  grandchildren of collapsed nodes are never touched); expansion and
+  selection tracked by OBJECT IDENTITY (fold the selection's subtree,
+  reopen - same object); virtualized rows, arrows navigate, left/right
+  fold. The inspector's future tree panel is this class over
+  SW_WIDGET.
+- SW_COLOR_PICKER: hue-banded SV field + spectrum bar + swatch + hex;
+  HSV model (invariant-clamped), RGB border; conversions assault-
+  pinned on the corner colours. Proven live by a gloriously mis-aimed
+  click (#0C2766 delivered through the agent to the footer) and by
+  Larry's magenta session (#5D4257).
+- Keyword casualty REPEAT: an attribute named 'expanded' (tally #4)
+  slipped in and the compiler refused it in seconds - the tally
+  protects, the gate enforces. Renamed open_nodes.
+- Suite at 73/73 (tree + colour set). Demo cluster joined the tests
+  target (DEMO_NODE fixtures).
 - Culture batch (Larry's regional-controls notice): SW_LOCALE (date
   order/separator, names, week start, 12/24h clock, decimal mark; US
   default by decree, make_iso/make_european ship) carried on SW_THEME

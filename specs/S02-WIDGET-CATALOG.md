@@ -98,6 +98,12 @@ Larry's idea, refined over two sessions:
   `generating_type` free on every object. The inspector enumerates any
   widget's attributes and live values generically; `dev_note` covers only
   what reflection cannot know (intent, provenance, wiring rationale).
+- **Browser-inspector mining** (Larry, 2026-08-22): element-pick hover
+  reveal; layout overlay (bounds/padding/gap/grow); the tree panel IS
+  SW_TREE [SW_WIDGET] (shipped); the styles pane = S03 narrated (which
+  tokens won, why); live token tweaking = a theme-design tool; agent-
+  wiring pane. Beyond browsers: a CONTRACTS pane (live invariants of
+  the selected widget), direct object references, REFLECTOR props free.
 - **Two gates** (Larry, 2026-08-22): compile-time shutout via Eiffel's
   `debug ("dev_mode")` instruction - stripped unless the ECF target sets
   `<debug name="dev_mode" enabled="true"/>`, so production binaries carry

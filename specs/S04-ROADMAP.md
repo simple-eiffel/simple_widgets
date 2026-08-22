@@ -49,6 +49,7 @@ Toolkit-wide near-term items (from the same read):
 
 
 
+
 ## SW_WINDOW
 
 Planned extensions:
@@ -1119,3 +1120,45 @@ Limits to push:
 - [ ] Minutes precision only (no seconds).
 - [ ] No spin zones yet - typing only (spinners are queued).
 - [ ] Same pre-first-draw locale note as the date picker.
+
+
+## SW_TREE [G]
+
+Planned extensions:
+
+- [ ] Node icons; per-node checkboxes with tri-state cascade.
+- [ ] Incremental flattening for very large lazy trees.
+- [ ] SW_TREE_TABLE (Wave 5): this engine married to SW_DATA_GRID columns.
+- [ ] The SW_INSPECTOR's widget-tree panel is exactly SW_TREE [SW_WIDGET].
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- Identity means REFERENCE identity: rebuild your node objects and the tree's expansion memory no longer matches them. Keep node objects stable across refreshes.
+- The children agent runs for triangle probing of every VISIBLE row - keep it cheap (return a stored list; do expensive fetching on first expansion yourself).
+
+Limits to push:
+
+- [ ] Uniform row height; labels only (icons await the drawn-glyph set).
+- [ ] Single selection; no checkboxes/tri-state yet (queued with SW_CHECK_BOX's).
+- [ ] The flatten rebuild walks open subtrees each toggle - fine at desktop scale; incremental flattening is an S04 item for huge lazy trees.
+
+
+## SW_COLOR_PICKER
+
+Planned extensions:
+
+- [ ] Hex input (single-line parse, the picker vocabulary of SW_TEXT_BOX).
+- [ ] Palette/recent swatches; eyedropper over the window surface.
+- [ ] Alpha variant when a consumer needs translucency.
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- set_rgb derives HSV, so a subsequent rgb query may differ by one bit per channel from rounding - compare colours with tolerance, or store what on_change told you.
+- Dragging fires on_change continuously - debounce expensive reactions, never the visual echo.
+
+Limits to push:
+
+- [ ] No alpha channel (the theme's colours are opaque RGB by design).
+- [ ] No hex TYPING yet - readout only; input is queued.
+- [ ] No palette swatches/recent colours row yet.
+- [ ] The banded field renders 288 rects + 36 bar rects per frame - cheap, but a retained-layer future exists if pickers multiply.

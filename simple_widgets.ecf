@@ -42,5 +42,6 @@
 		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
 		<cluster name="test" location=".\testing\" recursive="true"/>
 		<cluster name="guis7" location=".\demo7guis\" recursive="true"/>
+		<cluster name="demoapp" location=".\demo\" recursive="true"/>
 	</target>
 </system>
