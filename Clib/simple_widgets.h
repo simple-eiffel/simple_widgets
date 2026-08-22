@@ -377,7 +377,12 @@ static int sw_text_menu (int can_cut, int can_copy, int can_paste, int can_selec
     AppendMenuW(m, MF_SEPARATOR, 0, 0);
     AppendMenuW(m, can_select ? MF_STRING : MF_STRING | MF_GRAYED, 4, L"Select &All	Ctrl+A");
     GetCursorPos(&pt);
+    /* Canonical Win32 dance: without SetForegroundWindow the popup can
+       open and instantly self-dismiss; the WM_NULL afterwards lets the
+       menu close cleanly when the user clicks elsewhere. */
+    SetForegroundWindow(s_sw_hwnd);
     r = (int)TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, s_sw_hwnd, 0);
+    PostMessageW(s_sw_hwnd, WM_NULL, 0, 0);
     DestroyMenu(m);
     return r;
 }

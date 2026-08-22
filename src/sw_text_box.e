@@ -327,6 +327,7 @@ feature -- Input
 			end
 			create menu
 			create clip
+			debug_note ("menu opening")
 			inspect menu.text_context_menu (
 				has_selection and not is_read_only,
 				has_selection,
@@ -341,6 +342,27 @@ feature -- Input
 			when 4 then
 				select_all
 			else
+				debug_note ("menu dismissed")
+			end
+		end
+
+	debug_note (a_s: READABLE_STRING_GENERAL)
+			-- Session-log breadcrumb through a private file: the widget
+			-- has no window reference by design.
+		local
+			f: PLAIN_TEXT_FILE
+		do
+			create f.make_with_name ("sw_session.log")
+			if f.exists then
+				f.open_append
+			else
+				f.open_write
+			end
+			if f.is_open_write then
+				f.put_string ("textbox: ")
+				f.put_string (a_s.to_string_32.to_string_8)
+				f.put_new_line
+				f.close
 			end
 		end
 

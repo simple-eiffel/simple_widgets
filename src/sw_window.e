@@ -60,6 +60,15 @@ feature -- Element change
 			set: root = a_root
 		end
 
+	set_theme (a_theme: SW_THEME)
+			-- Swap the token set live; the next render wears it.
+		do
+			theme := a_theme
+			create painter.make (ctx, a_theme)
+		ensure
+			swapped: theme = a_theme
+		end
+
 	set_frame_echo (a_path: READABLE_STRING_GENERAL)
 			-- After every render, also write the frame to `a_path' -
 			-- the testing hook that lets a harness see the pixels.
@@ -199,7 +208,9 @@ feature {NONE} -- Dispatch
 			when 10 then
 				capture := Void
 			when 11 then
+				log_line ("sw: context event at " + a_x.out + "," + a_y.out)
 				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
+					log_line ("sw: context target " + w.generating_type.name)
 					bubble_context (w, a_x, a_y)
 				end
 				after_input

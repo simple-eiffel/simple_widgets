@@ -53,6 +53,7 @@ feature {NONE} -- Initialization
 			buttons.put (create {SW_BUTTON}.make_primary ("Click Me", agent on_click_me))
 			buttons.put (create {SW_BUTTON}.make ("Log Only", agent on_log_only))
 			buttons.put ((create {SW_BUTTON}.make ("Disabled", Void)).disabled)
+			buttons.put (create {SW_BUTTON}.make ("Dark / Light", agent on_toggle_theme))
 			card.put (buttons)
 			root.put (card)
 
@@ -92,6 +93,23 @@ feature {NONE} -- Behaviour
 	on_text_changed
 		do
 			window.log_line ("demo: text now " + edit_box.text.count.out + " chars")
+		end
+
+	is_dark: BOOLEAN
+
+	on_toggle_theme
+		local
+			th: SW_THEME
+		do
+			is_dark := not is_dark
+			if is_dark then
+				create th.make_dark
+			else
+				create th.make_light
+			end
+			window.set_theme (th)
+			counter_label.set_text ("theme: " + (if is_dark then "dark" else "light" end))
+			window.log_line ("demo: theme toggled")
 		end
 
 end
