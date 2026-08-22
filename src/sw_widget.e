@@ -292,6 +292,37 @@ feature -- Input
 			set: is_enabled = a_enabled
 		end
 
+	enabled_when: detachable FUNCTION [BOOLEAN]
+			-- The enabling condition: the window re-queries it after
+			-- every user interaction and applies its verdict - state
+			-- control by agent collection, the Vision2 sensitivity
+			-- idiom (Larry's call). Void = enablement is manual.
+
+	set_enabled_when (a_condition: FUNCTION [BOOLEAN])
+			-- Install the condition and apply it immediately.
+		do
+			enabled_when := a_condition
+			set_enabled (a_condition.item ([]))
+		ensure
+			installed: enabled_when = a_condition
+			applied: is_enabled = a_condition.item ([])
+		end
+
+	refresh_enabling
+			-- Re-query conditions down the whole subtree; sub_widgets
+			-- is the spine (containers expose their children there),
+			-- so one walk from the root refreshes the entire face.
+		do
+			if attached enabled_when as c then
+				set_enabled (c.item ([]))
+			end
+			across
+				sub_widgets as sw
+			loop
+				sw.refresh_enabling
+			end
+		end
+
 	disabled: like Current
 			-- Fluent: Current, disabled.
 		do

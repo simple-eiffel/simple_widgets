@@ -903,9 +903,25 @@ feature {NONE} -- Popup lifecycle
 		end
 
 	after_input
+			-- Every handled interaction lands here: first the state
+			-- verdicts (enabling conditions across both trees), then
+			-- the repaint that shows them.
 		do
+			refresh_enabling_states
 			render
 			blit
+		end
+
+	refresh_enabling_states
+			-- Re-query every installed enabling condition - the
+			-- Vision2 sensitivity pass, over the page and any overlay.
+		do
+			if attached root as r then
+				r.refresh_enabling
+			end
+			if attached sheet as s then
+				s.refresh_enabling
+			end
 		end
 
 feature {NONE} -- Rendering

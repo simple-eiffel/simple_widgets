@@ -50,6 +50,9 @@ feature {NONE} -- Initialization
 			print ("%N=== DEV STUDIO ===%N")
 			run_dev_studio_tests
 
+			print ("%N=== STATE CONTROL ===%N")
+			run_state_control_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -216,6 +219,16 @@ feature {NONE} -- Test runners
 		end
 
 	studio_tests: SW_DEV_STUDIO_ASSAULT
+
+	run_state_control_tests
+		do
+			create state_tests
+			run_test (agent state_tests.test_enabled_when_applies_immediately, "enabled_when_applies_immediately")
+			run_test (agent state_tests.test_refresh_walks_the_sub_widget_spine, "refresh_walks_the_sub_widget_spine")
+			run_test (agent state_tests.test_menubar_pad_conditions, "menubar_pad_conditions")
+		end
+
+	state_tests: SW_STATE_CONTROL_ASSAULT
 
 	run_file_dialog_tests
 		do

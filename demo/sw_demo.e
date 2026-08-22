@@ -58,6 +58,7 @@ feature {NONE} -- Initialization
 				-- agents only from here down: every attached attribute is set
 			create danger_button.make ("Danger", Void)
 			danger_button.set_dev_note ("armed by the Danger armed check box; fires on_delete")
+			create danger_check.make ("Danger armed", True, Void)
 			toolbar.add_tool ("New", "Start fresh (decorative)", True, agent on_menu_new)
 			toolbar.add_tool ("Save", "Save (decorative)", True, agent on_menu_save)
 			toolbar.add_gap
@@ -75,6 +76,10 @@ feature {NONE} -- Initialization
 			danger_button.set_on_click (agent on_log_only)
 			danger_button.set_kind ({SW_BUTTON}.Kind_danger)
 			danger_button.set_tooltip ("A danger-kind button %/8212/ arm or disarm me with the checkbox")
+				-- state control by agent: the button's availability IS
+				-- the check box's state - no manual toggling anywhere
+			danger_check.set_on_change (agent on_toggle_danger)
+			danger_button.set_enabled_when (agent danger_check.is_checked)
 			window.add_font ("D:\prod\simple_narrate\fonts\Archivo.ttf").do_nothing
 			window.add_font ("D:\prod\simple_narrate\fonts\Literata.ttf").do_nothing
 			window.add_font ("D:\prod\simple_narrate\fonts\IBMPlexMono.ttf").do_nothing
@@ -117,7 +122,7 @@ feature {NONE} -- Initialization
 			buttons.put ((create {SW_BUTTON}.make ("Disabled", Void)).disabled)
 			buttons.put (create {SW_BUTTON}.make ("Dark / Light", agent on_toggle_theme))
 			buttons.put (danger_button)
-			buttons.put (create {SW_CHECK_BOX}.make ("Danger armed", True, agent on_toggle_danger))
+			buttons.put (danger_check)
 			card.put (buttons)
 			create buttons.make
 			buttons.put (create {SW_SWITCH}.make ("Live updates", True, agent on_log_only))
@@ -627,6 +632,8 @@ feature {NONE} -- Behaviour
 
 	danger_button: SW_BUTTON
 
+	danger_check: SW_CHECK_BOX
+
 	menubar: SW_MENU_BAR
 
 	statusbar: SW_STATUS_BAR
@@ -662,8 +669,8 @@ feature {NONE} -- Behaviour
 			else
 				Result.add_item ("Dev Mode: off (click to arm the lens)", "", True, agent on_toggle_dev)
 			end
-			Result.add_item ("Dev Studio %/8212/ floating sheet", "", True, agent on_open_mesh)
-			Result.add_item ("Dev Studio %/8212/ docked right (page stays live)", "", True, agent on_dock_studio)
+			Result.add_item ("Dev Studio %/8212/ floating sheet", "", window.is_dev_mode, agent on_open_mesh)
+			Result.add_item ("Dev Studio %/8212/ docked right (page stays live)", "", window.is_dev_mode, agent on_dock_studio)
 		end
 
 	on_open_mesh
@@ -831,9 +838,10 @@ feature {NONE} -- Behaviour
 		end
 
 	on_toggle_danger
+			-- The button's enablement is DECLARATIVE now (see
+			-- set_enabled_when in make) - this callback only narrates.
 		do
-			danger_button.set_enabled (not danger_button.is_enabled)
-			counter_label.set_text ("Danger " + (if danger_button.is_enabled then "armed" else "disarmed" end))
+			counter_label.set_text ("Danger " + (if danger_check.is_checked then "armed" else "disarmed" end))
 			window.log_line ("demo: danger toggled")
 		end
 

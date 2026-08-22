@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — Wave 3 in progress
 
 ### Added
+- State control by agent collection (the Vision2 sensitivity idiom,
+  Larry's call): SW_WIDGET.set_enabled_when installs a BOOLEAN function
+  agent and applies it immediately; the window re-queries every
+  installed condition after EVERY user interaction (refresh_enabling
+  walks the sub_widgets spine across page and overlay). Menu-bar pads
+  join via add_menu_when - greyed and deaf when their condition says
+  False (menu ITEMS were already live: builders run fresh per open).
+  The rule that demanded it: the Dev Studio entries are now enabled
+  ONLY while dev mode is armed - the mesh is unreachable without the
+  toggle. Demo's Danger button converted to the declarative form:
+  set_enabled_when (agent danger_check.is_checked), zero manual
+  toggling. 3 new assaults; suite 91/91.
 - Larry's law: the instrument never inspects the instrument. One seam
   query - DEV_LENS.observes - exempts the mesh, the studio and every
   inspector column (parent-chain walk) from hover chips, right-click
