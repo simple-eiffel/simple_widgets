@@ -12,6 +12,12 @@ Toolkit-wide near-term items (from the same read):
 - [ ] Window-level automatic scroll policy: when root content exceeds the
       window, the window itself offers the scrollbar (today: compose an
       SW_SCROLL_AREA body, as the demo shell does).
+- [ ] Top and bottom drawer gutters + Mode_top/Mode_bottom (the
+      add_drawer_tab API already accepts all four edges).
+- [ ] Overlay slide/ease animation on the heartbeat (drawers expanding
+      and collapsing from window edges - Larry, 2026-08-22).
+- [ ] Peek-close grace delay (a short dwell before an unpinned drawer
+      dismisses).
 - [ ] Undo/redo engine for SW_TEXT_BOX - the most-missed feature.
 - [ ] Focus traversal (Tab order) - unlocks default buttons, keyboard
       activation, list keyboard selection.
@@ -848,3 +854,101 @@ Limits to push:
 
 - [ ] Not implemented - this page is the promise, kept visible on purpose.
 - [ ] Depends on the popover/overlay primitives scheduled later in Wave 3.
+
+
+## SW_ACCORDION
+
+Planned extensions:
+
+- [ ] Height easing on the heartbeat (open unfolds instead of snapping).
+- [ ] Header accessories: badges, secondary text, per-section enabled flags.
+- [ ] Lazy section builders (agents, menu-style) for expensive content.
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- Toggling reflows everything below the accordion - inside a scrolling body that is fine; in a fixed layout give the region room or accept the jump.
+- Content is measured at accordion width minus the inset; very wide fixed-width children will clip.
+
+Limits to push:
+
+- [ ] No open/close animation - sections snap (heartbeat easing is a future).
+- [ ] Headers are text + chevron only; no per-section badges or icons yet.
+- [ ] No keyboard operation until focus traversal lands.
+
+
+## SW_STEPPER
+
+Planned extensions:
+
+- [ ] Error/warning step states (danger ring, warning fill).
+- [ ] Vertical orientation for wizard sidebars.
+- [ ] Optional free navigation mode for non-linear flows.
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- set_current_step clamps rather than rejects - feeding it 99 lands on the last step silently; the contract keeps it sane either way.
+- The click rule is deliberate: wire a button to advance for forward motion; do not fight the stepper to make the future clickable.
+
+Limits to push:
+
+- [ ] Horizontal only; fixed 120px step columns (no compact/vertical variants yet).
+- [ ] Labels are single-line beneath the circles.
+- [ ] No per-step error state (a failed step marker) yet.
+
+
+## SW_TIMELINE
+
+Planned extensions:
+
+- [ ] Entry click agents (jump to the thing that happened).
+- [ ] Grouped day headers; relative-time refresh on the heartbeat.
+- [ ] Virtualized backing for thousands of events (SW_LIST marriage).
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- Times are strings, not parsed values - ordering is yours; the widget draws what it is given in the order it was given.
+
+Limits to push:
+
+- [ ] Presentational: entries are not clickable and do not scroll internally (host it in a scroll area or accordion for long histories).
+- [ ] Details are single-line; long details clip.
+
+
+## SW_DRAWER
+
+Planned extensions:
+
+- [ ] Slide-in/out easing on the heartbeat.
+- [ ] Top/bottom edges; pinnable (non-modal docked) mode.
+- [ ] Standard footer slot for drawer verbs (Apply/Close).
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- The panel rectangle is tracked so clicking the drawer's own border never dismisses it - but a click in the dimmed area always does. Centered sheets are the modal ones.
+- The X only FIRES on_close - closing is the host's line (window.close_sheet), so a host may intercept (confirm unsaved changes) before closing.
+
+Limits to push:
+
+- [ ] No slide animation - the drawer appears (heartbeat easing is queued).
+- [ ] One overlay at a time: a drawer displaces an open sheet or popover.
+- [ ] Tab gutters: left and right today; Edge_top/Edge_bottom are accepted by the API but precondition-blocked until their gutters land (S04).
+- [ ] Peeked drawers close on pointer-leave with no grace delay yet.
+
+
+## SW_POPOVER
+
+Planned extensions:
+
+- [ ] Anchor arrow and auto-flip placement.
+- [ ] Hover-popovers (rich tooltips) sharing the dwell machinery.
+- [ ] SW_INSPECTOR's reveal panel rides exactly this capability.
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- Anchor coordinates are yours to compute - the widget's own x/y + height is the convention; there is no anchored-to-widget tracking if the layout later moves.
+
+Limits to push:
+
+- [ ] No pointer arrow toward the anchor yet - the panel is a plain rounded rect.
+- [ ] Placement is clamp-into-window only; no automatic flip above the anchor when space below runs out.
+- [ ] One overlay at a time (a popover displaces a drawer, and vice versa).

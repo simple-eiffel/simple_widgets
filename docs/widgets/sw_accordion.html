@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_ACCORDION - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_ACCORDION</h1>
+        <p class="tagline">Stacked disclosure: titled sections, exclusive by default - opening one closes the rest.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_ACCORDION stacks titled headers whose content shows only while open. The chevron tells the state (right shut, down open); clicking a header toggles. <strong>Exclusive by default</strong> - the classic accordion law, held by a postcondition: opening a section closes the others, so <code>open_count</code> is at most one. <code>set_exclusive (False)</code> allows independent sections. <code>on_change (index)</code> fires after any toggle; query <code>is_section_open</code> for the new truth.</p>
+            <p>Sections host <em>any</em> widget - the demo folds a whole <a href='sw_timeline.html'>SW_TIMELINE</a> into one.</p>
+            <p class="muted"><em>Source: <code>src/sw_accordion.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Three sections, one open at a time</h2>
+<pre><code><span class="keyword">create</span> accordion.make
+accordion.add_section (<span <span class="keyword">class</span>="string">&quot;Details&quot;</span>, details_column)
+accordion.add_section (<span <span class="keyword">class</span>="string">&quot;Timeline&quot;</span>, timeline)
+accordion.add_section (<span <span class="keyword">class</span>="string">&quot;Danger zone&quot;</span>, danger_column)
+accordion.set_on_change (<span class="keyword">agent</span> on_section_toggled)
+
+on_section_toggled (a_i: <span class="type">INTEGER</span>)
+    <span class="keyword">do</span>
+        <span class="keyword">if</span> accordion.is_section_open (a_i) <span class="keyword">then</span>
+            statusbar.set_left ({<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot;opened: &quot;</span> + accordion.sections.i_th (a_i).title)
+        <span class="keyword">end</span>
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No open/close animation - sections snap (heartbeat easing is a future).</li>
+                <li>Headers are text + chevron only; no per-section badges or icons yet.</li>
+                <li>No keyboard operation until focus traversal lands.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Toggling reflows everything below the accordion - inside a scrolling body that is fine; in a fixed layout give the region room or accept the jump.</li>
+                <li>Content is measured at accordion width minus the inset; very wide fixed-width children will clip.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Height easing on the heartbeat (open unfolds instead of snapping).</li>
+                <li>Header accessories: badges, secondary text, per-section enabled flags.</li>
+                <li>Lazy section builders (agents, menu-style) for expensive content.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

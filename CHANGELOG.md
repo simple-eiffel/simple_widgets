@@ -5,25 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — Wave 3 in progress
-
-### Added
-- Indicator septet: SW_BADGE (99+ cap), SW_AVATAR (hash-stable hues,
-  derived initials), SW_SEGMENTED (first chosen at birth), SW_RATING
-  (star primitives; click again clears), SW_SKELETON (heartbeat shimmer),
-  SW_EMPTY_STATE (tray glyph + one action), SW_STATISTIC (semantic delta)
-- SW_PAINTER.star_fill / star_stroke (computed vertices, path hygiene)
-- Heartbeat repaints unconditionally: the toolkit's ambient animation clock
-- Demo is now a true app shell: menubar/toolbar/status bar pinned, body in
-  a growing SW_SCROLL_AREA (window contents scroll; the footer never sinks)
-- SW_INDICATOR_ASSAULT: ten new tests; suite at 35/35
-- Docs: pages for the septet plus a PLANNED page for SW_INSPECTOR;
-  specs/S04-ROADMAP.md consolidates every page's extension plans,
-  fixable gotchas and pushable limits as action items
-
-### Fixed
-- Keyword casualty #5: `some` is an Eiffel quantifier keyword (across ...
-  some); an assertion tag learned it the hard way
+## [Unreleased]
 
 ## [0.2.0] - 2026-08-22 — Wave 2 complete
 

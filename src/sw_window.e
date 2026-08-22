@@ -33,6 +33,8 @@ feature {NONE} -- Initialization
 			create cairo.make
 			create ev_buf.make (16)
 			create frame_echo_path.make_empty
+			create drawer_tabs.make (2)
+			create tab_rects.make (2)
 			alloc_w := win_w
 			alloc_h := win_h
 			offscreen := cairo.create_surface (alloc_w, alloc_h)
@@ -283,24 +285,55 @@ feature {NONE} -- Dispatch internals
 
 feature -- Sheets
 
+	Mode_center: INTEGER = 0
+	Mode_left: INTEGER = 1
+	Mode_right: INTEGER = 2
+	Mode_anchored: INTEGER = 3
+
 	show_sheet (a_content: SW_WIDGET; a_width: REAL_64)
-			-- Present `a_content' modally on a dimmed backdrop: the
-			-- sheet becomes the input root until closed. Popups still
-			-- open above it, so sheet widgets keep their menus.
+			-- Present `a_content' modally, centered on a dimmed
+			-- backdrop: the sheet becomes the input root until
+			-- closed. Popups still open above it. Outside clicks are
+			-- ignored - centered sheets are truly modal.
 		require
 			positive: a_width > 0.0
 		do
-			sheet := a_content
-			sheet_width := a_width
-			if attached focused as f then
-				f.set_focused (False)
+			present (a_content, a_width, Mode_center, 0.0, 0.0)
+		ensure
+			shown: sheet = a_content
+		end
+
+	show_drawer (a_content: SW_WIDGET; a_width: REAL_64; a_from_right: BOOLEAN)
+			-- Present `a_content' as a full-height edge panel on a
+			-- lightly dimmed backdrop. A click outside the panel (or
+			-- Escape) closes it - drawers are dismissable by nature.
+		require
+			positive: a_width > 0.0
+		do
+			if a_from_right then
+				present (a_content, a_width, Mode_right, 0.0, 0.0)
+			else
+				present (a_content, a_width, Mode_left, 0.0, 0.0)
 			end
-			focused := Void
+		ensure
+			shown: sheet = a_content
+		end
+
+	show_popover (a_content: SW_WIDGET; a_x, a_y, a_width: REAL_64)
+			-- Present `a_content' as a light anchored panel at
+			-- (a_x, a_y) - no backdrop, outside click or Escape
+			-- closes. The anchored cousin of a menu, hosting any
+			-- widget tree.
+		require
+			positive: a_width > 0.0
+		do
+			present (a_content, a_width, Mode_anchored, a_x, a_y)
 		ensure
 			shown: sheet = a_content
 		end
 
 	close_sheet
+			-- Close whatever overlay is up - sheet, drawer, popover.
 		do
 			sheet := Void
 			if attached focused as f then
@@ -400,6 +433,22 @@ feature {NONE} -- Popup lifecycle
 						w.set_focused (True)
 					end
 					capture := bubble_click (w, a_x, a_y, False)
+				elseif sheet = Void and then drawer_tab_at (a_x, a_y) > 0 then
+					open_drawer_from_tab (drawer_tab_at (a_x, a_y), True)
+				elseif sheet /= Void and then sheet_mode /= Mode_center
+					and then not point_in_sheet_panel (a_x, a_y)
+				then
+						-- drawers and popovers dismiss on outside click;
+						-- centered sheets are truly modal and ignore it
+					close_sheet
+				end
+				if sheet /= Void and then not drawer_pinned
+					and then (sheet_mode = Mode_left or sheet_mode = Mode_right)
+					and then point_in_sheet_panel (a_x, a_y)
+				then
+						-- interacting with a peeked drawer pins it: it
+						-- must not vanish mid-use
+					drawer_pinned := True
 				end
 				after_input
 			when 3 then
@@ -463,6 +512,15 @@ feature {NONE} -- Popup lifecycle
 					end
 				end
 			when 13 then
+				if sheet = Void and then drawer_tab_at (a_x, a_y) > 0 then
+					open_drawer_from_tab (drawer_tab_at (a_x, a_y), False)
+				elseif sheet /= Void and then not drawer_pinned
+					and then (sheet_mode = Mode_left or sheet_mode = Mode_right)
+					and then not point_in_sheet_panel (a_x, a_y)
+					and then drawer_tab_at (a_x, a_y) = 0
+				then
+					close_sheet
+				end
 				update_hover (a_x, a_y)
 			when 14 then
 				if attached hovered as hw then
@@ -676,22 +734,60 @@ feature {NONE} -- Rendering
 			painter.set_color (theme.background)
 			ctx.paint.do_nothing
 			if attached root as r then
-				r.set_bounds (0.0, 0.0, win_w, win_h)
+				r.set_bounds (gutter_left, 0.0, win_w - gutter_left - gutter_right, win_h)
 				r.arrange (painter)
 				r.draw (painter)
 			end
 			if attached pick_pebble as pb then
 				draw_pick_trajectory (pb)
 			end
+			draw_drawer_gutters
 			if attached sheet as s then
-				painter.set_color_alpha (0x000000, 0.45)
-				painter.fill_rect (0.0, 0.0, win_w, win_h)
-				s.set_bounds ((win_w - sheet_width) / 2.0, 80.0, sheet_width,
-					s.preferred_height (painter, sheet_width).min (win_h - 160.0))
-				painter.set_color (theme.surface)
-				painter.rrect_fill (s.x - 16.0, s.y - 16.0, s.width + 32.0, s.height + 32.0, theme.radius + 4.0)
-				painter.set_color (theme.outline)
-				painter.rrect_stroke (s.x - 15.5, s.y - 15.5, s.width + 31.0, s.height + 31.0, theme.radius + 4.0)
+				if sheet_mode = Mode_center then
+					painter.set_color_alpha (0x000000, 0.45)
+					painter.fill_rect (0.0, 0.0, win_w, win_h)
+					s.set_bounds ((win_w - sheet_width) / 2.0, 80.0, sheet_width,
+						s.preferred_height (painter, sheet_width).min (win_h - 160.0))
+					sheet_px := s.x - 16.0
+					sheet_py := s.y - 16.0
+					sheet_pw := s.width + 32.0
+					sheet_ph := s.height + 32.0
+					painter.set_color (theme.surface)
+					painter.rrect_fill (sheet_px, sheet_py, sheet_pw, sheet_ph, theme.radius + 4.0)
+					painter.set_color (theme.outline)
+					painter.rrect_stroke (sheet_px + 0.5, sheet_py + 0.5, sheet_pw - 1.0, sheet_ph - 1.0, theme.radius + 4.0)
+				elseif sheet_mode = Mode_left or sheet_mode = Mode_right then
+					painter.set_color_alpha (0x000000, 0.25)
+					painter.fill_rect (0.0, 0.0, win_w, win_h)
+					if sheet_mode = Mode_left then
+						sheet_px := 0.0
+					else
+						sheet_px := win_w - sheet_width
+					end
+					sheet_py := 0.0
+					sheet_pw := sheet_width
+					sheet_ph := win_h
+					painter.set_color (theme.surface)
+					painter.fill_rect (sheet_px, sheet_py, sheet_pw, sheet_ph)
+					painter.set_color (theme.outline)
+					if sheet_mode = Mode_left then
+						painter.vline (sheet_px + sheet_pw - 0.5, 0.0, win_h)
+					else
+						painter.vline (sheet_px + 0.5, 0.0, win_h)
+					end
+					s.set_bounds (sheet_px + 14.0, 14.0, sheet_pw - 28.0, win_h - 28.0)
+				else
+						-- anchored popover: no backdrop, clamped into the window
+					sheet_pw := sheet_width + 24.0
+					sheet_ph := s.preferred_height (painter, sheet_width).min (win_h - 40.0) + 24.0
+					sheet_px := sheet_ax.min (win_w - sheet_pw - 4.0).max (4.0)
+					sheet_py := sheet_ay.min (win_h - sheet_ph - 4.0).max (4.0)
+					s.set_bounds (sheet_px + 12.0, sheet_py + 12.0, sheet_width, sheet_ph - 24.0)
+					painter.set_color (theme.surface)
+					painter.rrect_fill (sheet_px, sheet_py, sheet_pw, sheet_ph, theme.radius)
+					painter.set_color (theme.outline)
+					painter.rrect_stroke (sheet_px + 0.5, sheet_py + 0.5, sheet_pw - 1.0, sheet_ph - 1.0, theme.radius)
+				end
 				s.arrange (painter)
 				s.draw (painter)
 			end
@@ -710,6 +806,83 @@ feature {NONE} -- Rendering
 			end
 			draw_toasts
 			frame_echo_dirty := True
+		end
+
+	draw_drawer_gutters
+			-- The edge rails and their stacked tabs: slim vertical
+			-- handles, letters stacked downward, one tab under
+			-- another - outside the content, inside the window.
+		local
+			i: INTEGER
+			ly, lx, th: REAL_64
+			lefts, rights: INTEGER
+		do
+			tab_rects.wipe_out
+			if gutter_left > 0.0 then
+				painter.set_color (theme.surface_variant)
+				painter.fill_rect (0.0, 0.0, Gutter_w, win_h)
+				painter.set_color (theme.outline)
+				painter.vline (Gutter_w - 0.5, 0.0, win_h)
+			end
+			if gutter_right > 0.0 then
+				painter.set_color (theme.surface_variant)
+				painter.fill_rect (win_w - Gutter_w, 0.0, Gutter_w, win_h)
+				painter.set_color (theme.outline)
+				painter.vline (win_w - Gutter_w + 0.5, 0.0, win_h)
+			end
+			painter.font ({SW_PAINTER}.Role_ui, theme.size_chip, True)
+			from
+				i := 1
+			until
+				i > drawer_tabs.count
+			loop
+				th := drawer_tabs.i_th (i).label.count * 12.0 + 34.0
+				if drawer_tabs.i_th (i).from_right then
+					lx := win_w - Gutter_w
+					ly := 120.0 + rights * (th + 14.0)
+					rights := rights + 1
+				else
+					lx := 0.0
+					ly := 120.0 + lefts * (th + 14.0)
+					lefts := lefts + 1
+				end
+				if sheet = Void then
+					painter.set_color (theme.surface)
+					painter.rrect_fill (lx + 2.0, ly, Gutter_w - 4.0, th, 5.0)
+					painter.set_color (theme.accent)
+					painter.rrect_stroke (lx + 2.5, ly + 0.5, Gutter_w - 5.0, th - 1.0, 5.0)
+					draw_drawer_icon (lx + Gutter_w / 2.0, ly + 11.0)
+					draw_vertical_label (drawer_tabs.i_th (i).label, lx + Gutter_w / 2.0, ly + 28.0)
+				end
+				tab_rects.extend ([lx, ly, Gutter_w, th])
+				i := i + 1
+			end
+		end
+
+	draw_vertical_label (a_text: STRING_32; a_cx, a_top: REAL_64)
+			-- Letters stacked downward, centered on `a_cx'.
+		local
+			i: INTEGER
+			ch: STRING_32
+		do
+			painter.set_color (theme.ink_muted)
+			from
+				i := 1
+			until
+				i > a_text.count
+			loop
+				ch := a_text.substring (i, i)
+				painter.text (a_cx - painter.advance (ch) / 2.0, a_top + (i - 1) * 12.0 + 6.0, ch)
+				i := i + 1
+			end
+		end
+
+	draw_drawer_icon (a_cx, a_cy: REAL_64)
+			-- A tiny drawer: box with a handle line - the tab's badge.
+		do
+			painter.set_color (theme.ink_muted)
+			painter.rrect_stroke (a_cx - 6.0, a_cy - 4.0, 12.0, 9.0, 2.0)
+			painter.hline (a_cx - 3.0, a_cy + 0.5, 6.0)
 		end
 
 	flush_frame_echo
@@ -884,9 +1057,137 @@ feature {NONE} -- State
 			-- The open popup menu, drawn above everything.
 
 	sheet: detachable SW_WIDGET
-			-- The modal sheet content, if one is up.
+			-- The overlay content (sheet, drawer or popover), if up.
 
 	sheet_width: REAL_64
+
+	sheet_mode: INTEGER
+			-- How the overlay presents: Mode_center, Mode_left,
+			-- Mode_right or Mode_anchored.
+
+	sheet_ax, sheet_ay: REAL_64
+			-- The anchor point for Mode_anchored.
+
+	sheet_px, sheet_py, sheet_pw, sheet_ph: REAL_64
+			-- The drawn panel rectangle, refreshed every render; the
+			-- outside-click test uses it so a click on the panel's
+			-- own border never dismisses.
+
+	present (a_content: SW_WIDGET; a_width: REAL_64; a_mode: INTEGER; a_x, a_y: REAL_64)
+		require
+			positive: a_width > 0.0
+		do
+			sheet := a_content
+			sheet_width := a_width
+			sheet_mode := a_mode
+			sheet_ax := a_x
+			sheet_ay := a_y
+			if attached focused as f then
+				f.set_focused (False)
+			end
+			focused := Void
+		ensure
+			shown: sheet = a_content
+		end
+
+	point_in_sheet_panel (a_x, a_y: INTEGER): BOOLEAN
+		do
+			Result := a_x >= sheet_px and a_x <= sheet_px + sheet_pw
+				and a_y >= sheet_py and a_y <= sheet_py + sheet_ph
+		end
+
+feature -- Drawer tab (peek and pin)
+
+	drawer_tabs: ARRAYED_LIST [TUPLE [label: STRING_32; builder: FUNCTION [SW_WIDGET]; from_right: BOOLEAN]]
+			-- The registered edge tabs. Tabs live in reserved edge
+			-- GUTTERS outside the content and its scrollbars, so
+			-- aiming at a scrollbar thumb can never peek a drawer.
+
+	drawer_pinned: BOOLEAN
+			-- Pinned drawers stay until dismissed; peeked ones close
+			-- when the pointer leaves the panel.
+
+	Gutter_w: REAL_64 = 22.0
+
+	gutter_left: REAL_64
+			-- Reserved width on the left edge; 0 without left tabs.
+		do
+			across
+				drawer_tabs as dt
+			loop
+				if not dt.from_right then
+					Result := Gutter_w
+				end
+			end
+		end
+
+	gutter_right: REAL_64
+		do
+			across
+				drawer_tabs as dt
+			loop
+				if dt.from_right then
+					Result := Gutter_w
+				end
+			end
+		end
+
+	Edge_left: INTEGER = 1
+	Edge_right: INTEGER = 2
+	Edge_top: INTEGER = 3
+	Edge_bottom: INTEGER = 4
+
+	set_drawer_tab, add_drawer_tab (a_label: READABLE_STRING_GENERAL; a_builder: FUNCTION [SW_WIDGET]; a_edge: INTEGER)
+			-- Register an edge tab: hovering it peeks its drawer,
+			-- clicking it pins it open. Several tabs stack per edge.
+			-- Placement is the programmer's option; the signature
+			-- accepts all four edges so it never churns - top and
+			-- bottom gutters arrive with S04.
+		require
+			edge_known: a_edge >= Edge_left and a_edge <= Edge_bottom
+			edge_supported_today: a_edge = Edge_left or a_edge = Edge_right
+		local
+			l: STRING_32
+		do
+			create l.make_from_string_general (a_label)
+			drawer_tabs.extend ([l, a_builder, a_edge = Edge_right])
+		ensure
+			grew: drawer_tabs.count = old drawer_tabs.count + 1
+		end
+
+	tab_rects: ARRAYED_LIST [TUPLE [rx, ry, rw, rh: REAL_64]]
+			-- Drawn tab rectangles, parallel to `drawer_tabs',
+			-- refreshed every render.
+
+	drawer_tab_at (a_x, a_y: INTEGER): INTEGER
+			-- Which tab the point is on; 0 for none.
+		local
+			i: INTEGER
+		do
+			from
+				i := 1
+			until
+				i > tab_rects.count or Result > 0
+			loop
+				if a_x >= tab_rects.i_th (i).rx and then a_x <= tab_rects.i_th (i).rx + tab_rects.i_th (i).rw
+					and then a_y >= tab_rects.i_th (i).ry and then a_y <= tab_rects.i_th (i).ry + tab_rects.i_th (i).rh
+				then
+					Result := i
+				end
+				i := i + 1
+			end
+		ensure
+			in_range: Result >= 0 and Result <= drawer_tabs.count
+		end
+
+	open_drawer_from_tab (a_i: INTEGER; a_pinned: BOOLEAN)
+		require
+			in_range: a_i >= 1 and a_i <= drawer_tabs.count
+		do
+			present (drawer_tabs.i_th (a_i).builder.item ([]), 300.0,
+				(if drawer_tabs.i_th (a_i).from_right then Mode_right else Mode_left end), 0.0, 0.0)
+			drawer_pinned := a_pinned
+		end
 
 	active_root: detachable SW_WIDGET
 			-- Where input lands: the sheet while one is up, else root.

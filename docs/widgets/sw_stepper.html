@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_STEPPER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_STEPPER</h1>
+        <p class="tagline">A process worn as circles: checks behind, accent now, outline ahead - the future is not clickable.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_STEPPER renders process steps as connected circles: done steps carry accent checks, the current step is accent-filled with its number, upcoming steps wait outlined and muted. Connectors between circles wear accent up to the current step. <code>advance</code> / <code>retreat</code> / <code>set_current_step</code> move the process (clamped by contract into 1..count); the first step is current at birth.</p>
+            <p>Clicking follows one rule: <strong>only completed ground is revisitable</strong> - a click on a done step jumps back; clicks on the current or future steps are refused. Processes move forward by work, not by wishing.</p>
+            <p class="muted"><em>Source: <code>src/sw_stepper.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Capture, OCR, Export</h2>
+<pre><code><span class="keyword">create</span> stepper.make
+stepper := stepper.with_step (<span <span class="keyword">class</span>="string">&quot;Capture&quot;</span>).with_step (<span <span class="keyword">class</span>="string">&quot;<span class="type">OCR</span>&quot;</span>).with_step (<span <span class="keyword">class</span>="string">&quot;Export&quot;</span>)
+stepper.set_current_step (2)
+stepper.set_on_change (<span class="keyword">agent</span> on_step_changed)
+
+<span class="comment">-- driven by the process:</span>
+stepper.advance    <span class="comment">-- clamped at the last step</span>
+stepper.retreat</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Horizontal only; fixed 120px step columns (no compact/vertical variants yet).</li>
+                <li>Labels are single-line beneath the circles.</li>
+                <li>No per-step error state (a failed step marker) yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><code>set_current_step</code> clamps rather than rejects - feeding it 99 lands on the last step silently; the contract keeps it sane either way.</li>
+                <li>The click rule is deliberate: wire a button to <code>advance</code> for forward motion; do not fight the stepper to make the future clickable.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Error/warning step states (danger ring, warning fill).</li>
+                <li>Vertical orientation for wizard sidebars.</li>
+                <li>Optional free navigation mode for non-linear flows.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

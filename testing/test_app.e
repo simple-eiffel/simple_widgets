@@ -32,6 +32,9 @@ feature {NONE} -- Initialization
 			print ("%N=== WAVE 3 INDICATORS ===%N")
 			run_indicator_tests
 
+			print ("%N=== WAVE 3 DISCLOSURE ===%N")
+			run_disclosure_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -85,6 +88,20 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_theme_invariants_both_ways, "theme_invariants_both_ways")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
+		end
+
+	disclosure_tests: SW_DISCLOSURE_ASSAULT
+
+	run_disclosure_tests
+		do
+			create disclosure_tests
+			run_test (agent disclosure_tests.test_accordion_exclusive_law, "accordion_exclusive_law")
+			run_test (agent disclosure_tests.test_accordion_multi_mode, "accordion_multi_mode")
+			run_test (agent disclosure_tests.test_accordion_height_follows_disclosure, "accordion_height_follows_disclosure")
+			run_test (agent disclosure_tests.test_stepper_starts_and_clamps, "stepper_starts_and_clamps")
+			run_test (agent disclosure_tests.test_stepper_only_done_ground_is_clickable, "stepper_done_ground_only")
+			run_test (agent disclosure_tests.test_timeline_row_math, "timeline_row_math")
+			run_test (agent disclosure_tests.test_drawer_close_zone, "drawer_close_zone")
 		end
 
 	indicator_tests: SW_INDICATOR_ASSAULT

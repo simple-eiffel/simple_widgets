@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_DRAWER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_DRAWER</h1>
+        <p class="tagline">Drawer furniture: a titled column with a drawn close X, riding window.show_drawer.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p><strong>Tabs, peek and pin</strong> (Larry's design, same day): <code>window.add_drawer_tab (label, builder, edge)</code> registers an edge tab living in a reserved GUTTER - a slim rail outside the content and its scrollbars, so aiming at a scrollbar thumb can never open a drawer by accident. Each tab wears a tiny drawn drawer icon over its stacked letters. <strong>Hovering the tab peeks</strong> the drawer (it closes when the pointer leaves the panel); <strong>clicking pins</strong> it (stays until dismissed); interacting with a peeked drawer pins it implicitly so it cannot vanish mid-use. Content comes from a builder agent - fresh on every open, the menu freshness law. The edge parameter accepts all four edges so the API never churns; left and right are implemented, top and bottom arrive with S04.</p>
+            <p>Drawers are an overlay presentation of the window - <code>window.show_drawer (content, width, from_right)</code> slides ANY widget tree in as a full-height edge panel over a lightly dimmed backdrop. Outside clicks, Escape, or your own wiring close it (<code>window.close_sheet</code> closes every overlay kind). The overlay engine is shared: sheets (centered, truly modal), drawers (edge, dismissable), popovers (anchored, light) are one mechanism with four presentations - and popups still open above them all, so drawer widgets keep their menus.</p>
+            <p>SW_DRAWER itself is the furniture: an SW_COLUMN with a title header and a drawn close X that fires <code>on_close</code> - wire it to <code>window.close_sheet</code> and the X, the backdrop and Escape all agree.</p>
+            <p class="muted"><em>Source: <code>src/sw_drawer.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A settings drawer from a menu</h2>
+<pre><code>on_open_drawer
+    <span class="keyword">local</span>
+        d: <span class="type">SW_DRAWER</span>
+    <span class="keyword">do</span>
+        <span class="keyword">create</span> d.make_titled (<span <span class="keyword">class</span>="string">&quot;Settings&quot;</span>)
+        d.set_on_close (<span class="keyword">agent</span> on_drawer_close)
+        d.put (<span class="keyword">create</span> {<span class="type">SW_SWITCH</span>}.make (<span <span class="keyword">class</span>="string">&quot;Live updates&quot;</span>, <span class="keyword">True</span>, <span class="keyword">Void</span>))
+        d.put (<span class="keyword">create</span> {<span class="type">SW_LABEL</span>}.make_body (<span <span class="keyword">class</span>="string">&quot;Click outside, press Escape, <span class="keyword">or</span> use the X.&quot;</span>))
+        window.show_drawer (d, 300.0, <span class="keyword">True</span>)   <span class="comment">-- from the right</span>
+    <span class="keyword">end</span>
+
+on_drawer_close
+    <span class="keyword">do</span>
+        window.close_sheet
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No slide animation - the drawer appears (heartbeat easing is queued).</li>
+                <li>One overlay at a time: a drawer displaces an open sheet or popover.</li>
+                <li>Tab gutters: left and right today; Edge_top/Edge_bottom are accepted by the API but precondition-blocked until their gutters land (S04).</li>
+                <li>Peeked drawers close on pointer-leave with no grace delay yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The panel rectangle is tracked so clicking the drawer's own border never dismisses it - but a click in the dimmed area always does. Centered sheets are the modal ones.</li>
+                <li>The X only FIRES on_close - closing is the host's line (<code>window.close_sheet</code>), so a host may intercept (confirm unsaved changes) before closing.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Slide-in/out easing on the heartbeat.</li>
+                <li>Top/bottom edges; pinnable (non-modal docked) mode.</li>
+                <li>Standard footer slot for drawer verbs (Apply/Close).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_TIMELINE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_TIMELINE</h1>
+        <p class="tagline">Events down a rail: semantic dots, mono times, titles and muted details.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_TIMELINE lists events along a vertical rail: a dot per entry wearing its semantic kind (neutral/accent/success/warning/danger), the time right-aligned in mono to the rail's left, the title bold to its right, an optional detail muted beneath. Rows with detail are taller (48px vs 30px) - <code>row_height</code> is public and the assault suite pins the arithmetic.</p>
+            <p class="muted"><em>Source: <code>src/sw_timeline.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A day&#x27;s history</h2>
+<pre><code><span class="keyword">create</span> tl.make
+tl.add_entry (<span <span class="keyword">class</span>="string">&quot;09:57&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Wave 2 back four shipped&quot;</span>, <span <span class="keyword">class</span>="string">&quot;combo, toolbar, image, password eye&quot;</span>, {<span class="type">SW_TIMELINE</span>}.Kind_success)
+tl.add_entry (<span <span class="keyword">class</span>="string">&quot;11:20&quot;</span>, <span <span class="keyword">class</span>="string">&quot;File dialogs landed&quot;</span>, <span <span class="keyword">class</span>="string">&quot;sheet layer born&quot;</span>, {<span class="type">SW_TIMELINE</span>}.Kind_accent)
+tl.add_entry (<span <span class="keyword">class</span>="string">&quot;now&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Wave 3 disclosure batch&quot;</span>, <span <span class="keyword">class</span>="string">&quot;&quot;</span>, {<span class="type">SW_TIMELINE</span>}.Kind_warning)
+accordion.add_section (<span <span class="keyword">class</span>="string">&quot;Timeline&quot;</span>, tl)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Presentational: entries are not clickable and do not scroll internally (host it in a scroll area or accordion for long histories).</li>
+                <li>Details are single-line; long details clip.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Times are strings, not parsed values - ordering is yours; the widget draws what it is given in the order it was given.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Entry click agents (jump to the thing that happened).</li>
+                <li>Grouped day headers; relative-time refresh on the heartbeat.</li>
+                <li>Virtualized backing for thousands of events (SW_LIST marriage).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

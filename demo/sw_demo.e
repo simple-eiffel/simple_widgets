@@ -40,6 +40,8 @@ feature {NONE} -- Initialization
 			create statusbar.make
 			create combo.make_with_options
 			create seg.make
+			create stepper.make
+			create accordion.make
 			create rating.make (3, 5, Void)
 			create toolbar.make
 			create window.make ("simple_widgets demo", 2200, 10, 900, 1600, theme)
@@ -58,6 +60,7 @@ feature {NONE} -- Initialization
 			combo.add_option ("simple_widgets")
 			combo.set_on_change (agent on_combo_changed)
 			combo.set_tooltip ("An editable dropdown %/8212/ type freely, or pick via the chevron")
+			window.set_drawer_tab ("Settings", agent build_settings_drawer, {SW_WINDOW}.Edge_right)
 			danger_button.set_on_click (agent on_log_only)
 			danger_button.set_kind ({SW_BUTTON}.Kind_danger)
 			danger_button.set_tooltip ("A danger-kind button %/8212/ arm or disarm me with the checkbox")
@@ -131,10 +134,11 @@ feature {NONE} -- Initialization
 			body.put (card)
 
 			body.put (scroll_split_card (theme))
+			body.put (disclosure_card (theme))
 			body.put (tabs_card (theme))
 			body.put (list_card (theme))
 			statusbar.set_left ("ready %/8212/ every pixel drawn by simple_widgets")
-			statusbar.set_right ("43 widgets and counting")
+			statusbar.set_right ("47 widgets and counting")
 			create body_scroll.make (400.0)
 			body_scroll.set_child (body)
 			root.put (body_scroll.growing)
@@ -264,6 +268,106 @@ feature {NONE} -- Initialization
 			window.log_line ("demo: list selected " + a_i.out)
 		end
 
+	stepper: SW_STEPPER
+
+	accordion: SW_ACCORDION
+
+	disclosure_card (a_theme: SW_THEME): SW_CARD
+			-- Stepper, accordion (with a timeline inside), and the
+			-- verbs that drive the process.
+		local
+			verbs: SW_ROW
+			tl: SW_TIMELINE
+			col: SW_COLUMN
+		do
+			stepper := stepper.with_step ("Capture").with_step ("OCR").with_step ("Export")
+			stepper.set_current_step (2)
+			stepper.set_on_change (agent on_step_changed)
+			create verbs.make
+			verbs.put (create {SW_BUTTON}.make ("Back", agent on_step_back))
+			verbs.put (create {SW_BUTTON}.make_primary ("Advance", agent on_step_forward))
+			create col.make
+			col := col.with_gap (6.0)
+			col.put (create {SW_LABEL}.make_body ("Sections disclose on demand; exclusive by default, so opening one closes the rest."))
+			accordion.add_section ("Details", col)
+			create tl.make
+			tl.add_entry ("09:57", "Wave 2 back four shipped", "combo, toolbar, image, password eye", {SW_TIMELINE}.Kind_success)
+			tl.add_entry ("11:20", "File dialogs landed", "sheet layer born", {SW_TIMELINE}.Kind_accent)
+			tl.add_entry ("13:05", "Contract assault sealed the wave", "25/25 five times", {SW_TIMELINE}.Kind_success)
+			tl.add_entry ("now", "Wave 3 disclosure batch", "", {SW_TIMELINE}.Kind_warning)
+			accordion.add_section ("Timeline", tl)
+			create col.make
+			col.put ((create {SW_BUTTON}.make ("Dangerous thing", agent on_delete)).as_kind ({SW_BUTTON}.Kind_danger))
+			accordion.add_section ("Danger zone", col)
+			accordion.set_on_change (agent on_section_toggled)
+			create Result.make_striped (a_theme.accent)
+			Result.put ((create {SW_LABEL}.make_ui ("SW_STEPPER %/8212/ done steps are revisitable %/183/ SW_ACCORDION %/8212/ click the headers")).as_muted)
+			Result.put (stepper)
+			Result.put (verbs)
+			Result.put (accordion)
+		end
+
+	on_step_changed (a_i: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "step " + a_i.out + {STRING_32} ": " + stepper.steps.i_th (a_i))
+		end
+
+	on_step_back
+		do
+			stepper.retreat
+		end
+
+	on_step_forward
+		do
+			stepper.advance
+		end
+
+	on_section_toggled (a_i: INTEGER)
+		do
+			if accordion.is_section_open (a_i) then
+				statusbar.set_left ({STRING_32} "opened: " + accordion.sections.i_th (a_i).title)
+			else
+				statusbar.set_left ({STRING_32} "closed: " + accordion.sections.i_th (a_i).title)
+			end
+		end
+
+	build_settings_drawer: SW_WIDGET
+			-- Fresh drawer content per open - hover the edge tab to
+			-- peek it, click the tab (or inside) to pin it.
+		local
+			d: SW_DRAWER
+		do
+			create d.make_titled ("Settings")
+			d.set_on_close (agent on_drawer_close)
+			d.put (create {SW_SWITCH}.make ("Live updates", True, Void))
+			d.put (create {SW_SWITCH}.make ("Hover signals", True, Void))
+			d.put (create {SW_SWITCH}.make ("Telemetry (decorative)", False, Void))
+			d.put ((create {SW_LABEL}.make_body ("Hover the edge tab to peek; click to pin. A peeked drawer closes when the pointer leaves it.")))
+			Result := d
+		end
+
+	on_open_drawer
+		do
+			window.show_drawer (build_settings_drawer, 300.0, True)
+		end
+
+	on_drawer_close
+		do
+			window.close_sheet
+		end
+
+	on_open_popover
+		local
+			col: SW_COLUMN
+		do
+			create col.make
+			col := col.with_gap (8.0)
+			col.put (create {SW_LABEL}.make_ui ("An anchored panel hosting real widgets:"))
+			col.put (create {SW_RATING}.make (2, 5, Void))
+			col.put ((create {SW_LABEL}.make_ui ("Click outside to dismiss.")).as_muted)
+			window.show_popover (col, 96.0, 46.0, 260.0)
+		end
+
 	scroll_split_card (a_theme: SW_THEME): SW_CARD
 			-- A splitter whose left pane is a selectable SW_LIST; every
 			-- row also offers a pebble to the middle-click pick.
@@ -352,6 +456,8 @@ feature {NONE} -- Behaviour
 			Result.add_item ("Toast the selected kind", "", True, agent on_toast)
 			Result.add_item ("Open the danger dialog", "", True, agent on_delete)
 			Result.add_item ("Toggle theme", "", True, agent on_toggle_theme)
+			Result.add_item ("Open the drawer", "", True, agent on_open_drawer)
+			Result.add_item ("Open a popover", "", True, agent on_open_popover)
 		end
 
 	help_menu: SW_MENU
