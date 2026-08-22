@@ -21,6 +21,10 @@ Toolkit-wide near-term items (from the same read):
       and collapsing from window edges - Larry, 2026-08-22).
 - [ ] Peek-close grace delay (a short dwell before an unpinned drawer
       dismisses).
+- [ ] SW_SPREADSHEET (Wave 5): SW_SHEET + CELLS_ENGINE graduated
+      library-grade - ranges (A0:B9), SUM/AVG/MIN/MAX/COUNT, formula
+      bar, TSV block clipboard, CSV in/out, command-pattern undo
+      (Larry's spreadsheet doctrine, 2026-08-22).
 - [ ] Undo/redo engine for SW_TEXT_BOX - the most-missed feature.
 - [ ] Focus traversal (Tab order) - unlocks default buttons, keyboard
       activation, list keyboard selection.
@@ -29,6 +33,7 @@ Toolkit-wide near-term items (from the same read):
 - [ ] Cursor API (I-beam, resize arrows).
 - [ ] SW_INSPECTOR - design pinned in S02; lands at Wave 3 tail behind the
       debug ("dev_mode") gate.
+
 
 
 
@@ -957,3 +962,44 @@ Limits to push:
 - [ ] No pointer arrow toward the anchor yet - the panel is a plain rounded rect.
 - [ ] Placement is clamp-into-window only; no automatic flip above the anchor when space below runs out.
 - [ ] One overlay at a time (a popover displaces a drawer, and vice versa).
+
+
+## SW_CANVAS
+
+Planned extensions:
+
+- [ ] Retained-layer mode (paint once to a surface, blit until invalidated).
+- [ ] Key input routing when focus traversal lands.
+- [ ] Wheel and pinch agents for zoomable canvases (charts, Wave 4, will want them).
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- Paint in the given coordinates (a_x/a_y offsets), never absolute widget fields - the same rule as list row renderers.
+- The paint agent runs on the heartbeat too (4/s), so ambient animation is free - and so is accidental cost if the agent allocates.
+
+Limits to push:
+
+- [ ] Fixed preferred height from creation (no aspect or grow-driven height yet).
+- [ ] No offscreen retained layer: the paint agent runs every frame - keep it light.
+- [ ] No key events routed (canvases are pointer surfaces today; focus work pending).
+
+
+## SW_SHEET
+
+Planned extensions:
+
+- [ ] Row/column resize and scrollbars; range selection with block TSV copy/paste.
+- [ ] Promotion path: CELLS_ENGINE graduates library-grade for SW_SPREADSHEET (Wave 5) - ranges, SUM/AVG/MIN/MAX/COUNT, formula bar, CSV.
+- [ ] Cell renderers (semantic colouring, right-aligned numerics).
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- A synthetic double-click without a preceding single click never focuses the sheet - real users always click first; test benches must too.
+- The editor shows the FORMULA (via formula_provider) while the cell shows the VALUE - wire both agents or editing starts from emptiness.
+
+Limits to push:
+
+- [ ] Fixed geometry: 100x26, uniform 72x24 cells (variable sizes are SW_DATA_GRID's job).
+- [ ] Single-cell selection; no ranges, no block clipboard yet (Wave 5 composite).
+- [ ] The in-place editor is minimal (append/backspace/commit/cancel) - not the full SW_TEXT_BOX engine.
+- [ ] No scrollbars drawn yet - wheel and keyboard only (bars come with the grid work).

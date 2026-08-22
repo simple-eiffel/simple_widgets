@@ -175,6 +175,9 @@ feature {NONE} -- Dispatch
 					-- The heartbeat is global: toasts age and the frame
 					-- echo flushes no matter which phase owns the pointer.
 					-- A popup must never freeze the window's clock.
+				if attached on_tick as tk then
+					tk.call
+				end
 				age_toasts
 			elseif a_type = 16 then
 					-- Likewise the surface: a resize that arrives while a
@@ -289,6 +292,17 @@ feature -- Sheets
 	Mode_left: INTEGER = 1
 	Mode_right: INTEGER = 2
 	Mode_anchored: INTEGER = 3
+
+	on_tick: detachable PROCEDURE
+			-- Fired every heartbeat (250ms) - the application's clock
+			-- for timers, elapsed displays, ambient animation.
+
+	set_on_tick (a_action: PROCEDURE)
+		do
+			on_tick := a_action
+		ensure
+			set: on_tick = a_action
+		end
 
 	show_sheet (a_content: SW_WIDGET; a_width: REAL_64)
 			-- Present `a_content' modally, centered on a dimmed
@@ -980,7 +994,7 @@ feature -- Notifications
 			queued: toasts.count = old toasts.count + 1
 		end
 
-	Toast_life: INTEGER = 7
+	Toast_life: INTEGER = 14
 			-- Timer ticks a toast lives (about 3.5 seconds).
 
 feature {NONE} -- Notification internals

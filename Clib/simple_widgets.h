@@ -208,7 +208,7 @@ static void* sw_create_window(const wchar_t* title, int px, int py, int cw, int 
     if (h) {
         ShowWindow(h, SW_SHOW);
         UpdateWindow(h);
-        SetTimer(h, 1, 500, 0);
+        SetTimer(h, 1, 250, 0);
     }
     return (void*)h;
 }

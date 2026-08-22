@@ -28,6 +28,11 @@
 		<setting name="console_application" value="false"/>
 		<cluster name="demo" location=".\demo\" recursive="true"/>
 	</target>
+	<target name="sw_7guis" extends="simple_widgets">
+		<root class="SW_7GUIS" feature="make"/>
+		<setting name="console_application" value="false"/>
+		<cluster name="demo7guis" location=".\demo7guis\" recursive="true"/>
+	</target>
 	<target name="simple_widgets_tests" extends="simple_widgets">
 		<root class="TEST_APP" feature="make"/>
 		<setting name="console_application" value="true"/>
@@ -35,5 +40,6 @@
 		<library name="simple_testing" location="$SIMPLE_EIFFEL/simple_testing/simple_testing.ecf"/>
 		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
 		<cluster name="test" location=".\testing\" recursive="true"/>
+		<cluster name="guis7" location=".\demo7guis\" recursive="true"/>
 	</target>
 </system>

@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — Wave 3 in progress
 
 ### Added
+- 7GUIs (Eugen Kiss's benchmark) implemented spec-exact as target
+  sw_7guis: Counter, Temperature, Flight Booker, Timer, CRUD, Circle
+  Drawer, Cells - every behaviour synthetically proven. Forced four
+  toolkit features: SW_TEXT_BOX.set_invalid (danger tint),
+  window.set_on_tick (250ms application clock; heartbeat now 250ms,
+  toast life rescaled), SW_CANVAS (delegate-drawn surface), SW_SHEET
+  (grid organ: frozen headers, two-axis scroll, in-place editing,
+  formulas outside via agents). Domain engines CELLS_ENGINE (formula
+  parse + propagation + STRUCTURAL cycle detection - the recursive
+  guard alone was fooled by the value cache; an assault test caught
+  it) and CIRCLES_MODEL (snapshot undo/redo) live in demo7guis
+- SW_TEXT_BOX clear X (Larry's note): opt-in with_clear_button;
+  on_clear_request agent lets the host confirm before clearing;
+  masked boxes keep the eye instead. clear_text fires on_change
+- Assault suite at 52/52 (7GUIs engine set added)
 - Disclosure batch: SW_ACCORDION (exclusive law by postcondition),
   SW_STEPPER (only done ground is clickable), SW_TIMELINE (semantic
   dots, row math pinned by test), SW_DRAWER furniture

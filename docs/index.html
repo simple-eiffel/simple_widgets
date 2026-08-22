@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-44%2F44-brightgreen.svg" alt="44/44 tests">
+            <img src="https://img.shields.io/badge/tests-52%2F52-brightgreen.svg" alt="52/52 tests">
         </div>
     </header>
 
@@ -30,6 +30,7 @@
             <li><a href="#quick-start">Quick Start</a></li>
             <li><a href="#gallery">All Controls</a></li>
             <li><a href="#testing">Testing</a></li>
+            <li><a href="7guis.html">7GUIs</a></li>
             <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
         </ul>
     </nav>
@@ -54,7 +55,7 @@
                 themes swap live, and the whole face is testable headless.
             </p>
             <p>
-                49 pages cover every class shipped across Waves 1-2, Wave 3's first
+                51 pages cover every class shipped across Waves 1-2, Wave 3's first
                 batch, and one planned control kept visible on purpose; the catalog (specs/S02) plans
                 coverage of the full desktop-and-web widget union across six waves.
                 Part of the <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem.
@@ -340,6 +341,17 @@
                     <p>PLANNED - the dev-mode reveal overlay and mesh.</p>
                 </div>
             </div>
+            <h3 class="gallery-group">Custom drawing & data (Wave 3 / 7GUIs)</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_canvas.html">SW_CANVAS</a></h3>
+                    <p>Delegate-drawn surface inside the painter monopoly.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_sheet.html">SW_SHEET</a></h3>
+                    <p>The grid organ: frozen headers, in-place editing, formulas outside.</p>
+                </div>
+            </div>
             <h3 class="gallery-group">Services</h3>
             <div class="feature-grid">
                 <div class="feature-card">
@@ -362,7 +374,7 @@
             <p>
                 The library ships a test target that drives the model layer headless - including
                 drawing, via a painter over an offscreen cairo surface - with <em>every assertion
-                live</em> (F_code with contracts kept). 44 tests across six assault sets; the suite
+                live</em> (F_code with contracts kept). 52 tests across seven assault sets; the suite
                 caught three real defects on its first day (a truncation alias in list row math, a
                 clipboard race against history managers, and an ECF namespace clash).
             </p>

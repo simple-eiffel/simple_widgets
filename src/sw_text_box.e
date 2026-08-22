@@ -77,6 +77,21 @@ feature -- Access
 			-- Misspelled ranges from the inbox checker; refreshed
 			-- lazily after edits.
 
+	has_clear_button: BOOLEAN
+			-- Draw a clear X at the right edge while there is text?
+			-- Off by default; masked boxes never show it (the eye
+			-- owns that slot).
+
+	on_clear_request: detachable PROCEDURE
+			-- When attached, the X asks the HOST instead of clearing:
+			-- the host may confirm with a dialog, then call
+			-- `clear_text' itself. When Void, the X clears directly.
+
+	is_invalid: BOOLEAN
+			-- Host-declared invalidity: the box wears the danger wash
+			-- and a danger border until cleared. Validation is the
+			-- host's judgment; the box only shows it.
+
 	is_masked: BOOLEAN
 			-- Draw bullets instead of characters? Masked boxes also
 			-- refuse clipboard copy and skip spellcheck.
@@ -293,6 +308,50 @@ feature -- Element change
 			set: is_spellcheck_enabled = a_on
 		end
 
+	set_clear_button (a_on: BOOLEAN)
+		do
+			has_clear_button := a_on
+		ensure
+			set: has_clear_button = a_on
+		end
+
+	with_clear_button: like Current
+		do
+			has_clear_button := True
+			Result := Current
+		ensure
+			chained: Result = Current
+			armed: has_clear_button
+		end
+
+	set_on_clear_request (a_action: PROCEDURE)
+		do
+			on_clear_request := a_action
+		ensure
+			set: on_clear_request = a_action
+		end
+
+	clear_text
+			-- Empty the box as a user action: on_change fires.
+		do
+			set_text ("")
+			changed
+		ensure
+			empty: text.is_empty
+		end
+
+	shows_clear: BOOLEAN
+		do
+			Result := has_clear_button and then not text.is_empty and then not is_masked
+		end
+
+	set_invalid (a_on: BOOLEAN)
+		do
+			is_invalid := a_on
+		ensure
+			set: is_invalid = a_on
+		end
+
 	set_masked (a_on: BOOLEAN)
 		do
 			is_masked := a_on
@@ -332,9 +391,16 @@ feature -- Drawing
 		do
 			t := a_p.theme
 			ensure_layout (a_p, width - 2.0 * Pad_x)
-			a_p.set_color (t.surface)
+			if is_invalid then
+				a_p.set_color (t.wash_danger)
+			else
+				a_p.set_color (t.surface)
+			end
 			a_p.rrect_fill (x, y, width, height, t.radius)
-			if is_focused then
+			if is_invalid then
+				a_p.set_color (t.danger)
+				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
+			elseif is_focused then
 				a_p.set_color (t.accent)
 				a_p.set_line_width (2.0)
 				a_p.rrect_stroke (x + 1.0, y + 1.0, width - 2.0, height - 2.0, t.radius)
@@ -394,6 +460,18 @@ feature -- Drawing
 				a_p.set_color (t.danger)
 				a_p.fill_rect (cx, cy - 16.0, 2.0, 23.0)
 			end
+			if shows_clear then
+					-- the clear X: muted at rest, danger under the pointer
+				cx := x + width - 17.0
+				cy := y + height / 2.0
+				if shows_hover and then hover_px >= x + width - Eye_zone then
+					a_p.set_color (t.danger)
+				else
+					a_p.set_color (t.ink_muted)
+				end
+				a_p.line (cx - 5.0, cy - 5.0, cx + 5.0, cy + 5.0, 1.7)
+				a_p.line (cx - 5.0, cy + 5.0, cx + 5.0, cy - 5.0, 1.7)
+			end
 			if is_masked then
 					-- the reveal eye: almond, iris, and a slash while open
 				cx := x + width - 19.0
@@ -426,6 +504,12 @@ feature -- Input
 		do
 			if is_masked and then a_px >= x + width - Eye_zone then
 				toggle_reveal
+			elseif shows_clear and then a_px >= x + width - Eye_zone then
+				if attached on_clear_request as cr then
+					cr.call
+				else
+					clear_text
+				end
 			else
 				create keys
 				caret := offset_at (a_px, a_py)

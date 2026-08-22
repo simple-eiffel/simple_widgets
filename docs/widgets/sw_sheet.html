@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SHEET - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SHEET</h1>
+        <p class="tagline">The grid organ: 100x26 cells, frozen headers, two-axis scroll, in-place editing - formulas stay outside.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SHEET renders a spreadsheet-shaped grid - rows 0-99, columns A-Z, headers frozen while the body scrolls on both axes (wheel; Shift+wheel sideways) - with click selection, arrow-key navigation that scrolls the selection into view, and an in-place cell editor opened by double-click or Enter (Enter commits, Escape cancels, Backspace edits).</p>
+            <p>The deliberate boundary: the sheet owns <strong>display and editing</strong> only. Values, formulas and change propagation belong to the host through two agents - <code>on_cell_commit (row, col, text)</code> fires when an edit lands (the host parses, evaluates, propagates, and pushes results back via <code>set_cell_display</code>), and <code>formula_provider</code> supplies what editing should start from (the raw formula, not the display). 7GUIs' Cells runs on exactly this split, with CELLS_ENGINE (demo7guis) as the reference formula engine: numbers, A0-Z99 references, arithmetic, parentheses, structural cycle detection poisoning cycles to #ERR.</p>
+            <p>The roadmap (per Larry's spreadsheet doctrine): SW_SHEET is tier one of three - the view; SW_DATA_GRID (Wave 3's crown) brings first-class columns; SW_SPREADSHEET (Wave 5) composes this sheet with a library-grade formula engine, ranges, a formula bar, TSV clipboard blocks and CSV in/out.</p>
+            <p class="muted"><em>Source: <code>src/sw_sheet.e</code> &middot; since Wave 3 / 7GUIs (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Wiring a formula host</h2>
+<pre><code><span class="keyword">create</span> sheet.make (430.0)
+sheet.set_on_cell_commit (<span class="keyword">agent</span> on_cell_commit)
+sheet.set_formula_provider (<span class="keyword">agent</span> seed_formula)
+
+on_cell_commit (a_row, a_col: <span class="type">INTEGER</span>; a_text: <span class="type">STRING_32</span>)
+    <span class="keyword">do</span>
+        cells.commit (cells.key (a_row, a_col), a_text)
+        <span class="keyword">across</span> cells.touched <span class="keyword">as</span> k <span class="keyword">loop</span>
+            sheet.set_cell_display (k // cells.Cols, k \\ cells.Cols, cells.display (k))
+        <span class="keyword">end</span>
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Fixed geometry: 100x26, uniform 72x24 cells (variable sizes are SW_DATA_GRID's job).</li>
+                <li>Single-cell selection; no ranges, no block clipboard yet (Wave 5 composite).</li>
+                <li>The in-place editor is minimal (append/backspace/commit/cancel) - not the full SW_TEXT_BOX engine.</li>
+                <li>No scrollbars drawn yet - wheel and keyboard only (bars come with the grid work).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>A synthetic double-click without a preceding single click never focuses the sheet - real users always click first; test benches must too.</li>
+                <li>The editor shows the FORMULA (via formula_provider) while the cell shows the VALUE - wire both agents or editing starts from emptiness.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Row/column resize and scrollbars; range selection with block TSV copy/paste.</li>
+                <li>Promotion path: CELLS_ENGINE graduates library-grade for SW_SPREADSHEET (Wave 5) - ranges, SUM/AVG/MIN/MAX/COUNT, formula bar, CSV.</li>
+                <li>Cell renderers (semantic colouring, right-aligned numerics).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

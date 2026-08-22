@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7GUIs on simple_widgets</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>7GUIs on simple_widgets</h1>
+        <p class="tagline">Eugen Kiss's benchmark, spec-exact, every pixel drawn - with contracts in the seams</p>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="index.html">simple_widgets home</a></li>
+            <li><a href="https://eugenkiss.github.io/7guis/">The benchmark</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+    <main>
+        <section>
+            <h2>What this is</h2>
+            <p><strong>7GUIs</strong> is a GUI-programming Rosetta stone: seven tasks, each
+            isolating one essential difficulty - basic wiring, bidirectional dataflow,
+            constraints, time, domain/presentation separation, custom drawing with undo, and
+            change propagation. Implementing all seven certifies a toolkit can state every
+            fundamental GUI problem. The app lives in <code>demo7guis/</code>; build it with
+            target <code>sw_7guis</code>.</p>
+            <p>This implementation has a property no other entry in the benchmark's table has:
+            <strong>Design by Contract in the seams</strong>. The timer cannot hold an
+            out-of-range fraction, the stepper clamps by postcondition, and the cells engine's
+            first cycle bug was caught by an assault test refusing to pass - the benchmark
+            implemented under the same gates as the toolkit itself.</p>
+        </section>
+        <section>
+            <h2>The seven, and what each one forced</h2>
+            <table>
+                <tr><th>Task</th><th>Spec heart</th><th>What it exercised or forced</th></tr>
+                <tr><td>Counter</td><td>Click increments</td><td>Nothing new - the toolkit's hello world</td></tr>
+                <tr><td>Temperature</td><td>Bidirectional sync; non-numbers leave the twin alone</td><td>on_change wiring with an update guard</td></tr>
+                <tr><td>Flight Booker</td><td>Constraint web; ill-formed dates go red, Book disables</td><td><strong>Forced SW_TEXT_BOX.set_invalid</strong> (danger wash + border)</td></tr>
+                <tr><td>Timer</td><td>Live gauge; stops at d; resumes when d grows; slider reacts mid-drag</td><td><strong>Forced window.set_on_tick</strong> (the 250ms application clock)</td></tr>
+                <tr><td>CRUD</td><td>Filter/create/update/delete; enablement follows selection</td><td>SW_LIST + agents; domain list separate from view indices</td></tr>
+                <tr><td>Circle Drawer</td><td>Canvas, nearest-hit fill, adjust dialog, undo/redo</td><td><strong>Forced SW_CANVAS</strong>; model + snapshot undo app-side (CIRCLES_MODEL)</td></tr>
+                <tr><td>Cells</td><td>99x26 sheet, formulas, change propagation</td><td><strong>Forced SW_SHEET</strong>; CELLS_ENGINE with structural cycle detection</td></tr>
+            </table>
+        </section>
+        <section>
+            <h2>Proofs</h2>
+            <p>Every behaviour was driven synthetically and photographed via the frame echo:
+            32100&nbsp;C &rarr; 57812&nbsp;F (the formula exact), the red invalid date with Book
+            disabled, the timer resuming when its duration grew past elapsed, the filter
+            narrowing and emptying honestly, two circles &rarr; undo &rarr; redo, and A0 edited
+            to 50 propagating B0=100 and A2=55.5 in one commit. The domain engines carry eight
+            assault tests (cycle detection earned its fix by failing first).</p>
+        </section>
+    </main>
+    <footer>
+        <p>simple_widgets - part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem - MIT License</p>
+    </footer>
+</body>
+</html>

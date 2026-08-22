@@ -35,6 +35,9 @@ feature {NONE} -- Initialization
 			print ("%N=== WAVE 3 DISCLOSURE ===%N")
 			run_disclosure_tests
 
+			print ("%N=== 7GUIS ENGINES ===%N")
+			run_guis7_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -88,6 +91,21 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_theme_invariants_both_ways, "theme_invariants_both_ways")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
+		end
+
+	guis7_tests: SW_7GUIS_ASSAULT
+
+	run_guis7_tests
+		do
+			create guis7_tests
+			run_test (agent guis7_tests.test_cells_literal_and_formula, "cells_literal_and_formula")
+			run_test (agent guis7_tests.test_cells_propagation, "cells_propagation")
+			run_test (agent guis7_tests.test_cells_cycle_is_error, "cells_cycle_is_error")
+			run_test (agent guis7_tests.test_cells_text_and_garbage, "cells_text_and_garbage")
+			run_test (agent guis7_tests.test_circles_undo_redo_law, "circles_undo_redo_law")
+			run_test (agent guis7_tests.test_circles_adjustment_is_one_step, "circles_adjustment_is_one_step")
+			run_test (agent guis7_tests.test_circles_nearest_hit, "circles_nearest_hit")
+			run_test (agent guis7_tests.test_clear_button_contract, "clear_button_contract")
 		end
 
 	disclosure_tests: SW_DISCLOSURE_ASSAULT
