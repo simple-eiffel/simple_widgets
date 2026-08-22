@@ -71,6 +71,10 @@ feature {NONE} -- Initialization
 			buttons.put (create {SW_CHECK_BOX}.make ("Danger armed", True, agent on_toggle_danger))
 			card.put (buttons)
 			create buttons.make
+			buttons.put (create {SW_SWITCH}.make ("Live updates", True, agent on_log_only))
+			buttons.put ((create {SW_RADIO_GROUP}.make).with_option ("Alpha").with_option ("Beta").with_option ("Gamma"))
+			card.put (buttons)
+			create buttons.make
 			buttons.put (kind_select)
 			buttons.put (create {SW_BUTTON}.make ("Toast It", agent on_toast))
 			buttons.put ((create {SW_BUTTON}.make ("Delete%/8230/", agent on_delete)).as_kind ({SW_BUTTON}.Kind_danger))

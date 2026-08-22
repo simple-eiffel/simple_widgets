@@ -609,6 +609,9 @@ feature {NONE} -- Dispatch internals
 			if attached root as r then
 				w := r.widget_at (a_x, a_y)
 			end
+			if attached w as pw then
+				pw.set_hover_point (a_x, a_y)
+			end
 			if w /= hovered then
 				if attached hovered as hw then
 					hw.set_hovered (False)
@@ -619,6 +622,8 @@ feature {NONE} -- Dispatch internals
 				end
 				dwell_ticks := 0
 				tooltip_visible := False
+				after_input
+			elseif attached w as sw and then sw.wants_hover_point then
 				after_input
 			end
 		end

@@ -84,7 +84,7 @@ feature -- Drawing
 			else
 				a_p.set_color (t.surface)
 				a_p.rrect_fill (bx, by, Box_s, Box_s, t.radius)
-				if is_hovered and is_enabled then
+				if shows_hover then
 					a_p.set_color (t.accent)
 				else
 					a_p.set_color (t.outline)

@@ -12,7 +12,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			arrange, widget_at, handle_wheel, handle_click, handle_drag
+			arrange, widget_at, handle_wheel, handle_click, handle_drag,
+			wants_hover_point
 		end
 
 create
@@ -69,6 +70,11 @@ feature -- Layout
 
 	Bar_w: REAL_64 = 11.0
 
+	wants_hover_point: BOOLEAN
+		do
+			Result := True
+		end
+
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 		do
 			Result := viewport_height
@@ -106,7 +112,11 @@ feature -- Drawing
 				a_p.rrect_fill (x + width - Bar_w, y + 2.0, Bar_w - 2.0, track_h, 4.0)
 				thumb_h := (height / content_height * track_h).max (24.0)
 				thumb_y := y + 2.0 + (scroll_y / max_scroll) * (track_h - thumb_h)
-				a_p.set_color (t.outline)
+				if shows_hover and then hover_px >= x + width - Bar_w then
+					a_p.set_color (t.accent)
+				else
+					a_p.set_color (t.outline)
+				end
 				a_p.rrect_fill (x + width - Bar_w + 1.5, thumb_y, Bar_w - 5.0, thumb_h, 3.0)
 			end
 		end

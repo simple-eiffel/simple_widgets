@@ -118,7 +118,7 @@ feature -- Drawing
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			if is_focused then
 				a_p.set_color (t.accent)
-			elseif is_hovered and is_enabled then
+			elseif shows_hover then
 				a_p.set_color (t.accent)
 			else
 				a_p.set_color (t.outline)

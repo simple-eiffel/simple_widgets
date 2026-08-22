@@ -287,7 +287,11 @@ feature -- Drawing
 				a_p.rrect_stroke (x + 1.0, y + 1.0, width - 2.0, height - 2.0, t.radius)
 				a_p.set_line_width (1.0)
 			else
-				a_p.set_color (t.outline)
+				if shows_hover then
+					a_p.set_color (t.ink_muted)
+				else
+					a_p.set_color (t.outline)
+				end
 				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
 			end
 			n := text.count

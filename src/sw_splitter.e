@@ -84,15 +84,28 @@ feature -- Drawing
 			left_child.draw (a_p)
 			right_child.draw (a_p)
 			dx := x + (width - Divider_w) * ratio + Divider_w / 2.0
-			a_p.set_color (t.outline)
-			a_p.fill_rect (dx - 0.5, y + 2.0, 1.0, height - 4.0)
+			if shows_hover then
+					-- announce draggability: a wide accent bar under the
+					-- pointer says push me, pull me
+				a_p.set_color (t.wash_accent)
+				a_p.rrect_fill (dx - Divider_w / 2.0 + 1.0, y + 2.0, Divider_w - 2.0, height - 4.0, 3.0)
+				a_p.set_color (t.accent)
+				a_p.fill_rect (dx - 1.0, y + 2.0, 2.0, height - 4.0)
+			else
+				a_p.set_color (t.outline)
+				a_p.fill_rect (dx - 0.5, y + 2.0, 1.0, height - 4.0)
+			end
 			cy := y + height / 2.0 - 12.0
 			from
 				i := 1
 			until
 				i > 3
 			loop
-				a_p.set_color (t.ink_muted)
+				if shows_hover then
+					a_p.set_color (t.accent)
+				else
+					a_p.set_color (t.ink_muted)
+				end
 				a_p.rrect_fill (dx - 1.5, cy + i * 6.0, 3.0, 3.0, 1.5)
 				i := i + 1
 			end

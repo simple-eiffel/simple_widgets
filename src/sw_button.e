@@ -124,7 +124,7 @@ feature -- Style (the rule layer: variant and state select tokens)
 				else
 					Result := a_t.outline
 				end
-			elseif is_hovered and is_enabled then
+			elseif shows_hover then
 				Result := a_t.surface_variant
 			else
 				Result := a_t.surface

@@ -226,6 +226,49 @@ feature -- Input
 			set: is_focused = a_focused
 		end
 
+	hover_px: REAL_64
+	hover_py: REAL_64
+			-- Pointer position while hovered, for widgets that signal
+			-- per-part hover (list rows, scrollbar thumbs, radio dots).
+
+	shows_hover: BOOLEAN
+			-- Should hover feedback draw right now? On by default;
+			-- silence per widget with set_hover_signal (False).
+		do
+			Result := is_hovered and then is_enabled and then not is_hover_silenced
+		end
+
+	set_hover_signal (a_on: BOOLEAN)
+		do
+			is_hover_silenced := not a_on
+		ensure
+			set: shows_hover implies a_on
+		end
+
+	hover_silenced: like Current
+			-- Fluent: Current with hover feedback off.
+		do
+			is_hover_silenced := True
+			Result := Current
+		ensure
+			chained: Result = Current
+		end
+
+	is_hover_silenced: BOOLEAN
+			-- Stored inverted: fresh widgets signal hover.
+
+	wants_hover_point: BOOLEAN
+			-- Should the window re-render on every pointer move over
+			-- this widget (not only on enter/leave)?
+		do
+		end
+
+	set_hover_point (a_px, a_py: REAL_64)
+		do
+			hover_px := a_px
+			hover_py := a_py
+		end
+
 	set_hovered (a_hovered: BOOLEAN)
 		do
 			is_hovered := a_hovered
