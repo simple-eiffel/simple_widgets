@@ -105,10 +105,11 @@ feature {NONE} -- Initialization
 			until
 				i > 24
 			loop
-				create lbl.make_mono ("row " + (if i < 10 then "0" else "" end) + i.out + "  %/8212/  wheel me, or drag the bar")
+				create lbl.make_mono ("row " + (if i < 10 then "0" else "" end) + i.out + "  %/8212/  middle-click picks me")
 				if i \\ 6 = 0 then
 					lbl.set_color (a_theme.accent)
 				end
+				lbl.set_pebble ("[from row " + i.out + "] ")
 				tall.put (lbl)
 				i := i + 1
 			end

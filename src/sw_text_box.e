@@ -20,7 +20,7 @@ inherit
 		redefine
 			accepts_focus, handle_click, handle_double_click,
 			handle_triple_click, handle_drag, handle_char, handle_key,
-			context_menu
+			context_menu, accepts_pebble, receive_pebble
 		end
 
 create
@@ -410,6 +410,29 @@ feature -- Input
 					sel_anchor := caret
 					changed
 				end
+			end
+		end
+
+	accepts_pebble (a_pebble: ANY): BOOLEAN
+			-- Text boxes welcome any string pebble (unless read-only).
+		do
+			Result := not is_read_only and then attached {READABLE_STRING_GENERAL} a_pebble
+		end
+
+	receive_pebble (a_pebble: ANY)
+			-- Drop inserts the string at the caret.
+		local
+			s: STRING_32
+		do
+			if attached {READABLE_STRING_GENERAL} a_pebble as rs then
+				create s.make_from_string_general (rs)
+				if has_selection then
+					delete_selection
+				end
+				text.insert_string (s, caret + 1)
+				caret := caret + s.count
+				sel_anchor := caret
+				changed
 			end
 		end
 

@@ -291,6 +291,47 @@ feature -- Input
 		do
 		end
 
+	pebble: detachable ANY
+			-- What a pick lifts from this widget; Void = not a source.
+			-- Vision2's pick-and-drop, contract-checked: by default the
+			-- stored pebble_item; redefine for position-dependent picks.
+		do
+			Result := pebble_item
+		end
+
+	set_pebble (a_pebble: detachable ANY)
+		do
+			pebble_item := a_pebble
+		ensure
+			set: pebble_item = a_pebble
+		end
+
+	with_pebble (a_pebble: ANY): like Current
+			-- Fluent pick-source declaration.
+		do
+			pebble_item := a_pebble
+			Result := Current
+		ensure
+			chained: Result = Current
+		end
+
+	accepts_pebble (a_pebble: ANY): BOOLEAN
+			-- Would this widget welcome `a_pebble'? The hole's type
+			-- check, as an honest query.
+		do
+		end
+
+	receive_pebble (a_pebble: ANY)
+			-- Accept the drop.
+		require
+			welcome: accepts_pebble (a_pebble)
+			enabled: is_enabled
+		do
+		end
+
+	pebble_item: detachable ANY
+			-- Stored pebble behind the default `pebble'.
+
 	pending_menu: detachable SW_MENU
 			-- A menu this widget wants presented after its click was
 			-- handled - the dropdown handshake: the widget declares

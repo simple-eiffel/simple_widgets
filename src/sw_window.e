@@ -284,6 +284,77 @@ feature {NONE} -- Dispatch internals
 
 	dispatch_normal (a_type, a_x, a_y: INTEGER)
 		do
+			if pick_pebble /= Void then
+				dispatch_in_pick (a_type, a_x, a_y)
+			else
+				dispatch_plain (a_type, a_x, a_y)
+			end
+		end
+
+	dispatch_in_pick (a_type, a_x, a_y: INTEGER)
+			-- Pick-and-drop mode: the pointer carries a pebble. A left
+			-- click on a welcoming hole drops it; right-click, Escape
+			-- or a click anywhere else cancels; moves redraw the
+			-- trajectory.
+		local
+			w: detachable SW_WIDGET
+		do
+			inspect a_type
+			when 2 then
+				if attached pick_pebble as pb then
+					if attached root as r then
+						w := r.widget_at (a_x, a_y)
+					end
+					if attached w as tw and then tw.is_enabled and then tw.accepts_pebble (pb) then
+						end_pick
+						tw.receive_pebble (pb)
+					else
+						end_pick
+					end
+				end
+				after_input
+			when 13 then
+				pick_cur_x := a_x
+				pick_cur_y := a_y
+				after_input
+			when 3 then
+				if a_x = 27 then
+					end_pick
+					after_input
+				end
+			when 11 then
+				end_pick
+				after_input
+			when 6 then
+				blit
+			when 7 then
+				age_toasts
+			when 16 then
+				resize_surface (a_x, a_y)
+			else
+			end
+		end
+
+	begin_pick (a_pebble: ANY; a_x, a_y: INTEGER)
+		do
+			pick_pebble := a_pebble
+			pick_x := a_x
+			pick_y := a_y
+			pick_cur_x := a_x
+			pick_cur_y := a_y
+		ensure
+			picking: pick_pebble = a_pebble
+		end
+
+	end_pick
+		do
+			pick_pebble := Void
+		ensure
+			idle: pick_pebble = Void
+		end
+
+	dispatch_plain (a_type, a_x, a_y: INTEGER)
+		do
 			inspect a_type
 			when 2 then
 				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
@@ -363,6 +434,11 @@ feature {NONE} -- Dispatch internals
 					hovered := Void
 					after_input
 				end
+			when 17 then
+				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
+					pick_from (w, a_x, a_y)
+				end
+				after_input
 			when 16 then
 				resize_surface (a_x, a_y)
 			when 15 then
@@ -485,6 +561,24 @@ feature {NONE} -- Dispatch internals
 			fits: win_w <= alloc_w and win_h <= alloc_h
 		end
 
+	pick_from (a_target: SW_WIDGET; a_x, a_y: INTEGER)
+			-- Walk the spine for the first widget offering a pebble.
+		local
+			w: detachable SW_WIDGET
+		do
+			from
+				w := a_target
+			until
+				pick_pebble /= Void or w = Void
+			loop
+				if w.is_enabled and then attached w.pebble as pb then
+					begin_pick (pb, a_x, a_y)
+				else
+					w := w.parent
+				end
+			end
+		end
+
 	bubble_wheel (a_target: SW_WIDGET; a_delta: INTEGER)
 			-- The wheel goes to the widget under the POINTER, then up
 			-- the spine - never to keyboard focus.
@@ -546,6 +640,9 @@ feature {NONE} -- Rendering
 				r.arrange (painter)
 				r.draw (painter)
 			end
+			if attached pick_pebble as pb then
+				draw_pick_trajectory (pb)
+			end
 			if attached popup as m then
 				m.draw (painter)
 			end
@@ -571,6 +668,34 @@ feature {NONE} -- Rendering
 				offscreen.write_png (frame_echo_path).do_nothing
 				frame_echo_dirty := False
 			end
+		end
+
+	draw_pick_trajectory (a_pebble: ANY)
+			-- The pick line: origin dot, line to the pointer, and a
+			-- ring on the widget under the pointer - accent when it
+			-- welcomes the pebble, danger when it does not.
+		local
+			w: detachable SW_WIDGET
+			ok: BOOLEAN
+		do
+			if attached root as r then
+				w := r.widget_at (pick_cur_x, pick_cur_y)
+			end
+			if attached w as tw then
+				ok := tw.is_enabled and then tw.accepts_pebble (a_pebble)
+				if ok then
+					painter.set_color (theme.accent)
+				else
+					painter.set_color (theme.danger)
+				end
+				painter.set_line_width (2.0)
+				painter.rrect_stroke (tw.x - 2.0, tw.y - 2.0, tw.width + 4.0, tw.height + 4.0, theme.radius + 2.0)
+				painter.set_line_width (1.0)
+			end
+			painter.set_color (theme.accent)
+			painter.line (pick_x, pick_y, pick_cur_x, pick_cur_y, 2.0)
+			painter.rrect_fill (pick_x - 4.0, pick_y - 4.0, 8.0, 8.0, 4.0)
+			painter.rrect_fill (pick_cur_x - 3.0, pick_cur_y - 3.0, 6.0, 6.0, 3.0)
 		end
 
 	draw_tooltip (a_w: SW_WIDGET)
@@ -721,6 +846,11 @@ feature {NONE} -- State
 	alloc_h: INTEGER
 			-- The offscreen surface's allocated size; grown in steps so
 			-- a corner drag does not reallocate per pixel.
+
+	pick_pebble: detachable ANY
+			-- The pebble in flight, when pick-and-drop is active.
+
+	pick_x, pick_y, pick_cur_x, pick_cur_y: INTEGER
 
 	pending_surrogate: INTEGER
 			-- High half of a UTF-16 pair awaiting its partner.
