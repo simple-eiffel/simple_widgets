@@ -36,7 +36,7 @@ feature -- Element change
 	add (a_w: SW_WIDGET): like Current
 			-- Fluent append.
 		do
-			children.extend (a_w)
+			put (a_w)
 			Result := Current
 		ensure
 			added: children.last = a_w
@@ -46,8 +46,10 @@ feature -- Element change
 	put (a_w: SW_WIDGET)
 		do
 			children.extend (a_w)
+			a_w.set_parent (Current)
 		ensure
 			added: children.last = a_w
+			adopted: a_w.parent = Current
 		end
 
 	with_gap (a_gap: REAL_64): like Current

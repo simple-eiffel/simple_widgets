@@ -12,6 +12,19 @@ note
 deferred class
 	SW_WIDGET
 
+feature -- Tree
+
+	parent: detachable SW_WIDGET
+			-- Enclosing container, set on adoption; the spine input
+			-- bubbling and any future accessibility bridge walk.
+
+	set_parent (a_parent: detachable SW_WIDGET)
+		do
+			parent := a_parent
+		ensure
+			set: parent = a_parent
+		end
+
 feature -- Geometry
 
 	x: REAL_64
@@ -97,13 +110,15 @@ feature -- Input
 			set: is_focused = a_focused
 		end
 
-	handle_click (a_px, a_py: REAL_64)
+	handle_click (a_px, a_py: REAL_64): BOOLEAN
+			-- React to a click; True when consumed. False lets the
+			-- window bubble the click to the parent chain.
 		do
 		end
 
-	handle_double_click (a_px, a_py: REAL_64)
+	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
 		do
-			handle_click (a_px, a_py)
+			Result := handle_click (a_px, a_py)
 		end
 
 	handle_drag (a_px, a_py: REAL_64)

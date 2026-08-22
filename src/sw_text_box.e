@@ -177,17 +177,19 @@ feature -- Input
 			Result := True
 		end
 
-	handle_click (a_px, a_py: REAL_64)
+	handle_click (a_px, a_py: REAL_64): BOOLEAN
 		do
 			caret := offset_at (a_px, a_py)
 			sel_anchor := caret
+			Result := True
 		end
 
-	handle_double_click (a_px, a_py: REAL_64)
+	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
 			-- Select the word under the point.
 		local
 			c, lo, hi, n: INTEGER
 		do
+			Result := True
 			n := text.count
 			if n > 0 then
 				c := offset_at (a_px, a_py)

@@ -109,10 +109,13 @@ feature -- Drawing
 
 feature -- Input
 
-	handle_click (a_px, a_py: REAL_64)
+	handle_click (a_px, a_py: REAL_64): BOOLEAN
 		do
-			if is_enabled and then attached on_click as a then
-				a.call
+			if is_enabled then
+				if attached on_click as a then
+					a.call
+				end
+				Result := True
 			end
 		end
 

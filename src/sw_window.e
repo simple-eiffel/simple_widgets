@@ -168,7 +168,7 @@ feature {NONE} -- Dispatch
 						focused := w
 						w.set_focused (True)
 					end
-					w.handle_click (a_x, a_y)
+					capture := bubble_click (w, a_x, a_y, False)
 				end
 				after_input
 			when 3 then
@@ -185,15 +185,46 @@ feature {NONE} -- Dispatch
 				blit
 			when 8 then
 				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
-					w.handle_double_click (a_x, a_y)
+					capture := bubble_click (w, a_x, a_y, True)
 				end
 				after_input
 			when 9 then
-				if attached focused as w then
+					-- the pointer belongs to whoever accepted the press,
+					-- not to the keyboard focus (every surveyed toolkit
+					-- agrees: Qt's grabber, ImGui's active id)
+				if attached capture as w then
 					w.handle_drag (a_x, a_y)
 					after_input
 				end
+			when 10 then
+				capture := Void
 			else
+			end
+		end
+
+	bubble_click (a_target: SW_WIDGET; a_x, a_y: INTEGER; a_double: BOOLEAN): detachable SW_WIDGET
+			-- Offer the click to `a_target', then up the parent chain
+			-- until someone consumes it; the consumer takes the pointer
+			-- capture. Void when nobody wanted it.
+		local
+			w: detachable SW_WIDGET
+			handled: BOOLEAN
+		do
+			from
+				w := a_target
+			until
+				handled or w = Void
+			loop
+				if a_double then
+					handled := w.handle_double_click (a_x, a_y)
+				else
+					handled := w.handle_click (a_x, a_y)
+				end
+				if handled then
+					Result := w
+				else
+					w := w.parent
+				end
 			end
 		end
 
@@ -239,6 +270,9 @@ feature {NONE} -- Rendering
 		end
 
 feature {NONE} -- State
+
+	capture: detachable SW_WIDGET
+			-- Owner of the pointer between press and release.
 
 	cairo: SIMPLE_CAIRO
 	offscreen: CAIRO_SURFACE
