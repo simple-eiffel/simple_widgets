@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_KEYS - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_KEYS</h1>
+        <p class="tagline">Modifier truth at query time - is Shift down right now?</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_KEYS answers modifier questions at the moment of asking - today just <code>shift_down</code>, read straight from the physical keyboard state. SW_TEXT_BOX uses it for Shift+Click selection extension. It exists so widgets never talk to Win32 directly (R2's spirit applied to input).</p>
+            <p class="muted"><em>Source: <code>src/sw_keys.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Shift-aware click handling</h2>
+<pre><code>handle_click (a_px, a_py: <span class="type">REAL_64</span>): <span class="type">BOOLEAN</span>
+    <span class="keyword">local</span>
+        keys: <span class="type">SW_KEYS</span>
+    <span class="keyword">do</span>
+        <span class="keyword">create</span> keys
+        caret := offset_at (a_px, a_py)
+        <span class="keyword">if</span> <span class="keyword">not</span> keys.shift_down <span class="keyword">then</span>
+            sel_anchor := caret        <span class="comment">-- plain click moves the anchor</span>
+        <span class="keyword">end</span>                            <span class="comment">-- Shift+Click extends instead</span>
+        <span class="keyword">Result</span> := <span class="keyword">True</span>
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Shift only - Ctrl and Alt queries are trivial additions awaiting a consumer.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>It reads the PHYSICAL keyboard - synthetic message-based tests cannot fake it, and a human holding Shift during automated runs changes behaviour. The test bench learned this the fun way.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Ctrl/Alt/Win queries; a snapshot record for gesture recognizers.</li>
+                <li>A keymap/accelerator service registering app-wide shortcuts (feeding menu hints).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

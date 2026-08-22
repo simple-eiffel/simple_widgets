@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_PAINTER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_PAINTER</h1>
+        <p class="tagline">The only class allowed to touch cairo - a small honest vocabulary over CAIRO_CONTEXT.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_PAINTER enforces rule R2: widgets never see <code>CAIRO_CONTEXT</code>; they speak painter. The vocabulary: <code>set_color (rgb)</code> / <code>set_color_alpha (rgb, a)</code>, <code>font (role, size, bold)</code> over the theme's three families, <code>text (x, y, s)</code> and <code>advance (s)</code> for layout-true measurement, <code>fill_rect</code>, <code>rrect_fill</code> / <code>rrect_stroke</code>, <code>line</code> / <code>hline</code> / <code>vline</code>, <code>circle_stroke</code> / <code>circle_fill</code>, <code>push_clip</code> / <code>pop_clip</code>, and <code>draw_image (surface, x, y, w, h)</code> for scaled PNG blits.</p>
+            <p>The circle primitives exist because of a bug users can see: cairo's <code>arc</code> appends to the current path, drawing a straight connector line from wherever the pen last was to the arc's start. Radio buttons wore dashes through their circles until the circle calls learned to reset the path first. The hygiene lives here so no widget can reintroduce it.</p>
+            <p><code>context</code> remains reachable as a deliberate escape hatch for the lowest layer, but every use outside SW_PAINTER is a design smell - and the arc story is the reason why.</p>
+            <p class="muted"><em>Source: <code>src/sw_painter.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A widget&#x27;s draw, in painter vocabulary</h2>
+<pre><code>draw (a_p: <span class="type">SW_PAINTER</span>)
+    <span class="keyword">local</span>
+        t: <span class="type">SW_THEME</span>
+    <span class="keyword">do</span>
+        t := a_p.theme
+        a_p.set_color (t.surface)
+        a_p.rrect_fill (x, y, width, height, t.radius)
+        a_p.set_color (t.outline)
+        a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
+        a_p.font ({<span class="type">SW_PAINTER</span>}.Role_ui, t.size_label, <span class="keyword">False</span>)
+        a_p.set_color (t.ink)
+        a_p.text (x + 10.0, y + height - 11.0, <span <span class="keyword">class</span>="string">&quot;hello&quot;</span>)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="example-2">
+            <h2>Measuring before placing</h2>
+<pre><code>a_p.font ({<span class="type">SW_PAINTER</span>}.Role_ui, t.size_label, <span class="keyword">False</span>)
+w := a_p.advance (label) + 24.0   <span class="comment">-- advance, not ink width:</span>
+<span class="comment">                                  -- trailing spaces count, layout stays true</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Cairo toy text API: one face per call, no shaping, no bidi, no glyph fallback - a code point missing from the face renders as .notdef.</li>
+                <li>No gradients, dashes or transforms in the public vocabulary yet (the escape hatch can, but that trades away R2).</li>
+                <li><code>draw_image</code> scales the whole source; no sub-rect (sprite) blits yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><strong>Never call <code>context.arc</code> directly</strong> - the connector-line bug. Use <code>circle_stroke/circle_fill</code>; they reset the path first.</li>
+                <li>Use <code>advance</code> for layout, never ink extents - ink excludes trailing whitespace and your caret math will drift.</li>
+                <li><code>set_line_width</code> is stateful: set it back (the fleet convention is width 1.0 at rest) or the next widget strokes fat.</li>
+                <li>Half-pixel offsets (<code>x + 0.5</code>) keep 1px strokes crisp; whole-pixel strokes blur across two device pixels.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Dirty-rect support and batched same-style text runs (the resize-lag cure).</li>
+                <li>Gradient and shadow tokens for depth, kept behind theme control.</li>
+                <li>Sub-rectangle image blits and nine-slice scaling for skinnable surfaces.</li>
+                <li>A recording painter for golden-frame regression tests.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

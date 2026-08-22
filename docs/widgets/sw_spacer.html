@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SPACER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SPACER</h1>
+        <p class="tagline">Stretchy nothing, born growing - Vision2 called it EV_CELL, flexbox calls it a spacer.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SPACER is an invisible widget whose only property is <code>grow = 1</code> at birth: it absorbs a container's slack. Its defining trick is the pinned footer (see <a href='sw_column.html'>SW_COLUMN</a>); in rows it pushes siblings apart (left-cluster / right-cluster toolbars).</p>
+            <p class="muted"><em>Source: <code>src/sw_spacer.e</code> &middot; since Wave 2 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Push apart, pin down</h2>
+<pre><code><span class="comment">-- a row with left and right clusters</span>
+row.put (save_button)
+row.put (<span class="keyword">create</span> {<span class="type">SW_SPACER</span>}.make)
+row.put (help_button)
+
+<span class="comment">-- the pinned footer</span>
+root.put (<span class="keyword">create</span> {<span class="type">SW_SPACER</span>}.make)
+root.put (statusbar)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>It has no minimum: with zero slack it vanishes entirely (that is the point).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Two spacers share slack equally (both grow 1.0) - centering trick: <code>spacer, content, spacer</code>.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Weighted convenience creation (<code>make_weighted (2.0)</code>) - today use <code>set_grow</code> after creation.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

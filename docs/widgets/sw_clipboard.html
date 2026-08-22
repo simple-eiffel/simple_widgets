@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_CLIPBOARD - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_CLIPBOARD</h1>
+        <p class="tagline">Unicode text in and out of the Windows clipboard - surrogate-safe, race-hardened.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_CLIPBOARD is a small service class (create it anywhere, no window needed): <code>set_text</code>, <code>text</code>, <code>has_text</code>. Full Unicode both ways - astral code points are split to UTF-16 surrogate pairs on write and re-paired on read (R8), so an emoji survives the round trip as one code point.</p>
+            <p>Both directions <strong>retry briefly</strong>: clipboard-history managers (Win+V and friends) open the clipboard right after every change, so back-to-back OpenClipboard calls lose races. Writes retry until accepted; reads retry when the format probe says text exists but the read came back empty - the race's exact signature. The assault suite flushed this out; five consecutive clean runs sealed it.</p>
+            <p class="muted"><em>Source: <code>src/sw_clipboard.e</code> &middot; since Wave 1 (2026-08-21); race hardening Wave 2.
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Round trip</h2>
+<pre><code><span class="keyword">local</span>
+    clip: <span class="type">SW_CLIPBOARD</span>
+<span class="keyword">do</span>
+    <span class="keyword">create</span> clip
+    clip.set_text (<span <span class="keyword">class</span>="string">&quot;copied by simple_widgets&quot;</span>)
+    <span class="keyword">if</span> clip.has_text <span class="keyword">then</span>
+        print (clip.text)
+    <span class="keyword">end</span>
+<span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Text only - no images, files or custom formats yet.</li>
+                <li>Reads cap at 128k characters (a paste larger than that truncates).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Masked text boxes never write here - copy denial is enforced in SW_TEXT_BOX, not in the clipboard.</li>
+                <li>The clipboard is global mutable state shared with every other app; test suites doing rapid ops should assert on sentinels, not on emptiness.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Image (PNG) transfer - pairs naturally with SW_IMAGE.</li>
+                <li>File-drop list format for the dropzone widget (Wave 3).</li>
+                <li>Clipboard-change notification for paste-aware UI enablement.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

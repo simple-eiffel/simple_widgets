@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_WINDOW - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_WINDOW</h1>
+        <p class="tagline">The runtime: one Win32 window, one cairo surface, one event pump - everything else is drawn.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_WINDOW is the only class in the toolkit that touches the operating system's windowing. It creates a plain Win32 window, allocates an offscreen cairo surface for the whole client area, pumps events, routes input to the widget tree, and blits the finished frame. There are no child HWNDs anywhere: every control, menu, dialog and toast is painted onto this one surface (rule R7 - nothing native).</p>
+            <p>Input dispatch runs in <strong>phases</strong>: an open <em>dialog</em> owns everything; otherwise an open <em>popup</em> (menu) owns the pointer; otherwise a <em>sheet</em> (modal widget layer) becomes the input root; otherwise a <em>pick</em> in flight handles drops; otherwise input flows to the widget tree. Two events are exempt from phasing - the <em>heartbeat</em>: tick (toast aging, frame-echo flush) and resize (surface reallocation) are handled globally before any phase, so an open menu can never freeze the window's clock.</p>
+            <p>The window also owns cross-widget services: keyboard focus, hover tracking with tooltips, toasts (<code>toast (text, kind)</code>), drawn modal dialogs (<code>show_dialog</code>), modal sheets (<code>show_sheet</code> / <code>close_sheet</code>), pick-and-drop trajectory, the pending-menu handshake, and live theme swap (<code>set_theme</code>).</p>
+            <p>Coordinates are physical pixels throughout - the window is per-monitor DPI aware, and the offscreen surface maps 1:1 to what you see.</p>
+            <p class="muted"><em>Source: <code>src/sw_window.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A complete application</h2>
+<pre><code><span class="keyword">local</span>
+    window: <span class="type">SW_WINDOW</span>
+    theme: <span class="type">SW_THEME</span>
+    root: <span class="type">SW_COLUMN</span>
+<span class="keyword">do</span>
+    <span class="keyword">create</span> theme.make_dark
+    <span class="keyword">create</span> window.make (<span <span class="keyword">class</span>="string">&quot;my app&quot;</span>, 100, 100, 900, 700, theme)
+    <span class="keyword">create</span> root.make
+    root := root.with_padding (16.0).with_gap (12.0)
+    root.put (<span class="keyword">create</span> {<span class="type">SW_LABEL</span>}.make (<span <span class="keyword">class</span>="string">&quot;Hello&quot;</span>, {<span class="type">SW_PAINTER</span>}.Role_ui, 20.0, <span class="keyword">True</span>))
+    root.put (<span class="keyword">create</span> {<span class="type">SW_BUTTON</span>}.make_primary (<span <span class="keyword">class</span>="string">&quot;Go&quot;</span>, <span class="keyword">agent</span> on_go))
+    window.set_root (root)
+    window.run   <span class="comment">-- blocks until the window closes</span>
+<span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="example-2">
+            <h2>Toasts, dialogs and sheets</h2>
+<pre><code><span class="comment">-- transient feedback (kinds: 1 info, 2 success, 3 warning, 4 danger)</span>
+window.toast (<span <span class="keyword">class</span>="string">&quot;Saved&quot;</span>, 2)
+
+<span class="comment">-- a drawn modal alert</span>
+<span class="keyword">create</span> d.make ({<span class="type">SW_DIALOG</span>}.Kind_danger, <span <span class="keyword">class</span>="string">&quot;Delete?&quot;</span>, <span <span class="keyword">class</span>="string">&quot;This cannot be undone.&quot;</span>)
+d.add_button (<span <span class="keyword">class</span>="string">&quot;Cancel&quot;</span>, <span class="keyword">False</span>, <span class="keyword">Void</span>)
+d.add_button (<span <span class="keyword">class</span>="string">&quot;Delete&quot;</span>, <span class="keyword">True</span>, <span class="keyword">agent</span> do_delete)
+window.show_dialog (d)
+
+<span class="comment">-- ANY widget tree as a modal sheet (this is how SW_FILE_DIALOG appears)</span>
+window.show_sheet (my_form, 560.0)
+<span class="comment">-- later: window.close_sheet</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>One window per application for now - no secondary or child windows yet.</li>
+                <li>The frame echo (<code>set_frame_echo</code>) writes PNG lazily on the tick, not on every render - it is a debug instrument, not a video feed.</li>
+                <li>No cursor shaping yet: the pointer stays an arrow even over text boxes and splitters.</li>
+                <li>Redraws repaint the full frame; very large windows pay for it on resize drags (felt as slight grow-lag).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><strong>cairo.dll must sit beside the executable.</strong> Every finalize wipes F_code, deleting the DLL; the exe then dies at load looking exactly like a code crash. Copy it back after every build.</li>
+                <li><code>run</code> blocks. Everything after it executes only when the window closes.</li>
+                <li>Window geometry is physical pixels. If a DPI-unaware shell moves the window (<code>MoveWindow</code> from PowerShell), the OS scales the coordinates - at 150% they land 1.5&times; away from where you aimed.</li>
+                <li>Popups close on the next button-down anywhere; if a menu 'never appeared', something (or someone) clicked between open and look.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Multi-window support (owner/owned, drawn dialogs across windows).</li>
+                <li>Cursor API (I-beam over text, resize arrows over splitters).</li>
+                <li>Dirty-rectangle rendering and batched text runs to erase resize lag.</li>
+                <li>Dev-mode inspector overlay (SW_INSPECTOR, S02): reflection-driven widget reveals behind an ECF <code>debug ("dev_mode")</code> compile-time gate.</li>
+                <li>Per-window text scale (grow/shrink all fonts) via a theme scale factor.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

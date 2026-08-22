@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>simple_widgets - Drawn Widget Toolkit for Eiffel</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>.gallery-group { margin-top: 1.6em; }</style>
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="images/logo.png" alt="simple_* logo" class="logo" style="max-height:100px">
+        </div>
+        <h1>simple_widgets</h1>
+        <p class="tagline">A drawn widget toolkit for Eiffel on pure Win32 - no Vision2, no GTK, no native controls</p>
+        <div class="badges">
+            <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
+            <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
+            <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
+            <img src="https://img.shields.io/badge/tests-25%2F25-brightgreen.svg" alt="25/25 tests">
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#rules">The Rules</a></li>
+            <li><a href="#quick-start">Quick Start</a></li>
+            <li><a href="#gallery">All Controls</a></li>
+            <li><a href="#testing">Testing</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>
+                <strong>simple_widgets</strong> is the missing middle layer of the Simple Eiffel GUI
+                story. The classic chain was WEL (raw Win32) &rarr; Vision2 (portable widgets) &rarr;
+                your application. The simple chain is
+                <a href="https://github.com/simple-eiffel/simple_cairo">simple_cairo</a> (the
+                substrate) &rarr; <strong>simple_widgets</strong> (the vocabulary) &rarr; your
+                application (the intent). Before this library existed, a production face meant two
+                thousand lines of boilerplate above the canvas; that boilerplate is now a toolkit.
+            </p>
+            <p>
+                Every pixel is drawn by the toolkit itself onto one cairo surface in one plain Win32
+                window: buttons, text boxes with spell-checking, menus, dialogs, toasts, tabs,
+                virtualized lists, splitters, a complete file dialog. There are no child HWNDs, no
+                common controls, no native anything - which is why every control looks identical,
+                themes swap live, and the whole face is testable headless.
+            </p>
+            <p>
+                36 classes ship today across two completed waves; the catalog (specs/S02) plans
+                coverage of the full desktop-and-web widget union across six waves.
+                Part of the <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem.
+            </p>
+        </section>
+
+        <section id="architecture">
+            <h2>Architecture: five layers (spec S01)</h2>
+            <table>
+                <tr><th>Layer</th><th>Who lives there</th><th>Character</th></tr>
+                <tr><td><strong>COMPOSITION</strong></td><td>Your application</td>
+                    <td>Pure intent - what exists and what happens</td></tr>
+                <tr><td><strong>COMPONENT</strong></td><td>SW_FILE_DIALOG, cards, groups</td>
+                    <td>Widgets assembled into meaningful units</td></tr>
+                <tr><td><strong>WIDGET</strong></td><td>SW_BUTTON &hellip; SW_LIST</td>
+                    <td>Controls: state, contracts, input handlers</td></tr>
+                <tr><td><strong>PAINTER</strong></td><td>SW_PAINTER, SW_THEME</td>
+                    <td>The drawing vocabulary and the visual truth</td></tr>
+                <tr><td><strong>SURFACE</strong></td><td>SW_WINDOW + Clib runtime</td>
+                    <td>Win32 window, cairo surface, event pump</td></tr>
+            </table>
+            <p>
+                Higher layers are simpler and faster to use; lower layers are more expressive and
+                more verbose. Applications normally live at the top two; the escape hatches down
+                are deliberate and rarely needed.
+            </p>
+        </section>
+
+        <section id="rules">
+            <h2>The rules the toolkit lives by</h2>
+            <table>
+                <tr><th>#</th><th>Rule</th></tr>
+                <tr><td>R1</td><td>One language: Eiffel over inline C externals; no separate C toolchain steps.</td></tr>
+                <tr><td>R2</td><td>Painter monopoly: only SW_PAINTER touches CAIRO_CONTEXT.</td></tr>
+                <tr><td>R3</td><td>Contracts everywhere: state machines carry invariants; protocols carry pre/postconditions.</td></tr>
+                <tr><td>R4</td><td>Theme is truth: no literal colours or sizes in widgets - tokens only.</td></tr>
+                <tr><td>R5</td><td>Agents wire behaviour: on_change/on_select/actions, never inheritance-to-configure.</td></tr>
+                <tr><td>R6</td><td>Immediate feedback: every interaction shows its effect now (toast, status, preview).</td></tr>
+                <tr><td>R7</td><td>Nothing native: menus, dialogs, toasts, file dialogs - all drawn. OS services without pixels (clipboard, keys, spelling) are welcome.</td></tr>
+                <tr><td>R8</td><td>Unicode first: STRING_32 through every API; surrogate pairs handled at the borders.</td></tr>
+            </table>
+        </section>
+
+        <section id="quick-start">
+            <h2>Quick Start</h2>
+            <h3>Installation</h3>
+            <ol>
+                <li>Add to your ECF:
+<pre><code>&lt;library name="simple_widgets" location="$SIMPLE_EIFFEL/simple_widgets/simple_widgets.ecf"/&gt;</code></pre></li>
+                <li>Ship <code>cairo.dll</code> beside your executable (every finalize wipes F_code - copy it back).</li>
+            </ol>
+            <h3>A whole application</h3>
+<pre><code><span class="keyword">local</span>
+    window: <span class="type">SW_WINDOW</span>
+    theme: <span class="type">SW_THEME</span>
+    root: <span class="type">SW_COLUMN</span>
+<span class="keyword">do</span>
+    <span class="keyword">create</span> theme.make_dark
+    <span class="keyword">create</span> window.make (<span class="string">"hello"</span>, 100, 100, 900, 700, theme)
+    <span class="keyword">create</span> root.make
+    root := root.with_padding (16.0).with_gap (12.0)
+    root.put (<span class="keyword">create</span> {<span class="type">SW_LABEL</span>}.make_body (<span class="string">"Every pixel here is the toolkit's own."</span>))
+    root.put (<span class="keyword">create</span> {<span class="type">SW_BUTTON</span>}.make_primary (<span class="string">"Go"</span>, <span class="keyword">agent</span> on_go))
+    window.set_root (root)
+    window.run
+<span class="keyword">end</span></code></pre>
+            <p>The living cookbook is <code>demo/sw_demo.e</code> - the showroom exercising every
+            control; build it with the commands under Testing.</p>
+        </section>
+
+        <section id="gallery">
+            <h2>All controls - one page each</h2>
+            <p>Every control's page carries a complete description, working examples, known limits,
+            bugs &amp; gotchas, and extension plans.</p>
+            <h3 class="gallery-group">Foundations</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_window.html">SW_WINDOW</a></h3>
+                    <p>The runtime: window, surface, pump, phases, toasts, sheets.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_widget.html">SW_WIDGET</a></h3>
+                    <p>The contract spine: bounds, state, hints, input protocol.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_theme.html">SW_THEME</a></h3>
+                    <p>Tokens, type roles, metrics - with WCAG contracts on itself.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_painter.html">SW_PAINTER</a></h3>
+                    <p>The only class allowed to touch cairo.</p>
+                </div>
+            </div>
+            <h3 class="gallery-group">Text & input</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_text_box.html">SW_TEXT_BOX</a></h3>
+                    <p>The flagship editor: multi-select, clipboard, spelling, passwords.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_combo.html">SW_COMBO</a></h3>
+                    <p>An editable dropdown that IS a text box.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_select.html">SW_SELECT</a></h3>
+                    <p>The closed dropdown.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_button.html">SW_BUTTON</a></h3>
+                    <p>Four kinds, one action agent.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_label.html">SW_LABEL</a></h3>
+                    <p>Three type roles, honest wrapping.</p>
+                </div>
+            </div>
+            <h3 class="gallery-group">Choices & values</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_check_box.html">SW_CHECK_BOX</a></h3>
+                    <p>The smallest honest input.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_switch.html">SW_SWITCH</a></h3>
+                    <p>The sliding toggle for live settings.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_radio_group.html">SW_RADIO_GROUP</a></h3>
+                    <p>One choice among few, first chosen at birth.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_slider.html">SW_SLIDER</a></h3>
+                    <p>A fraction on a track, streaming live.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_number_box.html">SW_NUMBER_BOX</a></h3>
+                    <p>An integer with spinners, clamped by contract.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_progress.html">SW_PROGRESS</a></h3>
+                    <p>A fraction made visible.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_chip.html">SW_CHIP</a></h3>
+                    <p>Status pills in five semantic kinds.</p>
+                </div>
+            </div>
+            <h3 class="gallery-group">Containers & layout</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_row.html">SW_ROW</a></h3>
+                    <p>Horizontal containership with grow weights.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_column.html">SW_COLUMN</a></h3>
+                    <p>Vertical containership; the pinned-footer idiom.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_card.html">SW_CARD</a></h3>
+                    <p>A surfaced column with a semantic stripe.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_group.html">SW_GROUP</a></h3>
+                    <p>The classic titled border.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_separator.html">SW_SEPARATOR</a></h3>
+                    <p>A scored hairline.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_spacer.html">SW_SPACER</a></h3>
+                    <p>Stretchy nothing, born growing.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_splitter.html">SW_SPLITTER</a></h3>
+                    <p>Two panes, contract-clamped divider.</p>
+                </div>
+            </div>
+            <h3 class="gallery-group">Data & navigation</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_list.html">SW_LIST</a></h3>
+                    <p>Ten thousand virtualized rows; selection, activation, row pebbles.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_scroll_area.html">SW_SCROLL_AREA</a></h3>
+                    <p>A clipped viewport over one tall child.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_tabs.html">SW_TABS</a></h3>
+                    <p>A real notebook - pages swap wholesale.</p>
+                </div>
+            </div>
+            <h3 class="gallery-group">Chrome</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_menu.html">SW_MENU</a></h3>
+                    <p>The drawn popup - built fresh on every open.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_menu_bar.html">SW_MENU_BAR</a></h3>
+                    <p>Menu titles with builder agents.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_toolbar.html">SW_TOOLBAR</a></h3>
+                    <p>Compact tools; toggles queried by label.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_status_bar.html">SW_STATUS_BAR</a></h3>
+                    <p>Left and right telemetry at the bottom.</p>
+                </div>
+            </div>
+            <h3 class="gallery-group">Dialogs & media</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_dialog.html">SW_DIALOG</a></h3>
+                    <p>The drawn modal alert in four kinds.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_file_dialog.html">SW_FILE_DIALOG</a></h3>
+                    <p>Open and Save, fully drawn, base-only deps.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_image.html">SW_IMAGE</a></h3>
+                    <p>PNG, contain-scaled, honest placeholder.</p>
+                </div>
+            </div>
+            <h3 class="gallery-group">Services</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_clipboard.html">SW_CLIPBOARD</a></h3>
+                    <p>Unicode clipboard, surrogate-safe, race-hardened.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_keys.html">SW_KEYS</a></h3>
+                    <p>Modifier truth at query time.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_speller.html">SW_SPELLER</a></h3>
+                    <p>Windows ISpellChecker: ranges and suggestions.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="testing">
+            <h2>Testing: the contract assault</h2>
+            <p>
+                The library ships a test target that drives the model layer headless - including
+                drawing, via a painter over an offscreen cairo surface - with <em>every assertion
+                live</em> (F_code with contracts kept). 25 tests across four assault sets; the suite
+                caught three real defects on its first day (a truncation alias in list row math, a
+                clipboard race against history managers, and an ECF namespace clash).
+            </p>
+<pre><code># build the demo showroom
+/d/prod/ec.sh test -config simple_widgets.ecf -target sw_demo
+
+# build and run the contract assault
+/d/prod/ec.sh test -config simple_widgets.ecf -target simple_widgets_tests
+cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
+./EIFGENs/simple_widgets_tests/F_code/simple_widgets.exe</code></pre>
+        </section>
+
+        <section id="platform">
+            <h2>Platform notes</h2>
+            <ul>
+                <li><strong>Windows only</strong> today: the SURFACE layer is Win32; spelling is
+                ISpellChecker (Windows 8+). Everything above the surface is portable by design.</li>
+                <li>Per-monitor DPI aware; all coordinates are physical pixels.</li>
+                <li>Dark and light palettes ship; dark is the house default.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

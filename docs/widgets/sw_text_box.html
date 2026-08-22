@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_TEXT_BOX - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_TEXT_BOX</h1>
+        <p class="tagline">The flagship: a full text-editing engine - caret, disjoint multi-select, clipboard, spelling, passwords.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_TEXT_BOX owns what an edit <em>is</em>: a per-character layout cache (measure-then-place greedy word wrap), a caret, a primary selection anchored at <code>sel_anchor</code>, and <strong>disjoint extra ranges</strong> - Notepad++-class multi-selection reached through <code>invert_selection</code>. Copying disjoint pieces joins them with newlines.</p>
+            <p>The keyboard map: arrows/Home/End/Up/Down move the caret (Shift extends), Backspace/Delete edit, Ctrl+A / C / X / V select and use the clipboard, Escape collapses the selection. Mouse: click places the caret, Shift+Click extends, drag sweeps, double-click selects a word, triple-click selects everything. Right-click produces the standard editor menu - and when the click lands on a misspelled word, the <strong>spelling suggestions lead the menu</strong> and one click applies the fix.</p>
+            <p>Spelling rides Windows' ISpellChecker through <a href='sw_speller.html'>SW_SPELLER</a>: misspelled ranges get danger underlines, refreshed lazily on change. Windows-only by nature; elsewhere the box simply never underlines.</p>
+            <p><strong>Password mode</strong> (<code>make_password</code>): bullets are fed to both the renderer and the layout measurer, so caret math always matches the pixels. Three denials protect the secret: no clipboard copy/cut-out, no spellcheck (the OS never sees the text), and the context menu mutes Cut/Copy. A reveal <strong>eye</strong> at the right edge (<code>toggle_reveal</code>) shows the text - a view change only; the denials hold while revealed.</p>
+            <p>Boxes are also pick-and-drop holes: any string pebble dropped on a writable box inserts at the caret (<code>accepts_pebble</code> / <code>receive_pebble</code>).</p>
+            <p class="muted"><em>Source: <code>src/sw_text_box.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Creation modes and wiring</h2>
+<pre><code><span class="comment">-- multi-line, wrapping, spell-checked</span>
+<span class="keyword">create</span> notes.make (<span <span class="keyword">class</span>="string">&quot;The quick brown fox jumps over the lazy dog.&quot;</span>)
+notes.set_on_change (<span class="keyword">agent</span> on_notes_changed)
+
+<span class="comment">-- one line: Enter is swallowed, pasted newlines flatten to spaces</span>
+<span class="keyword">create</span> name_box.make_single_line (<span <span class="keyword">class</span>="string">&quot;untitled.txt&quot;</span>)
+
+<span class="comment">-- masked: bullets, no copy, no spellcheck, reveal eye at the right</span>
+<span class="keyword">create</span> pw.make_password (<span <span class="keyword">class</span>="string">&quot;hunter2&quot;</span>)
+
+<span class="comment">-- programmatic selection surgery</span>
+notes.select_all
+notes.invert_selection      <span class="comment">-- disjoint complement</span>
+print (notes.selected_text) <span class="comment">-- pieces joined with newlines</span></code></pre>
+        </section>
+
+        <section id="example-2">
+            <h2>The set_text law</h2>
+<pre><code><span class="comment">-- set_text re-establishes EVERY invariant of the new text:</span>
+<span class="comment">-- caret clamps, the anchor collapses, stale extra ranges die,</span>
+<span class="comment">-- spelling re-queues. Found by contract, sealed by regression test.</span>
+notes.set_text (<span <span class="keyword">class</span>="string">&quot;shorter&quot;</span>)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No undo/redo yet - the most-missed feature; it is first in line (see Future).</li>
+                <li>Single-line boxes do not scroll horizontally; text beyond the width clips until the box grows.</li>
+                <li>No IME composition window for CJK input; code points arrive via WM_CHAR only (surrogate pairs are handled - see R8 - but composition UX is absent).</li>
+                <li>Word wrap is greedy per word; no hyphenation or break-opportunity analysis.</li>
+                <li>Spelling and suggestions are Windows-only (ISpellChecker).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Selection is drawn only while the box <strong>has focus</strong> - Select All from a context menu works because right-click transfers focus first. If you script the box headless, remember there is no window to grant focus.</li>
+                <li>Masked boxes refuse clipboard copy even while revealed - by design (clipboard managers are the threat), so do not build a 'copy password' button on top of one.</li>
+                <li><code>set_text</code> collapses all selection state on purpose; capture <code>selected_text</code> first if you need it.</li>
+                <li>An astral character (emoji) is ONE code point in <code>text</code> but TWO UTF-16 units in transit; the box and clipboard pair surrogates for you - never index text by UTF-16 unit counts.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Undo/redo stack (command-pattern edits are a natural fit for the engine).</li>
+                <li>Find/replace bar riding the same range machinery as multi-select.</li>
+                <li>Horizontal scroll + ellipsis policies for single-line mode.</li>
+                <li>Push-to-talk dictation (whisper.cpp, CPU-only) feeding <code>receive_pebble</code>-style insertion - queued from the AI-assist survey (R03).</li>
+                <li>Syntax-colouring hook: a per-range style agent, same shape as spell ranges.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

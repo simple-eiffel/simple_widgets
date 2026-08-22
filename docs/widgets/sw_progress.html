@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_PROGRESS - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_PROGRESS</h1>
+        <p class="tagline">A fraction made visible: accent fill, optional percent caption, contract-bounded.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_PROGRESS renders a track and an accent fill for a <code>fraction</code> in [0, 1] (invariant-bounded). <code>set_shows_caption</code> adds a right-aligned percentage. It is purely presentational: feed it from your work loop or wire it to other controls.</p>
+            <p class="muted"><em>Source: <code>src/sw_progress.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Fed by a button, ten percent at a time</h2>
+<pre><code><span class="keyword">create</span> progress.make (0.0)
+card.put (progress)
+
+on_click_me
+    <span class="keyword">do</span>
+        clicks := clicks + 1
+        progress.set_fraction ((clicks.to_double / 10.0).min (1.0))
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Determinate only - no indeterminate 'working&hellip;' pulse yet.</li>
+                <li>No transition animation between values.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>INTEGER / INTEGER division in Eiffel is obsolete-flagged and truncating - convert first (<code>clicks.to_double / 10.0</code>), or the bar jumps in whole steps.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Indeterminate mode (marquee pulse from the tick).</li>
+                <li>Segmented and stacked variants (multi-part totals).</li>
+                <li>Circular progress for dashboards (SW_PAINTER circles are ready).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

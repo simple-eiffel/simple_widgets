@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SCROLL_AREA - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SCROLL_AREA</h1>
+        <p class="tagline">A clipped viewport over one tall child - wheel, thumb drag, honest bounds.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SCROLL_AREA gives a single child unlimited height inside a fixed viewport: the child lays out at its full preferred height, the viewport clips, the wheel and a draggable thumb move <code>scroll_y</code> between 0 and <code>max_scroll</code>. Use it for arbitrary content; for thousands of uniform rows use <a href='sw_list.html'>SW_LIST</a>, which never even lays out the invisible.</p>
+            <p class="muted"><em>Source: <code>src/sw_scroll_area.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A tall column in a short viewport</h2>
+<pre><code><span class="keyword">create</span> sa.make (150.0)          <span class="comment">-- viewport height</span>
+<span class="keyword">create</span> tall.make
+<span class="keyword">across</span> 1 |..| 24 <span class="keyword">as</span> i <span class="keyword">loop</span>
+    tall.put (<span class="keyword">create</span> {<span class="type">SW_LABEL</span>}.make_mono (<span <span class="keyword">class</span>="string">&quot;row &quot;</span> + i.item.out))
+<span class="keyword">end</span>
+sa.set_child (tall)
+split := <span class="keyword">create</span> {<span class="type">SW_SPLITTER</span>}.make (sa, right_pane)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Vertical only; no horizontal scrolling.</li>
+                <li>One child (wrap multiples in a column).</li>
+                <li>No keyboard paging (PgUp/PgDn) yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The child is laid out at FULL height every frame - fine for dozens of widgets, wrong for thousands of rows. That is exactly the line between this class and SW_LIST.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Horizontal mode and two-axis mode.</li>
+                <li>Scroll-into-view requests bubbling from focused children.</li>
+                <li>Kinetic wheel smoothing.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

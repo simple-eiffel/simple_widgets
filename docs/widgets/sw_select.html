@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SELECT - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SELECT</h1>
+        <p class="tagline">The closed dropdown: shows the choice, opens a drawn menu, never accepts typing.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SELECT is the classic non-editable dropdown. It renders the selected option (or a muted 'choose&hellip;' placeholder), and any click opens a drawn menu of all options via the pending-menu handshake. <code>select_index</code> moves the selection and fires <code>on_change</code>.</p>
+            <p>Choose SW_SELECT when the value set is closed; choose <a href='sw_combo.html'>SW_COMBO</a> when users may type their own.</p>
+            <p class="muted"><em>Source: <code>src/sw_select.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A kind picker with immediate feedback</h2>
+<pre><code><span class="keyword">create</span> kind_select.make
+kind_select.add_option (<span <span class="keyword">class</span>="string">&quot;Info&quot;</span>)
+kind_select.add_option (<span <span class="keyword">class</span>="string">&quot;Success&quot;</span>)
+kind_select.add_option (<span <span class="keyword">class</span>="string">&quot;Warning&quot;</span>)
+kind_select.add_option (<span <span class="keyword">class</span>="string">&quot;Danger&quot;</span>)
+kind_select.set_on_change (<span class="keyword">agent</span> on_kind_changed)
+kind_select.set_tooltip (<span <span class="keyword">class</span>="string">&quot;Picking one previews it&quot;</span>)
+
+on_kind_changed
+    <span class="keyword">do</span>
+<span class="comment">        -- the immediate-feedback rule: show, don&#x27;t wait</span>
+        window.toast (<span <span class="keyword">class</span>="string">&quot;Previewing: &quot;</span> + kind_select.selected_text, kind_select.selected_index)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Single selection only; no multi-select variant yet.</li>
+                <li>The menu shows all options at once - no scroll for very long lists.</li>
+                <li>No per-option disabling yet (the underlying SW_MENU supports it; the select API does not surface it).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><code>selected_index = 0</code> means nothing chosen yet and <code>selected_text</code> is empty - guard first use.</li>
+                <li>Options are copied in as STRING_32; mutating the string you passed changes nothing.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Option groups with separators; per-option enabled flags.</li>
+                <li>A multi-select variant rendering chips of the chosen set.</li>
+                <li>Type-to-jump (first-letter navigation) while the menu is open.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

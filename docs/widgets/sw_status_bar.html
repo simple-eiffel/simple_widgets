@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_STATUS_BAR - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_STATUS_BAR</h1>
+        <p class="tagline">The bottom strip: a left message, a right message, mono ink on the variant surface.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_STATUS_BAR renders left and right text zones in mono on the variant surface with a hairline above - the desktop footer bar. It is presentational: <code>set_left</code> / <code>set_right</code> and it repaints next frame. The demo uses it as live telemetry (selection reports, toggle states, chosen files).</p>
+            <p>To attach it to the window's bottom edge, use the spacer idiom: <code>root.put (create {SW_SPACER}.make); root.put (statusbar)</code> - containership pins it at any window height.</p>
+            <p class="muted"><em>Source: <code>src/sw_status_bar.e</code> &middot; since Wave 2 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Live telemetry</h2>
+<pre><code><span class="keyword">create</span> statusbar.make
+statusbar.set_left (<span <span class="keyword">class</span>="string">&quot;ready&quot;</span>)
+statusbar.set_right (<span <span class="keyword">class</span>="string">&quot;38 widgets <span class="keyword">and</span> counting&quot;</span>)
+root.put (<span class="keyword">create</span> {<span class="type">SW_SPACER</span>}.make)
+root.put (statusbar)
+
+on_row_selected (a_i: <span class="type">INTEGER</span>)
+    <span class="keyword">do</span>
+        statusbar.set_left ({<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot;row &quot;</span> + a_i.out + {<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot; selected&quot;</span>)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Two zones only; no per-zone widgets (chips, progress) yet.</li>
+                <li>Text does not ellipsize; very long messages overlap in narrow windows.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Mid-flow placement floats the bar among content - almost never what you want; use the spacer idiom.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>N-zone layout hosting real widgets (progress, chips) - the app-shell footer.</li>
+                <li>Click zones with agents (e.g. click the count to open a panel).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

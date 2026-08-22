@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_TABS - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_TABS</h1>
+        <p class="tagline">A real notebook: drawn tab bar, one live page, hover on the bar, change agent on the swap.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_TABS holds (label, page) pairs; the selected page is the only one laid out, drawn and hit-tested - pages swap wholesale. The bar draws the selected tab on a raised surface with an accent underline, hover-highlights the tab under the pointer, and <code>on_change</code> fires with the new index. Adding the first page selects it (a notebook is never open to no page).</p>
+            <p class="muted"><em>Source: <code>src/sw_tabs.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Three pages from the demo</h2>
+<pre><code><span class="keyword">create</span> tabs.make
+<span class="keyword">create</span> page.make
+page.put (slider)
+tabs.add_page (<span <span class="keyword">class</span>="string">&quot;Slider&quot;</span>, page)
+<span class="keyword">create</span> page.make
+page.put (number_box)
+tabs.add_page (<span <span class="keyword">class</span>="string">&quot;Number Box&quot;</span>, page)
+<span class="keyword">create</span> page.make
+page.put ((<span class="keyword">create</span> {<span class="type">SW_IMAGE</span>}.make_from_file (<span <span class="keyword">class</span>="string">&quot;docs/images/logo.png&quot;</span>))
+    .with_display_height (170.0))
+tabs.add_page (<span <span class="keyword">class</span>="string">&quot;Picture&quot;</span>, page)
+tabs.set_on_change (<span class="keyword">agent</span> on_tab_changed)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Top bar only (no side/bottom placement yet).</li>
+                <li>No close buttons, drag-reorder, or overflow scrolling of many tabs.</li>
+                <li>Hidden pages are fully passive: they hold state but receive no events (by design).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Pages of different heights change the notebook's preferred height when swapped - content below the tabs moves. Pin the window layout with a spacer-footer, or give pages a common min height if jumping bothers the design.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Closable and reorderable tabs (the app-shell pattern).</li>
+                <li>Lazy page construction (page-builder agents, menus-style).</li>
+                <li>Vertical rail placement for tool windows.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

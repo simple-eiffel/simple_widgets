@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_CHIP - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_CHIP</h1>
+        <p class="tagline">A status pill in five semantic kinds - small, washed, and honest about state.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_CHIP is a compact pill label in one of five kinds - <code>Kind_neutral, Kind_accent, Kind_success, Kind_warning, Kind_danger</code> - each pairing a wash fill with its semantic ink. Use chips to mark state (RENDERED, DIRTY, FAILED), not to decorate: semantic colour is meaning, and the theme's washes keep it legible in both palettes.</p>
+            <p class="muted"><em>Source: <code>src/sw_chip.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A status row</h2>
+<pre><code>chips.put (<span class="keyword">create</span> {<span class="type">SW_CHIP</span>}.make (<span <span class="keyword">class</span>="string">&quot;<span class="type">NEUTRAL</span>&quot;</span>, {<span class="type">SW_CHIP</span>}.Kind_neutral))
+chips.put (<span class="keyword">create</span> {<span class="type">SW_CHIP</span>}.make (<span <span class="keyword">class</span>="string">&quot;<span class="type">RENDERED</span>&quot;</span>, {<span class="type">SW_CHIP</span>}.Kind_accent))
+chips.put (<span class="keyword">create</span> {<span class="type">SW_CHIP</span>}.make (<span <span class="keyword">class</span>="string">&quot;<span class="type">APPROVED</span>&quot;</span>, {<span class="type">SW_CHIP</span>}.Kind_success))
+chips.put (<span class="keyword">create</span> {<span class="type">SW_CHIP</span>}.make (<span <span class="keyword">class</span>="string">&quot;<span class="type">DIRTY</span>&quot;</span>, {<span class="type">SW_CHIP</span>}.Kind_warning))
+chips.put (<span class="keyword">create</span> {<span class="type">SW_CHIP</span>}.make (<span <span class="keyword">class</span>="string">&quot;<span class="type">FAILED</span>&quot;</span>, {<span class="type">SW_CHIP</span>}.Kind_danger))</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Read-only: no close button, no click action (interactive/removable chips are a planned variant).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Chip text renders at the theme's smallest size (<code>size_chip</code>) - keep labels to a word or two; chips are badges, not sentences.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Removable chips (x zone + removal agent) for tag editors.</li>
+                <li>Choice chips (single/multi select sets) - the web sweep's filter-chip pattern.</li>
+                <li>Counting badges attachable to other widgets (with SW_BADGE in Wave 3).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

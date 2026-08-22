@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_CHECK_BOX - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_CHECK_BOX</h1>
+        <p class="tagline">A drawn check, its label, and a change agent - the smallest honest input.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_CHECK_BOX draws a rounded box, an accent check mark when <code>is_checked</code>, and a label; clicking anywhere on box or label toggles and fires <code>on_change</code>. State is queryable (<code>is_checked</code>) and settable programmatically (<code>set_checked</code> - silent, no agent fire, per the ecosystem's commands-do-not-echo convention).</p>
+            <p class="muted"><em>Source: <code>src/sw_check_box.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Arming a dangerous action</h2>
+<pre><code>buttons.put (<span class="keyword">create</span> {<span class="type">SW_CHECK_BOX</span>}.make (<span <span class="keyword">class</span>="string">&quot;Danger armed&quot;</span>, <span class="keyword">True</span>, <span class="keyword">agent</span> on_toggle_danger))
+
+on_toggle_danger
+    <span class="keyword">do</span>
+        danger_button.set_enabled (armed_box.is_checked)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No tri-state (indeterminate) mode yet - it arrives with the tree's cascading checks.</li>
+                <li>Label is plain text (single style).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><code>set_checked</code> does not fire <code>on_change</code> - programmatic state is silent by design; call your handler yourself if you want the side effects.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Tri-state for hierarchical selection (with SW_TREE).</li>
+                <li>Check-box groups with select-all headers.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

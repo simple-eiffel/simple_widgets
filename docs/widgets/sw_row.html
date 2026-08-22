@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_ROW - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_ROW</h1>
+        <p class="tagline">Horizontal containership: children at preferred width, leftover shared by grow weight.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_ROW arranges children left to right with a <code>gap</code>. Each child gets its clamped preferred width; leftover space is distributed to children with a <code>grow</code> weight (the flex model), still respecting min/max anchors. This is the toolkit's unification of Vision2's containership with modern flex - one engine, both idioms.</p>
+            <p><code>put</code> appends; <code>add</code> is its fluent twin returning the row; <code>with_gap</code> configures fluently at build time.</p>
+            <p class="muted"><em>Source: <code>src/sw_row.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A verb row where one member stretches</h2>
+<pre><code><span class="keyword">create</span> buttons.make
+buttons.put (<span class="keyword">create</span> {<span class="type">SW_BUTTON</span>}.make_primary (<span <span class="keyword">class</span>="string">&quot;Open&quot;</span>, <span class="keyword">agent</span> do_open))
+buttons.put (<span class="keyword">create</span> {<span class="type">SW_BUTTON</span>}.make (<span <span class="keyword">class</span>="string">&quot;Cancel&quot;</span>, <span class="keyword">agent</span> do_cancel))
+buttons.put ((<span class="keyword">create</span> {<span class="type">SW_TEXT_BOX</span>}.make_single_line (<span <span class="keyword">class</span>="string">&quot;&quot;</span>)).growing)
+<span class="comment">-- the text box absorbs all leftover width; buttons keep their size</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No wrapping row yet (flex-wrap) - children beyond the width clip.</li>
+                <li>Vertical alignment is top-aligned per child height; no baseline alignment.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>A row inside a column receives the column's full width; without any growing child the leftover is simply empty space at the right - by design, not a bug.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Wrapping mode (flex-wrap) for chip sets and toolbars that reflow.</li>
+                <li>Cross-axis alignment options (center, baseline, stretch).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

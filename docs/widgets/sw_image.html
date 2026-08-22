@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_IMAGE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_IMAGE</h1>
+        <p class="tagline">A PNG, loaded once by cairo, contain-scaled and centered - honest placeholder when it is not.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_IMAGE loads a PNG at creation (<code>make_from_file</code>) into a cairo surface and draws it scaled to fit its bounds with aspect preserved, centered (via <code>SW_PAINTER.draw_image</code> - the R2 monopoly holds). <code>with_display_height</code> requests a height; otherwise height derives from the laid-out width and the image's aspect. A file that fails to decode draws a crossed placeholder that says so - <code>is_loaded</code> reports the truth.</p>
+            <p class="muted"><em>Source: <code>src/sw_image.e</code> &middot; since Wave 2 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>The library showing its own logo</h2>
+<pre><code>page.put ((<span class="keyword">create</span> {<span class="type">SW_IMAGE</span>}.make_from_file (<span <span class="keyword">class</span>="string">&quot;docs/images/logo.png&quot;</span>))
+    .with_display_height (170.0))
+
+<span class="comment">-- defensive hosting</span>
+<span class="keyword">create</span> img.make_from_file (user_supplied_path)
+<span class="keyword">if</span> <span class="keyword">not</span> img.is_loaded <span class="keyword">then</span>
+    window.toast (<span <span class="keyword">class</span>="string">&quot;That file did <span class="keyword">not</span> decode <span class="keyword">as</span> a <span class="type">PNG</span>&quot;</span>, 3)
+<span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>PNG only (cairo's built-in decoder); JPEG et al. need a decoder service first.</li>
+                <li>Contain-fit only - no cover/stretch/tile modes yet.</li>
+                <li>The full-size surface stays in memory; very large images cost what they cost.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>A bad path does not raise - cairo returns an error surface; the widget shows the placeholder and <code>is_loaded</code> is False. Check it when the path is user input.</li>
+                <li>Forward slashes are fine in paths on Windows; prefer them in source to dodge escaping layers.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Cover and tile fit modes; sub-rect (sprite) display when the painter gains it.</li>
+                <li>Async/deferred load for galleries; a decoder service for JPEG.</li>
+                <li>Click-to-zoom lightbox composite (with the sheet layer).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SWITCH - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SWITCH</h1>
+        <p class="tagline">The sliding toggle: on/off with a travelling knob, for settings that act immediately.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SWITCH is the modern toggle: a pill track whose knob sits left (off) or right (on), accent-filled when on. Semantically it is a check box whose effect applies <em>immediately</em> - use switches for live settings, check boxes for choices gathered then submitted.</p>
+            <p class="muted"><em>Source: <code>src/sw_switch.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A live setting</h2>
+<pre><code>buttons.put (<span class="keyword">create</span> {<span class="type">SW_SWITCH</span>}.make (<span <span class="keyword">class</span>="string">&quot;Live updates&quot;</span>, <span class="keyword">True</span>, <span class="keyword">agent</span> on_live_toggled))
+
+on_live_toggled
+    <span class="keyword">do</span>
+        <span class="keyword">if</span> live_switch.is_on <span class="keyword">then</span>
+            window.toast (<span <span class="keyword">class</span>="string">&quot;Live updates on&quot;</span>, 2)
+        <span class="keyword">else</span>
+            window.toast (<span <span class="keyword">class</span>="string">&quot;Live updates off&quot;</span>, 3)
+        <span class="keyword">end</span>
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No sliding animation yet - the knob teleports (animation hooks are a windowing future item).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><code>set_on</code> is silent (no agent fire) - same convention as the check box.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Knob travel animation from the tick.</li>
+                <li>Optional on/off captions inside the track.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SLIDER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SLIDER</h1>
+        <p class="tagline">A fraction on a track: drag the knob, the agent streams the value live.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SLIDER binds a <code>fraction</code> in [0, 1] to a draggable knob on a track. The knob grows on hover (the affordance says 'grab me'), the filled track shows progress to the knob, and <code>on_change</code> fires continuously during drags - wire it to something visible and the interface feels alive (the demo drives a progress bar).</p>
+            <p class="muted"><em>Source: <code>src/sw_slider.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Slider feeding a progress bar, live</h2>
+<pre><code><span class="keyword">create</span> sl.make (0.0, <span class="keyword">agent</span> on_slider_moved)
+page.put (sl)
+
+on_slider_moved (a_f: <span class="type">REAL_64</span>)
+    <span class="keyword">do</span>
+        progress.set_fraction (a_f)
+        headline.set_text (<span <span class="keyword">class</span>="string">&quot;slider: &quot;</span> + ((a_f * 100.0).rounded).out + <span <span class="keyword">class</span>="string">&quot;%&quot;</span>)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Horizontal only; no vertical orientation yet.</li>
+                <li>No tick marks, snap points or keyboard nudging yet.</li>
+                <li>Continuous fractions only - integer stepping is SW_NUMBER_BOX's job.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><code>on_change</code> streams during the drag - debounce in your handler if the work is expensive; do not debounce the visual echo (immediate feedback is the point).</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Vertical orientation; range sliders (two knobs).</li>
+                <li>Tick marks with optional snapping; arrow-key nudges once focus traversal lands.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

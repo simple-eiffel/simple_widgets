@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_WIDGET - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_WIDGET</h1>
+        <p class="tagline">The contract spine every control inherits: bounds, state, layout hints, and the input protocol.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_WIDGET is the deferred root of every control. It owns <strong>bounds</strong> (<code>x, y, width, height</code> in surface pixels, set by containers), <strong>layout hints</strong> (<code>grow</code> - the flex weight; <code>min/max</code> anchors applied through <code>clamped_width/clamped_height</code>), and <strong>interaction state</strong> the window maintains: <code>is_enabled</code>, <code>is_hovered</code>, <code>is_pressed</code>, <code>is_focused</code>.</p>
+            <p>Input arrives through redefinable handlers: <code>handle_click</code>, <code>handle_double_click</code>, <code>handle_triple_click</code> (BOOLEAN - return True to consume; unconsumed clicks bubble up the parent chain), <code>handle_drag</code>, <code>handle_char</code>, <code>handle_key</code>, <code>handle_wheel</code>.</p>
+            <p>Three declarative protocols keep widgets out of the window's business: <strong>pending menus</strong> - a widget sets <code>pending_menu</code> in its click handler and the window presents it at the widget's foot; <strong>context menus</strong> - the window asks <code>context_menu (x, y)</code> on right-click; and <strong>pick-and-drop</strong> - <code>pebble</code> / <code>pebble_at (x, y)</code> offer a value, <code>accepts_pebble</code> is the target's contract, <code>receive_pebble</code> completes the transaction (its precondition is that the pebble was welcome).</p>
+            <p>Hover feedback is on by default and individually silenceable (<code>set_hover_signal</code> / <code>hover_silenced</code>); widgets that need the pointer's position while hovered opt in with <code>wants_hover_point</code>.</p>
+            <p class="muted"><em>Source: <code>src/sw_widget.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A minimal custom widget</h2>
+<pre><code><span class="keyword">class</span> <span class="type">MY_BADGE</span>
+
+<span class="keyword">inherit</span>
+    <span class="type">SW_WIDGET</span>
+
+<span class="keyword">create</span>
+    make
+
+<span class="keyword">feature</span> {<span class="type">NONE</span>} <span class="comment">-- Initialization</span>
+
+    make
+        <span class="keyword">do</span>
+        <span class="keyword">end</span>
+
+<span class="keyword">feature</span> <span class="comment">-- Layout</span>
+
+    preferred_height (a_p: <span class="type">SW_PAINTER</span>; a_width: <span class="type">REAL_64</span>): <span class="type">REAL_64</span>
+        <span class="keyword">do</span>
+            <span class="keyword">Result</span> := 24.0
+        <span class="keyword">end</span>
+
+<span class="keyword">feature</span> <span class="comment">-- Drawing</span>
+
+    draw (a_p: <span class="type">SW_PAINTER</span>)
+        <span class="keyword">do</span>
+            a_p.set_color (a_p.theme.wash_accent)
+            a_p.rrect_fill (x, y, width, height, a_p.theme.radius)
+        <span class="keyword">end</span>
+
+<span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="example-2">
+            <h2>The fluent layout hints</h2>
+<pre><code><span class="comment">-- flex weight, min and max - chainable at construction</span>
+buttons.put ((<span class="keyword">create</span> {<span class="type">SW_BUTTON</span>}.make (<span <span class="keyword">class</span>="string">&quot;Grows&quot;</span>, <span class="keyword">Void</span>)).growing)
+row.put (box.with_min_size (100.0, 40.0).with_max_size (300.0, 40.0))
+lbl := lbl.with_tooltip (<span <span class="keyword">class</span>="string">&quot;shows after a short hover dwell&quot;</span>)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No keyboard focus traversal yet - Tab does not move focus between widgets; focus follows clicks.</li>
+                <li>State flags are window-maintained; driving a widget headless (as the test suite does) means calling handlers directly - hover/pressed stay False unless you set them.</li>
+                <li>Only rectangular hit-testing (<code>contains</code> / <code>widget_at</code>).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><strong>The fluent for flex-grow is <code>growing</code></strong>, not <code>expanded</code> - <code>expanded</code>, like <code>frozen</code>, <code>old</code> and <code>variant</code>, is an Eiffel keyword. Four names died learning this.</li>
+                <li>Disabled widgets are inert AND transparent: clicks pass through to the parent chain.</li>
+                <li><code>handle_click</code> returning False means 'not mine' - the parent gets a turn. Consume deliberately.</li>
+                <li>Attributes like <code>caret</code> on descendants are client-readable but never client-assignable (Eiffel semantics); drive state through commands.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Tab-order focus traversal with a visible focus ring policy.</li>
+                <li><code>dev_note</code> metadata for the SW_INSPECTOR overlay (provenance, intent, wiring).</li>
+                <li>Accessibility bridge (UIA text patterns) - a research item; it must not violate R7.</li>
+                <li>Animation hooks (hover/press transitions driven from the tick).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

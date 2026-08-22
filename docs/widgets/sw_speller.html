@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SPELLER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SPELLER</h1>
+        <p class="tagline">Windows ISpellChecker as a service: misspelled ranges in, suggestions out.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SPELLER wraps the Windows 8+ ISpellChecker COM API: <code>misspellings (text)</code> returns [lo, hi] ranges of flagged words; <code>suggestions (word)</code> returns replacement candidates. SW_TEXT_BOX uses both - danger underlines from the ranges, suggestion items leading the context menu.</p>
+            <p><strong>Windows-only by nature.</strong> On systems without the COM service the queries return empty lists and text boxes simply never underline - features degrade to absence, never to failure.</p>
+            <p class="muted"><em>Source: <code>src/sw_speller.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Direct use</h2>
+<pre><code><span class="keyword">local</span>
+    sp: <span class="type">SW_SPELLER</span>
+<span class="keyword">do</span>
+    <span class="keyword">create</span> sp
+    <span class="keyword">across</span> sp.misspellings (<span <span class="keyword">class</span>="string">&quot;this sentnce has a probelm&quot;</span>) <span class="keyword">as</span> r <span class="keyword">loop</span>
+        print (<span <span class="keyword">class</span>="string">&quot;flagged: &quot;</span> + r.lo.out + <span <span class="keyword">class</span>="string">&quot;..&quot;</span> + r.hi.out + <span <span class="keyword">class</span>="string">&quot;%N&quot;</span>)
+    <span class="keyword">end</span>
+    <span class="keyword">across</span> sp.suggestions (<span <span class="keyword">class</span>="string">&quot;sentnce&quot;</span>) <span class="keyword">as</span> s <span class="keyword">loop</span>
+        print (s + <span <span class="keyword">class</span>="string">&quot;%N&quot;</span>)
+    <span class="keyword">end</span>
+<span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Windows-only (documented library-wide); empty results elsewhere.</li>
+                <li>Dictionary language follows the user's Windows language settings - not selectable per call yet.</li>
+                <li>Word-level checking only: no grammar (evaluated and deliberately deferred - the CPU-model survey R03 has the notes).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Masked text boxes never consult the speller - secrets are not sent to OS services. If you build custom secret fields, honor the same rule.</li>
+                <li>Results vary by machine (user dictionaries, languages) - test suites should smoke-test the plumbing, not assert specific words.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Per-language checker selection; user-dictionary add ('Add to dictionary' menu item).</li>
+                <li>Grammar layer if a CPU-honest engine earns its keep (Harper was surveyed; deferred).</li>
+                <li>Push-to-talk dictation is a sibling service in waiting (whisper.cpp, R03).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

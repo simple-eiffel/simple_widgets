@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SPLITTER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SPLITTER</h1>
+        <p class="tagline">Two panes and a draggable divider - the ratio contract-clamped so neither side can vanish.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SPLITTER arranges a left and right child around a draggable divider. The <code>ratio</code> is invariant-clamped to [0.15, 0.85]: no drag can crush a pane to nothing. The divider wears a hover affordance (an accent-washed grip bar) so users know it moves before they try.</p>
+            <p class="muted"><em>Source: <code>src/sw_splitter.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Sidebar and content</h2>
+<pre><code><span class="keyword">create</span> split.make (sidebar_list, content_column)
+split.set_ratio (0.3)
+card.put (split)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Two panes, vertical divider only (no horizontal split or three-pane nesting sugar - nest splitters for now).</li>
+                <li>No collapse-to-edge gesture.</li>
+                <li>No cursor change over the divider yet (windowing cursor API pending).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The clamp is a real contract: <code>set_ratio (0.05)</code> violates a precondition under assertions rather than silently pinning - clamp in the caller if your input is user-generated.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Horizontal orientation; double-click the divider to reset the ratio.</li>
+                <li>Collapse buttons on the grip; remembered ratios (app settings integration).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

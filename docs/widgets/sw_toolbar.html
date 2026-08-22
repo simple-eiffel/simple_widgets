@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_TOOLBAR - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_TOOLBAR</h1>
+        <p class="tagline">Compact tools in a strip: plain tools fire, toggles latch, state is queried by label.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_TOOLBAR is a strip of compact drawn buttons: <code>add_tool</code> for plain actions, <code>add_toggle</code> for latching state (accent-washed while on), <code>add_gap</code> for cluster separators. Hovering a tool surfaces its hint as the widget tooltip.</p>
+            <p>Toggle state is queried <strong>by label</strong> - <code>is_tool_on ("Bold")</code> - so handlers never do index bookkeeping. The toggle flips <em>before</em> its agent runs; the handler reads the new truth.</p>
+            <p class="muted"><em>Source: <code>src/sw_toolbar.e</code> &middot; since Wave 2 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Tools, toggles, and one handler for both</h2>
+<pre><code><span class="keyword">create</span> toolbar.make
+toolbar.add_tool (<span <span class="keyword">class</span>="string">&quot;New&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Start fresh&quot;</span>, <span class="keyword">True</span>, <span class="keyword">agent</span> on_new)
+toolbar.add_tool (<span <span class="keyword">class</span>="string">&quot;Save&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Save the session&quot;</span>, <span class="keyword">True</span>, <span class="keyword">agent</span> on_save)
+toolbar.add_gap
+toolbar.add_toggle (<span <span class="keyword">class</span>="string">&quot;Bold&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Latches - the status bar reports it&quot;</span>, <span class="keyword">False</span>, <span class="keyword">agent</span> on_flip)
+toolbar.add_toggle (<span <span class="keyword">class</span>="string">&quot;Italic&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Latches&quot;</span>, <span class="keyword">False</span>, <span class="keyword">agent</span> on_flip)
+root.put (toolbar)
+
+on_flip
+    <span class="keyword">do</span>
+        statusbar.set_right ({<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot;bold &quot;</span> + on_off (toolbar.is_tool_on (<span <span class="keyword">class</span>="string">&quot;Bold&quot;</span>))
+            + {<span class="type">STRING_32</span>} <span <span class="keyword">class</span>="string">&quot; / italic &quot;</span> + on_off (toolbar.is_tool_on (<span <span class="keyword">class</span>="string">&quot;Italic&quot;</span>)))
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Text labels only until the drawn-glyph set lands (icons are the toolbar's destiny).</li>
+                <li>No overflow chevron for narrow windows.</li>
+                <li>By-label queries assume unique labels per bar.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><code>is_tool_on</code> of an unknown or plain (non-toggle) label is simply False - no error; typos read as 'off'. Name toggles carefully.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Drawn icon glyphs (R7-pure), with labels demoted to tooltips.</li>
+                <li>Overflow menu; vertical orientation for tool rails.</li>
+                <li>Radio-style exclusive toggle groups.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

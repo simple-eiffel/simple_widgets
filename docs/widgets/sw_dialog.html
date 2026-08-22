@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_DIALOG - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_DIALOG</h1>
+        <p class="tagline">The drawn modal alert: four kinds, word-wrapped message, buttons with agents.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_DIALOG is the message-box replacement: a kind stripe (<code>Kind_info, Kind_success, Kind_warning, Kind_danger</code>), a title, a word-wrapped message, and buttons added with <code>add_button (label, primary, action)</code>. The window presents it above a dimmed backdrop (<code>show_dialog</code>); while open it owns all input; Escape or any button closes it, then the button's agent runs.</p>
+            <p>For modal <em>forms</em> - anything richer than title/message/buttons - use the sheet layer instead (<code>window.show_sheet</code> hosts any widget tree; <a href='sw_file_dialog.html'>SW_FILE_DIALOG</a> is the reference rider).</p>
+            <p class="muted"><em>Source: <code>src/sw_dialog.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A danger confirm</h2>
+<pre><code><span class="keyword">create</span> d.make ({<span class="type">SW_DIALOG</span>}.Kind_danger, <span <span class="keyword">class</span>="string">&quot;Delete 3 items?&quot;</span>,
+    <span <span class="keyword">class</span>="string">&quot;This cannot be undone. The items will be removed <span class="keyword">from</span> the library.&quot;</span>)
+d.add_button (<span <span class="keyword">class</span>="string">&quot;Cancel&quot;</span>, <span class="keyword">False</span>, <span class="keyword">Void</span>)
+d.add_button (<span <span class="keyword">class</span>="string">&quot;Delete&quot;</span>, <span class="keyword">True</span>, <span class="keyword">agent</span> do_delete)
+window.show_dialog (d)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Title/message/buttons only - no embedded widgets (that is the sheet layer's job).</li>
+                <li>No default/cancel button semantics for Enter/Escape mapping to specific buttons (Escape simply closes).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Button agents run after the dialog closes; opening the next dialog from an agent is safe and sequential.</li>
+                <li>A <code>Void</code> action is the idiomatic Cancel - close and do nothing.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Do-not-ask-again check row (the one embellishment worth having).</li>
+                <li>Enter activates the primary once focus traversal lands.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

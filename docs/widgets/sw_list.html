@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_LIST - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_LIST</h1>
+        <p class="tagline">The virtualized list: ten thousand rows scroll like ten - EV_GRID&#x27;s virtual promise, delivered drawn.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_LIST renders only the visible band: the host supplies <code>row_count</code> and a <code>row_renderer</code> agent (painter, index, x, y, width, height), and rows outside the viewport are never laid out, never drawn, never hit-tested. Uniform row height, wheel + thumb scrolling, hover band under the pointer.</p>
+            <p><strong>Selection</strong> is a single row painted as an accent wash beneath the renderer's own drawing: click selects, <code>select_row</code> commands, <code>on_select</code> reports. <strong>Activation</strong> is the double-click (<code>on_activate</code>) - the file dialog navigates folders with it. <strong>Per-row pebbles</strong>: <code>set_row_pebble</code> supplies a value per index, surfaced through the position-aware <code>pebble_at</code> protocol, so middle-click picks work row by row even though the widget is one object.</p>
+            <p>This class carries two of the assault suite's trophies: <code>scroll_to_row</code> called before layout used to die on its own postcondition (it now degrades honestly pre-layout), and <code>row_at</code> aliased points <em>above</em> the list to row 1 because truncation rounds toward zero (now guarded, with a postcondition naming the rule).</p>
+            <p class="muted"><em>Source: <code>src/sw_list.e</code> &middot; since Wave 1 (2026-08-21); selection, activation and per-row pebbles Wave 2.
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Ten thousand rows, one agent</h2>
+<pre><code><span class="keyword">create</span> lst.make (170.0)
+lst.set_row_count (10000)
+lst.set_row_renderer (<span class="keyword">agent</span> render_row)
+lst.set_on_select (<span class="keyword">agent</span> on_row_selected)
+lst.set_on_activate (<span class="keyword">agent</span> on_row_opened)
+lst.set_row_pebble (<span class="keyword">agent</span> pebble_for_row)
+
+render_row (a_p: <span class="type">SW_PAINTER</span>; a_i: <span class="type">INTEGER</span>; a_x, a_y, a_w, a_h: <span class="type">REAL_64</span>)
+    <span class="keyword">do</span>
+        a_p.font ({<span class="type">SW_PAINTER</span>}.Role_mono, 13.0, <span class="keyword">False</span>)
+        a_p.set_color (a_p.theme.ink)
+        a_p.text (a_x + 8.0, a_y + a_h - 9.0, <span <span class="keyword">class</span>="string">&quot;item &quot;</span> + a_i.out)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Uniform row height (variable heights are a data-grid concern, Wave 3).</li>
+                <li>Single selection (multi-select with ranges is queued).</li>
+                <li>No keyboard navigation of the selection yet (arrows/PgUp/PgDn).</li>
+                <li>No columns, headers or sorting - that is SW_DATA_GRID's charter.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The renderer is called with the row's rectangle - draw relative to the given x/y, never to the list's own origin, or scrolling will smear your rows.</li>
+                <li><code>scroll_to_row</code> before the first layout positions by arithmetic and only promises visibility once laid out - the postcondition spells it out.</li>
+                <li>Renderer agents that allocate per row (fonts are fine, objects are not) will be felt at wheel speed; keep the hot path allocation-free.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Multi-select (extending the text box's disjoint-range vocabulary to rows).</li>
+                <li>Keyboard selection movement with scroll-into-view.</li>
+                <li>Variable row heights via a measure agent; sticky headers.</li>
+                <li>SW_DATA_GRID and SW_TREE build on this engine in Wave 3.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

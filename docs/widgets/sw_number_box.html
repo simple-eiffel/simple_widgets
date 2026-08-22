@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_NUMBER_BOX - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_NUMBER_BOX</h1>
+        <p class="tagline">An integer with spinners: clamped by contract, wheel-friendly, agent-wired.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_NUMBER_BOX holds an INTEGER <code>value</code> between <code>min_value</code> and <code>max_value</code> - the bounds are a class invariant, so an out-of-range value cannot exist. Up/down spinner zones and the mouse wheel step by <code>step</code>; <code>on_change</code> fires with the new value.</p>
+            <p class="muted"><em>Source: <code>src/sw_number_box.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A bounded quantity</h2>
+<pre><code><span class="keyword">create</span> nb.make (50, 0, 100, <span class="keyword">agent</span> on_number_changed)
+nb.set_step (5)
+page.put (nb)
+
+on_number_changed (a_v: <span class="type">INTEGER</span>)
+    <span class="keyword">do</span>
+        headline.set_text (<span <span class="keyword">class</span>="string">&quot;number box: &quot;</span> + a_v.out)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Integers only (REAL variant queued).</li>
+                <li>No direct typing into the box yet - values move by spin and wheel; a text-entry marriage with SW_TEXT_BOX is planned.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><code>set_value</code> clamps rather than rejects - passing 999 into a 0..100 box yields 100, silently. The invariant holds either way.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Editable value area (single-line text box fusion) with parse-on-commit.</li>
+                <li>REAL_64 variant with precision control; unit suffixes (px, %, pt).</li>
+                <li>Hold-to-repeat on the spinners.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

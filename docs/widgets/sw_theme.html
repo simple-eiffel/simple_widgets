@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_THEME - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_THEME</h1>
+        <p class="tagline">Every colour, face and metric in one place - with WCAG contracts on its own palette.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_THEME is the single source of visual truth: <strong>surfaces</strong> (<code>background, surface, surface_variant</code>), <strong>ink</strong> (<code>ink, ink_muted</code>), <strong>semantics</strong> (<code>accent, success, warning, danger</code>), <strong>washes</strong> (soft tints of the semantics for fills), <code>outline</code>, corner <code>radius</code>, three <strong>type roles</strong> (UI, mono, body families) and the <strong>metric scale</strong> (<code>size_body 16, size_label 13, size_chip 11, line_height 30, button_height 38, chip_height 24, pad 12</code> - sized for readability on real eyes).</p>
+            <p>Two palettes ship: <code>make_light</code> and <code>make_dark</code>. The class invariant enforces WCAG contrast on itself - ink against surface at 4.5:1, muted ink at 3:1 - so an unreadable theme cannot exist as an object.</p>
+            <p>Appearance model (S03): appearance = structure &times; style &times; theme. Widgets decide <em>which token</em> to use for a part in a state; the theme decides what that token <em>is</em>. Swap the whole look at runtime with <code>window.set_theme</code> - the next frame wears it.</p>
+            <p class="muted"><em>Source: <code>src/sw_theme.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Dark by default, swapped live</h2>
+<pre><code><span class="keyword">create</span> theme.make_dark
+<span class="keyword">create</span> window.make (<span <span class="keyword">class</span>="string">&quot;app&quot;</span>, 100, 100, 900, 700, theme)
+
+<span class="comment">-- later, from a menu action:</span>
+<span class="keyword">create</span> light.make_light
+window.set_theme (light)   <span class="comment">-- every widget re-renders in the new palette</span></code></pre>
+        </section>
+
+        <section id="example-2">
+            <h2>Customising tokens</h2>
+<pre><code><span class="keyword">create</span> t.make_dark
+t.set_semantics (0x4F9CF9, 0x34C98E, 0xE7B93C, 0xE06C55)
+t.set_washes (0x24344A, 0x1D3A2C, 0x3D330E, 0x40231C)
+t.set_families (<span <span class="keyword">class</span>="string">&quot;Segoe UI&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Cascadia Mono&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Georgia&quot;</span>)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Metrics are fixed per theme instance - there is no global text-scale knob yet (planned; see Future).</li>
+                <li>Two built-in palettes; custom palettes are built by mutating a base via the setters.</li>
+                <li>Fonts resolve through cairo's toy API: no automatic glyph fallback across families.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The WCAG invariants are real contracts: hand a theme a low-contrast ink/surface pair under an assertion-checked build and it dies at the assignment, not at paint time.</li>
+                <li>Colours are <code>NATURAL_32</code> RGB (no alpha in tokens); alpha lives in painter calls like <code>set_color_alpha</code>.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>A <code>scale</code> factor multiplying the whole metric set - Larry's grow/shrink-font control applied theme-wide, or per container.</li>
+                <li>Named palette registry (load/save themes).</li>
+                <li>High-contrast palette meeting WCAG AAA.</li>
+                <li>Per-widget style variants layered between kind and theme (S03's style axis, deepened).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

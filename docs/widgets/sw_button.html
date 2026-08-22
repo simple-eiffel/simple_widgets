@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_BUTTON - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_BUTTON</h1>
+        <p class="tagline">Four kinds, one action agent, full state styling - the first citizen of any face.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_BUTTON draws a rounded button in one of four <strong>kinds</strong> - <code>Kind_normal</code>, <code>Kind_primary</code> (accent fill), <code>Kind_quiet</code> (borderless), <code>Kind_danger</code> - each mapping (kind, state) to theme tokens for fill, border and label. Hover, pressed and disabled states are painted distinctly; the action agent fires on click release inside.</p>
+            <p>Style queries (<code>fill_color</code>, <code>border_color</code>, <code>label_color</code>) and part painters (<code>draw_background</code>, <code>draw_border</code>, <code>draw_label</code>) are separated so descendants can restyle without re-owning geometry - the S03 appearance model in miniature.</p>
+            <p class="muted"><em>Source: <code>src/sw_button.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>The demo&#x27;s button row</h2>
+<pre><code>buttons.put ((<span class="keyword">create</span> {<span class="type">SW_BUTTON</span>}.make_primary (<span <span class="keyword">class</span>="string">&quot;Click Me&quot;</span>, <span class="keyword">agent</span> on_click_me))
+    .with_tooltip (<span <span class="keyword">class</span>="string">&quot;Adds 10% to the progress bar&quot;</span>))
+buttons.put (<span class="keyword">create</span> {<span class="type">SW_BUTTON</span>}.make (<span <span class="keyword">class</span>="string">&quot;Log Only&quot;</span>, <span class="keyword">agent</span> on_log_only))
+buttons.put ((<span class="keyword">create</span> {<span class="type">SW_BUTTON</span>}.make (<span <span class="keyword">class</span>="string">&quot;Disabled&quot;</span>, <span class="keyword">Void</span>)).disabled)
+buttons.put ((<span class="keyword">create</span> {<span class="type">SW_BUTTON</span>}.make (<span <span class="keyword">class</span>="string">&quot;Delete...&quot;</span>, <span class="keyword">agent</span> on_delete))
+    .as_kind ({<span class="type">SW_BUTTON</span>}.Kind_danger))
+buttons.put (((<span class="keyword">create</span> {<span class="type">SW_BUTTON</span>}.make (<span <span class="keyword">class</span>="string">&quot;I grow&quot;</span>, <span class="keyword">Void</span>)).disabled).growing)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Text-only faces; icon buttons arrive with the drawn-glyph set (see Future).</li>
+                <li>No default-button / Enter-to-activate wiring (needs focus traversal first).</li>
+                <li>No repeat-fire on hold (spinners implement their own).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The kind attribute is named <code>kind</code> because <code>variant</code> is an Eiffel keyword (loop variants). The compiler taught us.</li>
+                <li>An agent created inside a creation procedure requires every attached attribute already set (VEVI); when a button's agent must reference the button itself, create it with <code>Void</code> and call <code>set_on_click</code> after.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Icon + text faces from a drawn-glyph library (R7-pure, no font-glyph gambling).</li>
+                <li>Split buttons (action + chevron menu) and toggle buttons.</li>
+                <li>Keyboard activation once focus traversal lands.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

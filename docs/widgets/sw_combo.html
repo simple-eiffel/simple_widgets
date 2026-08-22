@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_COMBO - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_COMBO</h1>
+        <p class="tagline">An editable dropdown that IS a text box - the whole editing engine, plus a chevron of options.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_COMBO inherits SW_TEXT_BOX, so everything the flagship can do - caret, selection, clipboard, context menu, keyboard map - works in the combo for free. It adds an <code>options</code> list and a 30px chevron zone at the right edge: clicking the chevron opens a drawn <a href='sw_menu.html'>SW_MENU</a> of the options (via the pending-menu handshake); picking one calls <code>choose_option</code>, which replaces the text, parks the caret at the end and fires <code>on_change</code>.</p>
+            <p>Typing and picking are equals: users may pick an option and refine it, or ignore the options entirely. Spellcheck is off by construction (option values are rarely dictionary words).</p>
+            <p class="muted"><em>Source: <code>src/sw_combo.e</code> &middot; since Wave 2 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Options plus free typing</h2>
+<pre><code><span class="keyword">create</span> combo.make_with_options
+combo.add_option (<span <span class="keyword">class</span>="string">&quot;Cairo&quot;</span>)
+combo.add_option (<span <span class="keyword">class</span>="string">&quot;Vision2&quot;</span>)
+combo := combo.with_option (<span <span class="keyword">class</span>="string">&quot;<span class="type">WEL</span>&quot;</span>).with_option (<span <span class="keyword">class</span>="string">&quot;simple_widgets&quot;</span>)
+combo.set_on_change (<span class="keyword">agent</span> on_combo_changed)
+
+<span class="comment">-- programmatic pick: text becomes the option, caret at the end</span>
+combo.choose_option (2)
+check combo.text.same_string_general (<span <span class="keyword">class</span>="string">&quot;Vision2&quot;</span>) <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No filter-as-you-type: the chevron always offers the full option list.</li>
+                <li>Long text can run beneath the chevron glyph (the click zone still wins).</li>
+                <li>The dropdown menu does not scroll; very long option lists will clamp to the window.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The chevron zone is the right 30px - a click there never places the caret. Users aiming at the end of a long value should click just left of the chevron.</li>
+                <li>Being a text box, the combo's invariant pins <code>is_single_line</code> forever - pasted newlines flatten to spaces.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Autocomplete: filter the menu by the typed prefix, Down-arrow to enter it.</li>
+                <li>Scrolling dropdown via SW_LIST for hundreds of options.</li>
+                <li>Recent-entries memory (an app-supplied history agent).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

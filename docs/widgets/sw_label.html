@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_LABEL - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_LABEL</h1>
+        <p class="tagline">Text in three roles - UI, mono, body - with honest wrapping and muted/coloured variants.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_LABEL renders one run of themed text. Creations pick the role: <code>make</code> (explicit role/size/bold), <code>make_ui</code> (13px UI face), <code>make_mono</code> (13px mono), <code>make_body</code> (16px reading face - and <strong>wrapping by default</strong>: body text refuses to clip). <code>as_muted</code> drops to <code>ink_muted</code>; <code>set_color</code> pins any token; <code>with_wrap</code> opts other roles into wrapping; <code>set_text</code> updates live.</p>
+            <p class="muted"><em>Source: <code>src/sw_label.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Roles and modifiers</h2>
+<pre><code>root.put (<span class="keyword">create</span> {<span class="type">SW_LABEL</span>}.make (<span <span class="keyword">class</span>="string">&quot;simple_widgets&quot;</span>, {<span class="type">SW_PAINTER</span>}.Role_ui, 20.0, <span class="keyword">True</span>))
+root.put ((<span class="keyword">create</span> {<span class="type">SW_LABEL</span>}.make_mono (<span <span class="keyword">class</span>="string">&quot;the toolkit above simple_cairo&quot;</span>)).as_muted)
+card.put (<span class="keyword">create</span> {<span class="type">SW_LABEL</span>}.make_body
+    (<span <span class="keyword">class</span>="string">&quot;Body text wraps at the container&#x27;s width, because clipped words are lies.&quot;</span>))
+status := <span class="keyword">create</span> {<span class="type">SW_LABEL</span>}.make_mono (<span <span class="keyword">class</span>="string">&quot;ready&quot;</span>)
+status.set_text (<span <span class="keyword">class</span>="string">&quot;busy...&quot;</span>)   <span class="comment">-- live update</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>One style per label - no inline mixed bold/colour runs (compose labels in a row, or wait for rich text).</li>
+                <li>Wrapping is per-word greedy; no ellipsis mode yet for single-line overflow.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>UI and mono labels do NOT wrap by default - a long one inside a narrow splitter pane clips. That exact clip was a live bug report; body labels wrap for that reason. Use <code>make_body</code> or <code>with_wrap</code> for prose.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Ellipsis truncation modes (end/middle) with full text in the tooltip.</li>
+                <li>Rich runs (per-range role/colour) - shared machinery with the text box's future syntax-colouring hook.</li>
+                <li>Links (click agents on ranges).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

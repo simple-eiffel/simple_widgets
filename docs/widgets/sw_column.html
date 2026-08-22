@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_COLUMN - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_COLUMN</h1>
+        <p class="tagline">Vertical containership with padding, gap, and grow - the page skeleton of every face.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_COLUMN stacks children top to bottom with a <code>gap</code>, inside optional <code>padding</code>. Heights come from each child's <code>preferred_height</code> (given the column's width) clamped by its anchors; leftover height is distributed to growing children. Every window's root is a column; cards, groups and the file dialog are columns wearing clothes.</p>
+            <p>The <strong>pinned footer</strong> idiom: <code>[content&hellip;, SW_SPACER, SW_STATUS_BAR]</code> - the spacer absorbs all slack, so the bar hugs the window's bottom edge at any size. Layout discipline replaces a docking API.</p>
+            <p class="muted"><em>Source: <code>src/sw_column.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A root with a pinned footer</h2>
+<pre><code><span class="keyword">create</span> root.make
+root := root.with_padding (16.0).with_gap (14.0)
+root.put (menubar)
+root.put (toolbar)
+root.put (content_card)
+root.put (<span class="keyword">create</span> {<span class="type">SW_SPACER</span>}.make)   <span class="comment">-- absorbs the slack</span>
+root.put (statusbar)                 <span class="comment">-- pinned to the bottom edge</span>
+window.set_root (root)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No horizontal scrolling of overflow; a column taller than its slot clips (put it in an SW_SCROLL_AREA).</li>
+                <li>Grow distribution shares positive leftover only; when content exceeds the window, excess simply runs past the bottom.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Padding lives on the column, gap between children - mixing per-child margins into widgets fights the engine; spacing belongs to containers.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Scroll-aware columns (auto-adopt a scroll area when overflowing).</li>
+                <li>Named layout regions (header/content/footer sugar over the spacer idiom).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

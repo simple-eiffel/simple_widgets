@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_MENU - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_MENU</h1>
+        <p class="tagline">The drawn popup: items, hints, separators, muted disables - no TrackPopupMenu anywhere.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_MENU is the toolkit's own popup: items carry (label, hint, enabled, action), separators score groups, disabled items render muted and refuse clicks. The window presents it (<code>show_popup</code>) above everything, clamped inside the window; hover highlights rows; a click runs the item's agent after closing; Escape or any outside button-down dismisses.</p>
+            <p>Menus are <strong>built fresh on every open</strong> - context menus, the menu bar and SW_SELECT all construct a new SW_MENU per presentation, so enablement always reflects live state. Stale menus cannot exist because kept menus do not exist.</p>
+            <p>History note: the native <code>TrackPopupMenu</code> was tried and abandoned (invisible-menu foreground quirks) - the drawn menu is both the R7-pure answer and the one that actually worked.</p>
+            <p class="muted"><em>Source: <code>src/sw_menu.e</code> &middot; since Wave 1 (2026-08-21).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Building and offering (the pending-menu handshake)</h2>
+<pre><code>handle_click (a_px, a_py: <span class="type">REAL_64</span>): <span class="type">BOOLEAN</span>
+    <span class="keyword">local</span>
+        m: <span class="type">SW_MENU</span>
+    <span class="keyword">do</span>
+        <span class="keyword">create</span> m.make
+        m.add_item (<span <span class="keyword">class</span>="string">&quot;New Session&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Ctrl+N&quot;</span>, <span class="keyword">True</span>, <span class="keyword">agent</span> on_new)
+        m.add_item (<span <span class="keyword">class</span>="string">&quot;Save&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Ctrl+S&quot;</span>, is_dirty, <span class="keyword">agent</span> on_save)
+        m.add_separator
+        m.add_item (<span <span class="keyword">class</span>="string">&quot;Quit (decorative)&quot;</span>, <span <span class="keyword">class</span>="string">&quot;&quot;</span>, <span class="keyword">False</span>, <span class="keyword">Void</span>)
+        pending_menu := m      <span class="comment">-- the window takes it and presents</span>
+        <span class="keyword">Result</span> := <span class="keyword">True</span>
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No submenus yet (flyout nesting is queued).</li>
+                <li>Hints are display-only - the shortcut text does not register accelerators.</li>
+                <li>No icons or check marks on items yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>While a popup is open it owns the pointer; the frame echo still flushes (the heartbeat is global), so snapshots CAN photograph open menus - a hard-won property; do not reintroduce tick handling into popup phases.</li>
+                <li>Item agents run AFTER the menu closes - a handler that opens another menu or sheet is safe and common.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Submenus with hover-open; item icons from the drawn-glyph set; check/radio items.</li>
+                <li>Real accelerator registration once a keymap service exists.</li>
+                <li>Type-ahead selection while open.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>
