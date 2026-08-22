@@ -198,4 +198,70 @@ feature -- Proportions
 			assert_integers_equal ("outside answers nobody", 0, c.stage_at (c.plot_y - 10.0))
 		end
 
+feature -- Indicators
+
+	test_gauge_fraction_zones_and_clamp
+		local
+			g: SW_GAUGE
+		do
+			create g.make (0.0, 40.0)
+			g.set_zones (20.0, 33.0)
+			g.set_value (10.0)
+			assert_reals_equal ("a quarter along", 0.25, g.fraction, 0.000_1)
+			assert_integers_equal ("calm below the warn line", 0, g.zone)
+			g.set_value (20.0)
+			assert_integers_equal ("warning AT the warn line", 1, g.zone)
+			g.set_value (39.0)
+			assert_integers_equal ("danger past its line", 2, g.zone)
+			g.set_value (900.0)
+			assert_reals_equal ("clamped to the span", 40.0, g.value, 0.000_1)
+			assert_reals_equal ("and the sweep is full", 1.0, g.fraction, 0.000_1)
+			g.set_value (-5.0)
+			assert_reals_equal ("clamped from below too", 0.0, g.value, 0.000_1)
+		end
+
+	test_gauge_degenerate_span
+		local
+			g: SW_GAUGE
+		do
+			create g.make (7.0, 7.0)
+			g.set_value (7.0)
+			assert_reals_equal ("a flat span never sweeps", 0.0, g.fraction, 0.000_1)
+		end
+
+	test_sparkline_rolls_and_normalizes
+		local
+			s: SW_SPARKLINE
+			i: INTEGER
+		do
+			create s.make
+			s.set_capacity (4)
+			from
+				i := 1
+			until
+				i > 6
+			loop
+				s.add_value (i * 10.0)
+				i := i + 1
+			end
+			assert_integers_equal ("the feed rolls at four", 4, s.values.count)
+			assert_reals_equal ("the oldest two fell off", 30.0, s.values.first, 0.000_1)
+			assert_reals_equal ("low is the survivor floor", 30.0, s.low, 0.000_1)
+			assert_reals_equal ("high is the newest peak", 60.0, s.high, 0.000_1)
+			assert_reals_equal ("the floor normalizes to zero", 0.0, s.fraction_of (1), 0.000_1)
+			assert_reals_equal ("the peak normalizes to one", 1.0, s.fraction_of (4), 0.000_1)
+		end
+
+	test_sparkline_flat_is_midline
+		local
+			s: SW_SPARKLINE
+		do
+			create s.make
+			s.add_value (5.0)
+			s.add_value (5.0)
+			s.add_value (5.0)
+			assert_reals_equal ("no span on a flat feed", 0.0, s.span, 0.000_1)
+			assert_reals_equal ("flat answers the honest midline", 0.5, s.fraction_of (2), 0.000_1)
+		end
+
 end

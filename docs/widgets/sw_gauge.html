@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_GAUGE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_GAUGE</h1>
+        <p class="tagline">The 270-degree gauge: a track band, a value band in its zone&#x27;s colour, the number large in the centre.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>A classic gauge from lower-left around to lower-right. The bands are <code>wedge_fill</code> with close radii - the pie's painter primitive earning double keep as a thick arc. The value band wears its ZONE's semantic colour: accent while calm, warning from <code>warn_from</code>, danger from <code>danger_from</code> - <code>set_zones</code> declares the thresholds, and <code>zone</code> answers 0/1/2 as public, assaulted math beside <code>fraction</code>.</p>
+            <p><code>set_value</code> CLAMPS into the span - a gauge shows truth within its range, never a needle wrapped past the pin. A degenerate span (min = max) never sweeps. The demo's gauge is live: it drinks the render bell and swings with every frame's cost, crossing into warning exactly when the heartbeat spikes say it should.</p>
+            <p class="muted"><em>Source: <code>src/sw_gauge.e</code> &middot; since Wave 4, Indicators (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A live gauge off the render bell</h2>
+<pre><code><span class="keyword">create</span> g.make (0.0, 40.0)
+g.set_zones (20.0, 33.0)
+page.put (g.with_title (<span <span class="keyword">class</span>="string">&quot;last frame (live)&quot;</span>))
+
+<span class="comment">-- in the bell subscriber:</span>
+g.set_value (a_ms.to_double)   <span class="comment">-- clamped; zone colour follows</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No needle variant - the band IS the reading (modern instrument style).</li>
+                <li>One value per gauge; multi-band comparisons are a future.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Zones default beyond maximum - a gauge without set_zones never warns.</li>
+                <li>Clamping means an off-scale value reads as PINNED at the end, not as its number - pair with a stat when the raw figure matters.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Tick marks on the track; target markers; multi-band comparison rings.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

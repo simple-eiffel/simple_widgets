@@ -63,6 +63,11 @@ feature {NONE} -- Initialization
 			create perf_chart.make
 			perf_chart.set_capacity (150)
 			perf_chart.add_series ("frame ms")
+			create perf_gauge.make (0.0, 40.0)
+			perf_gauge.set_zones (20.0, 33.0)
+			create perf_spark.make
+			perf_spark.set_capacity (60)
+			create perf_stat.make ("last frame", "0")
 			toolbar.add_tool ("New", "Start fresh (decorative)", True, agent on_menu_new)
 			toolbar.add_tool ("Save", "Save (decorative)", True, agent on_menu_save)
 			toolbar.add_gap
@@ -728,6 +733,8 @@ feature {NONE} -- Behaviour
 			sc: SW_SCATTER_CHART
 			pie: SW_PIE_CHART
 			fun: SW_FUNNEL_CHART
+			dash: SW_ROW
+			pair: SW_COLUMN
 			i: INTEGER
 		do
 			create Result.make
@@ -764,6 +771,15 @@ feature {NONE} -- Behaviour
 			fun.add_stage ("reviewed", 705.0)
 			fun.add_stage ("exported", 640.0)
 			Result.put (fun.with_title ("a capture pipeline %/8212/ conversion from the first stage"))
+			create dash.make
+			dash := dash.with_gap (12.0)
+			dash.put (perf_gauge.with_title ("last frame (live)").growing)
+			create pair.make
+			pair := pair.with_gap (4.0)
+			pair.put (perf_stat)
+			pair.put (perf_spark)
+			dash.put (pair.growing)
+			Result.put (dash)
 		end
 
 	perf_chart: SW_LINE_CHART
@@ -771,11 +787,22 @@ feature {NONE} -- Behaviour
 	frame_no: INTEGER
 
 	on_frame_cost (a_ms: INTEGER)
-			-- Every frame reports through the bell; the chart rolls.
+			-- Every frame reports through the bell; the chart rolls,
+			-- the gauge swings, the sparkline drifts, the stat names
+			-- the number - four instruments, one subscription.
 		do
 			frame_no := frame_no + 1
 			perf_chart.add_point (frame_no.to_double, a_ms.to_double.max (0.0))
+			perf_gauge.set_value (a_ms.to_double.max (0.0))
+			perf_spark.add_value (a_ms.to_double.max (0.0))
+			perf_stat.set_value (a_ms.out + " ms")
 		end
+
+	perf_gauge: SW_GAUGE
+
+	perf_spark: SW_SPARKLINE
+
+	perf_stat: SW_STATISTIC
 
 	help_menu: SW_MENU
 		do

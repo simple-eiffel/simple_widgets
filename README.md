@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-109%2F109-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-113%2F113-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -16,11 +16,11 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-🚀 **Waves 1–3 COMPLETE, Wave 4 OPENED** — 73 classes (68 library + 5 devkit tooling)
+🚀 **Waves 1–3 COMPLETE, Wave 4 OPENED** — 75 classes (70 library + 5 devkit tooling)
 - Wave 4's Cartesian suite is in: SW_SCALE axis engine + line/bar/area/scatter,
-  pie/donut + funnel; the demo's line chart streams live frame costs off
-  the render bell
-- 109 contract-assault tests passing
+  pie/donut + funnel, gauge + sparkline; the demo streams live frame costs
+  into four instruments off one render-bell subscription
+- 113 contract-assault tests passing
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
   compiled out of release-shaped builds via the devkit override
@@ -132,7 +132,7 @@ back after building).
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/sw_demo/F_code/
 ./EIFGENs/sw_demo/F_code/simple_widgets.exe
 
-# the contract assault (109 tests, all assertions live)
+# the contract assault (113 tests, all assertions live)
 /d/prod/ec.sh test -config simple_widgets.ecf -target simple_widgets_tests
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 ./EIFGENs/simple_widgets_tests/F_code/simple_widgets.exe

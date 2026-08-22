@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (Wave 4, movement three - Indicators)
+- SW_GAUGE: the 270-degree band gauge (wedge_fill with close radii IS
+  a thick arc - the pie primitive earning double keep). Value band in
+  its ZONE's semantic colour (set_zones: calm/warning/danger), value
+  large in the centre, ends named. set_value CLAMPS - a gauge tells
+  truth within its range. fraction/zone public and assaulted,
+  degenerate spans never sweep.
+- SW_SPARKLINE: the line chart's soul with no chrome - normalized to
+  its own box, area wash, emphasized endpoint, rolling capacity, and
+  an HONEST flat midline (0.5, never a division by nothing).
+  fraction_of/span assaulted.
+- The pairing promise kept: the demo seats the sparkline beside
+  SW_STATISTIC, and gauge + spark + stat + line chart all drink ONE
+  after_render_actions subscription - four live instruments, one bell.
+- 4 new assaults: suite 113/113.
+
 ### Added (Wave 4, movement two - Proportions)
 - SW_PIE_CHART: slices clockwise from twelve, make_donut with a TRUE
   ring (SW_PAINTER grew wedge_fill/wedge_stroke: arc out, arc_negative

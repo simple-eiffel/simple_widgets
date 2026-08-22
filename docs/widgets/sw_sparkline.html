@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SPARKLINE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SPARKLINE</h1>
+        <p class="tagline">A word-sized trend: no chrome, values normalized to the box, endpoint emphasized, honest flat midline.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>The line chart's soul with no chrome at all - no axes, no insets, no labels. Values normalize to the widget's own box (<code>fraction_of</code>, public and assaulted: the floor is 0, the peak is 1, and a FLAT series answers its honest midline 0.5 instead of dividing by nothing). The area washes under the line and the endpoint carries the emphasis dot - the reader's eye lands on NOW.</p>
+            <p><code>set_capacity</code> makes it a rolling feed, the same idiom as the line chart. The demo pairs one with SW_STATISTIC - exactly the pairing that widget's page promised - both fed by the same render-bell subscription as the gauge and the big chart: four instruments, one <code>after_render_actions.subscribe</code>.</p>
+            <p class="muted"><em>Source: <code>src/sw_sparkline.e</code> &middot; since Wave 4, Indicators (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Paired with a statistic</h2>
+<pre><code><span class="keyword">create</span> spark.make
+spark.set_capacity (60)
+<span class="keyword">create</span> stat.make (<span <span class="keyword">class</span>="string">&quot;last frame&quot;</span>, <span <span class="keyword">class</span>="string">&quot;0&quot;</span>)
+pair.put (stat)
+pair.put (spark)
+
+<span class="comment">-- one subscription drives both:</span>
+window.after_render_actions.subscribe (<span class="keyword">agent</span> on_frame_cost)
+<span class="comment">-- on_frame_cost: stat.set_value (ms.out + &quot; ms&quot;); spark.add_value (ms)</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>One series; overlaid comparison sparks are a future.</li>
+                <li>No hover - at word size, the pairing statistic is the readout.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Normalization is per-window - the shape shows RELATIVE motion; absolute scale lives in whatever the spark is paired with.</li>
+                <li>An empty spark draws a quiet baseline, one value draws a dot - both honest.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Win/loss variant (bars above/below a reference); band highlights.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

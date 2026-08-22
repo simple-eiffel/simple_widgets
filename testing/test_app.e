@@ -264,6 +264,10 @@ feature {NONE} -- Test runners
 			run_test (agent chart_tests.test_pie_shares_and_slices, "pie_shares_and_slices")
 			run_test (agent chart_tests.test_pie_empty_is_honest, "pie_empty_is_honest")
 			run_test (agent chart_tests.test_funnel_conversion_and_bands, "funnel_conversion_and_bands")
+			run_test (agent chart_tests.test_gauge_fraction_zones_and_clamp, "gauge_fraction_zones_and_clamp")
+			run_test (agent chart_tests.test_gauge_degenerate_span, "gauge_degenerate_span")
+			run_test (agent chart_tests.test_sparkline_rolls_and_normalizes, "sparkline_rolls_and_normalizes")
+			run_test (agent chart_tests.test_sparkline_flat_is_midline, "sparkline_flat_is_midline")
 		end
 
 	chart_tests: SW_CHART_ASSAULT
