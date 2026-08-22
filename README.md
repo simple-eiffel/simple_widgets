@@ -132,11 +132,18 @@ cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 
 ## Roadmap
 
-Waves 3–6 per the catalog (specs/S02): tree, data grid, calendar and
-date/time pickers, drawer, popover, accordion, stepper, badges and avatars,
-charts on SW_PAINTER, dropzone, and a dev-mode inspector (reflection-driven,
-compiled out of release builds via `debug ("dev_mode")`). Dictation
-(whisper.cpp, CPU-only) is queued as a text-box service.
+Wave 3 is nearly closed (tree, data grid, calendar/date/time pickers,
+drawers with peek-and-pin, popovers, accordion, stepper, badges, avatars,
+canvas, sheet, colour picker — all shipped); its finale is SW_DROPZONE
+(WM_DROPFILES) and the dev-mode SW_INSPECTOR (reflection-driven, compiled
+out of release builds via `debug ("dev_mode")`). Then Wave 4 charts on
+SW_PAINTER, Wave 5 enterprise composites (spreadsheet doctrine:
+SHEET -> DATA_GRID -> SPREADSHEET; true docking), Wave 6 media +
+conversational (dictation via whisper.cpp queued as a text-box service).
+
+**The full plan:** [What's Still Coming](https://simple-eiffel.github.io/simple_widgets/roadmap.html)
+— per-wave detail; `specs/S04-ROADMAP.md` is the per-control checkbox
+docket, harvested from the doc pages so the two cannot drift.
 
 ## License
 
