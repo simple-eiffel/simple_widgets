@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_LOCALE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_LOCALE</h1>
+        <p class="tagline">Cultural presentation truth: date order, week start, clock style - US by decree, settable per control.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_LOCALE answers Larry's regional-controls notice as policy, not flags: one small value object carrying <strong>date field order</strong> (mdy / dmy / ymd) and separator, <strong>month and short day names</strong>, the <strong>week's first day</strong> (ISO numbering, 7 = Sunday for the US default), <strong>12/24-hour clock</strong>, and the decimal mark. Three creators ship: <code>make_us</code> (the project default), <code>make_iso</code>, <code>make_european</code>; names localize via <code>set_names</code>.</p>
+            <p>Distribution is two-level: <strong>SW_THEME carries a locale</strong> (US unless <code>set_locale</code> swaps it) as the ambient culture every regional control reads; and every regional control accepts a <strong>per-control override</strong> - the demo shows one window holding a US date field beside an ISO one.</p>
+            <p>The formatting brain lives here: <code>format_date</code> / <code>parsed_date</code> (generous on separators - any of / . - parses; exact on output) and <code>format_time</code> / <code>parsed_time</code> (24-hour always readable; AM/PM handled including the 12 AM = hour-zero trap). Impossible dates - month 13, Feb 30, Feb 29 outside leap years - return Void; the assault suite pins all of it, leap arithmetic courtesy of simple_datetime.</p>
+            <p class="muted"><em>Source: <code>src/sw_locale.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Ambient culture plus a per-control override</h2>
+<pre><code><span class="comment">-- the theme&#x27;s culture is ambient (US by default)</span>
+theme.set_locale (<span class="keyword">create</span> {<span class="type">SW_LOCALE</span>}.make_european)
+
+<span class="comment">-- one control disagrees, and may:</span>
+<span class="keyword">create</span> iso.make_iso
+date_box := date_box.with_picker_locale (iso)
+
+<span class="comment">-- the brain, directly:</span>
+<span class="keyword">create</span> us.make_us
+print (us.format_date (2026, 12, 25))      <span class="comment">-- 12/25/2026</span>
+<span class="keyword">if</span> <span class="keyword">attached</span> us.parsed_time (<span <span class="keyword">class</span>="string">&quot;2:05 PM&quot;</span>) <span class="keyword">as</span> t <span class="keyword">then</span>
+    print (t.hour)                          <span class="comment">-- 14</span>
+<span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Names ship in English; localize via set_names (no CLDR data bundled - Windows carries ICU when depth is ever needed).</li>
+                <li>No collation yet: sorted grids compare code points, not locale rules (S04).</li>
+                <li>The decimal separator is carried but no numeric formatter consumes it yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>first_day_of_week is ISO-numbered (1 = Monday .. 7 = Sunday) to match simple_datetime's day_of_week - US Sunday-first is 7, not 0.</li>
+                <li>parsed_date is generous about separators by design: a US user with a European keyboard habit still lands; field ORDER is what the locale enforces.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Locale-aware number formatting (thousands, the carried decimal mark) for SW_NUMBER_BOX and SW_STATISTIC.</li>
+                <li>Collation hooks for SW_DATA_GRID sorting.</li>
+                <li>Windows ICU bridge for full CLDR names when a consumer demands it.</li>
+                <li>Timezone tools (Larry, 2026-08-22): SW_WORLD_CLOCK on the heartbeat and a band-map SW_TIMEZONE_PICKER graduating to the Wave 4 map.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

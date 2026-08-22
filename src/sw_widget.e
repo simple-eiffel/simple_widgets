@@ -383,6 +383,22 @@ feature -- Input
 	pebble_item: detachable ANY
 			-- Stored pebble behind the default `pebble'.
 
+	pending_popover: detachable SW_WIDGET
+			-- A widget tree this widget wants presented as an
+			-- anchored popover at its foot - the pending-menu
+			-- handshake's sibling. The window takes it after the
+			-- click that set it.
+
+	pending_popover_width: REAL_64
+
+	take_pending_popover: detachable SW_WIDGET
+		do
+			Result := pending_popover
+			pending_popover := Void
+		ensure
+			taken: pending_popover = Void
+		end
+
 	pending_menu: detachable SW_MENU
 			-- A menu this widget wants presented after its click was
 			-- handled - the dropdown handshake: the widget declares

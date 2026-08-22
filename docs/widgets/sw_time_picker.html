@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_TIME_PICKER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_TIME_PICKER</h1>
+        <p class="tagline">A time field with culture: 12-hour locales speak AM/PM, 24-hour speak HH:MM - generous in, exact out.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_TIME_PICKER is the date picker's small sibling: a single-line box whose edits parse per the effective locale's clock. <strong>Both notations are always readable</strong> - a US-locale field accepts &quot;14:05&quot; and a European one accepts &quot;2:05 PM&quot; (generous in) - but <code>set_time</code> and write-back format strictly per locale (exact out). The 12 AM = hour-zero and 12 PM = noon traps are handled and assault-pinned. Invalid times (25:00, 9:75) wear the tint; <code>on_time_change (hour, minute)</code> fires on good parses with hour always 0..23 regardless of display culture.</p>
+            <p class="muted"><em>Source: <code>src/sw_time_picker.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Both cultures in one row</h2>
+<pre><code><span class="keyword">create</span> time_us.make_picker            <span class="comment">-- theme: H:MM AM/PM</span>
+<span class="keyword">create</span> time_eu.make_picker
+time_eu := time_eu.with_picker_locale (<span class="keyword">create</span> {<span class="type">SW_LOCALE</span>}.make_european)
+time_us.set_time (14, 5)              <span class="comment">-- shows 2:05 PM</span>
+time_eu.set_time (14, 5)              <span class="comment">-- shows 14:05</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Minutes precision only (no seconds).</li>
+                <li>No spin zones yet - typing only (spinners are queued).</li>
+                <li>Same pre-first-draw locale note as the date picker.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>on_time_change always reports 24-hour values - display culture never leaks into the programmatic contract.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Hour/minute spin zones and wheel support.</li>
+                <li>Seconds precision flag; interval snapping (15-minute steps).</li>
+                <li>Pairing with SW_DATE_PICKER into a datetime composite (SIMPLE_DATE_TIME exists).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

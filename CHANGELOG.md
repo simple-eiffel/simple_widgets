@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — Wave 3 in progress
 
 ### Added
+- Culture batch (Larry's regional-controls notice): SW_LOCALE (date
+  order/separator, names, week start, 12/24h clock, decimal mark; US
+  default by decree, make_iso/make_european ship) carried on SW_THEME
+  and overridable PER CONTROL. simple_datetime adopted (ecosystem-
+  first rule) for all date arithmetic
+- SW_CALENDAR (today ringed, pick filled, week opens on the locale's
+  first day - first-cell math assault-pinned both cultures),
+  SW_DATE_PICKER (locale-ordered parse, invalid tint, calendar in a
+  popover via the new pending-popover widget handshake),
+  SW_TIME_PICKER (12/24h; generous in, exact out; 12 AM trap pinned)
+- Pending-popover handshake on SW_WIDGET + window presentation - the
+  pending-menu handshake's sibling for anchored widget panels
+- Suite at 67/67 (locale/calendar set added). Proofs: US picker parsed
+  12/25/2026 -> (2026,12,25) agent-delivered; Larry drove the full
+  glyph->calendar->pick->write-back chain live
 - SW_DATA_GRID [G] + SW_GRID_COLUMN [G] - the Wave 3 crown: typed rows,
   first-class columns (value + optional COMPARABLE key agents: numbers
   sort as numbers), header-click sort asc/desc/clear with drawn

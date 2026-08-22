@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_DATE_PICKER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_DATE_PICKER</h1>
+        <p class="tagline">A date field with culture: locale-ordered typing, invalid tint, and a calendar popover via the widget handshake.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_DATE_PICKER inherits the whole SW_TEXT_BOX engine (the combo pattern) and adds dates: every edit re-parses in the <strong>effective locale's field order</strong> - ill-formed or impossible input wears the invalid tint (danger wash + border), good input updates <code>selected_year/month/day</code> and fires <code>on_date_change (y, m, d)</code>. <code>set_date</code> writes back formatted per locale.</p>
+            <p>The calendar glyph at the right edge opens an <strong>SW_CALENDAR in a popover</strong> - via the new <em>pending-popover handshake</em> on the widget spine (the pending-menu handshake's sibling: the widget declares, the window presents at its foot). Picking a day writes the formatted date into the box and fires the change agent; the popover dismisses on outside click or Escape. Locale is per-control settable (<code>with_picker_locale</code>); otherwise the theme's culture governs - adopted for parsing on first draw.</p>
+            <p class="muted"><em>Source: <code>src/sw_date_picker.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>US ambient, ISO beside it</h2>
+<pre><code><span class="keyword">create</span> date_us.make_picker           <span class="comment">-- theme culture: MM/DD/YYYY</span>
+date_us.set_on_date_change (<span class="keyword">agent</span> on_date_changed)
+
+<span class="keyword">create</span> date_iso.make_picker
+date_iso := date_iso.with_picker_locale (<span class="keyword">create</span> {<span class="type">SW_LOCALE</span>}.make_iso)
+<span class="comment">-- same window, same control, YYYY-MM-DD - culture is a setting</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>The popover needs an outside click (or Escape) to dismiss after a pick - auto-close-on-pick is queued on the overlay engine (S04).</li>
+                <li>Before the first draw, a picker WITHOUT an override parses as US even under a non-US theme - it adopts the theme's culture when first painted. Set the override when typing precedes showing.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The glyph zone is the right 30px; clicks there never place the caret.</li>
+                <li>Clearing the box clears the date and the tint - emptiness is valid nothing, not an error.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Auto-close the popover on pick (overlay-engine hook).</li>
+                <li>Min/max constraints delegated to the hosted calendar.</li>
+                <li>A range variant (two fields, one calendar) on SIMPLE_DATE_RANGE.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

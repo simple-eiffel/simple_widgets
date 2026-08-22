@@ -41,6 +41,9 @@ feature {NONE} -- Initialization
 			print ("%N=== DATA GRID ===%N")
 			run_grid_tests
 
+			print ("%N=== LOCALE + PICKERS ===%N")
+			run_locale_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -94,6 +97,21 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_theme_invariants_both_ways, "theme_invariants_both_ways")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
+		end
+
+	locale_tests: SW_LOCALE_ASSAULT
+
+	run_locale_tests
+		do
+			create locale_tests
+			run_test (agent locale_tests.test_us_round_trip, "locale_us_round_trip")
+			run_test (agent locale_tests.test_iso_and_european_orders, "locale_iso_and_european_orders")
+			run_test (agent locale_tests.test_separators_are_generous, "locale_separators_generous")
+			run_test (agent locale_tests.test_impossible_dates_refused, "locale_impossible_dates_refused")
+			run_test (agent locale_tests.test_leap_february, "locale_leap_february")
+			run_test (agent locale_tests.test_time_both_cultures, "locale_time_both_cultures")
+			run_test (agent locale_tests.test_first_cell_honors_week_start, "calendar_first_cell_week_start")
+			run_test (agent locale_tests.test_calendar_step_wraps_year, "calendar_step_wraps_year")
 		end
 
 	grid_tests: SW_GRID_ASSAULT

@@ -20,6 +20,7 @@
 		<external_include location="$(SIMPLE_EIFFEL)/simple_widgets/Clib"/>
 		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
 		<library name="simple_cairo" location="$SIMPLE_EIFFEL/simple_cairo/simple_cairo.ecf"/>
+		<library name="simple_datetime" location="$SIMPLE_EIFFEL/simple_datetime/simple_datetime.ecf"/>
 		<cluster name="src" location=".\src\" recursive="true"/>
 	</target>
 

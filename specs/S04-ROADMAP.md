@@ -31,8 +31,19 @@ Toolkit-wide near-term items (from the same read):
 - [ ] Dirty-rect rendering + batched text runs - erases resize lag.
 - [ ] Drawn-glyph set - unlocks icon buttons, toolbar icons, segment icons.
 - [ ] Cursor API (I-beam, resize arrows).
+- [ ] DEPENDENCY AUDIT (Larry, 2026-08-22): sweep every ECF and source
+      file for ISE/Gobo touchpoints (DIRECTORY, PATH, DATE, INTERNAL...),
+      map each to an existing simple_* library or flag a backfill hole.
+      simple_datetime adoption was the live example; the file dialog's
+      base PATH/DIRECTORY is the first candidate (simple_file).
+- [ ] Timezone tools (Larry): SW_WORLD_CLOCK (per-zone ticking times on
+      the heartbeat over simple_datetime) and SW_TIMEZONE_PICKER - band
+      map v1, true world map when Wave 4 'maps' lands; DST honesty via
+      Windows ICU when depth is needed.
+- [ ] Overlay auto-close-on-pick hook (date picker popovers).
 - [ ] SW_INSPECTOR - design pinned in S02; lands at Wave 3 tail behind the
       debug ("dev_mode") gate.
+
 
 
 
@@ -1028,3 +1039,83 @@ Limits to push:
 - [ ] Insertion sort on the view: right for human-scale row counts; thousands-of-rows sorting is an S04 item (the DRAW is already virtualized for thousands).
 - [ ] No in-place editing (by design in v1 - activation composes your editor).
 - [ ] No horizontal scrollbar drawn yet (Shift+wheel scrolls X).
+
+
+## SW_LOCALE
+
+Planned extensions:
+
+- [ ] Locale-aware number formatting (thousands, the carried decimal mark) for SW_NUMBER_BOX and SW_STATISTIC.
+- [ ] Collation hooks for SW_DATA_GRID sorting.
+- [ ] Windows ICU bridge for full CLDR names when a consumer demands it.
+- [ ] Timezone tools (Larry, 2026-08-22): SW_WORLD_CLOCK on the heartbeat and a band-map SW_TIMEZONE_PICKER graduating to the Wave 4 map.
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- first_day_of_week is ISO-numbered (1 = Monday .. 7 = Sunday) to match simple_datetime's day_of_week - US Sunday-first is 7, not 0.
+- parsed_date is generous about separators by design: a US user with a European keyboard habit still lands; field ORDER is what the locale enforces.
+
+Limits to push:
+
+- [ ] Names ship in English; localize via set_names (no CLDR data bundled - Windows carries ICU when depth is ever needed).
+- [ ] No collation yet: sorted grids compare code points, not locale rules (S04).
+- [ ] The decimal separator is carried but no numeric formatter consumes it yet.
+
+
+## SW_CALENDAR
+
+Planned extensions:
+
+- [ ] Year and month zoom (click the title to widen).
+- [ ] Range selection riding simple_datetime's SIMPLE_DATE_RANGE.
+- [ ] Min/max date constraints with muted-and-refusing cells.
+- [ ] Week-number rail option.
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- The chevron zones are the outer 30px of the title row - clicks on the title text itself deliberately do nothing.
+- select_date is a silent command (shows and selects, fires nothing); only CLICKS fire on_pick - the commands-are-silent convention.
+
+Limits to push:
+
+- [ ] Month view only (no year/decade zoom navigation yet).
+- [ ] Single date selection (ranges are a future with SW_DATE_RANGE support in simple_datetime already waiting).
+- [ ] No min/max selectable-date constraints yet.
+
+
+## SW_DATE_PICKER
+
+Planned extensions:
+
+- [ ] Auto-close the popover on pick (overlay-engine hook).
+- [ ] Min/max constraints delegated to the hosted calendar.
+- [ ] A range variant (two fields, one calendar) on SIMPLE_DATE_RANGE.
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- The glyph zone is the right 30px; clicks there never place the caret.
+- Clearing the box clears the date and the tint - emptiness is valid nothing, not an error.
+
+Limits to push:
+
+- [ ] The popover needs an outside click (or Escape) to dismiss after a pick - auto-close-on-pick is queued on the overlay engine (S04).
+- [ ] Before the first draw, a picker WITHOUT an override parses as US even under a non-US theme - it adopts the theme's culture when first painted. Set the override when typing precedes showing.
+
+
+## SW_TIME_PICKER
+
+Planned extensions:
+
+- [ ] Hour/minute spin zones and wheel support.
+- [ ] Seconds precision flag; interval snapping (15-minute steps).
+- [ ] Pairing with SW_DATE_PICKER into a datetime composite (SIMPLE_DATE_TIME exists).
+
+Gotcha docket (fix where a plan exists; else design around):
+
+- on_time_change always reports 24-hour values - display culture never leaks into the programmatic contract.
+
+Limits to push:
+
+- [ ] Minutes precision only (no seconds).
+- [ ] No spin zones yet - typing only (spinners are queued).
+- [ ] Same pre-first-draw locale note as the date picker.

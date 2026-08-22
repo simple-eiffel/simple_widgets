@@ -41,6 +41,11 @@ feature {NONE} -- Initialization
 			create combo.make_with_options
 			create seg.make
 			create fleet_grid.make (240.0)
+			create cal.make
+			create date_us.make_picker
+			create date_iso.make_picker
+			create time_12.make_picker
+			create time_24.make_picker
 			create grid_filter_box.make_single_line ("")
 			create stepper.make
 			create accordion.make
@@ -140,7 +145,7 @@ feature {NONE} -- Initialization
 			body.put (tabs_card (theme))
 			body.put (list_card (theme))
 			statusbar.set_left ("ready %/8212/ every pixel drawn by simple_widgets")
-			statusbar.set_right ("51 widgets and counting")
+			statusbar.set_right ("55 widgets and counting")
 			create body_scroll.make (400.0)
 			body_scroll.set_child (body)
 			root.put (body_scroll.growing)
@@ -161,6 +166,8 @@ feature {NONE} -- Initialization
 			stats: SW_ROW
 			stat2: SW_STATISTIC
 			empty: SW_EMPTY_STATE
+			iso_locale, euro_locale: SW_LOCALE
+			pick_row: SW_ROW
 		do
 			create tabs.make
 			create page.make
@@ -224,6 +231,27 @@ feature {NONE} -- Initialization
 			page.put (fleet_grid)
 			page.put ((create {SW_LABEL}.make_ui ("Click a header to sort (again for descending; Wave sorts as numbers). Drag a divider to resize. Filter above.")).as_muted)
 			tabs.add_page ("Grid", page)
+			create page.make
+			page := page.with_gap (8.0)
+			cal.set_on_pick (agent on_calendar_picked)
+			page.put (cal)
+			date_us.set_tooltip ("US locale from the theme: MM/DD/YYYY %/8212/ type or use the glyph")
+			date_us.set_on_date_change (agent on_date_changed)
+			page.put (date_us)
+			create iso_locale.make_iso
+			date_iso := date_iso.with_picker_locale (iso_locale)
+			date_iso.set_tooltip ("ISO override ON THIS CONTROL: YYYY-MM-DD %/8212/ locale is settable per control")
+			page.put (date_iso)
+			create pick_row.make
+			time_12.set_tooltip ("Theme locale: 12-hour, H:MM AM/PM")
+			pick_row.put (time_12.growing)
+			create euro_locale.make_european
+			time_24 := time_24.with_picker_locale (euro_locale)
+			time_24.set_tooltip ("European override: 24-hour HH:MM")
+			pick_row.put (time_24.growing)
+			page.put (pick_row)
+			page.put ((create {SW_LABEL}.make_ui ("SW_CALENDAR + SW_DATE_PICKER + SW_TIME_PICKER %/8212/ culture is a setting: US by default, overridable per control. Bad input wears the invalid tint.")).as_muted)
+			tabs.add_page ("Pickers", page)
 			tabs.set_on_change (agent on_tab_changed)
 			create Result.make_striped (a_theme.warning)
 			Result.put ((create {SW_LABEL}.make_ui ("SW_TABS %/8212/ pages swap; hover the bar")).as_muted)
@@ -382,6 +410,22 @@ feature {NONE} -- Initialization
 			col.put (create {SW_RATING}.make (2, 5, Void))
 			col.put ((create {SW_LABEL}.make_ui ("Click outside to dismiss.")).as_muted)
 			window.show_popover (col, 96.0, 46.0, 260.0)
+		end
+
+	cal: SW_CALENDAR
+
+	date_us, date_iso: SW_DATE_PICKER
+
+	time_12, time_24: SW_TIME_PICKER
+
+	on_calendar_picked (a_y, a_m, a_d: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "calendar: " + a_y.out + {STRING_32} "-" + a_m.out + {STRING_32} "-" + a_d.out)
+		end
+
+	on_date_changed (a_y, a_m, a_d: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "date picked: " + a_y.out + {STRING_32} "-" + a_m.out + {STRING_32} "-" + a_d.out)
 		end
 
 	fleet_grid: SW_DATA_GRID [TUPLE [name: STRING_32; wave: INTEGER; category: STRING_32]]

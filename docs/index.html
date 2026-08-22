@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-59%2F59-brightgreen.svg" alt="59/59 tests">
+            <img src="https://img.shields.io/badge/tests-67%2F67-brightgreen.svg" alt="67/67 tests">
         </div>
     </header>
 
@@ -55,7 +55,7 @@
                 themes swap live, and the whole face is testable headless.
             </p>
             <p>
-                52 pages cover every class shipped across Waves 1-2, Wave 3's first
+                60 pages cover every class shipped across Waves 1-2, Wave 3's first
                 batch, and one planned control kept visible on purpose; the catalog (specs/S02) plans
                 coverage of the full desktop-and-web widget union across six waves.
                 Part of the <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem.
@@ -356,6 +356,44 @@
                     <p>The crown: typed columns, numeric sort, live filter, object-stable selection.</p>
                 </div>
             </div>
+            <h3 class="gallery-group">Culture & pickers (Wave 3)</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_locale.html">SW_LOCALE</a></h3>
+                    <p>Cultural truth: date order, week start, clock - US default, settable per control.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_calendar.html">SW_CALENDAR</a></h3>
+                    <p>A month on simple_datetime; week opens on the locale's first day.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_date_picker.html">SW_DATE_PICKER</a></h3>
+                    <p>Locale-ordered typing, invalid tint, calendar popover.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_time_picker.html">SW_TIME_PICKER</a></h3>
+                    <p>12/24-hour per culture - generous in, exact out.</p>
+                </div>
+            </div>
+            <h3 class="gallery-group">Culture & pickers (Wave 3)</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_locale.html">SW_LOCALE</a></h3>
+                    <p>Cultural truth: date order, week start, clock - US default, settable per control.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_calendar.html">SW_CALENDAR</a></h3>
+                    <p>A month on simple_datetime; week opens on the locale's first day.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_date_picker.html">SW_DATE_PICKER</a></h3>
+                    <p>Locale-ordered typing, invalid tint, calendar popover.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_time_picker.html">SW_TIME_PICKER</a></h3>
+                    <p>12/24-hour per culture - generous in, exact out.</p>
+                </div>
+            </div>
             <h3 class="gallery-group">Services</h3>
             <div class="feature-grid">
                 <div class="feature-card">
@@ -378,7 +416,7 @@
             <p>
                 The library ships a test target that drives the model layer headless - including
                 drawing, via a painter over an offscreen cairo surface - with <em>every assertion
-                live</em> (F_code with contracts kept). 59 tests across eight assault sets; the suite
+                live</em> (F_code with contracts kept). 67 tests across nine assault sets; the suite
                 caught three real defects on its first day (a truncation alias in list row math, a
                 clipboard race against history managers, and an ECF namespace clash).
             </p>

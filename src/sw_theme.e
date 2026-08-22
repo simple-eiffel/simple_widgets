@@ -24,6 +24,7 @@ feature {NONE} -- Initialization
 			-- The documented light palette: every value carried a
 			-- computed WCAG check when it was first specified.
 		do
+			create locale.make_us
 			background := 0xE9ECF1
 			surface := 0xFFFFFF
 			surface_variant := 0xF5F7FA
@@ -46,6 +47,7 @@ feature {NONE} -- Initialization
 	make_dark
 			-- The dark scheme proven on the capture strip.
 		do
+			create locale.make_us
 			background := 0x14181F
 			surface := 0x1C222B
 			surface_variant := 0x232A35
@@ -85,6 +87,13 @@ feature {NONE} -- Initialization
 			size_chip := 11.0
 			line_height := 30.0
 		end
+
+feature -- Culture
+
+	locale: SW_LOCALE
+			-- Cultural presentation truth (date order, week start,
+			-- clock style). US by default; swap with `set_locale',
+			-- or override per control on regional widgets.
 
 feature -- Surfaces
 
@@ -126,6 +135,13 @@ feature -- Metrics
 	line_height: REAL_64
 
 feature -- Element change
+
+	set_locale (a_locale: SW_LOCALE)
+		do
+			locale := a_locale
+		ensure
+			set: locale = a_locale
+		end
 
 	set_surfaces (a_background, a_surface, a_variant, a_outline, a_ink, a_ink_muted: NATURAL_32)
 			-- Recolour the ground. The invariant still holds: an

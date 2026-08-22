@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_CALENDAR - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_CALENDAR</h1>
+        <p class="tagline">A month of days on simple_datetime: today ringed, the pick filled, the week opening on the locale&#x27;s first day.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_CALENDAR renders a month: title with prev/next chevrons, a day-of-week header <strong>rotated to the effective locale's first day</strong>, six weeks of cells. Today wears an accent ring; the selection an accent fill; out-of-month days are muted but pickable (clicking one moves the shown month with it). <code>on_pick (year, month, day)</code> fires on every day click.</p>
+            <p>All date arithmetic is <strong>SIMPLE_DATE</strong>'s (simple_datetime) - the ecosystem-first rule made the toolkit hand-roll nothing: month stepping wraps years through plus_months/minus_months, and the first-cell computation (<code>first_cell_date</code>) is public and assault-pinned: August 2026 opens on July 26 Sunday-first, July 27 Monday-first.</p>
+            <p class="muted"><em>Source: <code>src/sw_calendar.e</code> &middot; since Wave 3 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Standalone, and inside a picker</h2>
+<pre><code><span class="keyword">create</span> cal.make                      <span class="comment">-- shows the current month</span>
+cal.set_on_pick (<span class="keyword">agent</span> on_picked)
+page.put (cal)
+
+<span class="comment">-- with a culture of its own:</span>
+cal.set_locale (<span class="keyword">create</span> {<span class="type">SW_LOCALE</span>}.make_iso)   <span class="comment">-- Monday-first header</span>
+
+<span class="comment">-- SW_DATE_PICKER builds one of these fresh per popover open</span>
+<span class="comment">-- and hands your date back through the same on_pick shape.</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Month view only (no year/decade zoom navigation yet).</li>
+                <li>Single date selection (ranges are a future with SW_DATE_RANGE support in simple_datetime already waiting).</li>
+                <li>No min/max selectable-date constraints yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The chevron zones are the outer 30px of the title row - clicks on the title text itself deliberately do nothing.</li>
+                <li>select_date is a silent command (shows and selects, fires nothing); only CLICKS fire on_pick - the commands-are-silent convention.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Year and month zoom (click the title to widen).</li>
+                <li>Range selection riding simple_datetime's SIMPLE_DATE_RANGE.</li>
+                <li>Min/max date constraints with muted-and-refusing cells.</li>
+                <li>Week-number rail option.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

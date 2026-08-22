@@ -610,6 +610,18 @@ feature {NONE} -- Popup lifecycle
 			end
 		end
 
+	pp_width_for (a_w: SW_WIDGET): REAL_64
+			-- The width a widget's pending popover opens at: its own
+			-- declared width, else the widget's width, floored.
+		do
+			Result := a_w.pending_popover_width
+			if Result <= 0.0 then
+				Result := a_w.width.max (220.0)
+			end
+		ensure
+			positive: Result > 0.0
+		end
+
 	bubble_click (a_target: SW_WIDGET; a_x, a_y: INTEGER; a_double: BOOLEAN): detachable SW_WIDGET
 			-- Offer the click to the target, then up the parent chain
 			-- until someone consumes it; the consumer takes the pointer
@@ -642,6 +654,10 @@ feature {NONE} -- Popup lifecycle
 				if attached cw.take_pending_menu as pm then
 					show_popup (pm, cw.x.truncated_to_integer,
 						(cw.y + cw.height + 2.0).truncated_to_integer)
+				end
+				if attached cw.take_pending_popover as pp then
+					show_popover (pp, cw.x, cw.y + cw.height + 4.0,
+						pp_width_for (cw))
 				end
 			end
 		end
