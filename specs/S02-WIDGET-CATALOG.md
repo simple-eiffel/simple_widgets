@@ -73,6 +73,39 @@ No carve-outs; the former non-goals become the final waves.
 - WEL-era relics (MDI, rebar, resource-template dialogs) remain the
   sole exclusions unless a consumer demands them.
 
+### Dev mode - SW_INSPECTOR (parked, design pinned 2026-08-22)
+
+Larry's idea, refined over two sessions:
+
+- **Reveal**: in dev mode, right-clicking any widget opens an overlay for it
+  instead of (or stacked above) its normal context menu.
+- **What it shows**: class name (free at runtime via `generating_type`),
+  bounds, grow/min/max, state flags, theme tokens in force - all from the
+  retained tree, zero storage cost.
+- **Metadata protocol** (the non-free half): an opt-in `dev_note` on
+  SW_WIDGET for creator-supplied provenance (library, source class, intent),
+  plus inspector-side reading of agent targets so wiring becomes visible
+  ("this button's click lands in APP.on_save").
+- **Mesh view**: the relationship graph draws as a force-directed mesh -
+  springs on parent/child and agent edges, charge repulsion between nodes,
+  a few dozen relaxation ticks. Same physics family as EiffelStudio's
+  Diagram Tool, which is the precedent Larry remembered.
+- **AI-assist hook**: a narrator that explains *why* a widget looks as it
+  does (which token, which state, which contract) fits here later.
+- **Introspection engine** (Larry, 2026-08-22): model on Eiffel's own
+  reflection - `REFLECTOR` / `TYPE [G]` (successor to `INTERNAL`):
+  `field_count`, `field_name`, `field (i)`, dynamic types, generics, and
+  `generating_type` free on every object. The inspector enumerates any
+  widget's attributes and live values generically; `dev_note` covers only
+  what reflection cannot know (intent, provenance, wiring rationale).
+- **Two gates** (Larry, 2026-08-22): compile-time shutout via Eiffel's
+  `debug ("dev_mode")` instruction - stripped unless the ECF target sets
+  `<debug name="dev_mode" enabled="true"/>`, so production binaries carry
+  neither the machinery nor the menu item (same axis as DBC: baked into
+  dev/fat builds, absent from lean release). Dev-time gate: a top-menu
+  "Dev Mode" toggle, itself inside the debug block, that opens control
+  right-click reveals and the mesh display with metadata.
+
 ## 3. Theming commitments (from today's QA)
 
 - R7 doctrine: nothing native, everything drawn - the menu that

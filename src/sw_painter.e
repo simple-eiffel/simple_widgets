@@ -157,6 +157,20 @@ feature -- Shapes
 			fill_rect (a_x, a_y, 1.0, a_h)
 		end
 
+feature -- Images
+
+	draw_image (a_img: CAIRO_SURFACE; a_x, a_y, a_w, a_h: REAL_64)
+			-- Paint `a_img' scaled into the a_w x a_h box at (a_x, a_y).
+		require
+			loaded: a_img.width > 0 and a_img.height > 0
+			positive_box: a_w > 0.0 and a_h > 0.0
+		do
+			context.save.do_nothing
+			context.translate (a_x, a_y).scale (a_w / a_img.width, a_h / a_img.height).do_nothing
+			context.set_source_surface (a_img, 0.0, 0.0).paint.do_nothing
+			context.restore.do_nothing
+		end
+
 feature {NONE} -- Implementation
 
 	rrect_path (a_x, a_y, a_w, a_h, a_r: REAL_64)

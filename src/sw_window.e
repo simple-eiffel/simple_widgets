@@ -169,6 +169,16 @@ feature {NONE} -- Dispatch
 
 	dispatch (a_type, a_x, a_y: INTEGER)
 		do
+			if a_type = 7 then
+					-- The heartbeat is global: toasts age and the frame
+					-- echo flushes no matter which phase owns the pointer.
+					-- A popup must never freeze the window's clock.
+				age_toasts
+			elseif a_type = 16 then
+					-- Likewise the surface: a resize that arrives while a
+					-- dialog or popup is open must still reallocate.
+				resize_surface (a_x, a_y)
+			end
 			if attached dialog as d then
 				dispatch_to_dialog (d, a_type, a_x, a_y)
 			elseif attached popup as m then
@@ -203,10 +213,6 @@ feature {NONE} -- Dispatch
 				end
 			when 6 then
 				blit
-			when 7 then
-				age_toasts
-			when 16 then
-				resize_surface (a_x, a_y)
 			else
 			end
 		end
@@ -327,10 +333,6 @@ feature {NONE} -- Dispatch internals
 				after_input
 			when 6 then
 				blit
-			when 7 then
-				age_toasts
-			when 16 then
-				resize_surface (a_x, a_y)
 			else
 			end
 		end
@@ -425,7 +427,6 @@ feature {NONE} -- Dispatch internals
 						after_input
 					end
 				end
-				age_toasts
 			when 13 then
 				update_hover (a_x, a_y)
 			when 14 then
@@ -439,8 +440,7 @@ feature {NONE} -- Dispatch internals
 					pick_from (w, a_x, a_y)
 				end
 				after_input
-			when 16 then
-				resize_surface (a_x, a_y)
+
 			when 15 then
 				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
 					bubble_wheel (w, ev_buf.read_integer_32 (12))

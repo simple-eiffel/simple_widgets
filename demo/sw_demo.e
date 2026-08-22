@@ -21,6 +21,7 @@ feature {NONE} -- Initialization
 			chips: SW_ROW
 			buttons: SW_ROW
 			grp: SW_GROUP
+			pw: SW_TEXT_BOX
 		do
 			create theme.make_dark
 			create counter_label.make ("clicks: 0  %/8212/ buttons report HERE", {SW_PAINTER}.Role_mono, 14.0, True)
@@ -35,9 +36,24 @@ feature {NONE} -- Initialization
 			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on runing untill the wrap engine breaks the line exactly where the measured advances say it must.")
 			create menubar.make
 			create statusbar.make
-			create window.make ("simple_widgets demo", 2200, 10, 900, 1180, theme)
+			create combo.make_with_options
+			create toolbar.make
+			create window.make ("simple_widgets demo", 2200, 10, 900, 1600, theme)
 				-- agents only from here down: every attached attribute is set
 			create danger_button.make ("Danger", Void)
+			toolbar.add_tool ("New", "Start fresh (decorative)", True, agent on_menu_new)
+			toolbar.add_tool ("Save", "Save (decorative)", True, agent on_menu_save)
+			toolbar.add_gap
+			toolbar.add_toggle ("Bold", "Latches %/8212/ the status bar reports it", False, agent on_tool_flip)
+			toolbar.add_toggle ("Italic", "Latches %/8212/ the status bar reports it", False, agent on_tool_flip)
+			toolbar.add_gap
+			toolbar.add_tool ("Broken", "A disabled tool stays muted", False, Void)
+			combo.add_option ("Cairo")
+			combo.add_option ("Vision2")
+			combo.add_option ("WEL")
+			combo.add_option ("simple_widgets")
+			combo.set_on_change (agent on_combo_changed)
+			combo.set_tooltip ("An editable dropdown %/8212/ type freely, or pick via the chevron")
 			danger_button.set_on_click (agent on_log_only)
 			danger_button.set_kind ({SW_BUTTON}.Kind_danger)
 			danger_button.set_tooltip ("A danger-kind button %/8212/ arm or disarm me with the checkbox")
@@ -53,6 +69,7 @@ feature {NONE} -- Initialization
 			menubar.add_menu ("Widgets", agent widgets_menu)
 			menubar.add_menu ("Help", agent help_menu)
 			root.put (menubar)
+			root.put (toolbar)
 
 			root.put (create {SW_LABEL}.make ("simple_widgets", {SW_PAINTER}.Role_ui, 20.0, True))
 			root.put ((create {SW_LABEL}.make_mono ("the toolkit above simple_cairo %/183/ no Vision2 %/183/ no boilerplate")).as_muted)
@@ -98,14 +115,22 @@ feature {NONE} -- Initialization
 			edit_box.set_on_change (agent on_text_changed)
 			kind_select.set_on_change (agent on_kind_changed)
 			card.put (edit_box)
+			card.put ((create {SW_LABEL}.make_ui ("SW_COMBO %/8212/ editable + chevron %/183/ make_password %/8212/ bullets, no copy, no spellcheck")).as_muted)
+			create buttons.make
+			buttons.put (combo)
+			create pw.make_password ("hunter2")
+			pw.set_tooltip ("A password box %/8212/ the eye reveals, the clipboard still never sees the secret")
+			buttons.put (pw.growing)
+			card.put (buttons)
 			root.put (card)
 
 			root.put (scroll_split_card (theme))
 			root.put (tabs_card (theme))
-			statusbar.set_left ("ready %/8212/ every pixel drawn by simple_widgets")
-			statusbar.set_right ("29 widgets and counting")
-			root.put (statusbar)
 			root.put (list_card (theme))
+			statusbar.set_left ("ready %/8212/ every pixel drawn by simple_widgets")
+			statusbar.set_right ("36 widgets and counting")
+			root.put (create {SW_SPACER}.make)
+			root.put (statusbar)
 
 			window.set_root (root)
 			window.run
@@ -133,6 +158,11 @@ feature {NONE} -- Initialization
 			create nb.make (50, 0, 100, agent on_number_changed)
 			page.put (nb)
 			tabs.add_page ("Number Box", page)
+			create page.make
+			page := page.with_gap (10.0)
+			page.put (create {SW_LABEL}.make_ui ("A PNG loaded by cairo, contain-scaled and centered by SW_IMAGE"))
+			page.put ((create {SW_IMAGE}.make_from_file ("D:/prod/simple_widgets/docs/images/logo.png")).with_display_height (170.0))
+			tabs.add_page ("Picture", page)
 			tabs.set_on_change (agent on_tab_changed)
 			create Result.make_striped (a_theme.warning)
 			Result.put ((create {SW_LABEL}.make_ui ("SW_TABS %/8212/ pages swap; hover the bar")).as_muted)
@@ -293,6 +323,30 @@ feature {NONE} -- Behaviour
 				"A drawn widget toolkit for Eiffel on pure Win32 %/8212/ no Vision2, no GTK, no native controls. Every pixel here, including this dialog and the menu you just used, is painted by the toolkit itself.")
 			d.add_button ("Nice", True, Void)
 			window.show_dialog (d)
+		end
+
+	combo: SW_COMBO
+
+	toolbar: SW_TOOLBAR
+
+	on_combo_changed
+		do
+			statusbar.set_left ({STRING_32} "combo: " + combo.text)
+		end
+
+	on_tool_flip
+		do
+			statusbar.set_right ({STRING_32} "bold " + on_off (toolbar.is_tool_on ("Bold"))
+				+ {STRING_32} " %/183/ italic " + on_off (toolbar.is_tool_on ("Italic")))
+		end
+
+	on_off (a_on: BOOLEAN): STRING_32
+		do
+			if a_on then
+				Result := {STRING_32} "on"
+			else
+				Result := {STRING_32} "off"
+			end
 		end
 
 	kind_select: SW_SELECT

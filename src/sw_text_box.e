@@ -24,7 +24,7 @@ inherit
 		end
 
 create
-	make, make_single_line
+	make, make_single_line, make_password
 
 feature {NONE} -- Initialization
 
@@ -52,6 +52,17 @@ feature {NONE} -- Initialization
 			single: is_single_line
 		end
 
+	make_password (a_text: READABLE_STRING_GENERAL)
+			-- One masked line: bullets on screen, no copy to the
+			-- clipboard, no spellcheck peeking at the secret.
+		do
+			make_single_line (a_text)
+			is_masked := True
+		ensure
+			single: is_single_line
+			masked: is_masked
+		end
+
 feature -- Access
 
 	text: STRING_32
@@ -65,6 +76,20 @@ feature -- Access
 	spell_ranges: ARRAYED_LIST [TUPLE [lo, hi: INTEGER]]
 			-- Misspelled ranges from the inbox checker; refreshed
 			-- lazily after edits.
+
+	is_masked: BOOLEAN
+			-- Draw bullets instead of characters? Masked boxes also
+			-- refuse clipboard copy and skip spellcheck.
+
+	is_revealed: BOOLEAN
+			-- Eye toggled open? A view change only: copy stays denied
+			-- and spellcheck still never sees the text.
+
+	is_hiding: BOOLEAN
+			-- Are characters drawn as bullets right now?
+		do
+			Result := is_masked and not is_revealed
+		end
 
 	is_spellcheck_enabled: BOOLEAN
 
@@ -185,10 +210,12 @@ feature -- Clipboard and selection commands
 		end
 
 	copy_selection
+			-- Masked boxes never surrender their text to the
+			-- clipboard - copying from one is a silent no-op.
 		local
 			clip: SW_CLIPBOARD
 		do
-			if has_selection then
+			if has_selection and not is_masked then
 				create clip
 				clip.set_text (selected_text)
 			end
@@ -230,14 +257,20 @@ feature -- Clipboard and selection commands
 feature -- Element change
 
 	set_text (a_text: READABLE_STRING_GENERAL)
+			-- Swap the whole text. Every selection artifact of the old
+			-- text dies with it - ranges into a vanished string are
+			-- exactly the invariant breach DBC exists to forbid.
 		do
 			create text.make_from_string_general (a_text)
 			caret := caret.min (text.count)
 			sel_anchor := caret
+			extra_ranges.wipe_out
 			layout_width := -1.0
+			spell_dirty := True
 		ensure
 			kept: text.same_string_general (a_text)
 			caret_in_range: caret <= text.count
+			no_stale_extras: extra_ranges.is_empty
 		end
 
 	set_on_change (a_action: PROCEDURE)
@@ -258,6 +291,26 @@ feature -- Element change
 			spell_dirty := True
 		ensure
 			set: is_spellcheck_enabled = a_on
+		end
+
+	set_masked (a_on: BOOLEAN)
+		do
+			is_masked := a_on
+			layout_width := -1.0
+			spell_dirty := True
+		ensure
+			set: is_masked = a_on
+		end
+
+	toggle_reveal
+			-- Flip the eye: show or hide the secret on screen.
+		require
+			masked_box: is_masked
+		do
+			is_revealed := not is_revealed
+			layout_width := -1.0
+		ensure
+			flipped: is_revealed = not (old is_revealed)
 		end
 
 feature -- Layout
@@ -316,7 +369,7 @@ feature -- Drawing
 				else
 					a_p.set_color (t.ink)
 				end
-				a_p.text (gx, gy, text.substring (i, i))
+				a_p.text (gx, gy, glyph (i))
 				i := i + 1
 			end
 			refresh_spelling
@@ -341,6 +394,21 @@ feature -- Drawing
 				a_p.set_color (t.danger)
 				a_p.fill_rect (cx, cy - 16.0, 2.0, 23.0)
 			end
+			if is_masked then
+					-- the reveal eye: almond, iris, and a slash while open
+				cx := x + width - 19.0
+				cy := y + height / 2.0
+				if is_revealed or shows_hover then
+					a_p.set_color (t.ink)
+				else
+					a_p.set_color (t.ink_muted)
+				end
+				a_p.rrect_stroke (cx - 8.0, cy - 4.5, 16.0, 9.0, 4.5)
+				a_p.rrect_fill (cx - 2.5, cy - 2.5, 5.0, 5.0, 2.5)
+				if is_revealed then
+					a_p.line (cx - 8.0, cy + 6.0, cx + 8.0, cy - 6.0, 1.6)
+				end
+			end
 		end
 
 feature -- Input
@@ -356,11 +424,15 @@ feature -- Input
 		local
 			keys: SW_KEYS
 		do
-			create keys
-			caret := offset_at (a_px, a_py)
-			if not keys.shift_down then
-				sel_anchor := caret
-				extra_ranges.wipe_out
+			if is_masked and then a_px >= x + width - Eye_zone then
+				toggle_reveal
+			else
+				create keys
+				caret := offset_at (a_px, a_py)
+				if not keys.shift_down then
+					sel_anchor := caret
+					extra_ranges.wipe_out
+				end
 			end
 			Result := True
 		end
@@ -496,8 +568,8 @@ feature -- Input
 				end
 				Result.add_separator
 			end
-			Result.add_item ("Cut", "Ctrl+X", has_selection and not is_read_only, agent cut_selection)
-			Result.add_item ("Copy", "Ctrl+C", has_selection, agent copy_selection)
+			Result.add_item ("Cut", "Ctrl+X", has_selection and not is_read_only and not is_masked, agent cut_selection)
+			Result.add_item ("Copy", "Ctrl+C", has_selection and not is_masked, agent copy_selection)
 			Result.add_item ("Paste", "Ctrl+V", clip.has_text and not is_read_only, agent paste_clipboard)
 			Result.add_separator
 			Result.add_item ("Select All", "Ctrl+A", text.count > 0, agent select_all)
@@ -555,6 +627,9 @@ feature -- Input
 
 feature {NONE} -- Engine
 
+	Eye_zone: REAL_64 = 30.0
+			-- Right-edge click zone of a masked box: the reveal eye.
+
 	Pad_x: REAL_64 = 9.0
 	Pad_y: REAL_64 = 6.0
 
@@ -586,7 +661,7 @@ feature {NONE} -- Engine
 				until
 					i > n
 				loop
-					if text.item (i) = '%N' then
+					if text.item (i) = '%N' and then not is_hiding then
 						lay_x.extend (cx)
 						lay_adv.extend (0.0)
 						lay_line.extend (line)
@@ -595,7 +670,7 @@ feature {NONE} -- Engine
 							cx := 0.0
 						end
 						i := i + 1
-					elseif text.item (i) = ' ' then
+					elseif text.item (i) = ' ' and then not is_hiding then
 						lay_x.extend (cx)
 						lay_adv.extend (a_p.advance (" "))
 						lay_line.extend (line)
@@ -605,7 +680,7 @@ feature {NONE} -- Engine
 						from
 							j := i
 						until
-							j >= n or else text.item (j + 1) = ' ' or else text.item (j + 1) = '%N'
+							j >= n or else (not is_hiding and then (text.item (j + 1) = ' ' or else text.item (j + 1) = '%N'))
 						loop
 							j := j + 1
 						end
@@ -615,7 +690,7 @@ feature {NONE} -- Engine
 						until
 							k > j
 						loop
-							ww := ww + a_p.advance (text.substring (k, k))
+							ww := ww + a_p.advance (glyph (k))
 							k := k + 1
 						end
 						if not is_single_line and then cx > 0.0 and then cx + ww > a_wrap then
@@ -628,7 +703,7 @@ feature {NONE} -- Engine
 							k > j
 						loop
 							lay_x.extend (cx)
-							lay_adv.extend (a_p.advance (text.substring (k, k)))
+							lay_adv.extend (a_p.advance (glyph (k)))
 							lay_line.extend (line)
 							cx := cx + lay_adv.last
 							k := k + 1
@@ -641,6 +716,19 @@ feature {NONE} -- Engine
 		ensure
 			one_slot_per_char: lay_x.count = text.count
 			at_least_one_line: lay_lines >= 1
+		end
+
+	glyph (a_i: INTEGER): STRING_32
+			-- What position `a_i' shows: the character itself, or a
+			-- bullet when masked - secrets have length, not content.
+		require
+			in_text: a_i >= 1 and a_i <= text.count
+		do
+			if is_hiding then
+				Result := {STRING_32} "%/8226/"
+			else
+				Result := text.substring (a_i, a_i)
+			end
 		end
 
 	caret_line: INTEGER
@@ -838,7 +926,7 @@ feature {NONE} -- Engine
 			if spell_dirty then
 				spell_dirty := False
 				spell_ranges.wipe_out
-				if is_spellcheck_enabled then
+				if is_spellcheck_enabled and not is_masked then
 					create sp
 					across
 						sp.misspellings (text) as r
