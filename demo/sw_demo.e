@@ -32,7 +32,7 @@ feature {NONE} -- Initialization
 			kind_select.add_option ("Danger")
 			kind_select.set_tooltip ("Chooses the kind for Toast It %/8212/ picking one previews it")
 			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on runing untill the wrap engine breaks the line exactly where the measured advances say it must.")
-			create window.make ("simple_widgets demo", 2200, 10, 900, 1000, theme)
+			create window.make ("simple_widgets demo", 2200, 10, 900, 1180, theme)
 				-- agents only from here down: every attached attribute is set
 			create danger_button.make ("Danger", Void)
 			danger_button.set_on_click (agent on_log_only)
@@ -91,10 +91,55 @@ feature {NONE} -- Initialization
 			root.put (card)
 
 			root.put (scroll_split_card (theme))
+			root.put (tabs_card (theme))
 			root.put (list_card (theme))
 
 			window.set_root (root)
 			window.run
+		end
+
+	tabs_card (a_theme: SW_THEME): SW_CARD
+			-- SW_TABS hosting a slider page and a number page - both
+			-- wired to visible state per the immediate-feedback rule.
+		local
+			tabs: SW_TABS
+			page: SW_COLUMN
+			sl: SW_SLIDER
+			nb: SW_NUMBER_BOX
+		do
+			create tabs.make
+			create page.make
+			page := page.with_gap (10.0)
+			page.put (create {SW_LABEL}.make_ui ("Drag me %/8212/ the progress bar above follows live"))
+			create sl.make (0.0, agent on_slider_moved)
+			page.put (sl)
+			tabs.add_page ("Slider", page)
+			create page.make
+			page := page.with_gap (10.0)
+			page.put (create {SW_LABEL}.make_ui ("Spin or wheel me %/8212/ the headline reports every change"))
+			create nb.make (50, 0, 100, agent on_number_changed)
+			page.put (nb)
+			tabs.add_page ("Number Box", page)
+			tabs.set_on_change (agent on_tab_changed)
+			create Result.make_striped (a_theme.warning)
+			Result.put ((create {SW_LABEL}.make_ui ("SW_TABS %/8212/ pages swap; hover the bar")).as_muted)
+			Result.put (tabs)
+		end
+
+	on_slider_moved (a_f: REAL_64)
+		do
+			progress.set_fraction (a_f)
+			counter_label.set_text ("slider: " + ((a_f * 100.0).rounded).out + "%%")
+		end
+
+	on_number_changed (a_v: INTEGER)
+		do
+			counter_label.set_text ("number box: " + a_v.out)
+		end
+
+	on_tab_changed (a_i: INTEGER)
+		do
+			window.log_line ("demo: tab " + a_i.out)
 		end
 
 	list_card (a_theme: SW_THEME): SW_CARD
