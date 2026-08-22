@@ -51,6 +51,16 @@ feature -- Access
 
 feature -- Tooling
 
+	aim_at (a_w: SW_WIDGET)
+			-- Aim the pane at `a_w' and light its node when the graph
+			-- holds it - the landing point for dock-side reveals.
+		do
+			mesh.select_widget (a_w)
+			on_node_selected (a_w)
+		ensure
+			aimed: subject = a_w
+		end
+
 	pane_line_count: INTEGER
 			-- How many rows the reveal pane holds right now.
 		do

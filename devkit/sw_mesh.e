@@ -58,6 +58,25 @@ feature -- Access
 			-- Paint every node's class name beside it? (Larry's
 			-- toggle - the hover chip names one; this names all.)
 
+	select_widget (a_w: SW_WIDGET)
+			-- Select the node carrying `a_w'; clears the selection
+			-- when the widget is not in the graph.
+		local
+			i: INTEGER
+		do
+			selected_index := 0
+			from
+				i := 1
+			until
+				i > nodes.count or selected_index > 0
+			loop
+				if nodes.i_th (i).w = a_w then
+					selected_index := i
+				end
+				i := i + 1
+			end
+		end
+
 	toggle_labels
 		do
 			show_labels := not show_labels

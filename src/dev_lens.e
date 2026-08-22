@@ -18,6 +18,11 @@ feature -- Status
 		do
 		end
 
+	observes (a_target: SW_WIDGET): BOOLEAN
+			-- Release lens: observes nothing.
+		do
+		end
+
 feature -- Hooks
 
 	reveal (a_window: SW_WINDOW; a_subject: SW_WIDGET; a_x, a_y: INTEGER)

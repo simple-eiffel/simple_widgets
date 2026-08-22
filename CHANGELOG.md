@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — Wave 3 in progress
 
 ### Added
+- Larry's law: the instrument never inspects the instrument. One seam
+  query - DEV_LENS.observes - exempts the mesh, the studio and every
+  inspector column (parent-chain walk) from hover chips, right-click
+  reveals AND dev-mode middle-click picking. Contract-tested.
+- Dock-aimed reveals: with a docked studio pinned, right-clicking a
+  live-page control no longer goes dark - the lens aims the dock's own
+  pane (studio.aim_at: subject lands, its mesh node lights when the
+  graph holds it) instead of opening a popover that would replace the
+  drawer. SW_MESH.select_widget joins the public surface.
 - Pick-and-drop re-rooting (Larry's cycle): with dev mode on,
   middle-click lifts ANY control as its own pebble; drop it on the
   mesh and the graph rebuilds around it (re_root: new crown, depths
@@ -20,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   text boxes) offer a live edit that drives their PUBLIC set_text with
   every contract armed. Public tooling surface (pane_line_count /
   edit_text / set_edit_text / apply_edit) so tests and future scripts
-  drive the same path a human does. 11 new assaults; suite now 86/86.
+  drive the same path a human does. 13 new assaults; suite now 88/88.
 - SW_MESH (devkit): the widget tree as live physics (repulsion,
   springs, centre gravity on the heartbeat — the Diagram Tool's
   family). Depth-limited harvest (Larry counted 109 nodes and called

@@ -181,6 +181,52 @@ feature -- Re-rooting
 			assert ("re-root announced through on_select", s.subject = s.mesh.nodes.i_th (1).w)
 		end
 
+feature -- The law
+
+	test_lens_ignores_its_own_chrome
+			-- Larry's law: the instrument never inspects the
+			-- instrument - chips, reveals and dev-mode picking all
+			-- gate on DEV_LENS.observes.
+		local
+			lens: DEV_LENS
+			m: SW_MESH
+			s: SW_DEV_STUDIO
+			insp: SW_INSPECTOR
+			free: SW_LABEL
+		do
+			create lens
+			create free.make_ui ("a page widget")
+			assert ("a page widget is observed", lens.observes (free))
+			create m.make_over (deep_root, 2)
+			assert ("the mesh is exempt", not lens.observes (m))
+			create s.make_over (deep_root, 2)
+			assert ("the studio is exempt", not lens.observes (s))
+			assert ("the studio's mesh is exempt through its chain", not lens.observes (s.mesh))
+			create insp.make_for (free)
+			assert ("an inspector column is exempt", not lens.observes (insp))
+			if attached {SW_WIDGET} insp.children.first as row then
+				assert ("a row INSIDE an inspector is exempt via its chain",
+					not lens.observes (row))
+			else
+				assert ("inspector holds rows", False)
+			end
+		end
+
+	test_studio_aim_at_syncs_pane_and_mesh
+		local
+			s: SW_DEV_STUDIO
+			foreign: SW_LABEL
+		do
+			create s.make_over (deep_root, 2)
+			s.aim_at (s.mesh.nodes.i_th (1).w)
+			assert ("aim sets the subject", s.subject = s.mesh.nodes.i_th (1).w)
+			assert_integers_equal ("aim lights the node", 1, s.mesh.selected_index)
+			create foreign.make_ui ("not in the graph")
+			s.aim_at (foreign)
+			assert ("foreign subjects still land in the pane", s.subject = foreign)
+			assert_integers_equal ("no node pretends to hold it", 0, s.mesh.selected_index)
+		end
+
 feature -- Studio
 
 	test_studio_pane_swaps_on_select

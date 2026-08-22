@@ -66,7 +66,8 @@ window.show_drawer (<span class="keyword">create</span> {<span class="type">SW_D
         <section id="gotchas">
             <h2>Bugs &amp; gotchas</h2>
             <ul>
-                <li>One overlay at a time: opening the floating studio replaces any popover; the lens reveal deliberately stays quiet while an overlay is up.</li>
+                <li>Larry's law: the instrument never inspects the instrument - dev chrome (mesh, studio, inspector columns) wears no hover chip, offers no reveal, and cannot be lifted by dev-mode middle-click (DEV_LENS.observes gates all three).</li>
+                <li>With a docked studio pinned, right-clicking a live-page control aims the dock's pane (no popover - it would replace the drawer). With a floating sheet up, the lens stays quiet; use node clicks and the node menu inside.</li>
                 <li>In the dock, an outside click no longer dismisses (that is the point) - close via the pin (unpin, then click away) or Escape with nothing focused.</li>
                 <li>Depth counts from the mesh's root, not the window's: a re-rooted mesh shows frontier badges at its OWN depth limit.</li>
             </ul>

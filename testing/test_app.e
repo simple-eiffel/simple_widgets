@@ -208,6 +208,8 @@ feature {NONE} -- Test runners
 			run_test (agent studio_tests.test_mesh_pebble_hole_types, "mesh_pebble_hole_types")
 			run_test (agent studio_tests.test_mesh_re_root_follows_the_drop, "mesh_re_root_follows_the_drop")
 			run_test (agent studio_tests.test_studio_pane_follows_re_root, "studio_pane_follows_re_root")
+			run_test (agent studio_tests.test_lens_ignores_its_own_chrome, "lens_ignores_its_own_chrome")
+			run_test (agent studio_tests.test_studio_aim_at_syncs_pane_and_mesh, "studio_aim_at_syncs_pane_and_mesh")
 			run_test (agent studio_tests.test_studio_pane_swaps_on_select, "studio_pane_swaps_on_select")
 			run_test (agent studio_tests.test_studio_live_edit_drives_public_setter, "studio_live_edit_drives_public_setter")
 			run_test (agent studio_tests.test_inspector_full_lifts_field_cap, "inspector_full_lifts_field_cap")

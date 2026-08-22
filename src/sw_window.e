@@ -323,6 +323,13 @@ feature -- Sheets
 			Result := root
 		end
 
+	sheet_content: detachable SW_WIDGET
+			-- Whatever overlay is up, for dev tooling (the lens asks
+			-- whether a studio is docked before choosing a popover).
+		do
+			Result := sheet
+		end
+
 	set_on_tick (a_action: PROCEDURE)
 		do
 			on_tick := a_action
@@ -600,10 +607,14 @@ feature {NONE} -- Popup lifecycle
 			when 18 then
 				deliver_drop (a_x, a_y)
 			when 17 then
-				if lens.is_active (is_dev_mode) and then attached target_at (a_x, a_y) as dw then
+				if lens.is_active (is_dev_mode) and then attached target_at (a_x, a_y) as dw
+					and then lens.observes (dw)
+				then
 						-- dev mode arms every control as its own pebble:
 						-- middle-click lifts it, drop it on the mesh to
-						-- re-root the graph there (Larry's cycle)
+						-- re-root the graph there (Larry's cycle). The
+						-- dev tools themselves are exempt (Larry's law:
+						-- the instrument never inspects the instrument).
 					begin_pick (dw, a_x, a_y)
 				elseif attached target_at (a_x, a_y) as w then
 					pick_from (w, a_x, a_y)
@@ -616,9 +627,16 @@ feature {NONE} -- Popup lifecycle
 				end
 				after_input
 			when 11 then
-				if sheet = Void and then lens.is_active (is_dev_mode)
+				if lens.is_active (is_dev_mode)
+					and then (sheet = Void or else
+						((sheet_mode = Mode_left or sheet_mode = Mode_right) and then drawer_pinned))
 					and then attached target_at (a_x, a_y) as dw
+					and then lens.observes (dw)
 				then
+						-- reveal on a bare page, or on the live page
+						-- beside a pinned dock (the lens aims the dock's
+						-- pane); dev chrome is exempt and falls through
+						-- to its own context menus
 					lens.reveal (Current, dw, a_x, a_y)
 					after_input
 				elseif attached target_at (a_x, a_y) as w then
