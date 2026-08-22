@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-74%2F74-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-75%2F75-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -16,8 +16,8 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-🚧 **Waves 1–2 complete, Wave 3 underway** — 59 classes
-- 74 contract-assault tests passing, five consecutive clean runs
+🚧 **Waves 1–2 complete, Wave 3 underway** — 60 classes
+- 75 contract-assault tests passing, five consecutive clean runs
 - Every widget frame-proven in the live showroom (`demo/sw_demo.e`)
 - Windows-only today (the SURFACE layer is Win32); everything above it is portable by design
 
@@ -135,8 +135,9 @@ cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 
 Wave 3 is nearly closed (tree, data grid, calendar/date/time pickers,
 drawers with peek-and-pin, popovers, accordion, stepper, badges, avatars,
-canvas, sheet, colour picker — all shipped); its finale is the dev-mode SW_INSPECTOR
-(SW_DROPZONE shipped: real Explorer drags land) (reflection-driven, compiled
+canvas, sheet, colour picker — all shipped); **Wave 3 is COMPLETE**: SW_DROPZONE
+(real Explorer drags land) and the dev-mode SW_INSPECTOR v1 (hover
+chips + REFLECTOR reveals) closed it (reflection-driven, compiled
 out of release builds via `debug ("dev_mode")`). Then Wave 4 charts on
 SW_PAINTER, Wave 5 enterprise composites (spreadsheet doctrine:
 SHEET -> DATA_GRID -> SPREADSHEET; true docking), Wave 6 media +

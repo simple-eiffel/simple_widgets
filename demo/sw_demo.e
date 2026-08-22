@@ -57,6 +57,7 @@ feature {NONE} -- Initialization
 			create window.make ("simple_widgets demo", 2200, 10, 900, 1600, theme)
 				-- agents only from here down: every attached attribute is set
 			create danger_button.make ("Danger", Void)
+			danger_button.set_dev_note ("armed by the Danger armed check box; fires on_delete")
 			toolbar.add_tool ("New", "Start fresh (decorative)", True, agent on_menu_new)
 			toolbar.add_tool ("Save", "Save (decorative)", True, agent on_menu_save)
 			toolbar.add_gap
@@ -85,6 +86,7 @@ feature {NONE} -- Initialization
 			menubar.add_menu ("File", agent file_menu)
 			menubar.add_menu ("Widgets", agent widgets_menu)
 			menubar.add_menu ("Help", agent help_menu)
+			menubar.add_menu ("Dev", agent dev_menu)
 			root.put (menubar)
 			root.put (toolbar)
 			create body.make
@@ -646,6 +648,28 @@ feature {NONE} -- Behaviour
 			Result.add_item ("Toggle theme", "", True, agent on_toggle_theme)
 			Result.add_item ("Open the drawer", "", True, agent on_open_drawer)
 			Result.add_item ("Open a popover", "", True, agent on_open_popover)
+		end
+
+	dev_menu: SW_MENU
+			-- Only a dev build ever shows this menu: the builder is
+			-- wired inside a debug clause.
+		do
+			create Result.make
+			if window.is_dev_mode then
+				Result.add_item ("Dev Mode: ON  (right-click reveals; hover chips)", "", True, agent on_toggle_dev)
+			else
+				Result.add_item ("Dev Mode: off (click to arm the lens)", "", True, agent on_toggle_dev)
+			end
+		end
+
+	on_toggle_dev
+		do
+			window.toggle_dev_mode
+			if window.is_dev_mode then
+				statusbar.set_left ("dev mode ON %/8212/ right-click any widget")
+			else
+				statusbar.set_left ("dev mode off")
+			end
 		end
 
 	help_menu: SW_MENU

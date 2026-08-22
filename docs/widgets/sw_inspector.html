@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SW_INSPECTOR (planned) - simple_widgets</title>
+    <title>SW_INSPECTOR - simple_widgets</title>
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -11,8 +11,8 @@
         <div class="logo-container">
             <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
         </div>
-        <h1>SW_INSPECTOR (planned)</h1>
-        <p class="tagline">COMING: the dev-mode overlay - reflection-driven widget reveals, a force-directed mesh, compiled out of release builds.</p>
+        <h1>SW_INSPECTOR</h1>
+        <p class="tagline">The dev lens, live: hover chips name any widget; right-click opens a REFLECTOR-powered reveal.</p>
     </header>
 
     <nav>
@@ -30,13 +30,14 @@
     <main>
         <section id="description">
             <h2>Description</h2>
-            <p><strong>This page describes a planned control - nothing here ships yet.</strong> It exists so the design is public while it waits for its dependencies (the popover/overlay primitives later in Wave 3).</p>
+            <p><strong>v1 is SHIPPED.</strong> Arm the lens from the demo's Dev menu: hovering any widget outlines it with a chip naming its class and size; right-clicking opens the REVEAL - a popover built fresh per ask, showing the class and geometry headline, layout hints, state flags, the full parent chain (the app shell narrated), the creator's <code>dev_note</code>, and the REFLECTOR attribute dump: the widget's actual fields with live values - its label, its wired agents, its protocol slots. First photograph: a button confessing label, on_click PROCEDURE, tooltip and kind.</p>
+            <p><strong>A constraint discovered in the building</strong> (now oracle law): finalization strips <code>debug</code>-clauses regardless of ECF keys - they are a workbench facility, and F_code -keep preserves ASSERTIONS, not debug bodies. The release-absence gate therefore rides a different vehicle: a cluster-swapped DEV_FLAGS constant plus dead-code removal (designed in S04); v1 ships the runtime gate (is_dev_mode, off by default, nothing fires without the toggle).</p>
             <p>SW_INSPECTOR is the dev-mode lens over a running face. With dev mode on, right-clicking any widget opens a reveal overlay instead of (or stacked above) its normal context menu, showing: its class (free at runtime via Eiffel's <code>generating_type</code>), bounds, grow/min/max hints, state flags, and the theme tokens in force. The engine is Eiffel's own reflection - <code>REFLECTOR</code> / <code>TYPE</code>: <code>field_count</code>, <code>field_name</code>, <code>field (i)</code> - so any widget's attributes and live values enumerate generically, with zero per-class authoring. An opt-in <code>dev_note</code> on SW_WIDGET carries only what reflection cannot know: intent, provenance, wiring rationale.</p>
             <p>The <strong>mesh view</strong> draws the widget graph as a force-directed network - springs on parent/child and agent edges, charge repulsion between nodes, a few dozen relaxation ticks on the heartbeat - the same physics family as EiffelStudio's Diagram Tool, which is the precedent that inspired it.</p>
             <p><strong>Two gates.</strong> Compile-time: every inspector hook lives inside <code>debug ("dev_mode")</code> instructions, stripped unless the ECF target sets <code>&lt;debug name="dev_mode" enabled="true"/&gt;</code> - production binaries carry neither the machinery nor the menu item, the same axis as Design by Contract itself (present in dev/fat builds, absent from lean releases, enforced by the compiler). Run-time: inside a dev build, a top-menu Dev Mode toggle - itself inside the debug block - opens control-level right-click reveals and the mesh.</p>
             <p><strong>Browser-inspector mining</strong> (Larry, 2026-08-22): the DevTools notions translate almost one-to-one, and three go further here. Element-pick mode (crosshair hover outlines the widget + a chip naming class and bounds - the window already tracks hover); the box-model overlay becomes a LAYOUT overlay (bounds, container padding/gap, grow/min/max annotations); the DOM tree panel is literally <code>SW_TREE [SW_WIDGET]</code> with bidirectional highlight - shipped machinery; the styles pane becomes the S03 appearance model NARRATED (kind + state, which tokens won, why); live CSS editing becomes token tweaking against the running theme - a theme-design tool falling out of the inspector; the event-listeners pane becomes the agent-wiring pane. Beyond the browsers: a CONTRACTS pane showing the live invariants guarding the selected widget, direct object identity (references, not selectors), and the REFLECTOR attribute dump as a props pane for free.</p>
             <p>An <strong>AI-assist narrator</strong> rides later: once structure, state and wiring enumerate, answering 'why does this button look like this?' (which token, which state, which contract) is a small step - and one no desktop toolkit has shipped.</p>
-            <p class="muted"><em>Source: <code>src/sw_inspector.e</code> &middot; since planned - Wave 3 tail; design pinned in specs/S02, 2026-08-22.
+            <p class="muted"><em>Source: <code>src/sw_inspector.e</code> &middot; since Wave 3 finale, v1 SHIPPED (2026-08-22).
             Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
         </section>
 

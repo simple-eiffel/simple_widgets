@@ -101,6 +101,22 @@ feature -- Tree
 				attached tr.selected_node as sn2 and then sn2.label.same_string_general ("a2"))
 		end
 
+feature -- Inspector
+
+	test_inspector_reveals_truth
+		local
+			b: SW_BUTTON
+			ins: SW_INSPECTOR
+		do
+			create b.make ("Probe", Void)
+			b.set_bounds (10.0, 20.0, 100.0, 38.0)
+			b.set_dev_note ("the probe subject")
+			create ins.make_for (b)
+			assert ("headline names the class", ins.summary.has_substring ({STRING_32} "SW_BUTTON"))
+			assert ("headline carries geometry", ins.summary.has_substring ({STRING_32} "100x38"))
+			assert ("a real dossier", ins.line_count >= 8)
+		end
+
 feature -- Dropzone
 
 	test_dropzone_contract

@@ -293,6 +293,19 @@ feature -- Sheets
 	Mode_right: INTEGER = 2
 	Mode_anchored: INTEGER = 3
 
+	is_dev_mode: BOOLEAN
+			-- Is the inspector's lens on? Toggled by the host (a Dev
+			-- menu inside its own debug clause); the reveal and chip
+			-- machinery lives inside debug ("dev_mode") blocks, so
+			-- release targets compile none of it.
+
+	toggle_dev_mode
+		do
+			is_dev_mode := not is_dev_mode
+		ensure
+			flipped: is_dev_mode = not old is_dev_mode
+		end
+
 	on_tick: detachable PROCEDURE
 			-- Fired every heartbeat (250ms) - the application's clock
 			-- for timers, elapsed displays, ambient animation.
@@ -560,7 +573,18 @@ feature {NONE} -- Popup lifecycle
 				end
 				after_input
 			when 11 then
-				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
+				if is_dev_mode and then attached active_root as dr
+					and then attached dr.widget_at (a_x, a_y) as dw
+				then
+						-- the inspector's lens: reveal instead of menu.
+						-- (Compile-time stripping via a DEV_FLAGS
+						-- cluster swap is the S04 design: finalization
+						-- discards debug-clauses, so that vehicle -
+						-- not debug() - carries the release gate.)
+					show_popover (create {SW_INSPECTOR}.make_for (dw),
+						a_x, a_y, 360.0)
+					after_input
+				elseif attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
 					bubble_context (w, a_x, a_y)
 				end
 				after_input
@@ -908,6 +932,20 @@ feature {NONE} -- Rendering
 					pin_x := 0.0
 					pin_y := 0.0
 				end
+			end
+			if is_dev_mode and then attached hovered as hw then
+					painter.set_color (theme.accent)
+					painter.set_line_width (2.0)
+					painter.rrect_stroke (hw.x - 1.5, hw.y - 1.5, hw.width + 3.0, hw.height + 3.0, 3.0)
+					painter.set_line_width (1.0)
+					painter.font ({SW_PAINTER}.Role_mono, 12.0, True)
+					painter.set_color (theme.surface)
+					painter.rrect_fill (hw.x, hw.y - 20.0,
+						painter.advance (hw.generating_type.name_32) + 60.0, 17.0, 3.0)
+					painter.set_color (theme.accent)
+					painter.text (hw.x + 4.0, hw.y - 6.0,
+						hw.generating_type.name_32 + {STRING_32} " "
+						+ hw.width.rounded.out + {STRING_32} "x" + hw.height.rounded.out)
 			end
 			if attached popup as m then
 				m.draw (painter)

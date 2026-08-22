@@ -114,6 +114,7 @@ feature {NONE} -- Test runners
 			run_test (agent tree_color_tests.test_rgb_round_trips, "color_rgb_round_trips")
 			run_test (agent tree_color_tests.test_hex_readout, "color_hex_readout")
 			run_test (agent tree_color_tests.test_dropzone_contract, "dropzone_contract")
+			run_test (agent tree_color_tests.test_inspector_reveals_truth, "inspector_reveals_truth")
 		end
 
 	locale_tests: SW_LOCALE_ASSAULT

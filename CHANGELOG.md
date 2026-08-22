@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — Wave 3 in progress
 
 ### Added
+- SW_INSPECTOR v1 - WAVE 3 COMPLETE. The dev lens: arm via the Dev
+  menu; hovering outlines any widget with a class+size chip;
+  right-click opens the REVEAL popover - class/geometry headline,
+  layout hints, state flags, full parent chain, dev_note, and the
+  REFLECTOR attribute dump (label, wired agents, protocol slots,
+  live values). dev_note/with_dev_note joined the widget spine.
+  DISCOVERY (oracle law): finalization strips debug-clauses no
+  matter the ECF key - the release-absence gate will ride a
+  cluster-swapped DEV_FLAGS constant + dead-code removal (S04);
+  v1 ships the runtime gate. 75/75 assaults.
 - SW_DROPZONE + the file-drop protocol: the pump accepts shell drags
   (DragAcceptFiles) and answers WM_DROPFILES by buffering wide paths
   (clipboard pull pattern) and pushing event 18 with the drop point;

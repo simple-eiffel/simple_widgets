@@ -342,6 +342,25 @@ feature -- Input
 			Result := pebble_item
 		end
 
+	dev_note: detachable STRING_32
+			-- Creator-supplied provenance for the dev-mode inspector:
+			-- intent, wiring rationale - what reflection cannot know.
+
+	set_dev_note (a_note: READABLE_STRING_GENERAL)
+		do
+			create dev_note.make_from_string_general (a_note)
+		ensure
+			noted: dev_note /= Void
+		end
+
+	with_dev_note (a_note: READABLE_STRING_GENERAL): like Current
+		do
+			set_dev_note (a_note)
+			Result := Current
+		ensure
+			chained: Result = Current
+		end
+
 	accepts_files: BOOLEAN
 			-- Does this widget welcome files dropped from the shell?
 			-- The pebble protocol's file-shaped sibling.
