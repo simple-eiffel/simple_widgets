@@ -272,6 +272,9 @@ feature {NONE} -- Test runners
 			run_test (agent chart_tests.test_heatmap_slots_and_flat_honesty, "heatmap_slots_and_flat_honesty")
 			run_test (agent chart_tests.test_treemap_areas_are_shares, "treemap_areas_are_shares")
 			run_test (agent chart_tests.test_treemap_tiles_cover_and_answer, "treemap_tiles_cover_and_answer")
+			run_test (agent chart_tests.test_sankey_throughput_is_max_flow, "sankey_throughput_is_max_flow")
+			run_test (agent chart_tests.test_sankey_heights_proportional_in_column, "sankey_heights_proportional_in_column")
+			run_test (agent chart_tests.test_sankey_moorings_stack_contiguously, "sankey_moorings_stack_contiguously")
 		end
 
 	chart_tests: SW_CHART_ASSAULT

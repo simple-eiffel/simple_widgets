@@ -204,6 +204,28 @@ feature -- Paths
 			context.fill.do_nothing
 		end
 
+feature -- Ribbons
+
+	ribbon_fill (a_x0, a_y0_top, a_y0_bot, a_x1, a_y1_top, a_y1_bot: REAL_64)
+			-- A filled band between two vertical edges, its top and
+			-- bottom rails cubic beziers with midpoint control - the
+			-- sankey ribbon (the painter gains curves here, as the
+			-- roadmap said it would).
+		require
+			edges_ordered: a_y0_bot >= a_y0_top and a_y1_bot >= a_y1_top
+		local
+			mid: REAL_64
+		do
+			mid := (a_x0 + a_x1) / 2.0
+			context.new_path.do_nothing
+			context.move_to (a_x0, a_y0_top).do_nothing
+			context.curve_to (mid, a_y0_top, mid, a_y1_top, a_x1, a_y1_top).do_nothing
+			context.line_to (a_x1, a_y1_bot).do_nothing
+			context.curve_to (mid, a_y1_bot, mid, a_y0_bot, a_x0, a_y0_bot).do_nothing
+			context.close_path.do_nothing
+			context.fill.do_nothing
+		end
+
 feature -- Wedges
 
 	wedge_fill (a_cx, a_cy, a_r_out, a_r_in, a_a0, a_a1: REAL_64)

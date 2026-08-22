@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (Wave 4, movement five - Flows)
+- SW_SANKEY: nodes in explicit columns (add_link requires rightward
+  flow by contract), bar heights proportional to THROUGHPUT (the
+  larger of inflow/outflow - imbalance shows as uncovered bar, which
+  is the diagram telling the truth), and every link a cubic-bezier
+  ribbon: SW_PAINTER gained ribbon_fill, curves arriving exactly
+  where the roadmap said they would. Moorings stack contiguously down
+  each bar - assaulted to exactness - and hover names a node's in/out.
+- 3 new assaults (throughput-is-max-flow, in-column proportionality,
+  contiguous moorings filling the bar): suite 120/120.
+
 ### Added (Wave 4, movement four - Densities)
 - SW_HEATMAP: rows-by-columns heat on a channel-wise two-colour blend
   (surface to accent) - blend math public and assaulted at endpoints

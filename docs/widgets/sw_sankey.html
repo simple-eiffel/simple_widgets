@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SANKEY - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SANKEY</h1>
+        <p class="tagline">Flow as bezier ribbons between columned nodes - throughput heights, stacked moorings, hover in/out totals.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Nodes are assigned to columns (<code>add_node</code> returns the id; <code>add_link</code> requires rightward flow by contract). A node's <strong>throughput</strong> is the larger of its inflow and outflow - that drives its bar height, proportional within each column. Every link becomes a <strong>cubic-bezier ribbon</strong>: the painter gained <code>ribbon_fill</code> (two curved rails, midpoint control) exactly where the roadmap said curves would arrive. Ribbons moor at STACKED offsets down each bar - the assault proves the moorings are contiguous and fill the source bar exactly.</p>
+            <p>Ribbons wash in their source's colour at 35% alpha, bars draw over them, labels sit left of the first column and right of the rest. Hovering a bar names the node with its in and out totals - imbalance is visible truth, not an error. The layout is public math: <code>refresh_layout</code>, <code>node_rects</code>, <code>link_bands</code>, <code>throughput_of</code>, all assaulted headless.</p>
+            <p class="muted"><em>Source: <code>src/sw_sankey.e</code> &middot; since Wave 4, Flows (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A pipeline as ribbons</h2>
+<pre><code><span class="keyword">create</span> sk.make
+n1 := sk.add_node (<span <span class="keyword">class</span>="string">&quot;captured&quot;</span>, 1)
+n2 := sk.add_node (<span <span class="keyword">class</span>="string">&quot;<span class="type">OCR</span> clean&quot;</span>, 2)
+n3 := sk.add_node (<span <span class="keyword">class</span>="string">&quot;<span class="type">OCR</span> fail&quot;</span>, 2)
+n4 := sk.add_node (<span <span class="keyword">class</span>="string">&quot;exported&quot;</span>, 3)
+sk.add_link (n1, n2, 870.0)
+sk.add_link (n1, n3, 130.0)
+sk.add_link (n2, n4, 640.0)
+page.put (sk.with_title (<span <span class="keyword">class</span>="string">&quot;the pipeline <span class="keyword">as</span> ribbons&quot;</span>))</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Ribbon hit-testing is a stated future - hover answers on NODE bars today.</li>
+                <li>Link order is add order; no crossing minimization yet.</li>
+                <li>Columns are explicit - no automatic layering from the link graph.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>add_link's contract demands source.column < target.column - back-edges and same-column links are refused, not drawn badly.</li>
+                <li>A node whose flows are imbalanced shows it: ribbons cover only part of the taller side's bar. That is the diagram telling the truth.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Ribbon hover (nearest-band math); crossing reduction; automatic column layering.</li>
+                <li>value labels on thick ribbons.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

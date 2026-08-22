@@ -737,6 +737,8 @@ feature {NONE} -- Behaviour
 			pair: SW_COLUMN
 			hm: SW_HEATMAP
 			tm: SW_TREEMAP
+			sk: SW_SANKEY
+			n1, n2, n3, n4, n5: INTEGER
 			i, j: INTEGER
 		do
 			create Result.make
@@ -808,6 +810,18 @@ feature {NONE} -- Behaviour
 			tm.add_item ("devkit", 5.0)
 			tm.add_item ("Events", 1.0)
 			Result.put (tm.with_title ("the library as areas %/8212/ hover a tile"))
+			create sk.make
+			n1 := sk.add_node ("captured", 1)
+			n2 := sk.add_node ("OCR clean", 2)
+			n3 := sk.add_node ("OCR fail", 2)
+			n4 := sk.add_node ("exported", 3)
+			n5 := sk.add_node ("review", 3)
+			sk.add_link (n1, n2, 870.0)
+			sk.add_link (n1, n3, 130.0)
+			sk.add_link (n2, n4, 640.0)
+			sk.add_link (n2, n5, 230.0)
+			sk.add_link (n3, n5, 130.0)
+			Result.put (sk.with_title ("the pipeline as ribbons %/8212/ hover a node for in/out"))
 		end
 
 	perf_chart: SW_LINE_CHART

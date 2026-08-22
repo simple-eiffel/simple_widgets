@@ -354,4 +354,71 @@ feature -- Densities
 				tm.percent_of (1) + tm.percent_of (2) + tm.percent_of (3), 0.000_1)
 		end
 
+feature -- Flows
+
+	test_sankey_throughput_is_max_flow
+		local
+			s: SW_SANKEY
+			a, b, c: INTEGER
+		do
+			create s.make
+			a := s.add_node ("a", 1)
+			b := s.add_node ("b", 2)
+			c := s.add_node ("c", 3)
+			s.add_link (a, b, 100.0)
+			s.add_link (b, c, 60.0)
+			assert_reals_equal ("a source's throughput is its outflow", 100.0, s.throughput_of (a), 0.000_1)
+			assert_reals_equal ("a middle node takes the LARGER flow", 100.0, s.throughput_of (b), 0.000_1)
+			assert_reals_equal ("a sink's throughput is its inflow", 60.0, s.throughput_of (c), 0.000_1)
+		end
+
+	test_sankey_heights_proportional_in_column
+		local
+			s: SW_SANKEY
+			a, b, c, d: INTEGER
+		do
+			create s.make
+			a := s.add_node ("a", 1)
+			b := s.add_node ("big", 2)
+			c := s.add_node ("small", 2)
+			d := s.add_node ("d", 3)
+			s.add_link (a, b, 75.0)
+			s.add_link (a, c, 25.0)
+			s.add_link (b, d, 75.0)
+			s.add_link (c, d, 25.0)
+			s.set_bounds (0.0, 0.0, 500.0, 340.0)
+			s.refresh_layout
+			assert_reals_equal ("column heights carry the 3:1 ratio",
+				3.0, s.node_rects [b].rh / s.node_rects [c].rh, 0.000_1)
+			assert_integers_equal ("a bar answers at its centre", b,
+				s.node_at (s.node_rects [b].rx + 2.0,
+					s.node_rects [b].ry + s.node_rects [b].rh / 2.0))
+		end
+
+	test_sankey_moorings_stack_contiguously
+		local
+			s: SW_SANKEY
+			a, b, c, d: INTEGER
+		do
+			create s.make
+			a := s.add_node ("src", 1)
+			b := s.add_node ("t1", 2)
+			c := s.add_node ("t2", 2)
+			d := s.add_node ("t3", 2)
+			s.add_link (a, b, 50.0)
+			s.add_link (a, c, 30.0)
+			s.add_link (a, d, 20.0)
+			s.set_bounds (0.0, 0.0, 500.0, 340.0)
+			s.refresh_layout
+			assert_reals_equal ("the first mooring starts at the bar top",
+				s.node_rects [a].ry, s.link_bands [1].y0_top, 0.000_1)
+			assert_reals_equal ("the second moors where the first ends",
+				s.link_bands [1].y0_bot, s.link_bands [2].y0_top, 0.000_1)
+			assert_reals_equal ("the third moors where the second ends",
+				s.link_bands [2].y0_bot, s.link_bands [3].y0_top, 0.000_1)
+			assert_reals_equal ("and the stack fills the bar exactly",
+				s.node_rects [a].ry + s.node_rects [a].rh,
+				s.link_bands [3].y0_bot, 0.000_1)
+		end
+
 end
