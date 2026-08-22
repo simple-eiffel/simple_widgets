@@ -23,8 +23,15 @@ feature {NONE} -- Initialization
 		do
 			create theme.make_light
 			create counter_label.make ("clicks: 0  %/8212/ buttons report HERE", {SW_PAINTER}.Role_mono, 14.0, True)
+			create progress.make (0.0)
+			progress.set_shows_caption (True)
 			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on running until the wrap engine breaks the line exactly where the measured advances say it must.")
 			create window.make ("simple_widgets demo", 8, 8, 900, 560, theme)
+				-- agents only from here down: every attached attribute is set
+			create danger_button.make ("Danger", Void)
+			danger_button.set_on_click (agent on_log_only)
+			danger_button.set_kind ({SW_BUTTON}.Kind_danger)
+			danger_button.set_tooltip ("A danger-kind button %/8212/ arm or disarm me with the checkbox")
 			window.add_font ("D:\prod\simple_narrate\fonts\Archivo.ttf").do_nothing
 			window.add_font ("D:\prod\simple_narrate\fonts\Literata.ttf").do_nothing
 			window.add_font ("D:\prod\simple_narrate\fonts\IBMPlexMono.ttf").do_nothing
@@ -49,12 +56,14 @@ feature {NONE} -- Initialization
 
 			create card.make_striped (theme.accent)
 			card.put (counter_label)
+			card.put (progress)
 			create buttons.make
-			buttons.put (create {SW_BUTTON}.make_primary ("Click Me", agent on_click_me))
+			buttons.put ((create {SW_BUTTON}.make_primary ("Click Me", agent on_click_me)).with_tooltip ("Adds 10%% to the progress bar"))
 			buttons.put (create {SW_BUTTON}.make ("Log Only", agent on_log_only))
 			buttons.put ((create {SW_BUTTON}.make ("Disabled", Void)).disabled)
 			buttons.put (create {SW_BUTTON}.make ("Dark / Light", agent on_toggle_theme))
-			buttons.put ((create {SW_BUTTON}.make ("Danger", agent on_log_only)).as_kind ({SW_BUTTON}.Kind_danger))
+			buttons.put (danger_button)
+			buttons.put (create {SW_CHECK_BOX}.make ("Danger armed", True, agent on_toggle_danger))
 			card.put (buttons)
 			root.put (card)
 
@@ -80,7 +89,19 @@ feature {NONE} -- Behaviour
 		do
 			clicks := clicks + 1
 			counter_label.set_text ("clicks: " + clicks.out + "  %/8212/ Click Me works!")
+			progress.set_fraction ((clicks.to_double / 10.0).min (1.0))
 			window.log_line ("demo: clicked " + clicks.out)
+		end
+
+	progress: SW_PROGRESS
+
+	danger_button: SW_BUTTON
+
+	on_toggle_danger
+		do
+			danger_button.set_enabled (not danger_button.is_enabled)
+			counter_label.set_text ("Danger " + (if danger_button.is_enabled then "armed" else "disarmed" end))
+			window.log_line ("demo: danger toggled")
 		end
 
 	on_log_only

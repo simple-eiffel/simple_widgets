@@ -108,6 +108,17 @@ feature -- Shapes
 			context.set_line_width (a_w).do_nothing
 		end
 
+	line (a_x1, a_y1, a_x2, a_y2, a_width: REAL_64)
+			-- A stroked segment in the current colour.
+		require
+			positive_width: a_width > 0.0
+		do
+			context.set_line_width (a_width).do_nothing
+			context.move_to (a_x1, a_y1).line_to (a_x2, a_y2).do_nothing
+			context.stroke.do_nothing
+			context.set_line_width (1.0).do_nothing
+		end
+
 	hline (a_x, a_y, a_w: REAL_64)
 			-- Theme-outline horizontal hairline.
 		do

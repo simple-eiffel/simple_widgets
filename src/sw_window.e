@@ -273,6 +273,16 @@ feature {NONE} -- Dispatch
 					capture := Void
 					after_input
 				end
+			when 7 then
+				if attached hovered as hw and then not hw.tooltip.is_empty
+					and then not tooltip_visible
+				then
+					dwell_ticks := dwell_ticks + 1
+					if dwell_ticks >= 1 then
+						tooltip_visible := True
+						after_input
+					end
+				end
 			when 13 then
 				update_hover (a_x, a_y)
 			when 14 then
@@ -383,6 +393,8 @@ feature {NONE} -- Dispatch
 				if attached w as nw then
 					nw.set_hovered (True)
 				end
+				dwell_ticks := 0
+				tooltip_visible := False
 				after_input
 			end
 		end
@@ -407,9 +419,32 @@ feature {NONE} -- Rendering
 			if attached popup as m then
 				m.draw (painter)
 			end
+			if tooltip_visible and then attached hovered as hw and then not hw.tooltip.is_empty then
+				draw_tooltip (hw)
+			end
 			if not frame_echo_path.is_empty then
 				offscreen.write_png (frame_echo_path).do_nothing
 			end
+		end
+
+	draw_tooltip (a_w: SW_WIDGET)
+			-- A small drawn hint below the widget, clamped on screen.
+		local
+			t: SW_THEME
+			tw, tx, ty: REAL_64
+		do
+			t := theme
+			painter.font ({SW_PAINTER}.Role_ui, 10.5, False)
+			tw := painter.advance (a_w.tooltip) + 18.0
+			tx := a_w.x.min (win_w - tw - 4.0).max (4.0)
+			ty := a_w.y + a_w.height + 6.0
+			if ty + 26.0 > win_h then
+				ty := a_w.y - 32.0
+			end
+			painter.set_color (t.ink)
+			painter.rrect_fill (tx, ty, tw, 26.0, t.radius)
+			painter.set_color (t.background)
+			painter.text (tx + 9.0, ty + 17.5, a_w.tooltip)
 		end
 
 	blit
@@ -441,6 +476,11 @@ feature {NONE} -- State
 
 	popup: detachable SW_MENU
 			-- The open popup menu, drawn above everything.
+
+	dwell_ticks: INTEGER
+			-- Timer ticks the pointer has rested on the hovered widget.
+
+	tooltip_visible: BOOLEAN
 
 	cairo: SIMPLE_CAIRO
 	offscreen: CAIRO_SURFACE

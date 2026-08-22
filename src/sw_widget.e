@@ -25,6 +25,31 @@ feature -- Tree
 			set: parent = a_parent
 		end
 
+feature -- Tooltip
+
+	tooltip: STRING_32
+			-- Hover hint; empty means none. Drawn by the window after
+			-- a dwell - a drawn overlay per R7, never a native tip.
+		attribute
+			create Result.make_empty
+		end
+
+	set_tooltip (a_tip: READABLE_STRING_GENERAL)
+		do
+			create tooltip.make_from_string_general (a_tip)
+		ensure
+			kept: tooltip.same_string_general (a_tip)
+		end
+
+	with_tooltip (a_tip: READABLE_STRING_GENERAL): like Current
+			-- Fluent tooltip.
+		do
+			set_tooltip (a_tip)
+			Result := Current
+		ensure
+			chained: Result = Current
+		end
+
 feature -- Geometry
 
 	x: REAL_64
