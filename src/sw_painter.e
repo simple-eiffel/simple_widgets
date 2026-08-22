@@ -108,6 +108,18 @@ feature -- Shapes
 			context.set_line_width (a_w).do_nothing
 		end
 
+	push_clip (a_x, a_y, a_w, a_h: REAL_64)
+			-- Confine drawing to the rectangle until pop_clip; nests.
+		do
+			context.save.do_nothing
+			context.clip_rectangle (a_x, a_y, a_w, a_h).do_nothing
+		end
+
+	pop_clip
+		do
+			context.restore.do_nothing
+		end
+
 	set_color_alpha (a_rgb: NATURAL_32; a_alpha: REAL_64)
 			-- Colour with transparency, for backdrops and washes.
 		require

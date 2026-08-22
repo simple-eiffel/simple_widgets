@@ -31,7 +31,7 @@ feature {NONE} -- Initialization
 			kind_select.add_option ("Warning")
 			kind_select.add_option ("Danger")
 			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on running until the wrap engine breaks the line exactly where the measured advances say it must.")
-			create window.make ("simple_widgets demo", 2920, 8, 900, 560, theme)
+			create window.make ("simple_widgets demo", 2920, 8, 900, 780, theme)
 				-- agents only from here down: every attached attribute is set
 			create danger_button.make ("Danger", Void)
 			danger_button.set_on_click (agent on_log_only)
@@ -83,8 +83,43 @@ feature {NONE} -- Initialization
 			card.put (edit_box)
 			root.put (card)
 
+			root.put (scroll_split_card (theme))
+
 			window.set_root (root)
 			window.run
+		end
+
+	scroll_split_card (a_theme: SW_THEME): SW_CARD
+			-- A splitter whose left pane scrolls 24 rows in a viewport.
+		local
+			tall, right_col: SW_COLUMN
+			sa: SW_SCROLL_AREA
+			i: INTEGER
+			lbl: SW_LABEL
+		do
+			create tall.make
+			tall := tall.with_gap (6.0)
+			from
+				i := 1
+			until
+				i > 24
+			loop
+				create lbl.make_mono ("row " + (if i < 10 then "0" else "" end) + i.out + "  %/8212/  wheel me, or drag the bar")
+				if i \\ 6 = 0 then
+					lbl.set_color (a_theme.accent)
+				end
+				tall.put (lbl)
+				i := i + 1
+			end
+			create sa.make (150.0)
+			sa.set_child (tall)
+			create right_col.make
+			right_col := right_col.with_gap (8.0)
+			right_col.put (create {SW_LABEL}.make_body ("The divider between these panes drags; the ratio is contract-clamped so neither side can vanish."))
+			right_col.put (create {SW_CHIP}.make ("SW_SPLITTER + SW_SCROLL_AREA", {SW_CHIP}.Kind_accent))
+			create Result.make_striped (a_theme.accent)
+			Result.put ((create {SW_LABEL}.make_ui ("scroll and split %/8212/ clipped, wheeled, dragged")).as_muted)
+			Result.put (create {SW_SPLITTER}.make (sa, right_col))
 		end
 
 feature {NONE} -- Behaviour

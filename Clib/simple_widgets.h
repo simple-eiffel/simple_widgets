@@ -89,6 +89,14 @@ static LRESULT CALLBACK sw_wndproc(HWND h, UINT m, WPARAM w, LPARAM l) {
                     sw_push(13, (int)(short)LOWORD(l), (int)(short)HIWORD(l), 0);
             }
             return 0;
+        case WM_MOUSEWHEEL: {
+            POINT wp;
+            wp.x = (int)(short)LOWORD(l);
+            wp.y = (int)(short)HIWORD(l);
+            ScreenToClient(h, &wp);
+            sw_push(15, (int)wp.x, (int)wp.y, (int)(short)HIWORD(w));
+            return 0;
+        }
         case WM_MOUSELEAVE:
             s_sw_tracking = 0;
             sw_push(14, 0, 0, 0);

@@ -359,6 +359,11 @@ feature {NONE} -- Dispatch internals
 					hovered := Void
 					after_input
 				end
+			when 15 then
+				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
+					bubble_wheel (w, ev_buf.read_integer_32 (12))
+				end
+				after_input
 			when 11 then
 				if attached root as r and then attached r.widget_at (a_x, a_y) as w then
 					bubble_context (w, a_x, a_y)
@@ -444,6 +449,27 @@ feature {NONE} -- Dispatch internals
 				if attached cw.take_pending_menu as pm then
 					show_popup (pm, cw.x.truncated_to_integer,
 						(cw.y + cw.height + 2.0).truncated_to_integer)
+				end
+			end
+		end
+
+	bubble_wheel (a_target: SW_WIDGET; a_delta: INTEGER)
+			-- The wheel goes to the widget under the POINTER, then up
+			-- the spine - never to keyboard focus.
+		local
+			w: detachable SW_WIDGET
+			handled: BOOLEAN
+		do
+			from
+				w := a_target
+			until
+				handled or w = Void
+			loop
+				if w.is_enabled then
+					handled := w.handle_wheel (a_delta)
+				end
+				if not handled then
+					w := w.parent
 				end
 			end
 		end

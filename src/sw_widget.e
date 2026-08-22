@@ -201,6 +201,11 @@ feature -- Input
 		do
 		end
 
+	handle_wheel (a_delta: INTEGER): BOOLEAN
+			-- React to a mouse-wheel turn; True when consumed.
+		do
+		end
+
 	handle_context (a_px, a_py: REAL_64): BOOLEAN
 			-- React to a right-click; True when consumed. Prefer
 			-- declaring a menu via context_menu and letting the window
