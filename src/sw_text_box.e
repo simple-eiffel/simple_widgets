@@ -32,6 +32,9 @@ feature {NONE} -- Initialization
 		do
 			create text.make_from_string_general (a_text)
 			create extra_ranges.make (4)
+			create spell_ranges.make (8)
+			is_spellcheck_enabled := True
+			spell_dirty := True
 			create lay_x.make (text.count + 8)
 			create lay_adv.make (text.count + 8)
 			create lay_line.make (text.count + 8)
@@ -58,6 +61,12 @@ feature -- Access
 
 	sel_anchor: INTEGER
 			-- Other end of the primary selection; equal to caret when empty.
+
+	spell_ranges: ARRAYED_LIST [TUPLE [lo, hi: INTEGER]]
+			-- Misspelled ranges from the inbox checker; refreshed
+			-- lazily after edits.
+
+	is_spellcheck_enabled: BOOLEAN
 
 	extra_ranges: ARRAYED_LIST [TUPLE [lo, hi: INTEGER]]
 			-- Additional selected ranges beyond the primary one - the
@@ -243,6 +252,14 @@ feature -- Element change
 			is_read_only := a_ro
 		end
 
+	set_spellcheck (a_on: BOOLEAN)
+		do
+			is_spellcheck_enabled := a_on
+			spell_dirty := True
+		ensure
+			set: is_spellcheck_enabled = a_on
+		end
+
 feature -- Layout
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
@@ -297,6 +314,22 @@ feature -- Drawing
 				end
 				a_p.text (gx, gy, text.substring (i, i))
 				i := i + 1
+			end
+			refresh_spelling
+			across
+				spell_ranges as sr
+			loop
+				from
+					i := sr.lo + 1
+				until
+					i > sr.hi or i > n
+				loop
+					gx := x + Pad_x + lay_x.i_th (i)
+					gy := y + Pad_y + lay_line.i_th (i) * t.line_height + t.line_height - 8.0
+					a_p.set_color (t.danger)
+					a_p.fill_rect (gx, gy + 3.5, lay_adv.i_th (i) + 1.0, 1.6)
+					i := i + 1
+				end
 			end
 			if is_focused then
 				cx := x + Pad_x + caret_x
@@ -450,6 +483,15 @@ feature -- Input
 			end
 			create clip
 			create Result.make
+			refresh_spelling
+			if not is_read_only and then attached spell_range_at (c) as sr then
+				across
+					suggestion_texts (sr) as sg
+				loop
+					Result.add_item (sg, "", True, agent replace_range (sr.lo, sr.hi, sg))
+				end
+				Result.add_separator
+			end
 			Result.add_item ("Cut", "Ctrl+X", has_selection and not is_read_only, agent cut_selection)
 			Result.add_item ("Copy", "Ctrl+C", has_selection, agent copy_selection)
 			Result.add_item ("Paste", "Ctrl+V", clip.has_text and not is_read_only, agent paste_clipboard)
@@ -680,6 +722,24 @@ feature {NONE} -- Engine
 			in_range: Result >= 0 and Result <= text.count
 		end
 
+	suggestion_texts (a_r: TUPLE [lo, hi: INTEGER]): ARRAYED_LIST [STRING_32]
+			-- Up to three corrections for the word in `a_r'.
+		local
+			sp: SW_SPELLER
+		do
+			create sp
+			create Result.make (3)
+			across
+				sp.suggestions (text.substring (a_r.lo + 1, a_r.hi)) as s
+			loop
+				if Result.count < 3 then
+					Result.extend (s)
+				end
+			end
+		ensure
+			few: Result.count <= 3
+		end
+
 	all_ranges: ARRAYED_LIST [TUPLE [lo, hi: INTEGER]]
 			-- Primary plus extras, normalized, sorted, non-empty only.
 		local
@@ -759,9 +819,59 @@ feature {NONE} -- Engine
 	changed
 		do
 			layout_width := -1.0
+			spell_dirty := True
 			if attached on_change as a then
 				a.call
 			end
+		end
+
+	spell_dirty: BOOLEAN
+
+	refresh_spelling
+		local
+			sp: SW_SPELLER
+		do
+			if spell_dirty then
+				spell_dirty := False
+				spell_ranges.wipe_out
+				if is_spellcheck_enabled then
+					create sp
+					across
+						sp.misspellings (text) as r
+					loop
+						if r.hi <= text.count then
+							spell_ranges.extend (r)
+						end
+					end
+				end
+			end
+		end
+
+	spell_range_at (a_pos: INTEGER): detachable TUPLE [lo, hi: INTEGER]
+			-- The misspelled range containing position `a_pos', if any.
+		do
+			across
+				spell_ranges as r
+			loop
+				if a_pos > r.lo and a_pos <= r.hi then
+					Result := r
+				end
+			end
+		end
+
+	replace_range (a_lo, a_hi: INTEGER; a_with: READABLE_STRING_GENERAL)
+			-- Swap characters a_lo+1..a_hi for `a_with' (a suggestion).
+		require
+			sane: a_lo >= 0 and a_hi <= text.count and a_lo < a_hi
+		local
+			s: STRING_32
+		do
+			create s.make_from_string_general (a_with)
+			text.remove_substring (a_lo + 1, a_hi)
+			text.insert_string (s, a_lo + 1)
+			caret := a_lo + s.count
+			sel_anchor := caret
+			changed
 		end
 
 invariant

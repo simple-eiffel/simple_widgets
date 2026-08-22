@@ -33,17 +33,20 @@ feature {NONE} -- Initialization
 
 	make_ui (a_text: READABLE_STRING_GENERAL)
 		do
-			make (a_text, {SW_PAINTER}.Role_ui, 11.0, False)
+			make (a_text, {SW_PAINTER}.Role_ui, 13.0, False)
 		end
 
 	make_mono (a_text: READABLE_STRING_GENERAL)
 		do
-			make (a_text, {SW_PAINTER}.Role_mono, 11.0, False)
+			make (a_text, {SW_PAINTER}.Role_mono, 13.0, False)
 		end
 
 	make_body (a_text: READABLE_STRING_GENERAL)
 		do
-			make (a_text, {SW_PAINTER}.Role_body, 13.5, False)
+			make (a_text, {SW_PAINTER}.Role_body, 16.0, False)
+			is_wrapping := True
+		ensure
+			wraps: is_wrapping
 		end
 
 feature -- Access
@@ -53,6 +56,10 @@ feature -- Access
 	size: REAL_64
 	is_bold: BOOLEAN
 	is_muted: BOOLEAN
+
+	is_wrapping: BOOLEAN
+			-- Break into as many lines as the width demands? Body
+			-- labels wrap by default; chrome labels stay single-line.
 	custom_color: NATURAL_32
 			-- 0 means: theme ink (or muted ink).
 
@@ -73,6 +80,16 @@ feature -- Element change
 	set_color (a_rgb: NATURAL_32)
 		do
 			custom_color := a_rgb
+		end
+
+	with_wrap: like Current
+			-- Fluent: wrapping variant of Current.
+		do
+			is_wrapping := True
+			Result := Current
+		ensure
+			wraps: is_wrapping
+			chained: Result = Current
 		end
 
 	as_muted: like Current
@@ -99,12 +116,52 @@ feature -- Layout
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 		do
-			Result := size + 9.0
+			if is_wrapping then
+				Result := wrapped_lines (a_p, a_width).count * (size + 9.0)
+			else
+				Result := size + 9.0
+			end
+		end
+
+	wrapped_lines (a_p: SW_PAINTER; a_width: REAL_64): ARRAYED_LIST [STRING_32]
+			-- `text' broken at word boundaries to fit `a_width'.
+		local
+			words: LIST [STRING_32]
+			line: STRING_32
+			cx, ww: REAL_64
+		do
+			create Result.make (4)
+			a_p.font (role, size, is_bold)
+			words := text.split (' ')
+			create line.make (60)
+			across
+				words as w
+			loop
+				ww := a_p.advance (w)
+				if line.is_empty then
+					line := w.twin
+					cx := ww
+				elseif cx + 4.5 + ww > a_width then
+					Result.extend (line)
+					line := w.twin
+					cx := ww
+				else
+					line.append_character (' ')
+					line.append (w)
+					cx := cx + 4.5 + ww
+				end
+			end
+			Result.extend (line)
+		ensure
+			at_least_one: not Result.is_empty
 		end
 
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
+		local
+			lines: ARRAYED_LIST [STRING_32]
+			i: INTEGER
 		do
 			a_p.font (role, size, is_bold)
 			if custom_color /= 0 then
@@ -114,7 +171,19 @@ feature -- Drawing
 			else
 				a_p.set_color (a_p.theme.ink)
 			end
-			a_p.text (x, y + size + 2.0, text)
+			if is_wrapping then
+				lines := wrapped_lines (a_p, width)
+				from
+					i := 1
+				until
+					i > lines.count
+				loop
+					a_p.text (x, y + (i - 1) * (size + 9.0) + size + 2.0, lines.i_th (i))
+					i := i + 1
+				end
+			else
+				a_p.text (x, y + size + 2.0, text)
+			end
 		end
 
 invariant

@@ -451,4 +451,83 @@ static int sw_text_menu (int can_cut, int can_copy, int can_paste, int can_selec
     DestroyMenu(m);
     return r;
 }
+
+/* ---- Windows inbox spell checking (ISpellChecker, Windows 8+) ----
+   COM driven C-style; GUIDs defined locally to avoid initguid
+   duplicate-symbol trouble across translation units. */
+#undef NTDDI_VERSION
+#define NTDDI_VERSION 0x06020000
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0602
+#include <objbase.h>
+#include <spellcheck.h>
+
+static const CLSID s_sw_clsid_scf =
+    {0x7AB36653,0x1796,0x484B,{0xBD,0xFA,0xE7,0x4F,0x1D,0xB7,0xC1,0xDC}};
+static const IID s_sw_iid_iscf =
+    {0x8E018A9D,0x2415,0x4677,{0xBF,0x08,0x79,0x4E,0xA6,0x1F,0x94,0xBB}};
+
+static ISpellChecker *s_sw_spell = 0;
+static int s_sw_spell_tried = 0;
+
+static int sw_spell_init(void) {
+    ISpellCheckerFactory *f = 0;
+    HRESULT hr;
+    if (s_sw_spell) return 1;
+    if (s_sw_spell_tried) return 0;
+    s_sw_spell_tried = 1;
+    CoInitializeEx(0, COINIT_APARTMENTTHREADED);
+    hr = CoCreateInstance(&s_sw_clsid_scf, 0, CLSCTX_INPROC_SERVER,
+        &s_sw_iid_iscf, (void**)&f);
+    if (FAILED(hr) || !f) return 0;
+    hr = f->lpVtbl->CreateSpellChecker(f, L"en-US", &s_sw_spell);
+    f->lpVtbl->Release(f);
+    return (SUCCEEDED(hr) && s_sw_spell) ? 1 : 0;
+}
+
+/* out receives (start,len) int pairs in UTF-16 units; returns pair count */
+static int sw_spell_check(const wchar_t *text, int *out, int cap_pairs) {
+    IEnumSpellingError *errs = 0;
+    ISpellingError *e = 0;
+    int n = 0;
+    if (!sw_spell_init()) return 0;
+    if (FAILED(s_sw_spell->lpVtbl->Check(s_sw_spell, text, &errs)) || !errs)
+        return 0;
+    while (n < cap_pairs && errs->lpVtbl->Next(errs, &e) == S_OK && e) {
+        ULONG si = 0, ln = 0;
+        e->lpVtbl->get_StartIndex(e, &si);
+        e->lpVtbl->get_Length(e, &ln);
+        out[n * 2] = (int)si;
+        out[n * 2 + 1] = (int)ln;
+        e->lpVtbl->Release(e);
+        e = 0;
+        n++;
+    }
+    errs->lpVtbl->Release(errs);
+    return n;
+}
+
+/* first few suggestions for word, newline-joined into buf */
+static int sw_spell_suggest(const wchar_t *word, wchar_t *buf, int cap) {
+    IEnumString *sugg = 0;
+    LPOLESTR s = 0;
+    int n = 0, pos = 0, L;
+    buf[0] = 0;
+    if (!sw_spell_init()) return 0;
+    if (FAILED(s_sw_spell->lpVtbl->Suggest(s_sw_spell, word, &sugg)) || !sugg)
+        return 0;
+    while (n < 5 && sugg->lpVtbl->Next(sugg, 1, &s, 0) == S_OK && s) {
+        L = (int)wcslen(s);
+        if (pos + L + 2 >= cap) { CoTaskMemFree(s); break; }
+        if (n) buf[pos++] = L'\n';
+        memcpy(buf + pos, s, L * sizeof(wchar_t));
+        pos += L;
+        CoTaskMemFree(s);
+        s = 0;
+        n++;
+    }
+    buf[pos] = 0;
+    sugg->lpVtbl->Release(sugg);
+    return n;
+}
 #endif

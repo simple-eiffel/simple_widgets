@@ -76,13 +76,14 @@ feature {NONE} -- Initialization
 		do
 			radius := 3.0
 			gap := 8.0
-			pad := 11.0
-			button_height := 32.0
-			chip_height := 20.0
-			size_body := 13.5
-			size_label := 11.0
-			size_chip := 9.5
-			line_height := 26.0
+			pad := 12.0
+				-- sizes raised 2026-08-22: readability first (Larry)
+			button_height := 38.0
+			chip_height := 24.0
+			size_body := 16.0
+			size_label := 13.0
+			size_chip := 11.0
+			line_height := 30.0
 		end
 
 feature -- Surfaces
