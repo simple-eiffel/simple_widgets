@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-23-0 http://www.eiffel.com/developers/xml/configuration-1-23-0.xsd" name="simple_widgets" uuid="A47C1E85-3B92-4D06-97F4-58D20C6B91E3" library_target="simple_widgets">
+	<description>Drawn widget toolkit above simple_cairo: window runtime, theme tokens, painter, widgets, layout. The WEL-to-Vision chain, rebuilt: simple_cairo is the substrate, simple_widgets is the vocabulary, the application is intent.</description>
+
+	<target name="simple_widgets">
+		<root all_classes="true"/>
+		<file_rule>
+			<exclude>/EIFGENs$</exclude>
+			<exclude>/\..*$</exclude>
+			<exclude>/demo$</exclude>
+		</file_rule>
+		<option warning="warning">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
+		<setting name="dead_code_removal" value="feature"/>
+		<capability>
+			<concurrency support="scoop" use="thread"/>
+			<void_safety support="all"/>
+		</capability>
+		<external_include location="$(SIMPLE_EIFFEL)/simple_widgets/Clib"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
+		<library name="simple_cairo" location="$SIMPLE_EIFFEL/simple_cairo/simple_cairo.ecf"/>
+		<cluster name="src" location=".\src\" recursive="true"/>
+	</target>
+
+	<target name="sw_demo" extends="simple_widgets">
+		<root class="SW_DEMO" feature="make"/>
+		<setting name="console_application" value="false"/>
+		<cluster name="demo" location=".\demo\" recursive="true"/>
+	</target>
+</system>
