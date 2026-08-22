@@ -11,6 +11,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
+			sub_widgets,
 			arrange, widget_at, handle_click, handle_drag
 		end
 
@@ -48,6 +49,15 @@ feature -- Element change
 			ratio := a_ratio.max (0.15).min (0.85)
 		ensure
 			clamped: ratio >= 0.15 and ratio <= 0.85
+		end
+
+feature -- Tooling
+
+	sub_widgets: ARRAYED_LIST [SW_WIDGET]
+		do
+			create Result.make (2)
+			Result.extend (left_child)
+			Result.extend (right_child)
 		end
 
 feature -- Layout

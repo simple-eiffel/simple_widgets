@@ -33,8 +33,8 @@
             <p><strong>v1 is SHIPPED.</strong> Arm the lens from the demo's Dev menu: hovering any widget outlines it with a chip naming its class and size; right-clicking opens the REVEAL - a popover built fresh per ask, showing the class and geometry headline, layout hints, state flags, the full parent chain (the app shell narrated), the creator's <code>dev_note</code>, and the REFLECTOR attribute dump: the widget's actual fields with live values - its label, its wired agents, its protocol slots. First photograph: a button confessing label, on_click PROCEDURE, tooltip and kind.</p>
             <p><strong>A constraint discovered in the building</strong> (now oracle law): finalization strips <code>debug</code>-clauses regardless of ECF keys - they are a workbench facility, and F_code -keep preserves ASSERTIONS, not debug bodies. The release-absence gate therefore rides a different vehicle: a cluster-swapped DEV_FLAGS constant plus dead-code removal (designed in S04); v1 ships the runtime gate (is_dev_mode, off by default, nothing fires without the toggle).</p>
             <p>SW_INSPECTOR is the dev-mode lens over a running face. With dev mode on, right-clicking any widget opens a reveal overlay instead of (or stacked above) its normal context menu, showing: its class (free at runtime via Eiffel's <code>generating_type</code>), bounds, grow/min/max hints, state flags, and the theme tokens in force. The engine is Eiffel's own reflection - <code>REFLECTOR</code> / <code>TYPE</code>: <code>field_count</code>, <code>field_name</code>, <code>field (i)</code> - so any widget's attributes and live values enumerate generically, with zero per-class authoring. An opt-in <code>dev_note</code> on SW_WIDGET carries only what reflection cannot know: intent, provenance, wiring rationale.</p>
-            <p>The <strong>mesh view</strong> draws the widget graph as a force-directed network - springs on parent/child and agent edges, charge repulsion between nodes, a few dozen relaxation ticks on the heartbeat - the same physics family as EiffelStudio's Diagram Tool, which is the precedent that inspired it.</p>
-            <p><strong>Two gates.</strong> Compile-time: every inspector hook lives inside <code>debug ("dev_mode")</code> instructions, stripped unless the ECF target sets <code>&lt;debug name="dev_mode" enabled="true"/&gt;</code> - production binaries carry neither the machinery nor the menu item, the same axis as Design by Contract itself (present in dev/fat builds, absent from lean releases, enforced by the compiler). Run-time: inside a dev build, a top-menu Dev Mode toggle - itself inside the debug block - opens control-level right-click reveals and the mesh.</p>
+            <p>The <strong>mesh view is SHIPPED</strong> as its own instrument - see the <a href='sw_dev_studio.html'>SW_DEV_STUDIO page</a>: force physics on the heartbeat (EiffelStudio Diagram Tool family), depth-limited harvest with plus-badged frontier expansion, a crowned root, kind/state colour grammar, all-names toggle, node context menu, and pick-and-drop re-rooting (middle-click lifts any control as its own pebble; drop it on the mesh).</p>
+            <p><strong>The gate, as built.</strong> The debug-clause plan died on a discovery (now oracle law): finalization strips <code>debug</code> bodies regardless of ECF keys. The shipped gate is the <code>devkit</code> ECF override cluster: it swaps DEV_FLAGS (False to True) and DEV_LENS (no-op to armed), and SW_INSPECTOR / SW_MESH / SW_DEV_STUDIO exist ONLY inside devkit - release-shaped targets never compile them. Binary-measured: the sw_7guis exe holds 0 occurrences of any devkit class name in ascii, utf-16 or utf-32. Run-time: the Dev menu's Dev Mode toggle arms hover chips, right-click reveals (each now ending in a 'Mesh this subtree' doorway), and dev-mode middle-click picking.</p>
             <p><strong>Browser-inspector mining</strong> (Larry, 2026-08-22): the DevTools notions translate almost one-to-one, and three go further here. Element-pick mode (crosshair hover outlines the widget + a chip naming class and bounds - the window already tracks hover); the box-model overlay becomes a LAYOUT overlay (bounds, container padding/gap, grow/min/max annotations); the DOM tree panel is literally <code>SW_TREE [SW_WIDGET]</code> with bidirectional highlight - shipped machinery; the styles pane becomes the S03 appearance model NARRATED (kind + state, which tokens won, why); live CSS editing becomes token tweaking against the running theme - a theme-design tool falling out of the inspector; the event-listeners pane becomes the agent-wiring pane. Beyond the browsers: a CONTRACTS pane showing the live invariants guarding the selected widget, direct object identity (references, not selectors), and the REFLECTOR attribute dump as a props pane for free.</p>
             <p>An <strong>AI-assist narrator</strong> rides later: once structure, state and wiring enumerate, answering 'why does this button look like this?' (which token, which state, which contract) is a small step - and one no desktop toolkit has shipped.</p>
             <p class="muted"><em>Source: <code>src/sw_inspector.e</code> &middot; since Wave 3 finale, v1 SHIPPED (2026-08-22).
@@ -42,40 +42,41 @@
         </section>
 
         <section id="example">
-            <h2>The planned surface (subject to change)</h2>
-<pre><code><span class="comment">-- ECF, dev target only:</span>
-<span class="comment">--   &lt;debug name=&quot;dev_mode&quot; enabled=&quot;true&quot;/&gt;</span>
+            <h2>The shipped surface</h2>
+<pre><code><span class="comment">-- ECF: the dev target adds the override cluster</span>
+<span class="comment">--   &lt;override name=&quot;devkit&quot; location=&quot;.\devkit\&quot;/&gt;</span>
 
-debug (<span <span class="keyword">class</span>="string">&quot;dev_mode&quot;</span>)
-    window.menu_bar_adds_dev_toggle
-<span class="keyword">end</span>
-
-<span class="comment">-- with dev mode ON at runtime:</span>
-<span class="comment">--   right-click any widget  -&gt; reveal overlay (class, bounds, state, tokens)</span>
-<span class="comment">--   Dev menu &gt; Mesh         -&gt; force-directed widget graph</span>
+<span class="comment">-- at runtime, Dev menu &gt; Dev Mode: ON, then</span>
+<span class="comment">--   hover any widget        -&gt; chip naming class + size</span>
+<span class="comment">--   right-click any widget  -&gt; REFLECTOR reveal popover</span>
+<span class="comment">--                              ... ending in &quot;Mesh this subtree&quot;</span>
+<span class="comment">--   middle-click any widget -&gt; lifts it as a pebble; drop on the mesh</span>
 my_button.set_dev_note (<span <span class="keyword">class</span>="string">&quot;primary verb of the capture card; wired to <span class="type">APP</span>.on_save&quot;</span>)</code></pre>
         </section>
 
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>Not implemented - this page is the promise, kept visible on purpose.</li>
-                <li>Depends on the popover/overlay primitives scheduled later in Wave 3.</li>
+                <li>The reveal popover shows a capped 14 reflected fields (make_for); the studio pane shows them ALL (make_full) inside a scroll area.</li>
+                <li>Reflection reads attributes, not computed queries - derived state needs dev_note or explicit surfacing.</li>
             </ul>
         </section>
 
         <section id="gotchas">
             <h2>Bugs &amp; gotchas</h2>
             <ul>
-                <li>When it lands: reflection reads attributes, not computed queries - derived state (like is_hiding) will need the dev_note channel or explicit surfacing.</li>
+                <li>The lens reveal only fires when no overlay is up (a popover would replace the sheet or drawer you are working in); inside the studio, use node clicks and the node context menu instead.</li>
+                <li>A pinned docked studio keeps the page LIVE - clicks outside the drawer land on the app, not on a dismiss.</li>
             </ul>
         </section>
 
         <section id="future">
             <h2>Extension plans &amp; possibilities</h2>
             <ul>
-                <li>The full design is pinned in specs/S02 (Dev mode section) - reveal, metadata protocol, introspection engine, mesh physics, the two gates.</li>
-                <li>AI narrator integration once the reveal data model exists.</li>
+                <li>Mutation flash (React-DevTools style): pulse a mesh node when a reflected field changes between heartbeats.</li>
+                <li>Event-stream pane (the network tab's cousin): clicks/keys/drops logged with their targets.</li>
+                <li>Computed-vs-authored layout pane: preferred sizes vs granted bounds, with deltas.</li>
+                <li>AI narrator once the reveal data model settles.</li>
             </ul>
         </section>
     </main>

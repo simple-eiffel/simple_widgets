@@ -47,6 +47,9 @@ feature {NONE} -- Initialization
 			print ("%N=== TREE + COLOUR ===%N")
 			run_tree_color_tests
 
+			print ("%N=== DEV STUDIO ===%N")
+			run_dev_studio_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -193,6 +196,24 @@ feature {NONE} -- Test runners
 			run_test (agent indicator_tests.test_scroll_wheel_step_programmable, "scroll_wheel_step_programmable")
 			run_test (agent indicator_tests.test_scroll_two_axis_clamps, "scroll_two_axis_clamps")
 		end
+
+	run_dev_studio_tests
+		do
+			create studio_tests
+			run_test (agent studio_tests.test_mesh_depth_limit_and_frontier, "mesh_depth_limit_and_frontier")
+			run_test (agent studio_tests.test_mesh_expand_grows_in_place, "mesh_expand_grows_in_place")
+			run_test (agent studio_tests.test_mesh_full_harvest_no_frontier, "mesh_full_harvest_no_frontier")
+			run_test (agent studio_tests.test_mesh_context_menu_nodes_only, "mesh_context_menu_nodes_only")
+			run_test (agent studio_tests.test_mesh_names_toggle, "mesh_names_toggle")
+			run_test (agent studio_tests.test_mesh_pebble_hole_types, "mesh_pebble_hole_types")
+			run_test (agent studio_tests.test_mesh_re_root_follows_the_drop, "mesh_re_root_follows_the_drop")
+			run_test (agent studio_tests.test_studio_pane_follows_re_root, "studio_pane_follows_re_root")
+			run_test (agent studio_tests.test_studio_pane_swaps_on_select, "studio_pane_swaps_on_select")
+			run_test (agent studio_tests.test_studio_live_edit_drives_public_setter, "studio_live_edit_drives_public_setter")
+			run_test (agent studio_tests.test_inspector_full_lifts_field_cap, "inspector_full_lifts_field_cap")
+		end
+
+	studio_tests: SW_DEV_STUDIO_ASSAULT
 
 	run_file_dialog_tests
 		do

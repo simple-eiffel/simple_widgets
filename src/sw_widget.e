@@ -342,6 +342,16 @@ feature -- Input
 			Result := pebble_item
 		end
 
+	sub_widgets: ARRAYED_LIST [SW_WIDGET]
+			-- The widgets this one owns, for tooling that walks the
+			-- tree (the dev mesh, the coming inspector tree panel).
+			-- Leaves answer empty; containers redefine.
+		do
+			create Result.make (0)
+		ensure
+			answered: Result /= Void
+		end
+
 	dev_note: detachable STRING_32
 			-- Creator-supplied provenance for the dev-mode inspector:
 			-- intent, wiring rationale - what reflection cannot know.

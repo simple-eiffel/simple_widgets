@@ -86,7 +86,9 @@ feature {NONE} -- Initialization
 			menubar.add_menu ("File", agent file_menu)
 			menubar.add_menu ("Widgets", agent widgets_menu)
 			menubar.add_menu ("Help", agent help_menu)
-			menubar.add_menu ("Dev", agent dev_menu)
+			if {DEV_FLAGS}.Dev_build then
+				menubar.add_menu ("Dev", agent dev_menu)
+			end
 			root.put (menubar)
 			root.put (toolbar)
 			create body.make
@@ -659,6 +661,24 @@ feature {NONE} -- Behaviour
 				Result.add_item ("Dev Mode: ON  (right-click reveals; hover chips)", "", True, agent on_toggle_dev)
 			else
 				Result.add_item ("Dev Mode: off (click to arm the lens)", "", True, agent on_toggle_dev)
+			end
+			Result.add_item ("Dev Studio %/8212/ floating sheet", "", True, agent on_open_mesh)
+			Result.add_item ("Dev Studio %/8212/ docked right (page stays live)", "", True, agent on_dock_studio)
+		end
+
+	on_open_mesh
+		do
+			if attached window.root_widget as rw then
+				window.show_sheet (create {SW_DEV_STUDIO}.make_over (rw, 3), 860.0)
+			end
+		end
+
+	on_dock_studio
+			-- The EiffelStudio-debugger presentation: a pinned right
+			-- drawer; the page underneath stays fully interactive.
+		do
+			if attached window.root_widget as rw then
+				window.show_drawer (create {SW_DEV_STUDIO}.make_over (rw, 3), 520.0, True)
 			end
 		end
 

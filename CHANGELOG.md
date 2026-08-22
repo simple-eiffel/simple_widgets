@@ -8,6 +8,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — Wave 3 in progress
 
 ### Added
+- Pick-and-drop re-rooting (Larry's cycle): with dev mode on,
+  middle-click lifts ANY control as its own pebble; drop it on the
+  mesh and the graph rebuilds around it (re_root: new crown, depths
+  re-zeroed, on_select announces so the pane follows). Works across
+  the dock boundary - pick from the live page, drop into the drawer.
+- SW_DEV_STUDIO (devkit): the dev instrument grown from Larry's four
+  questions — force-mesh left, living reveal right. Click a node and
+  the pane rebuilds with the FULL reflected dossier (make_full, no
+  field cap) in a growing scroll area; text-bearing subjects (labels,
+  text boxes) offer a live edit that drives their PUBLIC set_text with
+  every contract armed. Public tooling surface (pane_line_count /
+  edit_text / set_edit_text / apply_edit) so tests and future scripts
+  drive the same path a human does. 11 new assaults; suite now 86/86.
+- SW_MESH (devkit): the widget tree as live physics (repulsion,
+  springs, centre gravity on the heartbeat — the Diagram Tool's
+  family). Depth-limited harvest (Larry counted 109 nodes and called
+  for mercy; the skeleton reads at 3) with plus-badged frontier nodes
+  that expand in place. The root wears the crown (accent, larger,
+  double-ringed). Colour grammar: FILL encodes kind (containers quiet,
+  interactive accent-washed, passive barely-there), RING encodes state
+  (accent selected, ink hovered, warning pinned, danger disabled).
+  "names" chip + context-menu item toggle all-node class labels.
+  Right-click node menu: Reveal in pane / Expand children / Release
+  pin / names toggle.
+- THE DOCK: "Dev Studio — docked right (page stays live)". A pinned
+  right drawer hosting the studio while the page underneath stays
+  fully interactive — clicks, wheel, hover, drops and pebbles outside
+  the panel route to the live page (new target_at routing). Larry
+  named the shape: EiffelStudio's debugger pane, not a modal.
+- Mesh from selection: the dev-mode reveal popover now ends in a
+  "Mesh this subtree" button — the studio opens rooted at the control
+  you right-clicked, not the whole window.
+- Centered-sheet chrome, window-owned so every modal gains it: a
+  header band with grip dots (drag to move), a corner stair-grip
+  (drag to resize, clamped 280x200 minimum), a danger-red close pearl
+  straddling the top-right corner, and push_clip/pop_clip around all
+  sheet content so nothing bleeds past the panel again.
+- DEV_FLAGS release gate, the real one: a `devkit` ECF override
+  cluster swaps DEV_FLAGS (False -> True) and DEV_LENS (no-op ->
+  armed), and SW_INSPECTOR / SW_MESH / SW_DEV_STUDIO exist ONLY in
+  devkit — release-shaped targets never compile them. Binary-measured:
+  the sw_7guis exe contains 0 occurrences of any devkit class name in
+  ascii/utf-16/utf-32. (Supersedes the v1 `debug ("dev_mode")` claim:
+  finalization strips debug-clause bodies regardless of ECF keys —
+  recorded as oracle law.)
+- SW_LABEL with_wrap adopted across the dossiers (parent chains, notes,
+  field lines) — long truths wrap instead of truncating.
+
+### Fixed
+- Double-clicks now harvest pending popovers too (bubble_click gated
+  them behind single-click; the mesh's double-click reveal exposed it).
+- The "body scroll gets stuck" report resolved as bench geometry, not
+  a toolkit bug: the drawer gutter (22px) shifts every layout-derived
+  coordinate, so the synthetic clicks were aiming beside the scrollbar
+  lane. One correctly-aimed click scrolled ~700px.
 - SW_INSPECTOR v1 - WAVE 3 COMPLETE. The dev lens: arm via the Dev
   menu; hovering outlines any widget with a class+size chip;
   right-click opens the REVEAL popover - class/geometry headline,

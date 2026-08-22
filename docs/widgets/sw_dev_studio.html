@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_DEV_STUDIO + SW_MESH - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_DEV_STUDIO + SW_MESH</h1>
+        <p class="tagline">The dev instrument: force-mesh left, living reflected dossier right - floating sheet or docked drawer with the page still live.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Born from four questions Larry asked of a first mesh screenshot (what happens on node clicks? on periphery expansion? where does reflection data live? can controls be live-edited?) - the answers turned out to describe one instrument. <strong>SW_MESH</strong> graphs the widget tree as live physics: all-pairs charge repulsion, springs on parent/child edges, centre gravity, one relax step per heartbeat - the EiffelStudio Diagram Tool's family. The harvest is depth-limited (a full face is hundreds of nodes; the skeleton reads at three) and the cut line shows as plus-badged FRONTIER nodes that expand in place when clicked. The origin wears the crown: accent-filled, larger, double-ringed.</p>
+            <p>The colour grammar answers 'what would guide node colours?' with the toolkit's own semantics: <strong>fill encodes KIND</strong> (containers quiet surface, interactive controls accent-washed, passive leaves barely-there), <strong>ring encodes STATE</strong> (accent selected, ink hovered, warning pinned, danger disabled). A 'names' chip - and a context-menu item - toggles every node's class name painted beside it. Right-clicking a node offers Reveal in pane / Expand children / Release pin.</p>
+            <p><strong>SW_DEV_STUDIO</strong> is the splitter that marries the mesh to a living pane. Clicking a node rebuilds the pane with the FULL reflected dossier (<code>make_full</code>, every field, in a growing scroll area); text-bearing subjects add the live-edit rig - an edit box preloaded from the subject and an 'Apply set_text' button that drives the subject's PUBLIC setter with every contract armed. A public tooling surface (<code>pane_line_count</code>, <code>edit_text</code>, <code>set_edit_text</code>, <code>apply_edit</code>) lets the assault suite drive the same path a human does.</p>
+            <p><strong>Two presentations.</strong> Floating: a centered sheet with the window's new modal chrome (header band drags it, corner grip resizes it, danger-red pearl closes it). Docked: Larry recognised the shape - EiffelStudio's debugger pane - so a pinned right drawer hosts the studio while the page underneath STAYS LIVE: clicks, wheel, hover, drops and pebbles outside the panel route to the app (the window's target_at rule).</p>
+            <p><strong>Pick-and-drop re-rooting</strong> closes the cycle: with dev mode on, middle-click lifts ANY control as its own pebble; drop it on the mesh and the graph rebuilds around it - new crown, depths re-zeroed, the pane following via on_select. Works across the dock boundary: pick from the live page, drop into the drawer.</p>
+            <p><strong>Release absence is measured, not promised:</strong> all three classes live only in the devkit override cluster; the release-shaped sw_7guis binary contains zero occurrences of their names in any encoding.</p>
+            <p class="muted"><em>Source: <code>src/sw_dev_studio.e</code> &middot; since Wave 3 coda (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Opening it (dev builds)</h2>
+<pre><code><span class="comment">-- Dev menu &gt; &quot;Dev Studio - floating sheet&quot;</span>
+window.show_sheet (<span class="keyword">create</span> {<span class="type">SW_DEV_STUDIO</span>}.make_over (rw, 3), 860.0)
+
+<span class="comment">-- Dev menu &gt; &quot;Dev Studio - docked right (page stays live)&quot;</span>
+window.show_drawer (<span class="keyword">create</span> {<span class="type">SW_DEV_STUDIO</span>}.make_over (rw, 3), 520.0, <span class="keyword">True</span>)
+
+<span class="comment">-- from any dev-mode reveal popover: the &quot;Mesh this subtree&quot; button</span>
+<span class="comment">-- re-roots the studio at the control you right-clicked.</span>
+
+<span class="comment">-- pick-and-drop: dev mode ON, middle-click a control, drop on the mesh.</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Physics never fully sleeps (damping 0.82 + gravity) - nodes drift a pixel or two; drag pins a node (warning ring) when you need stillness.</li>
+                <li>The dossier is reflection over ATTRIBUTES - computed queries need dev_note.</li>
+                <li>Live edit covers SW_TEXT_BOX and SW_LABEL set_text today; the general property editor is future work.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>One overlay at a time: opening the floating studio replaces any popover; the lens reveal deliberately stays quiet while an overlay is up.</li>
+                <li>In the dock, an outside click no longer dismisses (that is the point) - close via the pin (unpin, then click away) or Escape with nothing focused.</li>
+                <li>Depth counts from the mesh's root, not the window's: a re-rooted mesh shows frontier badges at its OWN depth limit.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Mutation flash: pulse nodes whose reflected fields changed since the last tick.</li>
+                <li>Event-stream pane; computed-vs-authored layout pane; focus-order overlay.</li>
+                <li>General property editing (is_enabled, is_muted, grow) through public setters.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

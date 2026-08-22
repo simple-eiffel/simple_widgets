@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-75%2F75-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-86%2F86-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -16,8 +16,12 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-🚧 **Waves 1–2 complete, Wave 3 underway** — 60 classes
-- 75 contract-assault tests passing, five consecutive clean runs
+✅ **Waves 1–3 COMPLETE** — 65 classes (60 library + 5 devkit tooling)
+- 86 contract-assault tests passing
+- Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
+  contract-armed live editing, floating or DOCKED (page stays live);
+  compiled out of release-shaped builds via the devkit override
+  (binary-measured absence)
 - Every widget frame-proven in the live showroom (`demo/sw_demo.e`)
 - Windows-only today (the SURFACE layer is Win32); everything above it is portable by design
 
@@ -28,7 +32,7 @@ widgets) → your application. The simple chain is:
 
 ```
 simple_cairo      the substrate   (canvas, text, PNG)
-simple_widgets    the vocabulary  (window runtime, theme, painter, 36 controls)
+simple_widgets    the vocabulary  (window runtime, theme, painter, 59 controls)
 your application  the intent      (what exists and what happens)
 ```
 
@@ -109,7 +113,7 @@ back after building).
 ## Documentation
 
 - **[Core documentation](https://simple-eiffel.github.io/simple_widgets/)** — overview, architecture, rules, quick start
-- **Per-control pages** — every one of the 36 classes has its own page under
+- **Per-control pages** — every shipped class has its own page under
   `docs/widgets/` with a complete description, working examples, known limits,
   bugs & gotchas, and extension plans
 - **The living cookbook** — `demo/sw_demo.e`, the showroom exercising everything
@@ -125,7 +129,7 @@ back after building).
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/sw_demo/F_code/
 ./EIFGENs/sw_demo/F_code/simple_widgets.exe
 
-# the contract assault (25 tests, all assertions live)
+# the contract assault (86 tests, all assertions live)
 /d/prod/ec.sh test -config simple_widgets.ecf -target simple_widgets_tests
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 ./EIFGENs/simple_widgets_tests/F_code/simple_widgets.exe
@@ -136,9 +140,12 @@ cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 Wave 3 is nearly closed (tree, data grid, calendar/date/time pickers,
 drawers with peek-and-pin, popovers, accordion, stepper, badges, avatars,
 canvas, sheet, colour picker — all shipped); **Wave 3 is COMPLETE**: SW_DROPZONE
-(real Explorer drags land) and the dev-mode SW_INSPECTOR v1 (hover
-chips + REFLECTOR reveals) closed it (reflection-driven, compiled
-out of release builds via `debug ("dev_mode")`). Then Wave 4 charts on
+(real Explorer drags land) and the dev-mode suite closed it:
+SW_INSPECTOR reveals, the SW_MESH force graph, and SW_DEV_STUDIO
+(mesh + live pane, floating sheet or docked drawer with the page
+still live) — all devkit-only classes, compiled out of release-shaped
+builds via the ECF override cluster and PROVEN absent by binary scan.
+Then Wave 4 charts on
 SW_PAINTER, Wave 5 enterprise composites (spreadsheet doctrine:
 SHEET -> DATA_GRID -> SPREADSHEET; true docking), Wave 6 media +
 conversational (dictation via whisper.cpp queued as a text-box service).

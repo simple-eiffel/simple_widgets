@@ -12,6 +12,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
+			sub_widgets,
 			arrange, widget_at, handle_click, wants_hover_point
 		end
 
@@ -116,6 +117,18 @@ feature -- Element change
 			end
 		ensure
 			exclusive_law: (is_exclusive and is_section_open (a_i)) implies open_count = 1
+		end
+
+feature -- Tooling
+
+	sub_widgets: ARRAYED_LIST [SW_WIDGET]
+		do
+			create Result.make (sections.count)
+			across
+				sections as s
+			loop
+				Result.extend (s.content)
+			end
 		end
 
 feature -- Layout

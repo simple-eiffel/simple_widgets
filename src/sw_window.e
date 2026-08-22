@@ -34,6 +34,7 @@ feature {NONE} -- Initialization
 			create ev_buf.make (16)
 			create frame_echo_path.make_empty
 			create drawer_tabs.make (2)
+			create lens
 			create tab_rects.make (2)
 			alloc_w := win_w
 			alloc_h := win_h
@@ -293,6 +294,10 @@ feature -- Sheets
 	Mode_right: INTEGER = 2
 	Mode_anchored: INTEGER = 3
 
+	lens: DEV_LENS
+			-- The dev seam: a no-op in release builds, the real
+			-- inspector lens when the devkit cluster overrides.
+
 	is_dev_mode: BOOLEAN
 			-- Is the inspector's lens on? Toggled by the host (a Dev
 			-- menu inside its own debug clause); the reveal and chip
@@ -300,6 +305,8 @@ feature -- Sheets
 			-- release targets compile none of it.
 
 	toggle_dev_mode
+		require
+			dev_capable: {DEV_FLAGS}.Dev_build
 		do
 			is_dev_mode := not is_dev_mode
 		ensure
@@ -309,6 +316,12 @@ feature -- Sheets
 	on_tick: detachable PROCEDURE
 			-- Fired every heartbeat (250ms) - the application's clock
 			-- for timers, elapsed displays, ambient animation.
+
+	root_widget: detachable SW_WIDGET
+			-- The tree's root, for dev tooling (the mesh walks it).
+		do
+			Result := root
+		end
 
 	set_on_tick (a_action: PROCEDURE)
 		do
@@ -400,9 +413,7 @@ feature {NONE} -- Popup lifecycle
 			inspect a_type
 			when 2 then
 				if attached pick_pebble as pb then
-					if attached active_root as r then
-						w := r.widget_at (a_x, a_y)
-					end
+					w := target_at (a_x, a_y)
 					if attached w as tw and then tw.is_enabled and then tw.accepts_pebble (pb) then
 						end_pick
 						tw.receive_pebble (pb)
@@ -453,7 +464,19 @@ feature {NONE} -- Popup lifecycle
 			when 2 then
 				if point_on_pin (a_x, a_y) then
 					drawer_pinned := not drawer_pinned
-				elseif attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
+				elseif point_on_sheet_close (a_x, a_y) then
+					close_sheet
+				elseif point_on_sheet_grip (a_x, a_y) then
+					sheet_sizing := True
+					sheet_user_w := sheet_cw
+					sheet_user_h := sheet_ch
+					sheet_grab_x := a_x
+					sheet_grab_y := a_y
+				elseif point_on_sheet_header (a_x, a_y) then
+					sheet_dragging := True
+					sheet_grab_x := a_x
+					sheet_grab_y := a_y
+				elseif attached target_at (a_x, a_y) as w then
 					if w.accepts_focus and then w /= focused then
 						if attached focused as prev then
 							prev.set_focused (False)
@@ -512,19 +535,34 @@ feature {NONE} -- Popup lifecycle
 			when 6 then
 				blit
 			when 8 then
-				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
+				if attached target_at (a_x, a_y) as w then
 					capture := bubble_click (w, a_x, a_y, True)
 				end
 				after_input
 			when 9 then
 					-- the pointer belongs to whoever accepted the press,
 					-- not to the keyboard focus (every surveyed toolkit
-					-- agrees: Qt's grabber, ImGui's active id)
-				if attached capture as w then
+					-- agrees: Qt at its grabber, ImGui at its active id).
+					-- A grabbed sheet header or corner outranks capture.
+				if sheet_dragging then
+					sheet_dx := sheet_dx + (a_x - sheet_grab_x)
+					sheet_dy := sheet_dy + (a_y - sheet_grab_y)
+					sheet_grab_x := a_x
+					sheet_grab_y := a_y
+					after_input
+				elseif sheet_sizing then
+					sheet_user_w := (sheet_user_w + (a_x - sheet_grab_x)).max (280.0)
+					sheet_user_h := (sheet_user_h + (a_y - sheet_grab_y)).max (200.0)
+					sheet_grab_x := a_x
+					sheet_grab_y := a_y
+					after_input
+				elseif attached capture as w then
 					w.handle_drag (a_x, a_y)
 					after_input
 				end
 			when 10 then
+				sheet_dragging := False
+				sheet_sizing := False
 				if attached capture as cw then
 					if cw.is_pressed then
 						cw.set_pressed (False)
@@ -562,29 +600,28 @@ feature {NONE} -- Popup lifecycle
 			when 18 then
 				deliver_drop (a_x, a_y)
 			when 17 then
-				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
+				if lens.is_active (is_dev_mode) and then attached target_at (a_x, a_y) as dw then
+						-- dev mode arms every control as its own pebble:
+						-- middle-click lifts it, drop it on the mesh to
+						-- re-root the graph there (Larry's cycle)
+					begin_pick (dw, a_x, a_y)
+				elseif attached target_at (a_x, a_y) as w then
 					pick_from (w, a_x, a_y)
 				end
 				after_input
 
 			when 15 then
-				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
+				if attached target_at (a_x, a_y) as w then
 					bubble_wheel (w, ev_buf.read_integer_32 (12))
 				end
 				after_input
 			when 11 then
-				if is_dev_mode and then attached active_root as dr
-					and then attached dr.widget_at (a_x, a_y) as dw
+				if sheet = Void and then lens.is_active (is_dev_mode)
+					and then attached target_at (a_x, a_y) as dw
 				then
-						-- the inspector's lens: reveal instead of menu.
-						-- (Compile-time stripping via a DEV_FLAGS
-						-- cluster swap is the S04 design: finalization
-						-- discards debug-clauses, so that vehicle -
-						-- not debug() - carries the release gate.)
-					show_popover (create {SW_INSPECTOR}.make_for (dw),
-						a_x, a_y, 360.0)
+					lens.reveal (Current, dw, a_x, a_y)
 					after_input
-				elseif attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
+				elseif attached target_at (a_x, a_y) as w then
 					bubble_context (w, a_x, a_y)
 				end
 				after_input
@@ -675,12 +712,16 @@ feature {NONE} -- Popup lifecycle
 					w := w.parent
 				end
 			end
-			if attached Result as cw and then not a_double and then cw.is_enabled then
-				cw.set_pressed (True)
-				if attached cw.take_pending_menu as pm then
-					show_popup (pm, cw.x.truncated_to_integer,
-						(cw.y + cw.height + 2.0).truncated_to_integer)
+			if attached Result as cw and then cw.is_enabled then
+				if not a_double then
+					cw.set_pressed (True)
+					if attached cw.take_pending_menu as pm then
+						show_popup (pm, cw.x.truncated_to_integer,
+							(cw.y + cw.height + 2.0).truncated_to_integer)
+					end
 				end
+					-- popovers may be summoned by doubles too: the
+					-- mesh's double-click reveal taught this
 				if attached cw.take_pending_popover as pp then
 					show_popover (pp, cw.x, cw.y + cw.height + 4.0,
 						pp_width_for (cw))
@@ -723,8 +764,8 @@ feature {NONE} -- Popup lifecycle
 			w: detachable SW_WIDGET
 		do
 			paths := take_dropped_paths
-			if not paths.is_empty and then attached active_root as r then
-				w := r.widget_at (a_x, a_y)
+			if not paths.is_empty then
+				w := target_at (a_x, a_y)
 				from
 				until
 					w = Void or else (w.is_enabled and then w.accepts_files)
@@ -823,9 +864,7 @@ feature {NONE} -- Popup lifecycle
 		local
 			w: detachable SW_WIDGET
 		do
-			if attached active_root as r then
-				w := r.widget_at (a_x, a_y)
-			end
+			w := target_at (a_x, a_y)
 			if attached w as pw then
 				pw.set_hover_point (a_x, a_y)
 			end
@@ -870,15 +909,34 @@ feature {NONE} -- Rendering
 				if sheet_mode = Mode_center then
 					painter.set_color_alpha (0x000000, 0.45)
 					painter.fill_rect (0.0, 0.0, win_w, win_h)
-					s.set_bounds ((win_w - sheet_width) / 2.0, 80.0, sheet_width,
-						s.preferred_height (painter, sheet_width).min (win_h - 160.0))
-					sheet_px := s.x - 16.0
-					sheet_py := s.y - 16.0
-					sheet_pw := s.width + 32.0
-					sheet_ph := s.height + 32.0
+					if sheet_user_w > 0.0 then
+						sheet_cw := sheet_user_w
+					else
+						sheet_cw := sheet_width
+					end
+					if sheet_user_h > 0.0 then
+						sheet_ch := sheet_user_h
+					else
+						sheet_ch := s.preferred_height (painter, sheet_cw).min (win_h - 160.0)
+					end
+					sheet_pw := sheet_cw + 32.0
+					sheet_ph := sheet_ch + 32.0 + Sheet_header_h
+					sheet_px := ((win_w - sheet_pw) / 2.0 + sheet_dx).min (win_w - 60.0).max (60.0 - sheet_pw)
+					sheet_py := (64.0 + sheet_dy).min (win_h - 60.0).max (4.0)
+					s.set_bounds (sheet_px + 16.0, sheet_py + Sheet_header_h + 16.0, sheet_cw, sheet_ch)
 					painter.set_color (theme.surface)
 					painter.rrect_fill (sheet_px, sheet_py, sheet_pw, sheet_ph, theme.radius + 4.0)
+						-- the header band: the visible handle for moving
+					painter.set_color (theme.surface_variant)
+					painter.rrect_fill (sheet_px + 1.0, sheet_py + 1.0, sheet_pw - 2.0, Sheet_header_h + 6.0, theme.radius + 3.0)
+					painter.set_color (theme.surface)
+					painter.fill_rect (sheet_px + 1.0, sheet_py + Sheet_header_h + 1.0, sheet_pw - 2.0, 8.0)
+					painter.set_color (theme.ink_muted)
+					painter.circle_fill (sheet_px + sheet_pw / 2.0 - 11.0, sheet_py + Sheet_header_h / 2.0, 1.7)
+					painter.circle_fill (sheet_px + sheet_pw / 2.0, sheet_py + Sheet_header_h / 2.0, 1.7)
+					painter.circle_fill (sheet_px + sheet_pw / 2.0 + 11.0, sheet_py + Sheet_header_h / 2.0, 1.7)
 					painter.set_color (theme.outline)
+					painter.hline (sheet_px + 1.0, sheet_py + Sheet_header_h + 0.5, sheet_pw - 2.0)
 					painter.rrect_stroke (sheet_px + 0.5, sheet_py + 0.5, sheet_pw - 1.0, sheet_ph - 1.0, theme.radius + 4.0)
 				elseif sheet_mode = Mode_left or sheet_mode = Mode_right then
 					painter.set_color_alpha (0x000000, 0.25)
@@ -913,7 +971,9 @@ feature {NONE} -- Rendering
 					painter.rrect_stroke (sheet_px + 0.5, sheet_py + 0.5, sheet_pw - 1.0, sheet_ph - 1.0, theme.radius)
 				end
 				s.arrange (painter)
+				painter.push_clip (sheet_px + 1.0, sheet_py + 1.0, sheet_pw - 2.0, sheet_ph - 2.0)
 				s.draw (painter)
+				painter.pop_clip
 				if sheet_mode = Mode_left or sheet_mode = Mode_right then
 						-- the pushpin, left of the drawer's own close X:
 						-- filled when pinned, hollow while peeking; click
@@ -932,20 +992,28 @@ feature {NONE} -- Rendering
 					pin_x := 0.0
 					pin_y := 0.0
 				end
-			end
-			if is_dev_mode and then attached hovered as hw then
-					painter.set_color (theme.accent)
-					painter.set_line_width (2.0)
-					painter.rrect_stroke (hw.x - 1.5, hw.y - 1.5, hw.width + 3.0, hw.height + 3.0, 3.0)
-					painter.set_line_width (1.0)
-					painter.font ({SW_PAINTER}.Role_mono, 12.0, True)
+				if sheet_mode = Mode_center then
+						-- the close pearl, straddling the panel's corner:
+						-- danger-red and unmissable (Larry asked twice)
+					close_x := sheet_px + sheet_pw - 3.0
+					close_y := sheet_py + 3.0
+					painter.set_color (theme.danger)
+					painter.circle_fill (close_x, close_y, 13.0)
 					painter.set_color (theme.surface)
-					painter.rrect_fill (hw.x, hw.y - 20.0,
-						painter.advance (hw.generating_type.name_32) + 60.0, 17.0, 3.0)
-					painter.set_color (theme.accent)
-					painter.text (hw.x + 4.0, hw.y - 6.0,
-						hw.generating_type.name_32 + {STRING_32} " "
-						+ hw.width.rounded.out + {STRING_32} "x" + hw.height.rounded.out)
+					painter.circle_stroke (close_x, close_y, 13.0)
+					painter.set_color (0xFFFFFF)
+					painter.line (close_x - 4.5, close_y - 4.5, close_x + 4.5, close_y + 4.5, 2.2)
+					painter.line (close_x - 4.5, close_y + 4.5, close_x + 4.5, close_y - 4.5, 2.2)
+						-- the resize grip: stair diagonals in the corner
+					painter.set_color (theme.ink_muted)
+					painter.line (sheet_px + sheet_pw - 16.0, sheet_py + sheet_ph - 5.0,
+						sheet_px + sheet_pw - 5.0, sheet_py + sheet_ph - 16.0, 1.6)
+					painter.line (sheet_px + sheet_pw - 10.0, sheet_py + sheet_ph - 5.0,
+						sheet_px + sheet_pw - 5.0, sheet_py + sheet_ph - 10.0, 1.6)
+				end
+			end
+			if lens.is_active (is_dev_mode) and then attached hovered as hw then
+				lens.draw_chip (painter, theme, hw)
 			end
 			if attached popup as m then
 				m.draw (painter)
@@ -1059,9 +1127,7 @@ feature {NONE} -- Rendering
 			w: detachable SW_WIDGET
 			ok: BOOLEAN
 		do
-			if attached active_root as r then
-				w := r.widget_at (pick_cur_x, pick_cur_y)
-			end
+			w := target_at (pick_cur_x, pick_cur_y)
 			if attached w as tw then
 				ok := tw.is_enabled and then tw.accepts_pebble (a_pebble)
 				if ok then
@@ -1238,6 +1304,12 @@ feature {NONE} -- State
 			sheet_mode := a_mode
 			sheet_ax := a_x
 			sheet_ay := a_y
+			sheet_dx := 0.0
+			sheet_dy := 0.0
+			sheet_user_w := 0.0
+			sheet_user_h := 0.0
+			sheet_dragging := False
+			sheet_sizing := False
 			drawer_pinned := True
 			if attached focused as f then
 				f.set_focused (False)
@@ -1316,6 +1388,51 @@ feature -- Drawer tab (peek and pin)
 			-- The pin glyph's centre on an open drawer panel,
 			-- refreshed every render; (0,0) when no drawer is up.
 
+	close_x, close_y: REAL_64
+			-- The close pearl's centre on a centered sheet - the modal's
+			-- one visible exit (Escape works too, but an affordance you
+			-- cannot see is not an affordance). Refreshed every render.
+
+	point_on_sheet_close (a_x, a_y: INTEGER): BOOLEAN
+		do
+			Result := sheet /= Void and then sheet_mode = Mode_center
+				and then a_x >= close_x - 15.0 and then a_x <= close_x + 15.0
+				and then a_y >= close_y - 15.0 and then a_y <= close_y + 15.0
+		end
+
+	sheet_dx, sheet_dy: REAL_64
+			-- The user's drag offset on a centered sheet; zero = home.
+
+	sheet_user_w, sheet_user_h: REAL_64
+			-- Content size chosen at the corner grip; 0 = auto.
+
+	sheet_cw, sheet_ch: REAL_64
+			-- The content size actually used this render - the grip
+			-- seeds from these when a resize begins.
+
+	sheet_dragging, sheet_sizing: BOOLEAN
+			-- Is the pointer carrying the sheet (header) or its
+			-- corner (grip)?
+
+	sheet_grab_x, sheet_grab_y: REAL_64
+
+	Sheet_header_h: REAL_64 = 24.0
+			-- The grab band across a centered sheet's top.
+
+	point_on_sheet_header (a_x, a_y: INTEGER): BOOLEAN
+		do
+			Result := sheet /= Void and then sheet_mode = Mode_center
+				and then a_x >= sheet_px and then a_x <= sheet_px + sheet_pw - 30.0
+				and then a_y >= sheet_py and then a_y <= sheet_py + Sheet_header_h
+		end
+
+	point_on_sheet_grip (a_x, a_y: INTEGER): BOOLEAN
+		do
+			Result := sheet /= Void and then sheet_mode = Mode_center
+				and then a_x >= sheet_px + sheet_pw - 22.0 and then a_x <= sheet_px + sheet_pw + 6.0
+				and then a_y >= sheet_py + sheet_ph - 22.0 and then a_y <= sheet_py + sheet_ph + 6.0
+		end
+
 	point_on_pin (a_x, a_y: INTEGER): BOOLEAN
 		do
 			Result := sheet /= Void
@@ -1365,6 +1482,29 @@ feature -- Drawer tab (peek and pin)
 				Result := s
 			else
 				Result := root
+			end
+		end
+
+	target_at (a_x, a_y: INTEGER): detachable SW_WIDGET
+			-- The widget under the point for input purposes. The one
+			-- departure from active_root: with a PINNED side drawer,
+			-- points outside its panel hit the live page - the
+			-- EiffelStudio-debugger dock (the tool watches while the
+			-- program stays interactive). Unpinned drawers and
+			-- popovers keep their dismiss-on-outside behaviour, and
+			-- centered sheets stay truly modal.
+		do
+			if attached sheet as s then
+				if sheet_mode = Mode_center or else point_in_sheet_panel (a_x, a_y) then
+					Result := s.widget_at (a_x, a_y)
+				elseif drawer_pinned
+					and then (sheet_mode = Mode_left or sheet_mode = Mode_right)
+					and then attached root as r
+				then
+					Result := r.widget_at (a_x, a_y)
+				end
+			elseif attached root as r then
+				Result := r.widget_at (a_x, a_y)
 			end
 		end
 

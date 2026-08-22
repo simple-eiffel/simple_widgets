@@ -41,7 +41,7 @@ Toolkit-wide near-term items (from the same read):
       map v1, true world map when Wave 4 'maps' lands; DST honesty via
       Windows ICU when depth is needed.
 - [ ] Overlay auto-close-on-pick hook (date picker popovers).
-- [ ] SW_INSPECTOR - design pinned in S02; lands at Wave 3 tail behind the
+- [x] SW_INSPECTOR - SHIPPED 2026-08-22 with SW_MESH + SW_DEV_STUDIO (devkit override gate, binary-proven absent from release shapes); was: design pinned in S02; lands at Wave 3 tail behind the
       debug ("dev_mode") gate.
 
 
@@ -57,7 +57,7 @@ Planned extensions:
 - [ ] Multi-window support (owner/owned, drawn dialogs across windows).
 - [ ] Cursor API (I-beam over text, resize arrows over splitters).
 - [ ] Dirty-rectangle rendering and batched text runs to erase resize lag.
-- [ ] Dev-mode inspector overlay (SW_INSPECTOR, S02): reflection-driven widget reveals behind an ECF debug ("dev_mode") compile-time gate.
+- [x] Dev-mode inspector overlay (SW_INSPECTOR, S02): SHIPPED - reflection-driven reveals; the gate as BUILT is the devkit ECF override cluster (finalization strips debug-clauses - oracle law), binary-measured absence.
 - [ ] Per-window text scale (grow/shrink all fonts) via a theme scale factor.
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -80,7 +80,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Tab-order focus traversal with a visible focus ring policy.
-- [ ] dev_note metadata for the SW_INSPECTOR overlay (provenance, intent, wiring).
+- [x] dev_note metadata for the SW_INSPECTOR overlay (provenance, intent, wiring) - SHIPPED on the widget spine.
 - [ ] Accessibility bridge (UIA text patterns) - a research item; it must not violate R7.
 - [ ] Animation hooks (hover/press transitions driven from the tick).
 

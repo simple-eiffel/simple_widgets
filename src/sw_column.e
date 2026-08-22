@@ -10,6 +10,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
+			sub_widgets,
 			arrange, widget_at
 		end
 
@@ -66,6 +67,13 @@ feature -- Element change
 		do
 			padding := a_pad
 			Result := Current
+		end
+
+feature -- Tooling
+
+	sub_widgets: ARRAYED_LIST [SW_WIDGET]
+		do
+			Result := children
 		end
 
 feature -- Layout

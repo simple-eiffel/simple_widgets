@@ -12,6 +12,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
+			sub_widgets,
 			arrange, widget_at, handle_wheel, handle_click, handle_drag,
 			wants_hover_point
 		end
@@ -98,6 +99,16 @@ feature -- Element change
 			wheel_step := a_px
 		ensure
 			set: wheel_step = a_px
+		end
+
+feature -- Tooling
+
+	sub_widgets: ARRAYED_LIST [SW_WIDGET]
+		do
+			create Result.make (1)
+			if attached child as c then
+				Result.extend (c)
+			end
 		end
 
 feature -- Layout

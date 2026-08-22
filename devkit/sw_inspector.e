@@ -16,12 +16,14 @@ inherit
 	SW_COLUMN
 
 create
-	make_for
+	make_for, make_full
 
 feature {NONE} -- Initialization
 
 	make_for (a_subject: SW_WIDGET)
+			-- The compact dossier: popover-friendly, fields capped.
 		do
+			field_cap := 14
 			make
 			subject := a_subject
 			gap := 2.0
@@ -30,9 +32,38 @@ feature {NONE} -- Initialization
 			aimed: subject = a_subject
 		end
 
+	make_full (a_subject: SW_WIDGET)
+			-- The whole truth: every reflected field, no cap - meant
+			-- to live inside a scroll area (the studio pane does).
+		do
+			field_cap := 1_000
+			make
+			subject := a_subject
+			gap := 2.0
+			build_lines
+		ensure
+			aimed: subject = a_subject
+		end
+
+feature -- Access (cap)
+
+	field_cap: INTEGER
+			-- How many reflected fields build_lines shows.
+
 feature -- Access
 
 	subject: SW_WIDGET
+
+feature -- Element change
+
+	set_mesh_action (a_action: PROCEDURE)
+			-- Append the "Mesh this subtree" row: the reveal becomes
+			-- a doorway (Larry: open a mesh from whatever control I
+			-- have selected).
+		do
+			put (create {SW_SEPARATOR}.make)
+			put (create {SW_BUTTON}.make ("Mesh this subtree", a_action))
+		end
 
 	line_count: INTEGER
 		do
@@ -91,10 +122,10 @@ feature {NONE} -- Building
 				end
 			end
 			if chain.count > 7 then
-				put ((create {SW_LABEL}.make_mono (chain)).as_muted)
+				put ((create {SW_LABEL}.make_mono (chain)).as_muted.with_wrap)
 			end
 			if attached subject.dev_note as note_text then
-				put (create {SW_LABEL}.make_mono ({STRING_32} "note: " + note_text))
+				put ((create {SW_LABEL}.make_mono ({STRING_32} "note: " + note_text)).with_wrap)
 			end
 			put (create {SW_SEPARATOR}.make)
 				-- the props pane reflection gives for free
@@ -102,13 +133,13 @@ feature {NONE} -- Building
 			from
 				i := 1
 			until
-				i > r.field_count or shown >= 14
+				i > r.field_count or shown >= field_cap
 			loop
 				create line.make (48)
 				line.append_string_general (r.field_name (i))
 				line.append ({STRING_32} " = ")
 				line.append (field_text (r, i))
-				put ((create {SW_LABEL}.make_mono (line)).as_muted)
+				put ((create {SW_LABEL}.make_mono (line)).as_muted.with_wrap)
 				shown := shown + 1
 				i := i + 1
 			end
