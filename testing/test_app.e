@@ -278,6 +278,8 @@ feature {NONE} -- Test runners
 			run_test (agent chart_tests.test_map_projection_round_trips, "map_projection_round_trips")
 			run_test (agent chart_tests.test_map_raster_and_markers, "map_raster_and_markers")
 			run_test (agent chart_tests.test_diagram_contracts_and_physics, "diagram_contracts_and_physics")
+			run_test (agent chart_tests.test_picker_band_arithmetic, "picker_band_arithmetic")
+			run_test (agent chart_tests.test_world_clock_zone_math, "world_clock_zone_math")
 		end
 
 	chart_tests: SW_CHART_ASSAULT

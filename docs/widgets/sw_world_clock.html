@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_WORLD_CLOCK - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_WORLD_CLOCK</h1>
+        <p class="tagline">Realtime per-zone clocks: minute offsets first-class, locale-lawful rendering, honest +1d/-1d chips.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>The idea's second half: <em>realtime computation of current-time within a timezone</em>. Cities carry MINUTE offsets - India's +5:30 and Nepal's +5:45 are first-class citizens, not rounding errors. The current moment comes from <code>SIMPLE_DATE_TIME.make_now_utc</code> (the ecosystem owns 'now' - no new externals), each row renders through the theme's SW_LOCALE so the 12/24-hour law follows culture, and a <code>+1d</code>/<code>-1d</code> chip tells the truth when a zone lives in tomorrow or yesterday.</p>
+            <p>The heartbeat's ambient repaint IS the tick - no timers wired anywhere. The zone arithmetic (<code>zone_time</code>, <code>day_delta</code>) is pure public math, assaulted headless across midnight in both directions. Offsets are yours to supply: DST and zone LAW are deliberately not computed here - honesty over false authority.</p>
+            <p class="muted"><em>Source: <code>src/sw_world_clock.e</code> &middot; since Wave 4 coda - Larry's idea, kept (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Ticking cities</h2>
+<pre><code><span class="keyword">create</span> clock.make
+clock.add_city (<span <span class="keyword">class</span>="string">&quot;Denver (<span class="type">UTC</span>-7)&quot;</span>, -420)
+clock.add_city (<span <span class="keyword">class</span>="string">&quot;Mumbai (<span class="type">UTC</span>+5:30)&quot;</span>, 330)
+clock.add_city (<span <span class="keyword">class</span>="string">&quot;Sydney (<span class="type">UTC</span>+10)&quot;</span>, 600)
+page.put (clock.with_title (<span <span class="keyword">class</span>="string">&quot;world clock&quot;</span>))
+<span class="comment">-- nothing else: the heartbeat repaint is the tick</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Minutes precision on display (the heartbeat repaints 4x/second; seconds would be theatre at HH:MM anyway).</li>
+                <li>No DST computation - supply winter/summer offsets yourself, or wire a rule table when simple_datetime grows one.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Row times follow the AMBIENT theme locale - a 12-hour theme shows AM/PM everywhere; per-row locale is not a thing (yet).</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>A picked-zone row fed live by SW_TIMEZONE_PICKER.on_change; DST rule tables if/when the ecosystem grows them; seconds display behind a flag.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

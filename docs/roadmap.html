@@ -188,8 +188,11 @@
                 <li><strong>Locale growth</strong> - number formatting consuming the carried
                     decimal mark; collation for grid sorting; Windows ICU bridge when CLDR depth
                     is demanded.</li>
-                <li><strong>Timezone tools</strong> - SW_WORLD_CLOCK (per-zone ticking times) and
-                    SW_TIMEZONE_PICKER (band map, graduating with Wave 4's maps).</li>
+                <li><strong>Timezone tools — SHIPPED 2026-08-22</strong>: SW_TIMEZONE_PICKER
+                    (the pickable band map, riding SW_MAP the day it landed) and
+                    SW_WORLD_CLOCK (live per-zone clocks off SIMPLE_DATE_TIME.make_now_utc,
+                    minute offsets first-class, locale-lawful rendering, honest +1d/-1d).
+                    Larry's day-one idea, kept. DST rule tables remain future law.</li>
                 <li><strong>Dependency audit</strong> - sweep ECFs and sources for ISE/Gobo
                     touchpoints; map each to a simple_* library or flag the backfill hole
                     (simple_datetime was the live win; the file dialog's base PATH/DIRECTORY is

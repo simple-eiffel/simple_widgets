@@ -503,4 +503,43 @@ feature -- Space and structure
 				200.0, d.nodes.i_th (b).px, 0.000_1)
 		end
 
+feature -- Timezone tools
+
+	test_picker_band_arithmetic
+		local
+			p: SW_TIMEZONE_PICKER
+		do
+			create p.make
+			p.set_bounds (0.0, 0.0, 500.0, 300.0)
+			assert_integers_equal ("greenwich is band zero", 0,
+				p.offset_at (p.x_of_lon (0.0)))
+			assert_integers_equal ("Denver's meridian is minus seven", -7,
+				p.offset_at (p.x_of_lon (-105.0)))
+			assert_integers_equal ("Sydney's meridian is plus ten", 10,
+				p.offset_at (p.x_of_lon (151.2)))
+			assert_integers_equal ("the west edge clamps to minus twelve", -12,
+				p.offset_at (p.x_of_lon (-179.9)))
+			assert_integers_equal ("the east edge clamps to plus twelve", 12,
+				p.offset_at (p.x_of_lon (179.9)))
+		end
+
+	test_world_clock_zone_math
+		local
+			c: SW_WORLD_CLOCK
+		do
+			create c.make
+			assert_integers_equal ("plus ninety past 23:30 is 01:00", 60,
+				c.zone_time (23 * 60 + 30, 90))
+			assert_integers_equal ("and that is tomorrow", 1,
+				c.day_delta (23 * 60 + 30, 90))
+			assert_integers_equal ("minus an hour before 00:15 is 23:15", 23 * 60 + 15,
+				c.zone_time (15, -60))
+			assert_integers_equal ("and that is yesterday", -1,
+				c.day_delta (15, -60))
+			assert_integers_equal ("India at noon UTC is 17:30", 17 * 60 + 30,
+				c.zone_time (12 * 60, 330))
+			assert_integers_equal ("and still today", 0,
+				c.day_delta (12 * 60, 330))
+		end
+
 end

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_TIMEZONE_PICKER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_TIMEZONE_PICKER</h1>
+        <p class="tagline">The pickable timezone map: click a 15-degree band on the world; on_change fires the UTC offset.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Pinned as an IDEA on day one of the locale work - <em>a timezone set of tools, including a pickable timezone map</em> - and buildable the day SW_MAP landed. It IS the map (inheritance, not wrapping): a click reads its longitude, rounds to the nearest 15-degree band (<code>offset_at</code>, public, assaulted: Greenwich is zero, Denver's meridian is minus seven, the edges clamp to plus and minus twelve), highlights the band via the map's own <code>highlight_utc</code>, captions the selection, and fires <code>on_change</code> with the offset.</p>
+            <p>Bands are NOMINAL meridians - geometry, not law. Political zone borders and DST belong to whoever supplies offsets to SW_WORLD_CLOCK beside it.</p>
+            <p class="muted"><em>Source: <code>src/sw_timezone_picker.e</code> &middot; since Wave 4 coda - Larry's idea, kept (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Picking a zone</h2>
+<pre><code><span class="keyword">create</span> picker.make
+picker.add_marker (<span <span class="keyword">class</span>="string">&quot;Denver&quot;</span>, 39.7, -105.0)
+picker.set_on_change (<span class="keyword">agent</span> on_zone_picked)
+page.put (picker.with_title (<span <span class="keyword">class</span>="string">&quot;click any band&quot;</span>))
+
+on_zone_picked (a_offset: <span class="type">INTEGER</span>)
+    <span class="keyword">do</span>
+        clock.add_city (<span <span class="keyword">class</span>="string">&quot;picked&quot;</span>, a_offset * 60)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Hour bands only (the geometry); half-hour zones are the clock's business.</li>
+                <li>One selection at a time, mirroring the map's single highlight.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>offset_at clamps to -12..+12 - the +13/+14 island zones are law, not meridians, and belong to supplied offsets.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Marker-aware picking (click a city, get its REAL offset from a supplied table).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

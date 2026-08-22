@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (Wave 4 coda - the timezone tools, Larry's idea kept)
+- SW_TIMEZONE_PICKER: the pickable band map, pinned as an idea on day
+  one of the locale work and built the day SW_MAP made it possible.
+  IS the map (inheritance): click reads longitude, rounds to the
+  15-degree band (offset_at assaulted: Greenwich 0, Denver -7, edges
+  clamp +/-12), highlights it, captions it, fires on_change.
+- SW_WORLD_CLOCK: realtime per-zone clocks - MINUTE offsets first
+  class (+5:30 India, +5:45 Nepal), 'now' from
+  SIMPLE_DATE_TIME.make_now_utc (the ecosystem owns time - zero new
+  externals), rendering through the theme's SW_LOCALE (12/24-hour law
+  follows culture), honest +1d/-1d chips across midnight. The
+  heartbeat's ambient repaint IS the tick - no timers wired. zone_time
+  and day_delta assaulted across midnight both directions. DST is
+  deliberately NOT computed - offsets are the caller's law.
+- Demo Space tab: the picker replaces the plain map (same markers,
+  UTC-7 preselected, statusbar follows picks) and six cities tick
+  live, Mumbai proving the half-hour.
+- 2 new assaults: suite 125/125.
+
 ### Added (Wave 4, movement six - Space & structure; WAVE 4 COMPLETE)
 - SW_MAP: a built-in coarse 72x36 equirectangular world (5-degree
   cells, authored from geography and QUIZZED by the assault: Denver

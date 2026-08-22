@@ -730,20 +730,30 @@ feature {NONE} -- Behaviour
 			-- Wave 4 closes: the world and the graph - SW_MAP with
 			-- markers and a UTC band, SW_DIAGRAM with the ecosystem.
 		local
-			map: SW_MAP
+			map: SW_TIMEZONE_PICKER
+			clock: SW_WORLD_CLOCK
 			dia: SW_DIAGRAM
 			n1, n2, n3, n4, n5, n6: INTEGER
 		do
 			create Result.make
 			Result := Result.with_padding (12.0).with_gap (10.0)
-			Result.put ((create {SW_LABEL}.make_ui ("Wave 4 closes %/8212/ SW_MAP (coarse world, markers, UTC band) and SW_DIAGRAM (the mesh physics, public)")).as_muted)
+			Result.put ((create {SW_LABEL}.make_ui ("Wave 4 closes %/8212/ the timezone tools (Larry's idea, kept): click a band on the world; the clocks below tick live")).as_muted)
 			create map.make
 			map.add_marker ("Denver", 39.7, -105.0)
 			map.add_marker ("London", 51.5, -0.1)
 			map.add_marker ("Tokyo", 35.7, 139.7)
 			map.add_marker ("Sydney", -33.9, 151.2)
 			map.highlight_utc (-7)
-			Result.put (map.with_title ("the coarse world %/8212/ hover anywhere; UTC-7 banded"))
+			map.set_on_change (agent on_zone_picked)
+			Result.put (map.with_title ("SW_TIMEZONE_PICKER %/8212/ click any 15-degree band"))
+			create clock.make
+			clock.add_city ("Denver (UTC-7)", -420)
+			clock.add_city ("London (UTC+0)", 0)
+			clock.add_city ("Paris (UTC+1)", 60)
+			clock.add_city ("Mumbai (UTC+5:30)", 330)
+			clock.add_city ("Tokyo (UTC+9)", 540)
+			clock.add_city ("Sydney (UTC+10)", 600)
+			Result.put (clock.with_title ("SW_WORLD_CLOCK %/8212/ ticking on the heartbeat; +1d when tomorrow"))
 			create dia.make
 			n1 := dia.add_node ("simple_widgets")
 			n2 := dia.add_node ("simple_cairo")
@@ -757,6 +767,11 @@ feature {NONE} -- Behaviour
 			dia.connect (n5, n4)
 			dia.connect (n1, n6)
 			Result.put (dia.with_title ("the ecosystem as a living graph %/8212/ drag pins a node"))
+		end
+
+	on_zone_picked (a_offset: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "picked UTC" + (if a_offset >= 0 then {STRING_32} "+" else {STRING_32} "" end) + a_offset.out)
 		end
 
 	charts_page: SW_COLUMN
