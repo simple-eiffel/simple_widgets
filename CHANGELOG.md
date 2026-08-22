@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (the event layer)
+- SW_EVENT [ARGS]: the agent collection behind every on_[event] -
+  ISE's ACTION_SEQUENCE architecture, read from the installed 25.02
+  source (base/ise/event) at Larry's direction and kept faithful:
+  one ordered roll where KAMIKAZES fire in subscription order beside
+  permanents and vanish before their bodies run; abort stops the
+  current round (nested rounds stack-tracked); pause buffers event
+  data, resume replays the backlog, block drops cold, flush discards.
+  Rounds work a snapshot - mid-fire subscription is safe. Vocabulary
+  double-salted: call/extend/extend_kamikaze/prune beside
+  fire/subscribe/kamikaze/unsubscribe.
+- The spine speaks: on_focus_change / on_hover_change /
+  on_press_change / on_enabled_change on EVERY widget, lazily
+  allocated, fired by the setters on CHANGE only. The sensitivity
+  pass announces through the same queue (enabled_when verdicts fire
+  on_enabled_change). SW_BUTTON.click_actions runs beside the legacy
+  single agent. The GUI state machine now emerges by default -
+  Larry's design, verbatim.
+- Cairo-based queues (Larry): window.before_render_actions and
+  after_render_actions - the latter delivers last_render_ms, so perf
+  instruments subscribe instead of being wired in.
+- Demo: a kamikaze in the wild - Click Me toasts on its FIRST click
+  only. 7 new assaults (order, kamikaze, abort, pause/block/flush,
+  change-only spine, sensitivity-through-queue, queue-beside-legacy):
+  suite 98/98.
+
 ### Fixed (performance)
 - Window-grow drags no longer crawl (Larry's sizing video, diagnosed
   frame by frame): the frame-echo PNG - a debug hook - was being

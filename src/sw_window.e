@@ -917,6 +917,9 @@ feature {NONE} -- Popup lifecycle
 			t0: INTEGER
 		do
 			t0 := c_tick_ms
+			if attached before_render_event as be then
+				be.call ([])
+			end
 			refresh_enabling_states
 			render
 			blit
@@ -924,12 +927,39 @@ feature {NONE} -- Popup lifecycle
 			if last_render_ms > 100 then
 				log_line ("sw: SLOW frame " + last_render_ms.out + "ms at " + win_w.out + "x" + win_h.out)
 			end
+			if attached after_render_event as ae then
+				ae.call ([last_render_ms])
+			end
 		end
 
 	last_render_ms: INTEGER
 			-- Wall-clock cost of the most recent full frame
 			-- (sensitivity pass + render + blit) - the perf pane's
 			-- first gauge, and the slow-frame log's source.
+
+	before_render_actions: SW_EVENT [TUPLE]
+			-- The cairo pipeline's opening bell: fires before every
+			-- full frame (Larry: cairo-based event queues). Lazy.
+		do
+			if attached before_render_event as e then
+				Result := e
+			else
+				create Result.make
+				before_render_event := Result
+			end
+		end
+
+	after_render_actions: SW_EVENT [TUPLE [ms: INTEGER]]
+			-- Fires after every full frame with its wall-clock cost -
+			-- perf instruments subscribe instead of being wired in.
+		do
+			if attached after_render_event as e then
+				Result := e
+			else
+				create Result.make
+				after_render_event := Result
+			end
+		end
 
 	refresh_enabling_states
 			-- Re-query every installed enabling condition - the
@@ -1579,6 +1609,10 @@ feature -- Drawer tab (peek and pin)
 		end
 
 	frame_echo_dirty: BOOLEAN
+
+	before_render_event: detachable SW_EVENT [TUPLE]
+
+	after_render_event: detachable SW_EVENT [TUPLE [ms: INTEGER]]
 
 	alloc_w: INTEGER
 	alloc_h: INTEGER

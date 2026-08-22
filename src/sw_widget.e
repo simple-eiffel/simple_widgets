@@ -221,7 +221,12 @@ feature -- Input
 
 	set_focused (a_focused: BOOLEAN)
 		do
-			is_focused := a_focused
+			if is_focused /= a_focused then
+				is_focused := a_focused
+				if attached focus_event as e then
+					e.call ([a_focused])
+				end
+			end
 		ensure
 			set: is_focused = a_focused
 		end
@@ -271,7 +276,12 @@ feature -- Input
 
 	set_hovered (a_hovered: BOOLEAN)
 		do
-			is_hovered := a_hovered
+			if is_hovered /= a_hovered then
+				is_hovered := a_hovered
+				if attached hover_event as e then
+					e.call ([a_hovered])
+				end
+			end
 		ensure
 			set: is_hovered = a_hovered
 		end
@@ -280,16 +290,77 @@ feature -- Input
 		require
 			only_enabled_press: a_pressed implies is_enabled
 		do
-			is_pressed := a_pressed
+			if is_pressed /= a_pressed then
+				is_pressed := a_pressed
+				if attached press_event as e then
+					e.call ([a_pressed])
+				end
+			end
 		ensure
 			set: is_pressed = a_pressed
 		end
 
 	set_enabled (a_enabled: BOOLEAN)
 		do
-			is_disabled := not a_enabled
+			if is_disabled = a_enabled then
+				is_disabled := not a_enabled
+				if attached enabled_event as e then
+					e.call ([a_enabled])
+				end
+			end
 		ensure
 			set: is_enabled = a_enabled
+		end
+
+	on_focus_change: SW_EVENT [TUPLE [focused: BOOLEAN]]
+			-- Fires when is_focused CHANGES (the datum is the new
+			-- truth). Lazily allocated - unobserved widgets pay one
+			-- Void test. With on_hover_change, on_press_change and
+			-- on_enabled_change, the widget's own state machine is
+			-- observable: subscribe permanents or kamikazes and the
+			-- GUI state machine emerges by default (Larry's design).
+		do
+			if attached focus_event as e then
+				Result := e
+			else
+				create Result.make
+				focus_event := Result
+			end
+		end
+
+	on_hover_change: SW_EVENT [TUPLE [hovered: BOOLEAN]]
+			-- Fires when is_hovered changes.
+		do
+			if attached hover_event as e then
+				Result := e
+			else
+				create Result.make
+				hover_event := Result
+			end
+		end
+
+	on_press_change: SW_EVENT [TUPLE [pressed: BOOLEAN]]
+			-- Fires when is_pressed changes.
+		do
+			if attached press_event as e then
+				Result := e
+			else
+				create Result.make
+				press_event := Result
+			end
+		end
+
+	on_enabled_change: SW_EVENT [TUPLE [enabled: BOOLEAN]]
+			-- Fires when is_enabled changes - by hand or by an
+			-- enabled_when condition; the sensitivity pass speaks
+			-- through the same queue.
+		do
+			if attached enabled_event as e then
+				Result := e
+			else
+				create Result.make
+				enabled_event := Result
+			end
 		end
 
 	enabled_when: detachable FUNCTION [BOOLEAN]
@@ -456,6 +527,15 @@ feature -- Input
 
 	pebble_item: detachable ANY
 			-- Stored pebble behind the default `pebble'.
+
+	focus_event: detachable SW_EVENT [TUPLE [focused: BOOLEAN]]
+			-- Backing store for on_focus_change; Void until observed.
+
+	hover_event: detachable SW_EVENT [TUPLE [hovered: BOOLEAN]]
+
+	press_event: detachable SW_EVENT [TUPLE [pressed: BOOLEAN]]
+
+	enabled_event: detachable SW_EVENT [TUPLE [enabled: BOOLEAN]]
 
 	pending_popover: detachable SW_WIDGET
 			-- A widget tree this widget wants presented as an

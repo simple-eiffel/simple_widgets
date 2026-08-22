@@ -195,15 +195,35 @@ feature -- Drawing (structure: three parts)
 
 feature -- Input
 
+	click_actions: SW_EVENT [TUPLE]
+			-- The click as an agent QUEUE - permanents and kamikazes
+			-- beside the single on_click (which stays for the simple
+			-- hand). Lazily allocated.
+		do
+			if attached click_event as e then
+				Result := e
+			else
+				create Result.make
+				click_event := Result
+			end
+		end
+
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
 		do
 			if is_enabled then
+				if attached click_event as ce then
+					ce.call ([])
+				end
 				if attached on_click as a then
 					a.call
 				end
 				Result := True
 			end
 		end
+
+feature {NONE} -- Event backing
+
+	click_event: detachable SW_EVENT [TUPLE]
 
 invariant
 	label_attached: label /= Void

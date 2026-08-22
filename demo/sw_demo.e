@@ -59,6 +59,7 @@ feature {NONE} -- Initialization
 			create danger_button.make ("Danger", Void)
 			danger_button.set_dev_note ("armed by the Danger armed check box; fires on_delete")
 			create danger_check.make ("Danger armed", True, Void)
+			create click_me_button.make_primary ("Click Me", Void)
 			toolbar.add_tool ("New", "Start fresh (decorative)", True, agent on_menu_new)
 			toolbar.add_tool ("Save", "Save (decorative)", True, agent on_menu_save)
 			toolbar.add_gap
@@ -79,6 +80,11 @@ feature {NONE} -- Initialization
 				-- state control by agent: the button's availability IS
 				-- the check box's state - no manual toggling anywhere
 			danger_check.set_on_change (agent on_toggle_danger)
+			click_me_button.set_on_click (agent on_click_me)
+			click_me_button.set_tooltip ("Adds 10%% to the progress bar")
+				-- a kamikaze in the wild: fires on the FIRST click
+				-- only, then it is gone from the queue
+			click_me_button.click_actions.kamikaze (agent on_first_click_ever)
 			danger_button.set_enabled_when (agent danger_check.is_checked)
 			window.add_font ("D:\prod\simple_narrate\fonts\Archivo.ttf").do_nothing
 			window.add_font ("D:\prod\simple_narrate\fonts\Literata.ttf").do_nothing
@@ -117,7 +123,7 @@ feature {NONE} -- Initialization
 			card.put (counter_label)
 			card.put (progress)
 			create buttons.make
-			buttons.put ((create {SW_BUTTON}.make_primary ("Click Me", agent on_click_me)).with_tooltip ("Adds 10%% to the progress bar"))
+			buttons.put (click_me_button)
 			buttons.put (create {SW_BUTTON}.make ("Log Only", agent on_log_only))
 			buttons.put ((create {SW_BUTTON}.make ("Disabled", Void)).disabled)
 			buttons.put (create {SW_BUTTON}.make ("Dark / Light", agent on_toggle_theme))
@@ -619,6 +625,14 @@ feature {NONE} -- Behaviour
 	counter_label: SW_LABEL
 
 	clicks: INTEGER
+
+	click_me_button: SW_BUTTON
+
+	on_first_click_ever
+			-- The kamikaze showcase: this body runs exactly once.
+		do
+			window.toast ("kamikaze fired: first click only %/8212/ that agent is gone now", 2)
+		end
 
 	on_click_me
 		do

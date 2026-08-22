@@ -53,6 +53,9 @@ feature {NONE} -- Initialization
 			print ("%N=== STATE CONTROL ===%N")
 			run_state_control_tests
 
+			print ("%N=== EVENT QUEUES ===%N")
+			run_event_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -229,6 +232,20 @@ feature {NONE} -- Test runners
 		end
 
 	state_tests: SW_STATE_CONTROL_ASSAULT
+
+	run_event_tests
+		do
+			create event_tests
+			run_test (agent event_tests.test_event_order_and_permanence, "event_order_and_permanence")
+			run_test (agent event_tests.test_kamikaze_fires_in_place_once, "kamikaze_fires_in_place_once")
+			run_test (agent event_tests.test_abort_stops_the_round, "abort_stops_the_round")
+			run_test (agent event_tests.test_pause_buffers_block_drops, "pause_buffers_block_drops")
+			run_test (agent event_tests.test_spine_fires_on_change_only, "spine_fires_on_change_only")
+			run_test (agent event_tests.test_sensitivity_speaks_through_the_queue, "sensitivity_speaks_through_the_queue")
+			run_test (agent event_tests.test_button_queue_beside_legacy, "button_queue_beside_legacy")
+		end
+
+	event_tests: SW_EVENT_ASSAULT
 
 	run_file_dialog_tests
 		do

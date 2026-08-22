@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_EVENT [ARGS -> TUPLE] - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_EVENT [ARGS -> TUPLE]</h1>
+        <p class="tagline">The agent collection behind every on_[event] - ISE&#x27;s ACTION_SEQUENCE architecture, distilled for the drawn toolkit.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Larry's design note became the layer: every EV control carries agent COLLECTIONS per event, and those collections - permanent subscribers beside one-shot <strong>kamikazes</strong> - ARE the GUI's state machine. SW_EVENT is that mechanism, read from the installed EiffelStudio 25.02 source (<code>base/ise/event/action_sequence.e</code>) at his direction and kept faithful where the architecture earns it: <strong>one ordered roll</strong> (kamikazes fire in subscription order beside permanents, and are off the roll before their bodies run), an <strong>abort</strong> protocol (any action can stop the remainder of its round; a stack keeps nested rounds honest), and the <strong>state trio</strong> - Normal calls through, <code>pause</code> buffers event data until <code>resume</code> replays the backlog, <code>block</code> drops calls cold, <code>flush</code> discards the buffer. Rounds work a snapshot, so subscribing or pruning mid-fire never corrupts the round.</p>
+            <p>Vocabulary is double-salted for both hands: Vision2's <code>call / extend / extend_kamikaze / prune</code> alias the native <code>fire / subscribe / kamikaze / unsubscribe</code>.</p>
+            <p><strong>Adoption, first ring.</strong> The widget spine exposes four lazily-created state queues - <code>on_focus_change</code>, <code>on_hover_change</code>, <code>on_press_change</code>, <code>on_enabled_change</code> - fired by the setters on CHANGE only (an unobserved widget pays a single Void test). The sensitivity pass speaks through the same queue: an <code>enabled_when</code> verdict that flips a widget fires <code>on_enabled_change</code> like any other cause. SW_BUTTON adds <code>click_actions</code> beside its legacy single agent. And the CAIRO pipeline has its own bells (Larry: cairo-based event queues): the window's <code>before_render_actions</code> and <code>after_render_actions</code> - the latter delivering <code>last_render_ms</code>, so perf instruments subscribe instead of being wired in.</p>
+            <p>The idea is deliberately bigger than the GUI: any class wanting an <code>on_[event]</code> surface can hold SW_EVENT instances - the state-machine mechanism with no widget in sight. If non-GUI simple_* libraries reach for it, it graduates into its own library (simple_events).</p>
+            <p class="muted"><em>Source: <code>src/sw_event.e</code> &middot; since Wave 3 coda (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Permanents, kamikazes, and the render bell</h2>
+<pre><code><span class="comment">-- a permanent observer and a one-shot beside it</span>
+save_button.click_actions.subscribe (<span class="keyword">agent</span> on_save)
+save_button.click_actions.kamikaze (<span class="keyword">agent</span> on_first_save_ever)
+
+<span class="comment">-- the spine&#x27;s state machine, observable</span>
+name_box.on_focus_change.subscribe (<span class="keyword">agent</span> on_name_focus)
+
+<span class="comment">-- batch a storm: pause, mutate, resume replays the backlog</span>
+list.on_enabled_change.pause
+<span class="keyword">across</span> widgets <span class="keyword">as</span> w <span class="keyword">loop</span> w.refresh_enabling <span class="keyword">end</span>
+list.on_enabled_change.resume
+
+<span class="comment">-- the cairo bell: perf instruments subscribe, not wire</span>
+window.after_render_actions.subscribe (<span class="keyword">agent</span> on_frame_cost)
+
+on_frame_cost (a_ms: <span class="type">INTEGER</span>)
+    <span class="keyword">do</span>
+        <span class="keyword">if</span> a_ms &gt; 32 <span class="keyword">then</span> statusbar.set_left (<span <span class="keyword">class</span>="string">&quot;slow frame: &quot;</span> + a_ms.out + <span <span class="keyword">class</span>="string">&quot;ms&quot;</span>) <span class="keyword">end</span>
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>unsubscribe/prune is identity-based: pass the SAME agent object you subscribed (keep it in an attribute if you plan to leave).</li>
+                <li>Spine queues fire on CHANGE only - re-asserting the same state is silence by design.</li>
+                <li>Controls beyond SW_BUTTON still carry single-agent slots; the queue sweep is control-by-control (the single setters stay - they are the simple hand).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>A kamikaze subscribed DURING a round waits for the next event (rounds work a snapshot).</li>
+                <li>abort stops the CURRENT round only - it prunes nobody.</li>
+                <li>resume replays buffered calls with their ORIGINAL event data, in order - flush first if the backlog is stale.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Queue sweep across controls (on_change, on_select, on_drop as SW_EVENT beside the legacy single agents).</li>
+                <li>not_empty/empty meta-actions (ACTION_SEQUENCE has them) if lazy backends ever need to know they are observed.</li>
+                <li>Graduation to simple_events when a non-GUI library subscribes.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>
