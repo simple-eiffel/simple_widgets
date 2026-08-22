@@ -192,6 +192,11 @@ feature -- Input
 			if n > 0 then
 				c := offset_at (a_px, a_py)
 				lo := c.max (1).min (n)
+					-- on whitespace, snap to the nearer word instead of
+					-- swallowing both neighbours
+				if text.item (lo) = ' ' and then lo < n and then text.item (lo + 1) /= ' ' then
+					lo := lo + 1
+				end
 				hi := lo
 				from
 				until
