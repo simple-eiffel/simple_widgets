@@ -93,6 +93,15 @@ feature -- Clipboard and selection commands
 			all_selected: text.count > 0 implies has_selection
 		end
 
+	select_none
+			-- Collapse the selection to the caret.
+		do
+			sel_anchor := caret
+		ensure
+			collapsed: not has_selection
+			caret_unmoved: caret = old caret
+		end
+
 	copy_selection
 		local
 			clip: SW_CLIPBOARD
@@ -287,7 +296,9 @@ feature -- Input
 
 	handle_char (a_code: INTEGER)
 		do
-			if a_code = 1 then -- Ctrl+A
+			if a_code = 27 then -- Escape
+				select_none
+			elseif a_code = 1 then -- Ctrl+A
 				select_all
 			elseif a_code = 3 then -- Ctrl+C
 				copy_selection
@@ -340,6 +351,7 @@ feature -- Input
 			Result.add_item ("Paste", "Ctrl+V", clip.has_text and not is_read_only, agent paste_clipboard)
 			Result.add_separator
 			Result.add_item ("Select All", "Ctrl+A", text.count > 0, agent select_all)
+			Result.add_item ("Select None", "Esc", has_selection, agent select_none)
 		ensure then
 			offered: Result /= Void
 		end
