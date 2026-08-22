@@ -421,4 +421,86 @@ feature -- Flows
 				s.link_bands [3].y0_bot, 0.000_1)
 		end
 
+feature -- Space and structure
+
+	test_map_projection_round_trips
+		local
+			m: SW_MAP
+		do
+			create m.make
+			m.set_bounds (0.0, 0.0, 500.0, 300.0)
+			assert_reals_equal ("the dateline is the left edge",
+				m.plot_x, m.x_of_lon (-180.0), 0.000_1)
+			assert_reals_equal ("greenwich is the middle",
+				m.plot_x + m.plot_w / 2.0, m.x_of_lon (0.0), 0.000_1)
+			assert_reals_equal ("the north pole is the top",
+				m.plot_y, m.y_of_lat (90.0), 0.000_1)
+			assert_reals_equal ("longitude round-trips",
+				-105.0, m.lon_at_x (m.x_of_lon (-105.0)), 0.000_1)
+			assert_reals_equal ("latitude round-trips",
+				39.7, m.lat_at_y (m.y_of_lat (39.7)), 0.000_1)
+		end
+
+	test_map_raster_and_markers
+		local
+			m: SW_MAP
+		do
+			create m.make
+			m.set_bounds (0.0, 0.0, 500.0, 300.0)
+			assert ("Denver sits on land", m.is_land (39.7, -105.0))
+			assert ("the mid-Atlantic is sea", not m.is_land (30.0, -40.0))
+			assert ("the mid-Pacific is sea", not m.is_land (0.0, -150.0))
+			assert ("the Sahara is land", m.is_land (25.0, 10.0))
+			assert ("Australia is land", m.is_land (-25.0, 135.0))
+			m.add_marker ("Denver", 39.7, -105.0)
+			assert_integers_equal ("the marker answers at its projection", 1,
+				m.marker_at (m.x_of_lon (-105.0), m.y_of_lat (39.7)))
+			assert_integers_equal ("open sea answers nobody", 0,
+				m.marker_at (m.x_of_lon (-40.0), m.y_of_lat (30.0)))
+		end
+
+	test_diagram_contracts_and_physics
+		local
+			d: SW_DIAGRAM
+			a, b, c: INTEGER
+			i: INTEGER
+		do
+			create d.make
+			a := d.add_node ("a")
+			b := d.add_node ("b")
+			c := d.add_node ("c")
+			d.connect (a, b)
+			d.connect (b, c)
+			assert_integers_equal ("three nodes stand", 3, d.node_count)
+			assert_integers_equal ("two edges bind them", 2, d.edges.count)
+			d.set_bounds (0.0, 0.0, 400.0, 260.0)
+			assert_integers_equal ("a node answers at its seed", a,
+				d.nearest_node (d.x + d.nodes.i_th (a).px, d.y + d.nodes.i_th (a).py))
+			from
+				i := 1
+			until
+				i > 60
+			loop
+				d.relax_step
+				i := i + 1
+			end
+			from
+				i := 1
+			until
+				i > d.node_count
+			loop
+				assert ("physics keeps every node inside the box",
+					d.nodes.i_th (i).px >= 16.0 and d.nodes.i_th (i).px <= 384.0
+					and d.nodes.i_th (i).py >= 16.0 and d.nodes.i_th (i).py <= 244.0)
+				i := i + 1
+			end
+			d.pin (b)
+			d.nodes.i_th (b).px := 200.0
+			d.nodes.i_th (b).py := 130.0
+			d.relax_step
+			d.relax_step
+			assert_reals_equal ("a pinned node holds its ground",
+				200.0, d.nodes.i_th (b).px, 0.000_1)
+		end
+
 end

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_MAP - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_MAP</h1>
+        <p class="tagline">A coarse built-in world on the equirectangular projection: markers, UTC bands, and honest lat/lon under the pointer.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>The world at five degrees per cell: a built-in 72x36 land raster, drawn as quiet cells - COARSE AND HONEST (real coastline data is a stated future; the raster was authored from geography and its assault quizzes it: Denver is land, the mid-Atlantic is sea, the Sahara is land, Australia is land). The projection math is public and assaulted: <code>x_of_lon</code> / <code>y_of_lat</code> and their inverses round-trip exactly; the dateline is the left edge, Greenwich the middle, the pole the top.</p>
+            <p><strong>Markers</strong> carry labels at lat/lon and answer hover within reach (<code>marker_at</code>). Elsewhere the hover chip reads out lat / lon / land-or-sea - the map answers where you are, always. And the timezone band-map grew up as promised: <code>highlight_utc</code> washes the 15-degree band of any UTC offset with its centre meridian marked - the SW_TIMEZONE_PICKER's foundation is now real.</p>
+            <p class="muted"><em>Source: <code>src/sw_map.e</code> &middot; since Wave 4, Space & structure (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Markers and a zone</h2>
+<pre><code><span class="keyword">create</span> map.make
+map.add_marker (<span <span class="keyword">class</span>="string">&quot;Denver&quot;</span>, 39.7, -105.0)
+map.add_marker (<span <span class="keyword">class</span>="string">&quot;Tokyo&quot;</span>, 35.7, 139.7)
+map.highlight_utc (-7)
+page.put (map.with_title (<span <span class="keyword">class</span>="string">&quot;the coarse world&quot;</span>))
+
+map.x_of_lon (-105.0)      <span class="comment">-- projection, public</span>
+map.is_land (25.0, 10.0)   <span class="comment">-- the Sahara says True</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Five-degree cells: coastlines are blocky by design. Real polygon data (and a second projection) are the stated future.</li>
+                <li>Equirectangular only - poles stretch, as they do.</li>
+                <li>One highlighted zone at a time.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The raster is a truth about CELLS: is_land answers for the whole 5-degree box, so islands smaller than a cell may not exist yet.</li>
+                <li>highlight_utc bands are nominal meridians - real-world zone borders wobble politically; this draws the geometry, not the law.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Real coastline polygons; SW_TIMEZONE_PICKER riding this map with live per-zone clocks (the pinned timezone-tools idea); marker clustering.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

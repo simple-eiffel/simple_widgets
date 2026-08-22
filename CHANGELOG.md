@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (Wave 4, movement six - Space & structure; WAVE 4 COMPLETE)
+- SW_MAP: a built-in coarse 72x36 equirectangular world (5-degree
+  cells, authored from geography and QUIZZED by the assault: Denver
+  land, mid-Atlantic sea, Sahara land, Australia land). Projection
+  math public and round-trip assaulted; labelled markers with reach
+  hover; lat/lon/land-or-sea readout everywhere else; and
+  highlight_utc washes any UTC offset's 15-degree band - the timezone
+  band-map grew into a world map exactly as the roadmap promised.
+  Real coastline polygons are the stated future.
+- SW_DIAGRAM: the dev mesh's force physics graduated PUBLIC and
+  generic - add_node ids, contract-checked connect (no self-loops, no
+  unknowns), deterministic golden-angle seeding, names beside every
+  node, click-select firing on_select, drag/programmatic pinning.
+  Assaulted: 60 relax steps keep every node in the box; a pinned node
+  holds its ground to the decimal.
+- Demo: the Space tab - four city markers on the world with UTC-7
+  banded, and the ecosystem as a living graph.
+- 3 new assaults: suite 123/123. WAVE 4: fifteen concepts, six
+  movements, one day - every roadmap row SHIPPED.
+
 ### Added (Wave 4, movement five - Flows)
 - SW_SANKEY: nodes in explicit columns (add_link requires rightward
   flow by contract), bar heights proportional to THROUGHPUT (the

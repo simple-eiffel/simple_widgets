@@ -275,6 +275,9 @@ feature {NONE} -- Test runners
 			run_test (agent chart_tests.test_sankey_throughput_is_max_flow, "sankey_throughput_is_max_flow")
 			run_test (agent chart_tests.test_sankey_heights_proportional_in_column, "sankey_heights_proportional_in_column")
 			run_test (agent chart_tests.test_sankey_moorings_stack_contiguously, "sankey_moorings_stack_contiguously")
+			run_test (agent chart_tests.test_map_projection_round_trips, "map_projection_round_trips")
+			run_test (agent chart_tests.test_map_raster_and_markers, "map_raster_and_markers")
+			run_test (agent chart_tests.test_diagram_contracts_and_physics, "diagram_contracts_and_physics")
 		end
 
 	chart_tests: SW_CHART_ASSAULT

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_DIAGRAM - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_DIAGRAM</h1>
+        <p class="tagline">Nodes and edges under live force physics - the dev mesh&#x27;s engine, graduated public and generic.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>The force layout the dev-mode mesh proved - all-pairs repulsion, edge springs, centre gravity, one relax per heartbeat, the EiffelStudio Diagram Tool's family - as a PUBLIC widget carrying YOUR nodes: <code>add_node (label)</code> returns an id, <code>connect</code> refuses unknown ids and self-loops by contract, and every node ring-seeds deterministically on the golden-angle walk (no randomness, ever - layouts repeat).</p>
+            <p>Names draw beside every node - a diagram that will not say what its nodes are is furniture. Clicking selects and fires <code>on_select</code> with the id; dragging pins (warning ring); <code>pin</code>/<code>release</code> do it programmatically. The physics is assaulted headless: sixty relax steps keep every node inside the box, and a pinned node holds its ground to the decimal. The roadmap's note ran in reverse: this engine now stands ready to be the dev mesh's next chassis.</p>
+            <p class="muted"><em>Source: <code>src/sw_diagram.e</code> &middot; since Wave 4, Space & structure (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A living structure</h2>
+<pre><code><span class="keyword">create</span> dia.make
+n1 := dia.add_node (<span <span class="keyword">class</span>="string">&quot;simple_widgets&quot;</span>)
+n2 := dia.add_node (<span <span class="keyword">class</span>="string">&quot;simple_cairo&quot;</span>)
+dia.connect (n1, n2)
+dia.set_on_select (<span class="keyword">agent</span> on_node_picked)
+page.put (dia.with_title (<span <span class="keyword">class</span>="string">&quot;the ecosystem&quot;</span>))
+
+dia.pin (n1)          <span class="comment">-- hold a node still</span>
+dia.relax_step        <span class="comment">-- one physics tick (draw does this per frame)</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Straight edges only - curved/orthogonal routing is future.</li>
+                <li>No edge labels or weights yet; springs treat all edges alike.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Physics never fully sleeps - drag-pin nodes you need still.</li>
+                <li>add_node ids are positional (1..count); removing nodes is not supported yet, by design - rebuild instead.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Edge labels and weights; node payloads (ANY) with reveal hooks; the dev mesh re-based on this engine; curved edge routing.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>
