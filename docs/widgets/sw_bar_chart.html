@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_BAR_CHART - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_BAR_CHART</h1>
+        <p class="tagline">Labelled category bars, 0-to-nice-max, hover rings with value chips.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>One series of labelled categories: slots divide the plot evenly, bars sit at 62% of their slot, y runs 0 to the nice ceiling over the max. The x axis writes category labels centred under their slots instead of ladder numbers. Hovering a slot rings its bar and floats the value in a chip. <code>bar_at</code> - the slot arithmetic - is public pure math, assaulted headless.</p>
+            <p class="muted"><em>Source: <code>src/sw_bar_chart.e</code> &middot; since Wave 4 opening (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Categories</h2>
+<pre><code><span class="keyword">create</span> bc.make
+bc.add_bar (<span <span class="keyword">class</span>="string">&quot;Wave 1&quot;</span>, 24.0)
+bc.add_bar (<span <span class="keyword">class</span>="string">&quot;Wave 2&quot;</span>, 12.0)
+bc.add_bar (<span <span class="keyword">class</span>="string">&quot;Wave 3&quot;</span>, 25.0)
+page.put (bc.with_title (<span <span class="keyword">class</span>="string">&quot;classes shipped per wave&quot;</span>))</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Single series today - grouped multi-series bars are a stated future.</li>
+                <li>Values are expected non-negative; the baseline is always zero.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Long category labels can collide underneath narrow slots; abbreviate or widen.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Grouped and stacked series; horizontal orientation.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

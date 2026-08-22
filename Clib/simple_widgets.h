@@ -25,6 +25,7 @@ static wchar_t s_sw_drops[16384];
 static int  s_sw_drops_len = 0;
 static int  s_sw_qhead = 0, s_sw_qtail = 0;
 
+
 static void sw_push(int t, int a, int b, int c) {
     int next = (s_sw_qtail + 1) % SW_QCAP;
     if (next == s_sw_qhead) return;

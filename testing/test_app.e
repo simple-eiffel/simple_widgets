@@ -56,6 +56,9 @@ feature {NONE} -- Initialization
 			print ("%N=== EVENT QUEUES ===%N")
 			run_event_tests
 
+			print ("%N=== WAVE 4 CHARTS ===%N")
+			run_chart_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -246,6 +249,21 @@ feature {NONE} -- Test runners
 		end
 
 	event_tests: SW_EVENT_ASSAULT
+
+	run_chart_tests
+		do
+			create chart_tests
+			run_test (agent chart_tests.test_scale_round_trip, "scale_round_trip")
+			run_test (agent chart_tests.test_scale_degenerate_honesty, "scale_degenerate_honesty")
+			run_test (agent chart_tests.test_scale_ladder_125, "scale_ladder_125")
+			run_test (agent chart_tests.test_scale_nice_domain, "scale_nice_domain")
+			run_test (agent chart_tests.test_line_rolling_capacity, "line_rolling_capacity")
+			run_test (agent chart_tests.test_line_auto_domains, "line_auto_domains")
+			run_test (agent chart_tests.test_bar_slots_and_domain, "bar_slots_and_domain")
+			run_test (agent chart_tests.test_scatter_nearest, "scatter_nearest")
+		end
+
+	chart_tests: SW_CHART_ASSAULT
 
 	run_file_dialog_tests
 		do

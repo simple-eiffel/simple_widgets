@@ -60,6 +60,9 @@ feature {NONE} -- Initialization
 			danger_button.set_dev_note ("armed by the Danger armed check box; fires on_delete")
 			create danger_check.make ("Danger armed", True, Void)
 			create click_me_button.make_primary ("Click Me", Void)
+			create perf_chart.make
+			perf_chart.set_capacity (150)
+			perf_chart.add_series ("frame ms")
 			toolbar.add_tool ("New", "Start fresh (decorative)", True, agent on_menu_new)
 			toolbar.add_tool ("Save", "Save (decorative)", True, agent on_menu_save)
 			toolbar.add_gap
@@ -85,6 +88,9 @@ feature {NONE} -- Initialization
 				-- a kamikaze in the wild: fires on the FIRST click
 				-- only, then it is gone from the queue
 			click_me_button.click_actions.kamikaze (agent on_first_click_ever)
+				-- Wave 4 dogfood: the perf line chart drinks straight
+				-- from the cairo render bell
+			window.after_render_actions.subscribe (agent on_frame_cost)
 			danger_button.set_enabled_when (agent danger_check.is_checked)
 			window.add_font ("D:\prod\simple_narrate\fonts\Archivo.ttf").do_nothing
 			window.add_font ("D:\prod\simple_narrate\fonts\Literata.ttf").do_nothing
@@ -283,6 +289,7 @@ feature {NONE} -- Initialization
 			page.put (dropzone)
 			page.put ((create {SW_LABEL}.make_ui ("SW_TREE %/8212/ lazy children via agents; arrows navigate, left/right fold. SW_COLOR_PICKER %/8212/ drag the field and the bar.")).as_muted)
 			tabs.add_page ("Tree & Color", page)
+			tabs.add_page ("Charts", charts_page)
 			tabs.set_on_change (agent on_tab_changed)
 			create Result.make_striped (a_theme.warning)
 			Result.put ((create {SW_LABEL}.make_ui ("SW_TABS %/8212/ pages swap; hover the bar")).as_muted)
@@ -711,6 +718,48 @@ feature {NONE} -- Behaviour
 			else
 				statusbar.set_left ("dev mode off")
 			end
+		end
+
+	charts_page: SW_COLUMN
+			-- Wave 4 opens: three charts on the shared axis engine,
+			-- the first one streaming live off after_render_actions.
+		local
+			bc: SW_BAR_CHART
+			sc: SW_SCATTER_CHART
+			i: INTEGER
+		do
+			create Result.make
+			Result := Result.with_padding (12.0).with_gap (10.0)
+			Result.put ((create {SW_LABEL}.make_ui ("Wave 4 %/8212/ SW_LINE_CHART / SW_BAR_CHART / SW_SCATTER_CHART over the SW_SCALE axis engine; hover any of them")).as_muted)
+			Result.put (perf_chart.with_area.with_title ("live %/8212/ every frame's render cost, streamed via after_render_actions"))
+			create bc.make
+			bc.add_bar ("Wave 1", 24.0)
+			bc.add_bar ("Wave 2", 12.0)
+			bc.add_bar ("Wave 3", 25.0)
+			bc.add_bar ("devkit", 5.0)
+			bc.add_bar ("Wave 4", 5.0)
+			Result.put (bc.with_title ("classes shipped per wave %/8212/ hover a bar"))
+			create sc.make
+			from
+				i := 1
+			until
+				i > 48
+			loop
+				sc.add_point (i.to_double, ((i * 37) \\ 97).to_double)
+				i := i + 1
+			end
+			Result.put (sc.with_title ("48 deterministic points %/8212/ hover finds the nearest"))
+		end
+
+	perf_chart: SW_LINE_CHART
+
+	frame_no: INTEGER
+
+	on_frame_cost (a_ms: INTEGER)
+			-- Every frame reports through the bell; the chart rolls.
+		do
+			frame_no := frame_no + 1
+			perf_chart.add_point (frame_no.to_double, a_ms.to_double.max (0.0))
 		end
 
 	help_menu: SW_MENU

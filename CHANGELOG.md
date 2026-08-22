@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (WAVE 4 OPENS - charts)
+- SW_SCALE: the shared axis engine - linear domain-to-range mapping,
+  the inverse (hover asks values), the 1/2/5 tick ladder, nice-domain
+  widening, honest degenerate behaviour (flat domains collapse to the
+  range midpoint and offer their one tick). Pure math, assaulted
+  headless on round trips, inverted ranges, negative spans.
+- SW_CHART: the chassis - two scales re-anchored to the plot rect
+  every draw, y-gridlines + ladder labels, clipped data layer, hover
+  layer hook, theme-semantic series colours, human-width number
+  formatting. SW_PAINTER grew polyline + polygon_fill (R2 holds: the
+  painter grows what charts need).
+- SW_LINE_CHART: multi-series, auto-fitted domains, with_area wash
+  (covers the area chart), emphasized endpoints, rolling capacity for
+  live feeds, crosshair hover snapped to the nearest sample. The demo
+  streams EVERY FRAME'S RENDER COST into one via after_render_actions
+  - Wave 4 drinking from the event layer on day one.
+- SW_BAR_CHART: labelled categories, 0-to-nice-max domain, slot
+  arithmetic (bar_at - assaulted), hover rings + value chips.
+  Grouped multi-series bars are a stated future.
+- SW_SCATTER_CHART: fitted-and-niced domains both axes, ringed dots,
+  nearest-within-reach hover naming the pair.
+- 8 new assaults (scale round trips/ladder/nice/degenerate, rolling
+  capacity, auto domains, bar slots, scatter nearest): suite 106/106.
+
+### Attempted and reverted (recorded so the next season knows)
+- The modal-resize render callback (the WEL idiom: wndproc drives a
+  frame per WM_SIZE through a registered frozen-routine pointer)
+  rendered beautifully smooth and then SEGV-panicked under a resize
+  storm: under -DEIF_THREADS, re-entering decorated Eiffel from a C
+  callback without the runtime's reentry bracketing lets the GC move
+  objects beneath the running frame. Reverted to the coalesced-queue
+  path (stable through 23-step storms); the in_frame guard stays as
+  permanent hygiene. Next season: WEL's own dispatcher glue is the
+  sanctioned pattern - read cwel before round two.
+
 ### Added (the event layer)
 - SW_EVENT [ARGS]: the agent collection behind every on_[event] -
   ISE's ACTION_SEQUENCE architecture, read from the installed 25.02

@@ -336,6 +336,35 @@ feature -- Sheets
 			Result := sheet
 		end
 
+	last_render_ms: INTEGER
+			-- Wall-clock cost of the most recent full frame
+			-- (sensitivity pass + render + blit) - the perf pane's
+			-- first gauge, and the slow-frame log's source.
+
+	before_render_actions: SW_EVENT [TUPLE]
+			-- The cairo pipeline's opening bell: fires before every
+			-- full frame (Larry: cairo-based event queues). Lazy.
+		do
+			if attached before_render_event as e then
+				Result := e
+			else
+				create Result.make
+				before_render_event := Result
+			end
+		end
+
+	after_render_actions: SW_EVENT [TUPLE [ms: INTEGER]]
+			-- Fires after every full frame with its wall-clock cost -
+			-- perf instruments subscribe instead of being wired in.
+		do
+			if attached after_render_event as e then
+				Result := e
+			else
+				create Result.make
+				after_render_event := Result
+			end
+		end
+
 	set_on_tick (a_action: PROCEDURE)
 		do
 			on_tick := a_action
@@ -753,6 +782,11 @@ feature {NONE} -- Popup lifecycle
 			end
 		end
 
+	in_frame: BOOLEAN
+			-- Is a full frame (sensitivity + render + blit) running?
+			-- The guard that keeps any future reentry (sent messages,
+			-- callbacks) from rebuilding cairo under a live render.
+
 	resize_surface (a_w, a_h: INTEGER)
 			-- The user resized the frame: re-layout always; a NEW
 			-- offscreen only when the window outgrows the allocation,
@@ -916,48 +950,23 @@ feature {NONE} -- Popup lifecycle
 		local
 			t0: INTEGER
 		do
-			t0 := c_tick_ms
-			if attached before_render_event as be then
-				be.call ([])
-			end
-			refresh_enabling_states
-			render
-			blit
-			last_render_ms := c_tick_ms - t0
-			if last_render_ms > 100 then
-				log_line ("sw: SLOW frame " + last_render_ms.out + "ms at " + win_w.out + "x" + win_h.out)
-			end
-			if attached after_render_event as ae then
-				ae.call ([last_render_ms])
-			end
-		end
-
-	last_render_ms: INTEGER
-			-- Wall-clock cost of the most recent full frame
-			-- (sensitivity pass + render + blit) - the perf pane's
-			-- first gauge, and the slow-frame log's source.
-
-	before_render_actions: SW_EVENT [TUPLE]
-			-- The cairo pipeline's opening bell: fires before every
-			-- full frame (Larry: cairo-based event queues). Lazy.
-		do
-			if attached before_render_event as e then
-				Result := e
-			else
-				create Result.make
-				before_render_event := Result
-			end
-		end
-
-	after_render_actions: SW_EVENT [TUPLE [ms: INTEGER]]
-			-- Fires after every full frame with its wall-clock cost -
-			-- perf instruments subscribe instead of being wired in.
-		do
-			if attached after_render_event as e then
-				Result := e
-			else
-				create Result.make
-				after_render_event := Result
+			if not in_frame then
+				in_frame := True
+				t0 := c_tick_ms
+				if attached before_render_event as be then
+					be.call ([])
+				end
+				refresh_enabling_states
+				render
+				blit
+				last_render_ms := c_tick_ms - t0
+				if last_render_ms > 100 then
+					log_line ("sw: SLOW frame " + last_render_ms.out + "ms at " + win_w.out + "x" + win_h.out)
+				end
+				if attached after_render_event as ae then
+					ae.call ([last_render_ms])
+				end
+				in_frame := False
 			end
 		end
 
@@ -1696,6 +1705,7 @@ feature {NONE} -- Externals
 		alias
 			"sw_set_backdrop($a_hwnd, $a_rgb);"
 		end
+
 
 	c_drop_paths (a_buf: POINTER; a_cap: INTEGER): INTEGER
 		external

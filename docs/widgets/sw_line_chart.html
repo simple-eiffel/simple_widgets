@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_LINE_CHART - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_LINE_CHART</h1>
+        <p class="tagline">Multi-series lines with area wash, emphasized endpoints, rolling live feeds, and a crosshair that names its numbers.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Named series over the chassis, domains auto-fitted (y widened to the ladder). <code>with_area</code> washes under each line at 16% alpha - the roadmap's area chart as an option, not a class. Every series ends in an emphasized endpoint dot. <code>set_capacity</code> makes a series a ROLLING feed: a full series drops its oldest point per arrival, so a live stream stays bounded.</p>
+            <p>The demo dogfoods the whole stack: its line chart subscribes to the window's <code>after_render_actions</code> bell and streams EVERY FRAME'S RENDER COST live - Wave 4 drinking from the event layer on day one, and an honest perf instrument in the showroom.</p>
+            <p>Hover snaps a crosshair to the nearest sample of the first series, rings it, and names the pair in a chip clamped inside the frame.</p>
+            <p class="muted"><em>Source: <code>src/sw_line_chart.e</code> &middot; since Wave 4 opening (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A live feed off the render bell</h2>
+<pre><code><span class="keyword">create</span> perf.make
+perf.set_capacity (150)
+perf.add_series (<span <span class="keyword">class</span>="string">&quot;frame ms&quot;</span>)
+page.put (perf.with_area.with_title (<span <span class="keyword">class</span>="string">&quot;live render cost&quot;</span>))
+
+window.after_render_actions.subscribe (<span class="keyword">agent</span> on_frame_cost)
+
+on_frame_cost (a_ms: <span class="type">INTEGER</span>)
+    <span class="keyword">do</span>
+        frame_no := frame_no + 1
+        perf.add_point (frame_no.to_double, a_ms.to_double)
+    <span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>The crosshair follows the FIRST series; per-series hover is future.</li>
+                <li>No legend yet - series are told apart by colour order (accent, success, warning, danger).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>add_point appends to the LAST series added - build series fully, in order.</li>
+                <li>A single-point series draws a dot, not a line - honest, occasionally surprising.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Shared legend machinery; per-series hover; step and smoothed interpolation.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

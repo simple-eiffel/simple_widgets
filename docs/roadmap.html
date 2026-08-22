@@ -80,9 +80,14 @@
             the charts bypassing it - R2 holds.</p>
             <table>
                 <tr><th>Cluster</th><th>Concepts</th><th>Notes</th></tr>
-                <tr><td>Cartesian suite</td><td>line, bar, area, scatter (+ axes/legend/tooltip
-                    machinery shared)</td><td>The shared axis/scale engine is the real deliverable;
-                    the four charts are its faces.</td></tr>
+                <tr><td>Cartesian suite — <em>SHIPPED 2026-08-22, Wave 4 opened</em></td>
+                    <td>SW_SCALE + SW_CHART chassis; SW_LINE_CHART (with_area covers area),
+                    SW_BAR_CHART, SW_SCATTER_CHART</td><td>The shared axis/scale engine landed
+                    first, exactly as planned: the 1/2/5 tick ladder, nice domains, inverse
+                    mapping - all contract-assaulted headless. Hover machinery on all three
+                    (crosshair-snap, bar rings, nearest-dot). The demo's line chart streams every
+                    frame's render cost live off after_render_actions. Legend + multi-series bars
+                    ride the next movement.</td></tr>
                 <tr><td>Proportions</td><td>pie/donut, funnel</td><td>Painter arcs exist
                     (circle path hygiene already learned).</td></tr>
                 <tr><td>Indicators</td><td>gauges, sparkline</td><td>Sparkline pairs with

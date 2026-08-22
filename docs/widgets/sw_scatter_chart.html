@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SCATTER_CHART - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SCATTER_CHART</h1>
+        <p class="tagline">Ringed dots over fitted domains; hover finds the nearest and names the pair.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Raw (x, y) points, both domains fitted and ladder-widened. Dots are accent discs with a surface ring so overlaps stay legible. <code>nearest_point</code> - the same nearest-within-radius idiom the dev mesh uses - answers hover, ringing the dot and naming its pair; it is public, range-anchored math, assaulted headless.</p>
+            <p class="muted"><em>Source: <code>src/sw_scatter_chart.e</code> &middot; since Wave 4 opening (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A deterministic cloud</h2>
+<pre><code><span class="keyword">create</span> sc.make
+<span class="keyword">from</span> i := 1 <span class="keyword">until</span> i &gt; 48 <span class="keyword">loop</span>
+    sc.add_point (i.to_double, ((i * 37) \\ 97).to_double)
+    i := i + 1
+<span class="keyword">end</span>
+page.put (sc.with_title (<span <span class="keyword">class</span>="string">&quot;48 deterministic points&quot;</span>))</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Uniform dot radius - size-as-third-dimension (bubble) is future.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Dense clouds make hover ambiguous at reach boundaries - the nearest wins.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Bubble radius channel; category colouring per point.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

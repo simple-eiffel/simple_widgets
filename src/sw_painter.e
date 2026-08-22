@@ -157,6 +157,53 @@ feature -- Shapes
 			fill_rect (a_x, a_y, 1.0, a_h)
 		end
 
+feature -- Paths
+
+	polyline (a_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]]; a_width: REAL_64)
+			-- Stroke the open chain through the points, in order.
+		require
+			enough: a_pts.count >= 2
+			positive_width: a_width > 0.0
+		local
+			i: INTEGER
+		do
+			context.new_path.do_nothing
+			context.set_line_width (a_width).do_nothing
+			context.move_to (a_pts.first.px, a_pts.first.py).do_nothing
+			from
+				i := 2
+			until
+				i > a_pts.count
+			loop
+				context.line_to (a_pts.i_th (i).px, a_pts.i_th (i).py).do_nothing
+				i := i + 1
+			end
+			context.stroke.do_nothing
+			context.set_line_width (1.0).do_nothing
+		end
+
+	polygon_fill (a_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]])
+			-- Fill the closed ring through the points (closure is
+			-- implicit; same path hygiene as circles).
+		require
+			enough: a_pts.count >= 3
+		local
+			i: INTEGER
+		do
+			context.new_path.do_nothing
+			context.move_to (a_pts.first.px, a_pts.first.py).do_nothing
+			from
+				i := 2
+			until
+				i > a_pts.count
+			loop
+				context.line_to (a_pts.i_th (i).px, a_pts.i_th (i).py).do_nothing
+				i := i + 1
+			end
+			context.close_path.do_nothing
+			context.fill.do_nothing
+		end
+
 feature -- Circles
 
 	circle_stroke (a_cx, a_cy, a_r: REAL_64)
