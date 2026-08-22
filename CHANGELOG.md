@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (performance)
+- Window-grow drags no longer crawl (Larry's sizing video, diagnosed
+  frame by frame): the frame-echo PNG - a debug hook - was being
+  compressed on EVERY heartbeat (~300ms per encode of the full
+  surface), alternating with renders at roughly 1Hz. The echo is now
+  QUIET-GATED: resizes stamp busy_ticks and the write waits two
+  heartbeats of stillness. A resize storm to 1408px now logs zero
+  frames over 100ms (new last_render_ms gauge; frames above 100ms
+  self-report to sw_session.log - the perf pane's first instrument).
+- Newly exposed resize pixels no longer flash BLACK: the window class
+  carries a backdrop brush that follows theme.background (boot and
+  set_theme), and DefWindowProc erases exposed regions with it.
+  Steady-state repaints never erase (we blit whole frames), so no
+  flicker cost.
+
 ### Added
 - State control by agent collection (the Vision2 sensitivity idiom,
   Larry's call): SW_WIDGET.set_enabled_when installs a BOOLEAN function

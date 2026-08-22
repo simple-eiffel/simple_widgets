@@ -66,10 +66,15 @@ feature -- Element change
 		end
 
 	set_theme (a_theme: SW_THEME)
-			-- Swap the token set live; the next render wears it.
+			-- Swap the token set live; the next render wears it, and
+			-- the OS-side backdrop brush follows (it paints pixels a
+			-- live resize exposes before our next frame lands).
 		do
 			theme := a_theme
 			create painter.make (ctx, a_theme)
+			if hwnd /= default_pointer then
+				c_set_backdrop (hwnd, a_theme.background.to_integer_32)
+			end
 		ensure
 			swapped: theme = a_theme
 		end
@@ -136,6 +141,7 @@ feature -- Operation
 				log_line ("sw: window creation FAILED")
 			else
 				log_line ("sw: window up")
+				c_set_backdrop (hwnd, theme.background.to_integer_32)
 				from
 				until
 					quit
@@ -753,6 +759,7 @@ feature {NONE} -- Popup lifecycle
 			-- and then in 256-pixel steps so a drag reallocates rarely.
 		do
 			if a_w > 0 and a_h > 0 and (a_w /= win_w or a_h /= win_h) then
+				busy_ticks := 2
 				win_w := a_w
 				win_h := a_h
 				if win_w > alloc_w or win_h > alloc_h then
@@ -906,11 +913,23 @@ feature {NONE} -- Popup lifecycle
 			-- Every handled interaction lands here: first the state
 			-- verdicts (enabling conditions across both trees), then
 			-- the repaint that shows them.
+		local
+			t0: INTEGER
 		do
+			t0 := c_tick_ms
 			refresh_enabling_states
 			render
 			blit
+			last_render_ms := c_tick_ms - t0
+			if last_render_ms > 100 then
+				log_line ("sw: SLOW frame " + last_render_ms.out + "ms at " + win_w.out + "x" + win_h.out)
+			end
 		end
+
+	last_render_ms: INTEGER
+			-- Wall-clock cost of the most recent full frame
+			-- (sensitivity pass + render + blit) - the perf pane's
+			-- first gauge, and the slow-frame log's source.
 
 	refresh_enabling_states
 			-- Re-query every installed enabling condition - the
@@ -1144,14 +1163,23 @@ feature {NONE} -- Rendering
 		end
 
 	flush_frame_echo
-			-- Write the debug frame off the hot path: PNG compression
-			-- on every render made window-grow drags crawl.
+			-- Write the debug frame off the hot path - and only in
+			-- QUIET: a resize storm stamps busy_ticks, and the echo
+			-- waits two heartbeats of stillness. (PNG-compressing the
+			-- whole surface every 250ms was the molasses in Larry's
+			-- sizing video: renders alternated with 300ms encodes.)
 		do
-			if frame_echo_dirty and then not frame_echo_path.is_empty then
+			if busy_ticks > 0 then
+				busy_ticks := busy_ticks - 1
+			elseif frame_echo_dirty and then not frame_echo_path.is_empty then
 				offscreen.write_png (frame_echo_path).do_nothing
 				frame_echo_dirty := False
 			end
 		end
+
+	busy_ticks: INTEGER
+			-- Heartbeats of stillness still owed before the echo may
+			-- spend time on PNG compression again.
 
 	draw_pick_trajectory (a_pebble: ANY)
 			-- The pick line: origin dot, line to the pointer, and a
@@ -1619,6 +1647,20 @@ feature {NONE} -- Externals
 			"C inline use %"simple_widgets.h%""
 		alias
 			"return sw_add_font((const char*)$a_path);"
+		end
+
+	c_tick_ms: INTEGER
+		external
+			"C inline use %"simple_widgets.h%""
+		alias
+			"return (EIF_INTEGER)GetTickCount();"
+		end
+
+	c_set_backdrop (a_hwnd: POINTER; a_rgb: INTEGER)
+		external
+			"C inline use %"simple_widgets.h%""
+		alias
+			"sw_set_backdrop($a_hwnd, $a_rgb);"
 		end
 
 	c_drop_paths (a_buf: POINTER; a_cap: INTEGER): INTEGER

@@ -170,8 +170,6 @@ static LRESULT CALLBACK sw_wndproc(HWND h, UINT m, WPARAM w, LPARAM l) {
             sw_push(6, 0, 0, 0);
             return 0;
         }
-        case WM_ERASEBKGND:
-            return 1;
         case WM_DESTROY:
             KillTimer(h, 1);
             PostQuitMessage(0);
@@ -212,6 +210,20 @@ static LRESULT CALLBACK sw_overlay_proc(HWND h, UINT m, WPARAM w, LPARAM l) {
     return DefWindowProcW(h, m, w, l);
 }
 
+static HBRUSH s_sw_backdrop = 0;
+
+/* Newly exposed pixels during a live resize are erased with the class
+   brush BEFORE our next full frame lands - keep it the theme's ground
+   so growth never flashes black. (Steady-state repaints never erase:
+   we blit whole frames without invalidating.) */
+static void sw_set_backdrop(void* hwnd, int rgb) {
+    HBRUSH old_brush = s_sw_backdrop;
+    s_sw_backdrop = CreateSolidBrush(RGB((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF));
+    if (hwnd)
+        SetClassLongPtrW((HWND)hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)s_sw_backdrop);
+    if (old_brush) DeleteObject(old_brush);
+}
+
 static void* sw_create_window(const wchar_t* title, int px, int py, int cw, int ch) {
     WNDCLASSW wc;
     RECT r;
@@ -222,6 +234,8 @@ static void* sw_create_window(const wchar_t* title, int px, int py, int cw, int 
     wc.lpfnWndProc = sw_wndproc;
     wc.hInstance = GetModuleHandleW(0);
     wc.hCursor = LoadCursorW(0, (LPCWSTR)IDC_ARROW);
+    if (!s_sw_backdrop) s_sw_backdrop = CreateSolidBrush(RGB(18, 20, 27));
+    wc.hbrBackground = s_sw_backdrop;
     wc.lpszClassName = L"SimpleViewWindow";
     RegisterClassW(&wc);
     r.left = 0; r.top = 0; r.right = cw; r.bottom = ch;
