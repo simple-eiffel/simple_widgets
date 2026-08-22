@@ -20,6 +20,7 @@ feature {NONE} -- Initialization
 			card: SW_CARD
 			chips: SW_ROW
 			buttons: SW_ROW
+			grp: SW_GROUP
 		do
 			create theme.make_dark
 			create counter_label.make ("clicks: 0  %/8212/ buttons report HERE", {SW_PAINTER}.Role_mono, 14.0, True)
@@ -32,6 +33,8 @@ feature {NONE} -- Initialization
 			kind_select.add_option ("Danger")
 			kind_select.set_tooltip ("Chooses the kind for Toast It %/8212/ picking one previews it")
 			create edit_box.make ("The quick brown fox jumps over the lazy dog, and keeps on runing untill the wrap engine breaks the line exactly where the measured advances say it must.")
+			create menubar.make
+			create statusbar.make
 			create window.make ("simple_widgets demo", 2200, 10, 900, 1180, theme)
 				-- agents only from here down: every attached attribute is set
 			create danger_button.make ("Danger", Void)
@@ -45,6 +48,11 @@ feature {NONE} -- Initialization
 
 			create root.make
 			root := root.with_padding (16.0).with_gap (14.0)
+
+			menubar.add_menu ("File", agent file_menu)
+			menubar.add_menu ("Widgets", agent widgets_menu)
+			menubar.add_menu ("Help", agent help_menu)
+			root.put (menubar)
 
 			root.put (create {SW_LABEL}.make ("simple_widgets", {SW_PAINTER}.Role_ui, 20.0, True))
 			root.put ((create {SW_LABEL}.make_mono ("the toolkit above simple_cairo %/183/ no Vision2 %/183/ no boilerplate")).as_muted)
@@ -74,7 +82,9 @@ feature {NONE} -- Initialization
 			create buttons.make
 			buttons.put (create {SW_SWITCH}.make ("Live updates", True, agent on_log_only))
 			buttons.put ((create {SW_RADIO_GROUP}.make).with_option ("Alpha").with_option ("Beta").with_option ("Gamma"))
-			card.put (buttons)
+			create grp.make_titled ("Choices")
+			grp.put (buttons)
+			card.put (grp)
 			create buttons.make
 			buttons.put (kind_select)
 			buttons.put (create {SW_BUTTON}.make ("Toast It", agent on_toast))
@@ -92,6 +102,9 @@ feature {NONE} -- Initialization
 
 			root.put (scroll_split_card (theme))
 			root.put (tabs_card (theme))
+			statusbar.set_left ("ready %/8212/ every pixel drawn by simple_widgets")
+			statusbar.set_right ("29 widgets and counting")
+			root.put (statusbar)
 			root.put (list_card (theme))
 
 			window.set_root (root)
@@ -232,6 +245,55 @@ feature {NONE} -- Behaviour
 	progress: SW_PROGRESS
 
 	danger_button: SW_BUTTON
+
+	menubar: SW_MENU_BAR
+
+	statusbar: SW_STATUS_BAR
+
+	file_menu: SW_MENU
+		do
+			create Result.make
+			Result.add_item ("New Session", "Ctrl+N", True, agent on_menu_new)
+			Result.add_item ("Save", "Ctrl+S", True, agent on_menu_save)
+			Result.add_separator
+			Result.add_item ("Quit (decorative)", "", False, Void)
+		end
+
+	widgets_menu: SW_MENU
+		do
+			create Result.make
+			Result.add_item ("Toast the selected kind", "", True, agent on_toast)
+			Result.add_item ("Open the danger dialog", "", True, agent on_delete)
+			Result.add_item ("Toggle theme", "", True, agent on_toggle_theme)
+		end
+
+	help_menu: SW_MENU
+		do
+			create Result.make
+			Result.add_item ("About simple_widgets", "", True, agent on_about)
+		end
+
+	on_menu_new
+		do
+			window.toast ("New session %/8212/ decorative for now", 1)
+			statusbar.set_left ("new session requested")
+		end
+
+	on_menu_save
+		do
+			window.toast ("Saved (nothing, honestly)", 2)
+			statusbar.set_left ("save requested")
+		end
+
+	on_about
+		local
+			d: SW_DIALOG
+		do
+			create d.make ({SW_DIALOG}.Kind_info, "simple_widgets",
+				"A drawn widget toolkit for Eiffel on pure Win32 %/8212/ no Vision2, no GTK, no native controls. Every pixel here, including this dialog and the menu you just used, is painted by the toolkit itself.")
+			d.add_button ("Nice", True, Void)
+			window.show_dialog (d)
+		end
 
 	kind_select: SW_SELECT
 
