@@ -735,7 +735,9 @@ feature {NONE} -- Behaviour
 			fun: SW_FUNNEL_CHART
 			dash: SW_ROW
 			pair: SW_COLUMN
-			i: INTEGER
+			hm: SW_HEATMAP
+			tm: SW_TREEMAP
+			i, j: INTEGER
 		do
 			create Result.make
 			Result := Result.with_padding (12.0).with_gap (10.0)
@@ -780,6 +782,32 @@ feature {NONE} -- Behaviour
 			pair.put (perf_spark)
 			dash.put (pair.growing)
 			Result.put (dash)
+			create hm.make (5, 12)
+			hm.set_row_labels (<<"Mon", "Tue", "Wed", "Thu", "Fri">>)
+			from
+				i := 1
+			until
+				i > 5
+			loop
+				from
+					j := 1
+				until
+					j > 12
+				loop
+					hm.set_cell (i, j, (((i * 7 + j * 13) * 31) \\ 17).to_double)
+					j := j + 1
+				end
+				i := i + 1
+			end
+			Result.put (hm.with_title ("a deterministic activity grid %/8212/ hover a cell"))
+			create tm.make
+			tm.add_item ("Controls", 26.0)
+			tm.add_item ("Wave 3", 25.0)
+			tm.add_item ("Charts", 11.0)
+			tm.add_item ("Foundations", 8.0)
+			tm.add_item ("devkit", 5.0)
+			tm.add_item ("Events", 1.0)
+			Result.put (tm.with_title ("the library as areas %/8212/ hover a tile"))
 		end
 
 	perf_chart: SW_LINE_CHART

@@ -264,4 +264,94 @@ feature -- Indicators
 			assert_reals_equal ("flat answers the honest midline", 0.5, s.fraction_of (2), 0.000_1)
 		end
 
+feature -- Densities
+
+	test_heatmap_blend_endpoints
+		local
+			h: SW_HEATMAP
+		do
+			create h.make (2, 2)
+			assert ("zero keeps the from-colour",
+				h.blend (0x102030, 0xFFFFFF, 0.0) = 0x102030)
+			assert ("one lands the to-colour",
+				h.blend (0x102030, 0xFFFFFF, 1.0) = 0xFFFFFF)
+			assert ("midway blends channel-wise",
+				h.blend (0x000000, 0xFF00FF, 0.5) = 0x800080)
+		end
+
+	test_heatmap_slots_and_flat_honesty
+		local
+			h: SW_HEATMAP
+		do
+			create h.make (3, 4)
+			h.set_cell (2, 3, 9.0)
+			assert_reals_equal ("a cell keeps its value", 9.0, h.cell (2, 3), 0.000_1)
+			assert_reals_equal ("the hottest normalizes to one", 1.0, h.heat_of (2, 3), 0.000_1)
+			assert_reals_equal ("a cold cell normalizes to zero", 0.0, h.heat_of (1, 1), 0.000_1)
+			h.set_bounds (0.0, 0.0, 400.0, 300.0)
+			assert_integers_equal ("top row answers", 1, h.row_at (h.plot_y + 1.0))
+			assert_integers_equal ("last column answers", 4, h.col_at (h.plot_x + h.plot_w - 1.0))
+			assert_integers_equal ("outside answers nobody", 0, h.row_at (h.plot_y - 5.0))
+			create h.make (2, 2)
+			assert_reals_equal ("flat grids wash to the honest midpoint",
+				0.5, h.heat_of (1, 1), 0.000_1)
+		end
+
+	test_treemap_areas_are_shares
+		local
+			tm: SW_TREEMAP
+			i: INTEGER
+			area, plot_area: REAL_64
+		do
+			create tm.make
+			tm.add_item ("a", 50.0)
+			tm.add_item ("b", 25.0)
+			tm.add_item ("c", 15.0)
+			tm.add_item ("d", 10.0)
+			tm.set_bounds (0.0, 0.0, 400.0, 300.0)
+			tm.refresh_layout
+			plot_area := tm.plot_w * tm.plot_h
+			from
+				i := 1
+			until
+				i > tm.items.count
+			loop
+				area := tm.layout [i].rw * tm.layout [i].rh
+				assert_reals_equal ("area fraction equals value fraction",
+					tm.items.i_th (i).value / tm.total, area / plot_area, 0.000_001)
+				i := i + 1
+			end
+		end
+
+	test_treemap_tiles_cover_and_answer
+		local
+			tm: SW_TREEMAP
+			i: INTEGER
+			sum: REAL_64
+		do
+			create tm.make
+			tm.add_item ("a", 60.0)
+			tm.add_item ("b", 30.0)
+			tm.add_item ("c", 10.0)
+			tm.set_bounds (0.0, 0.0, 400.0, 300.0)
+			tm.refresh_layout
+			from
+				i := 1
+			until
+				i > tm.items.count
+			loop
+				sum := sum + tm.layout [i].rw * tm.layout [i].rh
+				assert_integers_equal ("each tile answers at its own centre", i,
+					tm.item_at (tm.layout [i].rx + tm.layout [i].rw / 2.0,
+						tm.layout [i].ry + tm.layout [i].rh / 2.0))
+				i := i + 1
+			end
+			assert_reals_equal ("the tiles sum to the plot",
+				tm.plot_w * tm.plot_h, sum, 0.001)
+			assert_integers_equal ("outside answers nobody", 0,
+				tm.item_at (tm.plot_x - 5.0, tm.plot_y))
+			assert_reals_equal ("shares still sum to the whole", 100.0,
+				tm.percent_of (1) + tm.percent_of (2) + tm.percent_of (3), 0.000_1)
+		end
+
 end

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (Wave 4, movement four - Densities)
+- SW_HEATMAP: rows-by-columns heat on a channel-wise two-colour blend
+  (surface to accent) - blend math public and assaulted at endpoints
+  and midpoint; heat_of normalizes against the grid's own span, flat
+  grids wash to the honest midpoint; row/col edge labels; hover chip
+  names row/column/value; slot math is bar_at's idiom twice.
+- SW_TREEMAP: deterministic slice-and-dice bisection (range splits at
+  cumulative half, rect splits in proportion, axis alternates) with an
+  EXACT assaulted property: every area fraction equals its value
+  fraction to a millionth, tiles sum to the plot, item_at answers
+  uniquely at every centre. Pie's eight-step palette; labels draw only
+  when measured to fit. Squarified layout is the stated future.
+- 4 new assaults: suite 117/117.
+
 ### Added (Wave 4, movement three - Indicators)
 - SW_GAUGE: the 270-degree band gauge (wedge_fill with close radii IS
   a thick arc - the pie primitive earning double keep). Value band in

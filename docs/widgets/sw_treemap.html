@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_TREEMAP - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_TREEMAP</h1>
+        <p class="tagline">Areas as shares by deterministic slice-and-dice; the assault proves area fraction EQUALS value fraction.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Labelled items tiled into the plot by recursive bisection: the range splits where cumulative value crosses half, the rectangle splits in the same proportion, and the split axis alternates per level. The layout is deterministic pure math with an EXACT property the assault asserts to a millionth: every item's area fraction equals its value fraction, and the tiles sum to the plot with no gaps and no overlaps (<code>item_at</code> answers uniquely at every tile centre).</p>
+            <p>Tiles wear the pie's eight-step palette; labels draw only when they fit (measured, not clipped); hover outlines the tile and names label, value and share. <code>refresh_layout</code> is public - draw calls it every frame, the assaults call it headless.</p>
+            <p class="muted"><em>Source: <code>src/sw_treemap.e</code> &middot; since Wave 4, Densities (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>The library as areas</h2>
+<pre><code><span class="keyword">create</span> tm.make
+tm.add_item (<span <span class="keyword">class</span>="string">&quot;Controls&quot;</span>, 26.0)
+tm.add_item (<span <span class="keyword">class</span>="string">&quot;Wave 3&quot;</span>, 25.0)
+tm.add_item (<span <span class="keyword">class</span>="string">&quot;Charts&quot;</span>, 11.0)
+page.put (tm.with_title (<span <span class="keyword">class</span>="string">&quot;the library <span class="keyword">as</span> areas&quot;</span>))
+
+tm.refresh_layout       <span class="comment">-- then layout [i] holds each tile</span>
+tm.item_at (px, py)     <span class="comment">-- which tile is under a point</span>
+tm.percent_of (2)       <span class="comment">-- shares, summing to 100</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Slice-and-dice can go slivery on long tails - SQUARIFIED layout is the stated future (better aspect ratios, same public surface).</li>
+                <li>Single level - no nested hierarchies yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>add_item requires value > 0: a zero-area tile is a lie about existence.</li>
+                <li>Add order shapes the tiling - group big items first for calmer layouts.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Squarified layout; nested hierarchies (drill on click); value labels inside tiles.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

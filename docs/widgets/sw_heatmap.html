@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_HEATMAP - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_HEATMAP</h1>
+        <p class="tagline">Rows by columns of heat on a two-colour ramp; edge labels; hover names row / column / value.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>A fixed grid of values washed along a channel-wise blend from the theme's quiet surface to its accent. The <code>blend</code> math is public and assaulted at its endpoints (0 keeps the from-colour, 1 lands the to-colour, 0.5 splits every channel). <code>heat_of</code> normalizes each cell against the grid's own low and high - and a FLAT grid washes everything to the honest midpoint instead of dividing by nothing.</p>
+            <p>Row labels ride the left edge, column labels the bottom. Hover outlines the cell and a chip names row / column / value. The slot arithmetic (<code>row_at</code>, <code>col_at</code>) is the bar chart's idiom, twice, and equally assaulted. Cells keep a one-pixel breathing gap - the banding discipline SW_SHEET taught.</p>
+            <p class="muted"><em>Source: <code>src/sw_heatmap.e</code> &middot; since Wave 4, Densities (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>An activity grid</h2>
+<pre><code><span class="keyword">create</span> hm.make (5, 12)
+hm.set_row_labels (&lt;&lt;<span <span class="keyword">class</span>="string">&quot;Mon&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Tue&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Wed&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Thu&quot;</span>, <span <span class="keyword">class</span>="string">&quot;Fri&quot;</span>&gt;&gt;)
+hm.set_cell (2, 7, 14.0)
+page.put (hm.with_title (<span <span class="keyword">class</span>="string">&quot;activity&quot;</span>))
+
+hm.heat_of (2, 7)     <span class="comment">-- 0..1 against the grid&#x27;s own span</span>
+hm.blend (a, b, 0.5)  <span class="comment">-- the ramp math, public</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Two-stop ramp (surface to accent); multi-stop palettes are future.</li>
+                <li>The grid is fixed at creation - no add_row/add_col growth.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Normalization is grid-relative: one outlier cools everything else. Clamp your data first when outliers lie.</li>
+                <li>Column labels crowd under narrow cells - label sparsely (every Nth) on wide grids.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Multi-stop ramps and diverging palettes; per-cell annotations; column label thinning.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

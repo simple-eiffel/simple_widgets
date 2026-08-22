@@ -268,6 +268,10 @@ feature {NONE} -- Test runners
 			run_test (agent chart_tests.test_gauge_degenerate_span, "gauge_degenerate_span")
 			run_test (agent chart_tests.test_sparkline_rolls_and_normalizes, "sparkline_rolls_and_normalizes")
 			run_test (agent chart_tests.test_sparkline_flat_is_midline, "sparkline_flat_is_midline")
+			run_test (agent chart_tests.test_heatmap_blend_endpoints, "heatmap_blend_endpoints")
+			run_test (agent chart_tests.test_heatmap_slots_and_flat_honesty, "heatmap_slots_and_flat_honesty")
+			run_test (agent chart_tests.test_treemap_areas_are_shares, "treemap_areas_are_shares")
+			run_test (agent chart_tests.test_treemap_tiles_cover_and_answer, "treemap_tiles_cover_and_answer")
 		end
 
 	chart_tests: SW_CHART_ASSAULT
