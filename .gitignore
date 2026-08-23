@@ -2,3 +2,7 @@ EIFGENs/
 *.log
 /*.png
 assault_fixture/
+sw_fm_fixture/
+sw_media_fixture.png
+sw_dictation_tmp.wav
+sw_swatch_*.png
