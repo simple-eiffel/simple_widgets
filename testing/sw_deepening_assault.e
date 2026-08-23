@@ -814,4 +814,79 @@ feature -- Batch 5: layout
 			w.request_render
 		end
 
+feature -- The pretty map (Natural Earth 110m, generated)
+
+	test_world_geometry_sanity
+			-- The generated planet: ring and point counts pinned,
+			-- every coordinate inside the geographic domain.
+		local
+			g: SW_WORLD_GEOMETRY
+			pts, biggest, k: INTEGER
+			sane: BOOLEAN
+		do
+			create g
+			assert_integers_equal ("127 exterior rings", 127, g.polygons.count)
+			sane := True
+			across
+				g.polygons as poly
+			loop
+				pts := pts + poly.count // 2
+				if poly.count // 2 > biggest then
+					biggest := poly.count // 2
+				end
+				from
+					k := 1
+				until
+					k > poly.count or not sane
+				loop
+					if k \\ 2 = 1 then
+						sane := poly [k] >= -180.0 and poly [k] <= 180.0
+					else
+						sane := poly [k] >= -90.0 and poly [k] <= 90.0
+					end
+					k := k + 1
+				end
+			end
+			assert_integers_equal ("4964 points survived generation", 4964, pts)
+			assert_integers_equal ("Eurasia-Africa is the biggest ring", 1298, biggest)
+			assert ("every lon in -180..180, every lat in -90..90", sane)
+		end
+
+	test_map_draws_real_coastlines
+			-- Pixel truth on the drawn planet: Kansas is land-
+			-- coloured, the mid-Atlantic wears the card surface.
+		local
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			m: SW_MAP
+			mp: MANAGED_POINTER
+			land_px, sea_px, want_land, want_sea: NATURAL_32
+			kx, ky, ax, ay: INTEGER
+		do
+			create th.make_dark
+			create surf.make (300, 160)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create m.make
+			m.set_bounds (0.0, 0.0, 300.0, 160.0)
+			m.arrange (p)
+			m.draw (p)
+			surf.flush.do_nothing
+			create mp.share_from_pointer (surf.data, 160 * surf.stride)
+			kx := m.x_of_lon (-98.5).rounded
+			ky := m.y_of_lat (38.5).rounded
+			ax := m.x_of_lon (-30.0).rounded
+			ay := m.y_of_lat (25.0).rounded
+			land_px := mp.read_natural_32 (ky * surf.stride + kx * 4)
+			sea_px := mp.read_natural_32 (ay * surf.stride + ax * 4)
+			want_land := {NATURAL_32} 0xFF000000 + th.surface_variant
+			want_sea := {NATURAL_32} 0xFF000000 + th.surface
+			assert_integers_equal ("Kansas wears the land colour",
+				want_land.to_integer_32, land_px.to_integer_32)
+			assert_integers_equal ("the mid-Atlantic wears the surface",
+				want_sea.to_integer_32, sea_px.to_integer_32)
+		end
+
 end

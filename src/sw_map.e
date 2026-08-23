@@ -1,8 +1,9 @@
 note
 	description: "[
-		The world, coarse and honest: a built-in 72x36 equirectangular
-		land raster (5-degree cells - real coastline data is a stated
-		future), the projection math public and assaulted
+		The world, real: Natural Earth 110m coastlines (127 rings,
+		4,964 points, generated into SW_WORLD_GEOMETRY - the once
+		'stated future', arrived 2026-08-23) drawn zero-allocation
+		through the projection math, public and assaulted
 		(x_of_lon / y_of_lat and their inverses), labelled MARKERS
 		with nearest-within-reach hover, and the timezone band-map
 		grown up: highlight_utc washes the 15-degree band of any UTC
@@ -148,34 +149,15 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			r, c, hot: INTEGER
-			cw, ch, zx: REAL_64
+			r, hot: INTEGER
+			zx: REAL_64
 			chip: detachable STRING_32
 		do
 			t := a_p.theme
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
-			cw := plot_w / 72.0
-			ch := plot_h / 36.0
 			a_p.set_color (t.surface_variant)
-			from
-				r := 1
-			until
-				r > 36
-			loop
-				from
-					c := 1
-				until
-					c > 72
-				loop
-					if land_rows [r].item (c) = '#' then
-						a_p.fill_rect (plot_x + (c - 1) * cw, plot_y + (r - 1) * ch,
-							cw + 0.5, ch + 0.5)
-					end
-					c := c + 1
-				end
-				r := r + 1
-			end
+			draw_land (a_p)
 			if has_zone then
 				zx := x_of_lon ((zone_offset * 15).to_double - 7.5)
 				a_p.set_color_alpha (t.accent, 0.18)
@@ -236,6 +218,46 @@ feature -- Drawing
 		end
 
 feature {NONE} -- The coarse world
+
+	geometry: SW_WORLD_GEOMETRY
+			-- The real coastlines (Natural Earth 110m, generated);
+			-- the polygon list itself is once-shared.
+		once
+			create Result
+		end
+
+	screen_buf: ARRAY [REAL_64]
+			-- Reused screen-space buffer for the biggest ring - the
+			-- hot path allocates nothing per frame.
+		once
+			create Result.make_filled (0.0, 1, 2600)
+		end
+
+	draw_land (a_p: SW_PAINTER)
+			-- Real coastlines through the same assaulted projection
+			-- the raster once used - the 'stated future', arrived
+			-- (2026-08-23). The raster stays for is_land hit tests.
+		local
+			k, n: INTEGER
+		do
+			across
+				geometry.polygons as poly
+			loop
+				n := poly.count // 2
+				if n >= 3 and n * 2 <= screen_buf.count then
+					from
+						k := 0
+					until
+						k >= n
+					loop
+						screen_buf [k * 2 + 1] := x_of_lon (poly [k * 2 + 1])
+						screen_buf [k * 2 + 2] := y_of_lat (poly [k * 2 + 2])
+						k := k + 1
+					end
+					a_p.polygon_fill_flat (screen_buf, n)
+				end
+			end
+		end
 
 	land_rows: ARRAY [STRING]
 			-- 36 bands of 72 five-degree cells; '#' is land.

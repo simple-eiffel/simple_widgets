@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (THE PRETTY MAP - real coastlines)
+- SW_WORLD_GEOMETRY: Natural Earth 110m land polygons (public
+  domain) GENERATED into data-only Eiffel source by
+  tools/gen_world_geometry.py - 127 exterior rings, 4,964 points,
+  parsed once, shared by every map. The generator wraps lines at
+  spaces only (a mid-number wrap was the first red - caught by the
+  replica parser before it ever reached a screen).
+- SW_MAP draws the real planet: zero-allocation per frame via the
+  new SW_PAINTER.polygon_fill_flat (reused screen buffer, 4,964
+  points transformed through the same assaulted projection). The
+  5-degree raster STAYS for is_land hit tests - two representations,
+  each doing what it is best at. The timezone picker and world
+  clock inherit the coastlines free.
+- Assaulted at the pixel: Kansas wears the land colour, the
+  mid-Atlantic wears the surface; ring/point counts pinned exactly
+  (127 / 4,964 / biggest 1,298). Suite 188/188.
+
 ### Added (THE VERDICTS - the sweep closes)
 - specs/S05-VERDICTS.md: the high-value targets answered for real -
   and the DEPENDENCY AUDIT EXECUTED: zero Gobo, zero ISE libraries

@@ -194,6 +194,31 @@ feature -- Paths
 			context.set_line_width (1.0).do_nothing
 		end
 
+	polygon_fill_flat (a_xy: ARRAY [REAL_64]; a_count: INTEGER)
+			-- Fill the polygon whose SCREEN points are the first
+			-- `a_count' (x, y) pairs of flat `a_xy' - the zero-
+			-- allocation sibling of polygon_fill, for big geometry
+			-- (the world's 4,964 coastline points, every frame).
+		require
+			enough: a_count >= 3
+			fits: a_count * 2 <= a_xy.count
+		local
+			i: INTEGER
+		do
+			context.new_path.do_nothing
+			context.move_to (a_xy [a_xy.lower], a_xy [a_xy.lower + 1]).do_nothing
+			from
+				i := 1
+			until
+				i >= a_count
+			loop
+				context.line_to (a_xy [a_xy.lower + i * 2], a_xy [a_xy.lower + i * 2 + 1]).do_nothing
+				i := i + 1
+			end
+			context.close_path.do_nothing
+			context.fill.do_nothing
+		end
+
 	polygon_fill (a_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]])
 			-- Fill the closed ring through the points (closure is
 			-- implicit; same path hygiene as circles).

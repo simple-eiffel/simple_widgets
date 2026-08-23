@@ -12,7 +12,7 @@
             <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
         </div>
         <h1>SW_MAP</h1>
-        <p class="tagline">A coarse built-in world on the equirectangular projection: markers, UTC bands, and honest lat/lon under the pointer.</p>
+        <p class="tagline">The real world on the equirectangular projection - Natural Earth 110m coastlines, generated into source - with markers, UTC bands, and honest lat/lon under the pointer.</p>
     </header>
 
     <nav>
@@ -30,7 +30,7 @@
     <main>
         <section id="description">
             <h2>Description</h2>
-            <p>The world at five degrees per cell: a built-in 72x36 land raster, drawn as quiet cells - COARSE AND HONEST (real coastline data is a stated future; the raster was authored from geography and its assault quizzes it: Denver is land, the mid-Atlantic is sea, the Sahara is land, Australia is land). The projection math is public and assaulted: <code>x_of_lon</code> / <code>y_of_lat</code> and their inverses round-trip exactly; the dateline is the left edge, Greenwich the middle, the pole the top.</p>
+            <p>The world at five degrees per cell: a built-in Natural Earth 110m land raster, drawn as quiet cells - COARSE AND HONEST (real coastline data is a stated future; the raster was authored from geography and its assault quizzes it: Denver is land, the mid-Atlantic is sea, the Sahara is land, Australia is land). The projection math is public and assaulted: <code>x_of_lon</code> / <code>y_of_lat</code> and their inverses round-trip exactly; the dateline is the left edge, Greenwich the middle, the pole the top.</p>
             <p><strong>Markers</strong> carry labels at lat/lon and answer hover within reach (<code>marker_at</code>). Elsewhere the hover chip reads out lat / lon / land-or-sea - the map answers where you are, always. And the timezone band-map grew up as promised: <code>highlight_utc</code> washes the 15-degree band of any UTC offset with its centre meridian marked - the SW_TIMEZONE_PICKER's foundation is now real.</p>
             <p class="muted"><em>Source: <code>src/sw_map.e</code> &middot; since Wave 4, Space & structure (2026-08-22).
             Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
@@ -42,7 +42,7 @@
 map.add_marker (<span <span class="keyword">class</span>="string">&quot;Denver&quot;</span>, 39.7, -105.0)
 map.add_marker (<span <span class="keyword">class</span>="string">&quot;Tokyo&quot;</span>, 35.7, 139.7)
 map.highlight_utc (-7)
-page.put (map.with_title (<span <span class="keyword">class</span>="string">&quot;the coarse world&quot;</span>))
+page.put (map.with_title (<span <span class="keyword">class</span>="string">&quot;the world&quot;</span>))
 
 map.x_of_lon (-105.0)      <span class="comment">-- projection, public</span>
 map.is_land (25.0, 10.0)   <span class="comment">-- the Sahara says True</span></code></pre>

@@ -371,6 +371,8 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_tabs_lazy_builders, "tabs_lazy_builders")
 			run_test (agent deepening_tests.test_separator_vertical, "separator_vertical")
 			run_test (agent deepening_tests.test_drawer_all_four_edges, "drawer_all_four_edges")
+			run_test (agent deepening_tests.test_world_geometry_sanity, "world_geometry_sanity")
+			run_test (agent deepening_tests.test_map_draws_real_coastlines, "map_draws_real_coastlines")
 		end
 
 	deepening_tests: SW_DEEPENING_ASSAULT
