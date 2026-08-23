@@ -104,6 +104,81 @@ feature -- Projection (public, assaulted)
 			end
 		end
 
+feature -- World cities
+
+	world_cities: detachable SW_WORLD_CITIES
+			-- The adopted Natural Earth places, when `add_world_cities'
+			-- has run; band queries read from here.
+
+	add_world_cities (a_min_population: INTEGER)
+			-- Adopt every generated city at or above the population
+			-- floor as a marker whose label carries the data:
+			-- 'Name %/183/ Country %/183/ 35.7M'. Hovering a dot
+			-- shows it (with lat/lon) in the map's chip.
+		require
+			floor_sane: a_min_population >= 0
+		local
+			wc: SW_WORLD_CITIES
+			lbl: STRING_32
+		do
+			create wc
+			world_cities := wc
+			across
+				wc.cities as c
+			loop
+				if c.population >= a_min_population then
+					create lbl.make (40)
+					lbl.append (c.name)
+					lbl.append ({STRING_32} " %/183/ ")
+					lbl.append (c.country)
+					lbl.append ({STRING_32} " %/183/ ")
+					lbl.append (pop_text (c.population))
+					add_marker (lbl, c.lat, c.lon)
+				end
+			end
+		ensure
+			adopted: world_cities /= Void
+		end
+
+	cities_in_band (a_offset, a_max: INTEGER): ARRAYED_LIST [STRING_32]
+			-- Names of the biggest adopted cities whose longitude
+			-- rounds to UTC band `a_offset', biggest first, at most
+			-- `a_max'. Empty before `add_world_cities' - and for
+			-- honest mid-ocean bands.
+		require
+			band_sane: a_offset >= -12 and a_offset <= 12
+			some_wanted: a_max >= 1
+		do
+			create Result.make (a_max)
+			if attached world_cities as wc then
+				across
+					wc.cities as c
+				loop
+					if Result.count < a_max
+						and then (c.lon / 15.0).rounded = a_offset
+					then
+						Result.extend (c.name)
+					end
+				end
+			end
+		ensure
+			bounded: Result.count <= a_max
+		end
+
+	pop_text (a_pop: INTEGER): STRING_32
+			-- '35.7M' at a million and past; '980k' beneath.
+		do
+			if a_pop >= 1_000_000 then
+				Result := ((a_pop + 50_000) // 1_000_000).out.to_string_32
+				Result.append_character ('.')
+				Result.append_string_general ((((a_pop + 50_000) // 100_000) \\ 10).out)
+				Result.append ({STRING_32} "M")
+			else
+				Result := (a_pop // 1_000).out.to_string_32
+				Result.append ({STRING_32} "k")
+			end
+		end
+
 feature -- Element change
 
 	add_marker (a_label: READABLE_STRING_GENERAL; a_lat, a_lon: REAL_64)

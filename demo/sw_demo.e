@@ -1065,13 +1065,11 @@ feature {NONE} -- Behaviour
 			Result := Result.with_padding (12.0).with_gap (10.0)
 			Result.put ((create {SW_LABEL}.make_ui ("Wave 4 closes %/8212/ the timezone tools (Larry's idea, kept): click a band on the world; the clocks below tick live")).as_muted)
 			create map.make
-			map.add_marker ("Denver", 39.7, -105.0)
-			map.add_marker ("London", 51.5, -0.1)
-			map.add_marker ("Tokyo", 35.7, 139.7)
-			map.add_marker ("Sydney", -33.9, 151.2)
+			map.add_world_cities (2_000_000)
 			map.highlight_utc (-7)
 			map.set_on_change (agent on_zone_picked)
-			Result.put (map.with_title ("SW_TIMEZONE_PICKER %/8212/ click any 15-degree band"))
+			zone_map := map
+			Result.put (map.with_title ("SW_TIMEZONE_PICKER %/8212/ click any 15-degree band; hover a city dot"))
 			create clock.make
 			clock.add_city ("Denver (UTC-7)", -420)
 			clock.add_city ("London (UTC+0)", 0)
@@ -1095,9 +1093,27 @@ feature {NONE} -- Behaviour
 			Result.put (dia.with_title ("the ecosystem as a living graph %/8212/ drag pins a node"))
 		end
 
+	zone_map: detachable SW_TIMEZONE_PICKER
+
 	on_zone_picked (a_offset: INTEGER)
+		local
+			s: STRING_32
 		do
-			statusbar.set_left ({STRING_32} "picked UTC" + (if a_offset >= 0 then {STRING_32} "+" else {STRING_32} "" end) + a_offset.out)
+			create s.make (96)
+			s.append ({STRING_32} "picked UTC")
+			if a_offset >= 0 then
+				s.append_character ('+')
+			end
+			s.append_string_general (a_offset.out)
+			if attached zone_map as zm then
+				across
+					zm.cities_in_band (a_offset, 5) as city
+				loop
+					s.append ({STRING_32} " %/183/ ")
+					s.append (city)
+				end
+			end
+			statusbar.set_left (s)
 		end
 
 	charts_page: SW_COLUMN

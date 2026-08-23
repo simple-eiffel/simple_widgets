@@ -373,6 +373,8 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_drawer_all_four_edges, "drawer_all_four_edges")
 			run_test (agent deepening_tests.test_world_geometry_sanity, "world_geometry_sanity")
 			run_test (agent deepening_tests.test_map_draws_real_coastlines, "map_draws_real_coastlines")
+			run_test (agent deepening_tests.test_world_cities_sanity, "world_cities_sanity")
+			run_test (agent deepening_tests.test_map_city_adoption_and_bands, "map_city_adoption_and_bands")
 		end
 
 	deepening_tests: SW_DEEPENING_ASSAULT

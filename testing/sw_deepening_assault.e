@@ -889,4 +889,46 @@ feature -- The pretty map (Natural Earth 110m, generated)
 				want_sea.to_integer_32, sea_px.to_integer_32)
 		end
 
+	test_world_cities_sanity
+			-- 243 places, biggest first, every coordinate on Earth.
+		local
+			wc: SW_WORLD_CITIES
+			sane: BOOLEAN
+		do
+			create wc
+			assert_integers_equal ("243 places", 243, wc.cities.count)
+			assert_strings_equal ("Tokyo leads (biggest first)", "Tokyo", wc.cities.first.name)
+			assert_strings_equal ("in Japan", "Japan", wc.cities.first.country)
+			assert_integers_equal ("with its peak population", 35_676_000, wc.cities.first.population)
+			sane := True
+			across
+				wc.cities as c
+			loop
+				sane := sane and c.lat >= -90.0 and c.lat <= 90.0
+					and c.lon >= -180.0 and c.lon <= 180.0
+					and c.population >= 0 and not c.name.is_empty
+			end
+			assert ("every record on the planet, named, non-negative", sane)
+		end
+
+	test_map_city_adoption_and_bands
+			-- The floor filters, labels carry the data, and band
+			-- queries answer biggest-first - empty for open ocean.
+		local
+			m: SW_MAP
+			b: ARRAYED_LIST [STRING_32]
+		do
+			create m.make
+			m.add_world_cities (5_000_000)
+			assert_integers_equal ("38 five-million cities became markers", 38, m.markers.count)
+			assert ("labels carry the data",
+				m.markers.first.label.has_substring ({STRING_32} "Tokyo")
+				and m.markers.first.label.has_substring ({STRING_32} "Japan")
+				and m.markers.first.label.has_substring ({STRING_32} "35.7M"))
+			b := m.cities_in_band (0, 3)
+			assert_integers_equal ("band zero offers three", 3, b.count)
+			assert_strings_equal ("Paris biggest in band zero", "Paris", b.first)
+			assert_integers_equal ("mid-Pacific is honestly empty", 0, m.cities_in_band (-10, 5).count)
+		end
+
 end

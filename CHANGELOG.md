@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (THE POPULATED PLANET - cities with data)
+- SW_WORLD_CITIES: all 243 Natural Earth 110m populated places
+  (public domain) generated into source by tools/gen_world_cities.py
+  - name, country, lat/lon, peak population per city, biggest first.
+  Record lines wrap ONLY at record boundaries (the coastline
+  generator's lesson, applied from birth).
+- SW_MAP.add_world_cities (floor): every city at or above the
+  population floor becomes a marker whose label CARRIES the data -
+  'Tokyo (183) Japan (183) 35.7M' - shown with lat/lon in the hover
+  chip. cities_in_band (offset, max) answers the biggest cities of
+  any UTC band; honest ocean bands answer empty.
+- Demo: the timezone picker adopts the 84 two-million-plus cities;
+  picking a band now lists its five biggest cities in the status
+  bar beside the offset.
+- Assaulted: 243 pinned, Tokyo/Japan/35,676,000 leads, every record
+  on the planet; 38 five-million markers pinned, band-zero answers
+  Paris first, mid-Pacific answers empty. Suite 190/190.
+
 ### Added (THE PRETTY MAP - real coastlines)
 - SW_WORLD_GEOMETRY: Natural Earth 110m land polygons (public
   domain) GENERATED into data-only Eiffel source by
