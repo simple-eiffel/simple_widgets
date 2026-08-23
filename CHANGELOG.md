@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (THE VERDICTS - the sweep closes)
+- specs/S05-VERDICTS.md: the high-value targets answered for real -
+  and the DEPENDENCY AUDIT EXECUTED: zero Gobo, zero ISE libraries
+  beyond base/testing, DATE fully migrated to simple_datetime, file
+  classes confined to three filesystem-facing widgets (simple_file
+  adoption recorded as optional tightening). Individual verdicts:
+  multi-window, dirty-rect, IME, UIA, shaping/bidi, JPEG, rich runs,
+  submenus, multi-select, animation, gradients/shadows, eyedropper,
+  alpha, tree-table, in-place editors, log/time scales, live-resize.
+  The ~230 remaining S04 lines stay open as the living wishlist by
+  decision. Sweep total: 90 of 339 closed with proofs, suites
+  150 -> 186/186, simple_shell 1.0-1.2 born along the way.
+
 ### Added (DEEPENING SWEEP 5 - layout learns to bend)
 - SW_ROW WRAP: with_wrapping reflows children into greedy lines; the
   wrap_starts math is a pure public feature assaulted with bare

@@ -19,7 +19,7 @@
             <li><a href="index.html">simple_widgets home</a></li>
             <li><a href="#shipped">What shipped</a></li>
             <li><a href="#sweep">The deepening sweep</a></li>
-            <li><a href="#verdicts">Still ahead</a></li>
+            <li><a href="#verdicts">The verdicts</a></li>
             <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
         </ul>
     </nav>
@@ -67,13 +67,20 @@
         </section>
 
         <section id="verdicts">
-            <h2>Still ahead</h2>
-            <ul>
-                
-                <li><strong>THE VERDICT PASS</strong> - every remaining S04 line gets fixed or an honest written reason: multi-window, dirty-rect rendering, IME, UIA accessibility, bidi shaping, JPEG, rich-text runs, submenus. No item left unanswered.</li>
-            </ul>
-            <p class="muted">History and evidence: <code>CHANGELOG.md</code> carries each movement
-            with its test counts; the assault suite is the ledger's proof.</p>
+            <h2>The verdicts (sweep closed 2026-08-23)</h2>
+            <p>The high-value targets are answered individually in
+            <code>specs/S05-VERDICTS.md</code>: the <strong>dependency audit EXECUTED</strong>
+            (zero Gobo, zero ISE beyond base/testing, DATE fully migrated), multi-window
+            (feasible - a simple_shell 2.0), dirty-rect (mitigated, perf tripwire armed),
+            IME (queued, shell-first), UIA (a research wall, stated plainly), shaping/bidi
+            (blocked on a named substrate: simple_shaping), JPEG (WIC codec, home named),
+            rich runs (text engine v2), submenus + eyedropper (feasible NOW - the glyph set
+            and the carve removed their blockers), multi-select, animation, shadows, alpha,
+            tree-table (first consumer: simple_studio's class browser), in-place editors,
+            log/time scales, live-resize purity.</p>
+            <p class="muted">Everything else in S04 stays open as the living wishlist - a
+            deliberate close, not abandonment. History and evidence: <code>CHANGELOG.md</code>
+            carries each movement with its test counts; the assault suite is the proof.</p>
         </section>
     </main>
 
