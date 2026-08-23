@@ -45,7 +45,7 @@ row.put ((<span class="keyword">create</span> {<span class="type">SW_AVATAR</spa
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>Initials only - no picture support until SW_IMAGE gains clipped (circular) blits.</li>
+                <li>Photo avatars SHIPPED 2026-08-23: with_image clips any CAIRO_SURFACE to the disc (new painter primitive push_circle_clip) - pixel-assaulted: the corner stays background, the centre carries the photo.</li>
                 <li>Hash picks among the four theme washes; large rosters will share hues.</li>
             </ul>
         </section>
@@ -60,7 +60,7 @@ row.put ((<span class="keyword">create</span> {<span class="type">SW_AVATAR</spa
         <section id="future">
             <h2>Extension plans &amp; possibilities</h2>
             <ul>
-                <li>Photo avatars: circular-clipped PNG via a painter clip-to-circle primitive.</li>
+                <li>Photo avatars: circular-clipped via push_circle_clip. - SHIPPED 2026-08-23.</li>
                 <li>Presence dot overlay (with SW_BADGE anchoring).</li>
                 <li>Avatar stacks (overlapping groups with a +N tail).</li>
             </ul>

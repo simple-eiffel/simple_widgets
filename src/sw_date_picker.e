@@ -53,6 +53,25 @@ feature -- Element change
 			set: on_date_change = a_action
 		end
 
+	min_date: detachable SIMPLE_DATE
+	max_date: detachable SIMPLE_DATE
+			-- Constraints handed to the hosted calendar at popover
+			-- build; Void = unconstrained.
+
+	set_min_date (a_date: SIMPLE_DATE)
+		do
+			min_date := a_date
+		ensure
+			set: min_date = a_date
+		end
+
+	set_max_date (a_date: SIMPLE_DATE)
+		do
+			max_date := a_date
+		ensure
+			set: max_date = a_date
+		end
+
 	set_picker_locale (a_locale: SW_LOCALE)
 		do
 			locale_override := a_locale
@@ -141,6 +160,12 @@ feature -- Input
 				end
 				cal.set_on_pick (agent on_calendar_pick)
 				cal.set_closes_overlay_on_pick (True)
+				if attached min_date as mn then
+					cal.set_min_date (mn)
+				end
+				if attached max_date as mx then
+					cal.set_max_date (mx)
+				end
 				pending_popover := cal
 				pending_popover_width := 250.0
 				Result := True

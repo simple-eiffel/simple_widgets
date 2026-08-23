@@ -529,7 +529,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Multi-select (extending the text box's disjoint-range vocabulary to rows).
-- [ ] Keyboard selection movement with scroll-into-view.
+- [x] Keyboard selection movement with scroll-into-view. — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] Variable row heights via a measure agent; sticky headers.
 - [ ] SW_DATA_GRID and SW_TREE build on this engine in Wave 3.
 
@@ -543,7 +543,7 @@ Limits to push:
 
 - [ ] Uniform row height (variable heights are a data-grid concern, Wave 3).
 - [ ] Single selection (multi-select with ranges is queued).
-- [ ] No keyboard navigation of the selection yet (arrows/PgUp/PgDn).
+- [x] No keyboard navigation of the selection yet (arrows/PgUp/PgDn). — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] No columns, headers or sorting - that is SW_DATA_GRID's charter.
 
 
@@ -661,7 +661,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Drive/known-folder rail (Desktop, Documents, drives) on the left of the sheet.
-- [ ] Multi-pattern filters with a filter dropdown; hidden-file toggle.
+- [x] Multi-pattern filters with a filter dropdown; hidden-file toggle. — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] New-folder button in save mode; overwrite confirm option.
 - [ ] Type-to-filter riding SW_COMBO's future autocomplete.
 
@@ -674,9 +674,9 @@ Gotcha docket (fix where a plan exists; else design around):
 Limits to push:
 
 - [ ] No drive/root picker yet - it browses from the start directory; '..' stops at the drive root.
-- [ ] One extension filter at a time (no '*.png;*.jpg' sets yet).
+- [x] One extension filter at a time (no '*.png;*.jpg' sets yet). — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] No overwrite confirmation in save mode (the host app owns that policy for now).
-- [ ] No keyboard navigation of the entry list yet (arrives with SW_LIST's).
+- [x] No keyboard navigation of the entry list yet (arrives with SW_LIST's). — DONE 2026-08-23 (deepening sweep 4; assaulted)
 
 
 ## SW_IMAGE
@@ -776,7 +776,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Photo avatars: circular-clipped PNG via a painter clip-to-circle primitive.
+- [x] Photo avatars: circular-clipped PNG via a painter clip-to-circle primitive. — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] Presence dot overlay (with SW_BADGE anchoring).
 - [ ] Avatar stacks (overlapping groups with a +N tail).
 
@@ -786,7 +786,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Initials only - no picture support until SW_IMAGE gains clipped (circular) blits.
+- [x] Initials only - no picture support until SW_IMAGE gains clipped (circular) blits. — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] Hash picks among the four theme washes; large rosters will share hues.
 
 
@@ -1041,7 +1041,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Multi-select with range vocabulary; cell renderer agents (chips, bars in cells).
-- [ ] O(n log n) sort for big row counts; column show/hide and reorder by drag.
+- [ ] O(n log n) sort for big row counts; column show/hide and reorder by drag. — SORT half DONE 2026-08-23 (stable merge, 2000 rows assaulted); show/hide + drag-reorder still open
 - [ ] In-place typed editors per column (tier-three groundwork).
 - [ ] Tree-table descendant (Wave 5) sharing this engine.
 
@@ -1055,7 +1055,7 @@ Limits to push:
 
 - [ ] Single-row selection (multi-select ranges queued).
 - [ ] Uniform row height; no cell renderers yet (text via the value agent only).
-- [ ] Insertion sort on the view: right for human-scale row counts; thousands-of-rows sorting is an S04 item (the DRAW is already virtualized for thousands).
+- [x] Insertion sort on the view: right for human-scale row counts; thousands-of-rows sorting is an S04 item (the DRAW is already virtualized for thousands). — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] No in-place editing (by design in v1 - activation composes your editor).
 - [ ] No horizontal scrollbar drawn yet (Shift+wheel scrolls X).
 
@@ -1087,7 +1087,7 @@ Planned extensions:
 
 - [ ] Year and month zoom (click the title to widen).
 - [ ] Range selection riding simple_datetime's SIMPLE_DATE_RANGE.
-- [ ] Min/max date constraints with muted-and-refusing cells.
+- [x] Min/max date constraints with muted-and-refusing cells. — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] Week-number rail option.
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -1099,7 +1099,7 @@ Limits to push:
 
 - [ ] Month view only (no year/decade zoom navigation yet).
 - [ ] Single date selection (ranges are a future with SW_DATE_RANGE support in simple_datetime already waiting).
-- [ ] No min/max selectable-date constraints yet.
+- [x] No min/max selectable-date constraints yet. — DONE 2026-08-23 (deepening sweep 4; assaulted)
 
 
 ## SW_DATE_PICKER
@@ -1107,7 +1107,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Auto-close the popover on pick (overlay-engine hook).
-- [ ] Min/max constraints delegated to the hosted calendar.
+- [x] Min/max constraints delegated to the hosted calendar. — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] A range variant (two fields, one calendar) on SIMPLE_DATE_RANGE.
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -1165,7 +1165,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Hex input (single-line parse, the picker vocabulary of SW_TEXT_BOX).
+- [x] Hex input (single-line parse, the picker vocabulary of SW_TEXT_BOX). — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] Palette/recent swatches; eyedropper over the window surface.
 - [ ] Alpha variant when a consumer needs translucency.
 
@@ -1177,6 +1177,6 @@ Gotcha docket (fix where a plan exists; else design around):
 Limits to push:
 
 - [ ] No alpha channel (the theme's colours are opaque RGB by design).
-- [ ] No hex TYPING yet - readout only; input is queued.
+- [x] No hex TYPING yet - readout only; input is queued. — DONE 2026-08-23 (deepening sweep 4; assaulted)
 - [ ] No palette swatches/recent colours row yet.
 - [ ] The banded field renders 288 rects + 36 bar rects per frame - cheap, but a retained-layer future exists if pickers multiply.

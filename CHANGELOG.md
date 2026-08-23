@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed + Added (DEEPENING SWEEP 4 - data earns its keep)
+- FIXED (failing test first): SW_DATA_GRID's descending sort REORDERED
+  EQUAL KEYS - the insertion sort's blanket 'less := not less' swapped
+  ties. Cured by a stable bottom-up MERGE SORT: strict comparison in
+  both directions, O(n log n), 2000 rows assaulted (first/middle/last
+  pinned). All seven pre-existing grid assaults still pass.
+- SW_LIST keyboard navigation: arrows walk, PgUp/PgDn stride the
+  viewport, Home/End jump, every move scrolls into view; lists join
+  the Tab ring. SW_FILE_DIALOG's entry list inherits it, as S04
+  predicted.
+- SW_DATA_GRID: PgUp/PgDn/Home/End join its arrows (page_stride from
+  the live viewport).
+- simple_shell 1.2.0: VK_PRIOR/VK_NEXT cross the C key filter.
+- SW_CALENDAR min/max date windows: outside cells draw muted and
+  REFUSE clicks - proven layout-independently (a 42-cell click storm
+  fires on_pick exactly once per allowed day). SW_DATE_PICKER hands
+  its constraints to the hosted calendar at popover build.
+- SW_FILE_DIALOG pattern sets: '*.png;*.jpg' (legacy single suffix
+  still welcome); the matcher is public and assaulted.
+- SW_COLOR_PICKER hex input: from_hex (#RGB, #RRGGBB) plus direct
+  typing into the readout (Enter adopts, Escape abandons).
+- SW_AVATAR photo faces: with_image clips any CAIRO_SURFACE to the
+  disc via the NEW painter primitive push_circle_clip - pixel-
+  assaulted (corner stays background, centre carries the photo).
+- Suite 180/180.
+
 ### Added (DEEPENING SWEEP 3 - the drawn-glyph set)
 - SW_PAINTER.glyph: 25 kinds drawn from primitives in the current
   colour (plus, minus, close, check, four chevrons, search, gear,

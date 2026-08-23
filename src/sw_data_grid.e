@@ -455,6 +455,22 @@ feature -- Input
 				if pos > 1 then
 					select_model_row (view.i_th (pos - 1))
 				end
+			when 34 then
+				if view.count > 0 then
+					select_model_row (view.i_th ((pos + page_stride).min (view.count).max (1)))
+				end
+			when 33 then
+				if view.count > 0 then
+					select_model_row (view.i_th ((pos - page_stride).max (1)))
+				end
+			when 36 then
+				if view.count > 0 then
+					select_model_row (view.i_th (1))
+				end
+			when 35 then
+				if view.count > 0 then
+					select_model_row (view.i_th (view.count))
+				end
 			else
 			end
 			scroll_selection_into_view
@@ -464,6 +480,87 @@ feature {NONE} -- Engine
 
 	resizing_column: INTEGER
 			-- The column being width-dragged; 0 when idle.
+
+	view_less (a_mi, b_mi: INTEGER): BOOLEAN
+			-- Does model row `a_mi' order strictly before `b_mi'
+			-- under the current column and direction? Strict BOTH
+			-- ways, so equal keys never reorder (stability).
+		require
+			sorting: sort_column >= 1 and sort_column <= columns.count
+		do
+			if is_descending then
+				Result := columns.i_th (sort_column).row_less
+					(rows.i_th (b_mi), rows.i_th (a_mi))
+			else
+				Result := columns.i_th (sort_column).row_less
+					(rows.i_th (a_mi), rows.i_th (b_mi))
+			end
+		end
+
+	merge_sort_view
+			-- Stable bottom-up merge over the view's model indices:
+			-- O(n log n) for the thousands the virtualized DRAW
+			-- already handles, and equal keys keep model order in
+			-- BOTH directions (the descending insertion sort swapped
+			-- them - caught by a failing assault, 2026-08-23).
+		local
+			src, dst, swp: ARRAYED_LIST [INTEGER]
+			stride, lo, mid, hi, a, b: INTEGER
+		do
+			src := view.twin
+			dst := view.twin
+			from
+				stride := 1
+			until
+				stride >= src.count
+			loop
+				from
+					lo := 1
+				until
+					lo > src.count
+				loop
+					mid := (lo + stride - 1).min (src.count)
+					hi := (lo + 2 * stride - 1).min (src.count)
+					a := lo
+					b := mid + 1
+					across
+						lo |..| hi as w
+					loop
+						if b > hi or else (a <= mid and then not view_less (src.i_th (b), src.i_th (a))) then
+							dst.put_i_th (src.i_th (a), w)
+							a := a + 1
+						else
+							dst.put_i_th (src.i_th (b), w)
+							b := b + 1
+						end
+					end
+					lo := lo + 2 * stride
+				end
+				swp := src
+				src := dst
+				dst := swp
+				stride := stride * 2
+			end
+			view.wipe_out
+			across
+				src as mi
+			loop
+				view.extend (mi)
+			end
+		end
+
+	page_stride: INTEGER
+			-- Rows one PgUp/PgDn covers: the live viewport when laid
+			-- out, the declared viewport before.
+		local
+			vh: REAL_64
+		do
+			vh := height - Header_h
+			if vh <= 0.0 then
+				vh := viewport_height
+			end
+			Result := (vh / Row_h).truncated_to_integer.max (1)
+		end
 
 	selected_view_position: INTEGER
 			-- Where the selected model row sits in the view; 0 when
@@ -503,8 +600,7 @@ feature {NONE} -- Engine
 			-- Filter, then sort; the selection's OBJECT survives when
 			-- it survives the filter.
 		local
-			i, j, k, tmp: INTEGER
-			less: BOOLEAN
+			i: INTEGER
 		do
 			view.wipe_out
 			from
@@ -522,33 +618,7 @@ feature {NONE} -- Engine
 				i := i + 1
 			end
 			if sort_column >= 1 and sort_column <= columns.count then
-					-- insertion sort on the view; row counts here are
-					-- human-scale (the virtualized DRAW is what handles
-					-- thousands - sorting thousands lands in S04)
-				from
-					j := 2
-				until
-					j > view.count
-				loop
-					k := j
-					from
-					until
-						k <= 1
-					loop
-						less := columns.i_th (sort_column).row_less
-							(rows.i_th (view.i_th (k)), rows.i_th (view.i_th (k - 1)))
-						if is_descending then
-							less := not less
-						end
-						if less then
-							tmp := view.i_th (k)
-							view.put_i_th (view.i_th (k - 1), k)
-							view.put_i_th (tmp, k - 1)
-						end
-						k := k - 1
-					end
-					j := j + 1
-				end
+				merge_sort_view
 			end
 			if selected_model > 0 and then selected_view_position = 0 then
 				selected_model := 0

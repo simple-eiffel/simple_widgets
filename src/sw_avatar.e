@@ -33,6 +33,25 @@ feature -- Access
 
 	diameter: REAL_64
 
+	image: detachable CAIRO_SURFACE
+			-- The photo, when the person has a face; drawn clipped
+			-- to the disc. Void = initials on a hashed wash.
+
+	set_image (a_surface: CAIRO_SURFACE)
+		do
+			image := a_surface
+		ensure
+			set: image = a_surface
+		end
+
+	with_image (a_surface: CAIRO_SURFACE): like Current
+		do
+			set_image (a_surface)
+			Result := Current
+		ensure
+			chained: Result = Current
+		end
+
 	initials: STRING_32
 			-- First letters of the first and last words, upper-cased;
 			-- '?' when the name is blank.
@@ -127,10 +146,18 @@ feature -- Drawing
 			end
 			cx := x + width / 2.0
 			cy := y + height / 2.0
-			a_p.circle_fill (cx, cy, diameter / 2.0)
-			a_p.set_color (t.ink)
-			a_p.font ({SW_PAINTER}.Role_ui, diameter * 0.38, True)
-			a_p.text (cx - a_p.advance (initials) / 2.0, cy + diameter * 0.14, initials)
+			if attached image as img then
+				a_p.push_circle_clip (cx, cy, diameter / 2.0)
+				a_p.draw_image (img, cx - diameter / 2.0, cy - diameter / 2.0, diameter, diameter)
+				a_p.pop_clip
+				a_p.set_color (t.outline)
+				a_p.circle_stroke (cx, cy, diameter / 2.0)
+			else
+				a_p.circle_fill (cx, cy, diameter / 2.0)
+				a_p.set_color (t.ink)
+				a_p.font ({SW_PAINTER}.Role_ui, diameter * 0.38, True)
+				a_p.text (cx - a_p.advance (initials) / 2.0, cy + diameter * 0.14, initials)
+			end
 		end
 
 invariant

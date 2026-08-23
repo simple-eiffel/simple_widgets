@@ -357,6 +357,14 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_toolbar_icon_items_measure_squarely, "toolbar_icon_items_measure_squarely")
 			run_test (agent deepening_tests.test_segmented_icon_segments, "segmented_icon_segments")
 			run_test (agent deepening_tests.test_empty_state_glyph_choice, "empty_state_glyph_choice")
+			run_test (agent deepening_tests.test_grid_descending_sort_is_stable, "grid_descending_sort_is_stable")
+			run_test (agent deepening_tests.test_grid_sort_thousands, "grid_sort_thousands")
+			run_test (agent deepening_tests.test_list_keyboard_navigation, "list_keyboard_navigation")
+			run_test (agent deepening_tests.test_grid_page_and_edge_keys, "grid_page_and_edge_keys")
+			run_test (agent deepening_tests.test_calendar_min_max_window, "calendar_min_max_window")
+			run_test (agent deepening_tests.test_file_dialog_pattern_sets, "file_dialog_pattern_sets")
+			run_test (agent deepening_tests.test_color_picker_hex_input, "color_picker_hex_input")
+			run_test (agent deepening_tests.test_avatar_photo_clips_to_disc, "avatar_photo_clips_to_disc")
 		end
 
 	deepening_tests: SW_DEEPENING_ASSAULT

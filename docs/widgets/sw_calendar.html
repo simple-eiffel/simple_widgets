@@ -54,7 +54,7 @@ cal.set_locale (<span class="keyword">create</span> {<span class="type">SW_LOCAL
             <ul>
                 <li>Month view only (no year/decade zoom navigation yet).</li>
                 <li>Single date selection (ranges are a future with SW_DATE_RANGE support in simple_datetime already waiting).</li>
-                <li>No min/max selectable-date constraints yet.</li>
+                <li>Min/max constraints SHIPPED 2026-08-23: out-of-window cells draw muted and REFUSE clicks (a 42-cell click storm fires on_pick exactly once per allowed day - assaulted); select_date stays unguarded by the commands-are-silent convention.</li>
             </ul>
         </section>
 
@@ -71,7 +71,7 @@ cal.set_locale (<span class="keyword">create</span> {<span class="type">SW_LOCAL
             <ul>
                 <li>Year and month zoom (click the title to widen).</li>
                 <li>Range selection riding simple_datetime's SIMPLE_DATE_RANGE.</li>
-                <li>Min/max date constraints with muted-and-refusing cells.</li>
+                <li>Min/max date constraints with muted-and-refusing cells. - SHIPPED 2026-08-23.</li>
                 <li>Week-number rail option.</li>
             </ul>
         </section>

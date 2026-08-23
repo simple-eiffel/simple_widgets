@@ -68,9 +68,9 @@ window.show_sheet (fd, 560.0)</code></pre>
             <h2>Known limits</h2>
             <ul>
                 <li>No drive/root picker yet - it browses from the start directory; '..' stops at the drive root.</li>
-                <li>One extension filter at a time (no '*.png;*.jpg' sets yet).</li>
+                <li>Pattern SETS shipped 2026-08-23: set_extension_filter ("*.png;*.jpg") - legacy single-suffix spelling still welcome; the matcher (passes_filter) is public and assaulted.</li>
                 <li>No overwrite confirmation in save mode (the host app owns that policy for now).</li>
-                <li>No keyboard navigation of the entry list yet (arrives with SW_LIST's).</li>
+                <li>Keyboard navigation arrived with SW_LIST's (2026-08-23): the hosted entry list walks by arrows/PgUp/PgDn once focused.</li>
             </ul>
         </section>
 
@@ -87,7 +87,7 @@ window.show_sheet (fd, 560.0)</code></pre>
             <h2>Extension plans &amp; possibilities</h2>
             <ul>
                 <li>Drive/known-folder rail (Desktop, Documents, drives) on the left of the sheet.</li>
-                <li>Multi-pattern filters with a filter dropdown; hidden-file toggle.</li>
+                <li>Multi-pattern filters SHIPPED 2026-08-23 (the dropdown chrome and hidden-file toggle remain queued).</li>
                 <li>New-folder button in save mode; overwrite confirm option.</li>
                 <li>Type-to-filter riding SW_COMBO's future autocomplete.</li>
             </ul>

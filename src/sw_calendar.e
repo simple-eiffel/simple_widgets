@@ -56,6 +56,36 @@ feature -- Access
 
 feature -- Element change
 
+	min_date: detachable SIMPLE_DATE
+			-- Earliest selectable date; Void = unconstrained.
+
+	max_date: detachable SIMPLE_DATE
+			-- Latest selectable date; Void = unconstrained.
+
+	set_min_date (a_date: SIMPLE_DATE)
+		do
+			min_date := a_date
+		ensure
+			set: min_date = a_date
+		end
+
+	set_max_date (a_date: SIMPLE_DATE)
+		do
+			max_date := a_date
+		ensure
+			set: max_date = a_date
+		end
+
+	date_allowed (a_date: SIMPLE_DATE): BOOLEAN
+			-- Does `a_date' fall inside the min/max window? Cells
+			-- outside draw muted and REFUSE clicks; select_date (a
+			-- silent command) is deliberately not guarded - the
+			-- programmer stays king.
+		do
+			Result := (not attached min_date as mn or else not a_date.is_before (mn))
+				and (not attached max_date as mx or else not a_date.is_after (mx))
+		end
+
 	closes_overlay_on_pick: BOOLEAN
 			-- Should a day pick ask the window to close the overlay
 			-- this calendar rides in? Set by popover hosts (the date
@@ -247,6 +277,8 @@ feature -- Drawing
 						a_p.set_color (t.accent)
 						a_p.rrect_stroke (cx + 2.5, cy + 2.5, Cell_w - 5.0, Cell_h - 5.0, t.radius)
 						a_p.set_color (t.ink)
+					elseif not date_allowed (cursor) then
+						a_p.set_color (t.outline)
 					elseif shows_hover and then hover_px >= cx and then hover_px < cx + Cell_w
 						and then hover_py >= cy and then hover_py < cy + Cell_h
 					then
@@ -286,6 +318,7 @@ feature -- Input
 					r := ((a_py - y - Head_h - Cell_h) / Cell_h).truncated_to_integer
 					if a_px >= x + 4.0 and c >= 0 and c <= 6 and r >= 0 and r <= 5 then
 						d := first_cell_date.days_from_now (r * 7 + c)
+						if date_allowed (d) then
 						selected_year := d.year
 						selected_month := d.month
 						selected_day := d.day
@@ -296,6 +329,7 @@ feature -- Input
 						end
 						if closes_overlay_on_pick then
 							request_sheet_close
+						end
 						end
 					end
 				end

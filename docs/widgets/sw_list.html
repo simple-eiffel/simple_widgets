@@ -59,7 +59,7 @@ render_row (a_p: <span class="type">SW_PAINTER</span>; a_i: <span class="type">I
             <ul>
                 <li>Uniform row height (variable heights are a data-grid concern, Wave 3).</li>
                 <li>Single selection (multi-select with ranges is queued).</li>
-                <li>No keyboard navigation of the selection yet (arrows/PgUp/PgDn).</li>
+                <li>Keyboard navigation SHIPPED 2026-08-23: arrows walk, PgUp/PgDn stride the viewport, Home/End jump - every move scrolls into view; lists join the Tab ring.</li>
                 <li>No columns, headers or sorting - that is SW_DATA_GRID's charter.</li>
             </ul>
         </section>
@@ -77,7 +77,7 @@ render_row (a_p: <span class="type">SW_PAINTER</span>; a_i: <span class="type">I
             <h2>Extension plans &amp; possibilities</h2>
             <ul>
                 <li>Multi-select (extending the text box's disjoint-range vocabulary to rows).</li>
-                <li>Keyboard selection movement with scroll-into-view.</li>
+                <li>Keyboard selection movement with scroll-into-view. - SHIPPED 2026-08-23 (assaulted headless).</li>
                 <li>Variable row heights via a measure agent; sticky headers.</li>
                 <li>SW_DATA_GRID and SW_TREE build on this engine in Wave 3.</li>
             </ul>

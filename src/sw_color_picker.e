@@ -12,7 +12,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			handle_click, handle_drag, wants_hover_point
+			handle_click, handle_drag, wants_hover_point,
+			handle_char, accepts_focus
 		end
 
 create
@@ -41,6 +42,93 @@ feature -- Access
 	Field_h: REAL_64 = 140.0
 
 	Bar_h: REAL_64 = 18.0
+
+	accepts_focus: BOOLEAN
+			-- Focusable: hex digits type straight into the readout.
+		do
+			Result := True
+		end
+
+	is_editing_hex: BOOLEAN
+			-- Is a typed hex value building in the readout?
+
+	hex_buffer: STRING_32
+		attribute
+			create Result.make (7)
+		end
+
+	from_hex (a_hex: READABLE_STRING_GENERAL): BOOLEAN
+			-- Parse '#RRGGBB', 'RRGGBB' or '#RGB' and adopt the
+			-- colour; False (and no change) on anything else.
+		local
+			s: STRING_32
+			i, v, d: INTEGER
+			c: CHARACTER_32
+			ok: BOOLEAN
+		do
+			create s.make_from_string_general (a_hex)
+			s.left_adjust
+			s.right_adjust
+			if not s.is_empty and then s.item (1) = '#' then
+				s.remove_head (1)
+			end
+			if s.count = 3 then
+					-- #RGB doubles each nibble
+				s := {STRING_32} "" + s.item (1).out + s.item (1).out
+					+ s.item (2).out + s.item (2).out
+					+ s.item (3).out + s.item (3).out
+			end
+			if s.count = 6 then
+				ok := True
+				from
+					i := 1
+				until
+					i > 6 or not ok
+				loop
+					c := s.item (i).as_lower
+					if c >= '0' and c <= '9' then
+						d := c.code - ('0').code
+					elseif c >= 'a' and c <= 'f' then
+						d := c.code - ('a').code + 10
+					else
+						ok := False
+					end
+					v := v * 16 + d
+					i := i + 1
+				end
+				if ok then
+					set_rgb (v.to_natural_32)
+					Result := True
+				end
+			end
+		end
+
+	handle_char (a_code: INTEGER)
+			-- Hex digits and '#' build a typed value; Enter adopts
+			-- it (via from_hex), Escape abandons, Backspace edits.
+		do
+			if a_code = 13 then
+				if from_hex (hex_buffer) then
+				end
+				is_editing_hex := False
+				hex_buffer.wipe_out
+			elseif a_code = 27 then
+				is_editing_hex := False
+				hex_buffer.wipe_out
+			elseif a_code = 8 then
+				if not hex_buffer.is_empty then
+					hex_buffer.remove_tail (1)
+				end
+			elseif a_code = 35 or (a_code >= 48 and a_code <= 57)
+				or (a_code >= 65 and a_code <= 70)
+				or (a_code >= 97 and a_code <= 102)
+			then
+				if hex_buffer.count < 7 then
+					is_editing_hex := True
+					hex_buffer.append_character (a_code.to_character_32)
+				end
+			end
+		end
 
 	rgb: NATURAL_32
 			-- The current colour as 0xRRGGBB.
@@ -216,8 +304,14 @@ feature -- Drawing
 			a_p.set_color (t.outline)
 			a_p.rrect_stroke (x + 0.5, y + Field_h + 8.0 + Bar_h + 8.5, 45.0, 21.0, t.radius)
 			a_p.font ({SW_PAINTER}.Role_mono, t.size_label, False)
-			a_p.set_color (t.ink)
-			a_p.text (x + 56.0, y + Field_h + 8.0 + Bar_h + 24.0, hex_text)
+			if is_editing_hex then
+				a_p.set_color (t.accent)
+				a_p.text (x + 56.0, y + Field_h + 8.0 + Bar_h + 24.0,
+					hex_buffer + {STRING_32} "|")
+			else
+				a_p.set_color (t.ink)
+				a_p.text (x + 56.0, y + Field_h + 8.0 + Bar_h + 24.0, hex_text)
+			end
 		end
 
 feature -- Input

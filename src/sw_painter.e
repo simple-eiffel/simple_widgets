@@ -115,6 +115,18 @@ feature -- Shapes
 			context.clip_rectangle (a_x, a_y, a_w, a_h).do_nothing
 		end
 
+	push_circle_clip (a_cx, a_cy, a_r: REAL_64)
+			-- Confine drawing to a disc until pop_clip; nests like
+			-- push_clip (save / clip / restore discipline).
+		require
+			positive: a_r > 0.0
+		do
+			context.save.do_nothing
+			context.new_path.do_nothing
+			context.arc (a_cx, a_cy, a_r, 0.0, Two_pi).do_nothing
+			context.clip.do_nothing
+		end
+
 	pop_clip
 		do
 			context.restore.do_nothing

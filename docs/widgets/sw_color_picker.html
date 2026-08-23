@@ -51,7 +51,7 @@ on_color_changed (a_rgb: <span class="type">NATURAL_32</span>)
             <h2>Known limits</h2>
             <ul>
                 <li>No alpha channel (the theme's colours are opaque RGB by design).</li>
-                <li>No hex TYPING yet - readout only; input is queued.</li>
+                <li>Hex TYPING shipped 2026-08-23: digits and '#' build in the readout, Enter adopts (#RGB and #RRGGBB), Escape abandons; from_hex is public and assaulted.</li>
                 <li>No palette swatches/recent colours row yet.</li>
                 <li>The banded field renders 288 rects + 36 bar rects per frame - cheap, but a retained-layer future exists if pickers multiply.</li>
             </ul>
@@ -68,7 +68,7 @@ on_color_changed (a_rgb: <span class="type">NATURAL_32</span>)
         <section id="future">
             <h2>Extension plans &amp; possibilities</h2>
             <ul>
-                <li>Hex input (single-line parse, the picker vocabulary of SW_TEXT_BOX).</li>
+                <li>Hex input - SHIPPED 2026-08-23 (typed straight into the readout; no text-box marriage needed).</li>
                 <li>Palette/recent swatches; eyedropper over the window surface.</li>
                 <li>Alpha variant when a consumer needs translucency.</li>
             </ul>

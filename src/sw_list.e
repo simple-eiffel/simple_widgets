@@ -18,7 +18,8 @@ inherit
 	SW_WIDGET
 		redefine
 			widget_at, handle_wheel, handle_click, handle_drag,
-			wants_hover_point, pebble_at, handle_double_click
+			wants_hover_point, pebble_at, handle_double_click,
+			handle_key, accepts_focus
 		end
 
 create
@@ -174,6 +175,57 @@ feature -- Element change
 			on_select := a_action
 		ensure
 			set: on_select = a_action
+		end
+
+	accepts_focus: BOOLEAN
+			-- Lists join the Tab ring: arrows move the selection.
+		do
+			Result := True
+		end
+
+	page_rows: INTEGER
+			-- Rows one PgUp/PgDn stride covers: the live viewport
+			-- when laid out, the declared one before.
+		local
+			vh: REAL_64
+		do
+			vh := height
+			if vh <= 0.0 then
+				vh := viewport_height
+			end
+			Result := (vh / row_height).truncated_to_integer.max (1)
+		ensure
+			positive: Result >= 1
+		end
+
+	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
+			-- Arrows, PgUp/PgDn, Home/End move the selection and
+			-- keep it in view - the S04 promise, assaulted headless.
+		local
+			target: INTEGER
+		do
+			if row_count > 0 then
+				inspect a_vk
+				when 40 then
+					target := (selected_index + 1).min (row_count).max (1)
+				when 38 then
+					target := (selected_index - 1).max (1)
+				when 34 then
+					target := (selected_index + page_rows).min (row_count).max (1)
+				when 33 then
+					target := (selected_index - page_rows).max (1)
+				when 36 then
+					target := 1
+				when 35 then
+					target := row_count
+				else
+					target := 0
+				end
+				if target > 0 and target /= selected_index then
+					select_row (target)
+					scroll_to_row (target)
+				end
+			end
 		end
 
 	select_row (a_i: INTEGER)

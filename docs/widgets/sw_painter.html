@@ -103,6 +103,7 @@ w := a_p.advance (label) + 24.0   <span class="comment">-- advance, not ink widt
             <p>Adopters so far: SW_BUTTON (<code>with_glyph</code>), SW_TOOLBAR
             (<code>add_icon_item</code>), SW_SEGMENTED (<code>with_icon_segment</code>),
             SW_EMPTY_STATE (<code>set_glyph_kind</code>).</p>
+            <p>Same date, one more primitive: <code>push_circle_clip (cx, cy, r)</code> - drawing confined to a disc until <code>pop_clip</code>, nesting like the rectangular clip. First consumer: photo avatars.</p>
         </section>
     </main>
 

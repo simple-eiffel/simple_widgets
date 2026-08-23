@@ -427,4 +427,224 @@ feature -- Batch 3: the drawn-glyph set
 			assert_integers_equal ("or the host's kind", {SW_PAINTER}.Glyph_search, es.glyph_kind)
 		end
 
+feature -- Batch 4: data + enterprise deepening
+
+	test_grid_descending_sort_is_stable
+			-- THE BUG, test-first: equal keys must keep model order
+			-- under DESCENDING sort. The insertion sort's blanket
+			-- 'less := not less' swaps equals - merge sort cures it.
+		local
+			g: SW_DATA_GRID [TUPLE [name: STRING_32; size: INTEGER]]
+		do
+			create g.make (200.0)
+			g.add_column (create {SW_GRID_COLUMN [TUPLE [name: STRING_32; size: INTEGER]]}.make ("Name", 120.0, agent (r: TUPLE [name: STRING_32; size: INTEGER]): STRING_32 do Result := r.name end))
+			g.add_column ((create {SW_GRID_COLUMN [TUPLE [name: STRING_32; size: INTEGER]]}.make ("Size", 80.0, agent (r: TUPLE [name: STRING_32; size: INTEGER]): STRING_32 do Result := r.size.out.to_string_32 end)).with_key (agent (r: TUPLE [name: STRING_32; size: INTEGER]): COMPARABLE do Result := r.size end))
+			g.add_row ([{STRING_32} "first-one", 1])
+			g.add_row ([{STRING_32} "second-one", 1])
+			g.add_row ([{STRING_32} "the-two", 2])
+			g.sort_by (2, True)
+			assert ("the two leads descending", g.rows.i_th (g.view.i_th (1)).size = 2)
+			assert ("equal keys keep MODEL order (stability)",
+				g.rows.i_th (g.view.i_th (2)).name.same_string_general ("first-one"))
+			assert ("both ones present, in order",
+				g.rows.i_th (g.view.i_th (3)).name.same_string_general ("second-one"))
+		end
+
+	test_grid_sort_thousands
+			-- The O(n log n) claim under load: 2000 rows, reverse-
+			-- keyed, sorted ascending - first, last and a middle
+			-- probe all land exactly.
+		local
+			g: SW_DATA_GRID [TUPLE [name: STRING_32; size: INTEGER]]
+			i: INTEGER
+		do
+			create g.make (200.0)
+			g.add_column ((create {SW_GRID_COLUMN [TUPLE [name: STRING_32; size: INTEGER]]}.make ("Size", 80.0, agent (r: TUPLE [name: STRING_32; size: INTEGER]): STRING_32 do Result := r.size.out.to_string_32 end)).with_key (agent (r: TUPLE [name: STRING_32; size: INTEGER]): COMPARABLE do Result := r.size end))
+			from
+				i := 2000
+			until
+				i < 1
+			loop
+				g.add_row ([{STRING_32} "r", i])
+				i := i - 1
+			end
+			g.sort_by (1, False)
+			assert_integers_equal ("first is 1", 1, g.rows.i_th (g.view.i_th (1)).size)
+			assert_integers_equal ("1000th is 1000", 1000, g.rows.i_th (g.view.i_th (1000)).size)
+			assert_integers_equal ("last is 2000", 2000, g.rows.i_th (g.view.i_th (2000)).size)
+		end
+
+	test_list_keyboard_navigation
+			-- Arrows walk, PgDn strides a viewport, Home/End jump,
+			-- and every move keeps the selection visible.
+		local
+			l: SW_LIST
+		do
+			create l.make (90.0)
+			l.set_row_count (100)
+			assert ("lists join the Tab ring", l.accepts_focus)
+			l.handle_key (40, False)
+			assert_integers_equal ("Down from nothing selects the first", 1, l.selected_index)
+			l.handle_key (40, False)
+			assert_integers_equal ("and walks", 2, l.selected_index)
+			l.handle_key (34, False)
+			assert_integers_equal ("PgDn strides the declared viewport", 5, l.selected_index)
+			l.handle_key (35, False)
+			assert_integers_equal ("End jumps to the tail", 100, l.selected_index)
+			assert ("and the tail is scrolled into view",
+				l.scroll_y >= (100.0 - 3.0) * l.row_height - 0.001)
+			l.handle_key (33, False)
+			assert_integers_equal ("PgUp strides back", 97, l.selected_index)
+			l.handle_key (36, False)
+			assert_integers_equal ("Home rewinds", 1, l.selected_index)
+			l.handle_key (38, False)
+			assert_integers_equal ("Up at the top holds", 1, l.selected_index)
+		end
+
+	test_grid_page_and_edge_keys
+		local
+			g: SW_DATA_GRID [TUPLE [name: STRING_32; size: INTEGER]]
+			i: INTEGER
+		do
+			create g.make (104.0)
+			g.add_column (create {SW_GRID_COLUMN [TUPLE [name: STRING_32; size: INTEGER]]}.make ("N", 80.0, agent (r: TUPLE [name: STRING_32; size: INTEGER]): STRING_32 do Result := r.name end))
+			from
+				i := 1
+			until
+				i > 50
+			loop
+				g.add_row ([{STRING_32} "row", i])
+				i := i + 1
+			end
+			g.handle_key (40, False)
+			assert_integers_equal ("Down selects the first model row", 1, g.selected_model)
+			g.handle_key (34, False)
+			assert_integers_equal ("PgDn strides the declared viewport", 5, g.selected_model)
+			g.handle_key (35, False)
+			assert_integers_equal ("End lands on the last", 50, g.selected_model)
+			g.handle_key (36, False)
+			assert_integers_equal ("Home on the first", 1, g.selected_model)
+		end
+
+	test_calendar_min_max_window
+			-- Cells outside the window refuse clicks; with the window
+			-- 10..20 Aug 2026, a click storm over all 42 cells fires
+			-- on_pick EXACTLY 11 times - layout-independent proof.
+		local
+			cal: SW_CALENDAR
+			mn, mx, probe: SIMPLE_DATE
+			fired: CELL [INTEGER]
+			r, c: INTEGER
+		do
+			create cal.make
+			cal.set_bounds (0.0, 0.0, 250.0, 240.0)
+			cal.select_date (2026, 8, 15)
+			create mn.make (2026, 8, 10)
+			create mx.make (2026, 8, 20)
+			cal.set_min_date (mn)
+			cal.set_max_date (mx)
+			create probe.make (2026, 8, 5)
+			assert ("the 5th is refused", not cal.date_allowed (probe))
+			create probe.make (2026, 8, 10)
+			assert ("the fence is IN", cal.date_allowed (probe))
+			create fired.put (0)
+			cal.set_on_pick (agent (y_, m_, d_: INTEGER; f: CELL [INTEGER]) do f.put (f.item + 1) end (?, ?, ?, fired))
+			from
+				r := 0
+			until
+				r > 5
+			loop
+				from
+					c := 0
+				until
+					c > 6
+				loop
+					if cal.handle_click (5.0 + c * 34.0 + 17.0, 63.0 + r * 28.0 + 14.0) then
+					end
+					c := c + 1
+				end
+				r := r + 1
+			end
+			assert_integers_equal ("exactly the eleven allowed days fire", 11, fired.item)
+			assert ("selection never left the window",
+				cal.selected_day >= 10 and cal.selected_day <= 20)
+		end
+
+	test_file_dialog_pattern_sets
+		local
+			fd: SW_FILE_DIALOG
+		do
+			create fd.make_open (".")
+			fd.set_extension_filter ("*.png;*.jpg")
+			assert ("png passes", fd.passes_filter ("shot.PNG"))
+			assert ("jpg passes", fd.passes_filter ("photo.jpg"))
+			assert ("txt refused", not fd.passes_filter ("notes.txt"))
+			fd.set_extension_filter ("png")
+			assert ("legacy single suffix normalizes", fd.passes_filter ("a.png"))
+			assert ("and still refuses others", not fd.passes_filter ("a.gif"))
+			fd.set_extension_filter ("")
+			assert ("empty filter admits everything", fd.passes_filter ("anything.xyz"))
+		end
+
+	test_color_picker_hex_input
+		local
+			cp: SW_COLOR_PICKER
+			r0: NATURAL_32
+		do
+			create cp.make (0xFF0000)
+			assert ("pickers join the Tab ring", cp.accepts_focus)
+			assert ("full form parses", cp.from_hex ("#3A6EA5"))
+			assert ("adopted within HSV rounding",
+				(cp.rgb.bit_and (0xFF0000) |>> 16).to_integer_32 - 0x3A <= 2
+				and (cp.rgb.bit_and (0xFF0000) |>> 16).to_integer_32 - 0x3A >= -2)
+			assert ("short form expands", cp.from_hex ("#FA5"))
+			assert ("garbage refused", not cp.from_hex ("#GG0011"))
+			r0 := cp.rgb
+			cp.handle_char (35)
+			cp.handle_char (48)
+			cp.handle_char (48)
+			assert ("typing opened the readout edit", cp.is_editing_hex)
+			cp.handle_char (27)
+			assert ("Escape abandons", not cp.is_editing_hex)
+			assert ("and the colour stands", cp.rgb = r0)
+		end
+
+	test_avatar_photo_clips_to_disc
+			-- Pixel proof: a white photo drawn into the avatar leaves
+			-- the bounding-box corner BLACK (outside the disc) and
+			-- the centre white.
+		local
+			th: SW_THEME
+			surf, photo: CAIRO_SURFACE
+			ctx, pctx: CAIRO_CONTEXT
+			p, pp: SW_PAINTER
+			av: SW_AVATAR
+			mp: MANAGED_POINTER
+			corner, center: NATURAL_32
+		do
+			create th.make_dark
+			create surf.make (40, 40)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			p.set_color (0x000000)
+			p.fill_rect (0.0, 0.0, 40.0, 40.0)
+			create photo.make (8, 8)
+			create pctx.make (photo)
+			create pp.make (pctx, th)
+			pp.set_color (0xFFFFFF)
+			pp.fill_rect (0.0, 0.0, 8.0, 8.0)
+			create av.make ("Larry Rix")
+			av := av.with_image (photo).with_diameter (32.0)
+			av.set_bounds (4.0, 4.0, 32.0, 32.0)
+			av.draw (p)
+			surf.flush.do_nothing
+			create mp.share_from_pointer (surf.data, 40 * surf.stride)
+			corner := mp.read_natural_32 (6 * surf.stride + 6 * 4)
+			center := mp.read_natural_32 (20 * surf.stride + 20 * 4)
+			assert_integers_equal ("the corner stays black (clipped)",
+				0xFF000000, corner.to_integer_32)
+			assert ("the centre carries the photo",
+				center.bit_and (0x00FFFFFF) /= 0)
+		end
+
 end

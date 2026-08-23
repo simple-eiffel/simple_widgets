@@ -55,7 +55,7 @@ fleet.set_filter (<span class="keyword">agent</span> row_passes)   <span class="
             <ul>
                 <li>Single-row selection (multi-select ranges queued).</li>
                 <li>Uniform row height; no cell renderers yet (text via the value agent only).</li>
-                <li>Insertion sort on the view: right for human-scale row counts; thousands-of-rows sorting is an S04 item (the DRAW is already virtualized for thousands).</li>
+                <li>STABLE MERGE SORT since 2026-08-23: O(n log n) (2000 rows assaulted), and equal keys keep model order in BOTH directions - the old descending insertion sort swapped them, caught by a failing test first.</li>
                 <li>No in-place editing (by design in v1 - activation composes your editor).</li>
                 <li>No horizontal scrollbar drawn yet (Shift+wheel scrolls X).</li>
             </ul>
@@ -74,7 +74,7 @@ fleet.set_filter (<span class="keyword">agent</span> row_passes)   <span class="
             <h2>Extension plans &amp; possibilities</h2>
             <ul>
                 <li>Multi-select with range vocabulary; cell renderer agents (chips, bars in cells).</li>
-                <li>O(n log n) sort for big row counts; column show/hide and reorder by drag.</li>
+                <li>O(n log n) sort - SHIPPED 2026-08-23 (stable merge). Column show/hide and reorder by drag remain queued.</li>
                 <li>In-place typed editors per column (tier-three groundwork).</li>
                 <li>Tree-table descendant (Wave 5) sharing this engine.</li>
             </ul>

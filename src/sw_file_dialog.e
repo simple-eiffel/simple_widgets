@@ -142,11 +142,66 @@ feature -- Element change
 		end
 
 	set_extension_filter (a_suffix: READABLE_STRING_GENERAL)
-			-- Only list files ending with `a_suffix' (e.g. ".png").
+			-- Only list files matching the pattern set: one suffix
+			-- (".png") or several joined by ';' (".png;.jpg" -
+			-- '*.png;*.jpg' spelling welcome too).
+		local
+			part: STRING_32
+			i, start: INTEGER
 		do
 			create extension_filter.make_from_string_general (a_suffix)
 			extension_filter.to_lower
+			filter_suffixes.wipe_out
+			from
+				start := 1
+				i := 1
+			until
+				i > extension_filter.count + 1
+			loop
+				if i > extension_filter.count or else extension_filter.item (i) = ';' then
+					if i > start then
+						part := extension_filter.substring (start, i - 1)
+						part.left_adjust
+						part.right_adjust
+						if part.starts_with ({STRING_32} "*") then
+							part.remove_head (1)
+						end
+						if not part.is_empty and then part.item (1) /= '.' then
+							part.prepend ({STRING_32} ".")
+						end
+						if not part.is_empty then
+							filter_suffixes.extend (part)
+						end
+					end
+					start := i + 1
+				end
+				i := i + 1
+			end
 			load_directory (current_dir)
+		end
+
+	filter_suffixes: ARRAYED_LIST [STRING_32]
+			-- The parsed pattern set; empty = everything passes.
+		attribute
+			create Result.make (2)
+		end
+
+	passes_filter (a_name: READABLE_STRING_GENERAL): BOOLEAN
+			-- Does `a_name' survive the pattern set? Public so the
+			-- assault can hold the matcher to account directly.
+		local
+			low: STRING_32
+		do
+			if filter_suffixes.is_empty then
+				Result := True
+			else
+				low := a_name.to_string_32.as_lower
+				across
+					filter_suffixes as s
+				loop
+					Result := Result or low.ends_with (s)
+				end
+			end
 		end
 
 feature {NONE} -- Engine
@@ -184,7 +239,7 @@ feature {NONE} -- Engine
 						create sub.make_with_path (base.extended_path (e))
 						if sub.exists then
 							dirs.extend (nm)
-						elseif extension_filter.is_empty or else nm.as_lower.ends_with (extension_filter) then
+						elseif passes_filter (nm) then
 							files.extend (nm)
 						end
 					end
