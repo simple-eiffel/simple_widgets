@@ -389,8 +389,8 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Wrapping mode (flex-wrap) for chip sets and toolbars that reflow.
-- [ ] Cross-axis alignment options (center, baseline, stretch).
+- [x] Wrapping mode (flex-wrap) for chip sets and toolbars that reflow. — DONE 2026-08-23 (deepening sweep 5; assaulted)
+- [x] Cross-axis alignment options (center, baseline, stretch). — CENTER/TOP/STRETCH DONE 2026-08-23; baseline OPEN (needs per-face metrics the toy text API lacks)
 
 Gotcha docket (fix where a plan exists; else design around):
 
@@ -398,7 +398,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] No wrapping row yet (flex-wrap) - children beyond the width clip.
+- [x] No wrapping row yet (flex-wrap) - children beyond the width clip. — DONE 2026-08-23 (deepening sweep 5; assaulted)
 - [ ] Vertical alignment is top-aligned per child height; no baseline alignment.
 
 
@@ -406,7 +406,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Scroll-aware columns (auto-adopt a scroll area when overflowing).
+- [x] Scroll-aware columns (auto-adopt a scroll area when overflowing). — REFUSED BY DESIGN (verdict 2026-08-23): no tree mutation mid-arrange; compose SW_SCROLL_AREA explicitly
 - [ ] Named layout regions (header/content/footer sugar over the spacer idiom).
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -415,7 +415,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] No horizontal scrolling of overflow; a column taller than its slot clips (put it in an SW_SCROLL_AREA).
+- [x] No horizontal scrolling of overflow; a column taller than its slot clips (put it in an SW_SCROLL_AREA). — BY DESIGN (verdict 2026-08-23): the parenthesis is the answer; scrolling is SW_SCROLL_AREA's one job
 - [ ] Grow distribution shares positive leftover only; when content exceeds the window, excess simply runs past the bottom.
 
 
@@ -458,7 +458,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Vertical variant for rows.
+- [x] Vertical variant for rows. — DONE 2026-08-23 (deepening sweep 5; assaulted)
 - [x] Labeled separator (text carved mid-line, SW_GROUP-style). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -467,7 +467,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Horizontal only (menus and toolbars draw their own vertical gaps).
+- [x] Horizontal only (menus and toolbars draw their own vertical gaps). — DONE 2026-08-23 (deepening sweep 5; assaulted)
 - [x] No label-in-line variant ('--- OR ---') yet. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
@@ -483,7 +483,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] It has no minimum: with zero slack it vanishes entirely (that is the point).
+- [x] It has no minimum: with zero slack it vanishes entirely (that is the point). — BY DESIGN (verdict 2026-08-23): vanishing IS the contract
 
 
 ## SW_TABS
@@ -491,7 +491,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Closable and reorderable tabs (the app-shell pattern).
-- [ ] Lazy page construction (page-builder agents, menus-style).
+- [x] Lazy page construction (page-builder agents, menus-style). — DONE 2026-08-23 (deepening sweep 5; assaulted)
 - [ ] Vertical rail placement for tool windows.
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -551,7 +551,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Horizontal orientation; double-click the divider to reset the ratio.
+- [x] Horizontal orientation; double-click the divider to reset the ratio. — DONE 2026-08-23 (deepening sweep 5; assaulted)
 - [ ] Collapse buttons on the grip; remembered ratios (app settings integration).
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -560,7 +560,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Two panes, vertical divider only (no horizontal split or three-pane nesting sugar - nest splitters for now).
+- [x] Two panes, vertical divider only (no horizontal split or three-pane nesting sugar - nest splitters for now). — HORIZONTAL DONE 2026-08-23; three-pane sugar BY DESIGN: nest
 - [ ] No collapse-to-edge gesture.
 - [x] No cursor change over the divider yet (windowing cursor API pending). — DONE 2026-08-23 (deepening sweep 2; assaulted)
 
@@ -971,7 +971,7 @@ Limits to push:
 
 - [ ] No slide animation - the drawer appears (heartbeat easing is queued).
 - [ ] One overlay at a time: a drawer displaces an open sheet or popover.
-- [ ] Tab gutters: left and right today; Edge_top/Edge_bottom are accepted by the API but precondition-blocked until their gutters land (S04).
+- [x] Tab gutters: left and right today; Edge_top/Edge_bottom are accepted by the API but precondition-blocked until their gutters land (S04). — DONE 2026-08-23 (deepening sweep 5; assaulted)
 - [x] Peeked drawers close on pointer-leave with no grace delay yet. — DONE 2026-08-23 (deepening sweep 2; assaulted)
 - [ ] One overlay at a time by law: dual pinned drawers await true docking (Wave 5).
 

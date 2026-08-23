@@ -647,4 +647,171 @@ feature -- Batch 4: data + enterprise deepening
 				center.bit_and (0x00FFFFFF) /= 0)
 		end
 
+feature -- Batch 5: layout
+
+	test_row_wrap_math
+			-- The pure law: greedy fill, oversized children take
+			-- their own line, empty in - empty out.
+		local
+			r: SW_ROW
+			ws: ARRAYED_LIST [REAL_64]
+			starts: ARRAYED_LIST [INTEGER]
+		do
+			create r.make
+			create ws.make (3)
+			ws.extend (50.0)
+			ws.extend (50.0)
+			ws.extend (50.0)
+			starts := r.wrap_starts (ws, 8.0, 120.0)
+			assert_integers_equal ("two lines", 2, starts.count)
+			assert_integers_equal ("break lands on the third", 3, starts.i_th (2))
+			ws.wipe_out
+			ws.extend (50.0)
+			ws.extend (200.0)
+			ws.extend (50.0)
+			starts := r.wrap_starts (ws, 8.0, 120.0)
+			assert_integers_equal ("the giant takes its own line", 3, starts.count)
+			ws.wipe_out
+			starts := r.wrap_starts (ws, 8.0, 120.0)
+			assert ("empty in, empty out", starts.is_empty)
+		end
+
+	test_row_wrap_arranges_lines
+			-- Three 10px dots in a 30px row: two on the first line,
+			-- the third wrapped beneath - and preferred_height says
+			-- so before arrange does.
+		local
+			r: SW_ROW
+			b1, b2, b3: SW_BADGE
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+		do
+			create th.make_dark
+			create surf.make (8, 8)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create r.make
+			create b1.make_dot
+			create b2.make_dot
+			create b3.make_dot
+			r := r.add (b1).add (b2).add (b3).with_wrapping
+			assert_reals_equal ("two lines tall at width 30",
+				28.0, r.preferred_height (p, 30.0), 0.000_1)
+			r.set_bounds (0.0, 0.0, 30.0, 60.0)
+			r.arrange (p)
+			assert_reals_equal ("first two share a line", b1.y, b2.y, 0.000_1)
+			assert ("the third wrapped beneath", b3.y > b1.y + 9.0)
+			assert_reals_equal ("and rewinds to the left edge", 0.0, b3.x, 0.000_1)
+		end
+
+	test_splitter_horizontal_and_dblclick_reset
+		local
+			sp: SW_SPLITTER
+			a, b: SW_LABEL
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+		do
+			create th.make_dark
+			create surf.make (8, 8)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create a.make_ui ("top")
+			create b.make_ui ("bottom")
+			create sp.make (a, b)
+			sp := sp.with_horizontal
+			assert_integers_equal ("north-south cursor over the divider", 4, sp.cursor_kind)
+			sp.set_bounds (0.0, 0.0, 100.0, 209.0)
+			sp.arrange (p)
+			assert_reals_equal ("top pane takes half the slack", 100.0, a.height, 0.000_1)
+			assert_reals_equal ("bottom starts past the divider", 109.0, b.y, 0.000_1)
+			sp.set_ratio (0.7)
+			assert ("double-click on the divider answers",
+				sp.handle_double_click (50.0, (209.0 - 9.0) * 0.7 + 4.0))
+			assert_reals_equal ("and the ratio snaps home", 0.5, sp.ratio, 0.000_1)
+		end
+
+	test_tabs_lazy_builders
+			-- Builders fire on FIRST selection only; adding is free.
+		local
+			tb: SW_TABS
+			built: CELL [INTEGER]
+		do
+			create built.put (0)
+			create tb.make
+			tb.add_lazy_page ("A", agent (c: CELL [INTEGER]): SW_WIDGET
+				do
+					c.put (c.item + 1)
+					create {SW_SPACER} Result.make
+				end (built))
+			tb.add_lazy_page ("B", agent (c: CELL [INTEGER]): SW_WIDGET
+				do
+					c.put (c.item + 1)
+					create {SW_SPACER} Result.make
+				end (built))
+			assert_integers_equal ("adding builds nothing", 0, built.item)
+			tb.select_tab (2)
+			assert_integers_equal ("first selection builds B", 1, built.item)
+			assert ("the built page is adopted",
+				attached tb.selected_page as pg and then pg.parent = tb)
+			tb.select_tab (1)
+			assert_integers_equal ("and then A", 2, built.item)
+			tb.select_tab (2)
+			assert_integers_equal ("re-selection never rebuilds", 2, built.item)
+		end
+
+	test_separator_vertical
+		local
+			s: SW_SEPARATOR
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+		do
+			create th.make_dark
+			create surf.make (8, 8)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create s.make_vertical
+			assert ("upright", s.is_vertical)
+			assert_reals_equal ("slim in a row", 9.0, s.preferred_width (p), 0.000_1)
+			assert_reals_equal ("with presence", 24.0, s.preferred_height (p, 100.0), 0.000_1)
+		end
+
+	test_drawer_all_four_edges
+			-- The S04 gutters, landed: top and bottom tabs register
+			-- (the old precondition refused them), reserve their
+			-- gutters, open drawers in the new modes - and a full
+			-- headless render survives every edge.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+		do
+			create th.make_dark
+			create w.make ("edges", 0, 0, 400, 300, th)
+			w.set_root (create {SW_LABEL}.make_ui ("page"))
+			w.add_drawer_tab ("LOG", agent (): SW_WIDGET do create {SW_LABEL} Result.make_ui ("log") end, w.Edge_top)
+			w.add_drawer_tab ("OUT", agent (): SW_WIDGET do create {SW_LABEL} Result.make_ui ("out") end, w.Edge_bottom)
+			w.add_drawer_tab ("NAV", agent (): SW_WIDGET do create {SW_LABEL} Result.make_ui ("nav") end, w.Edge_left)
+			assert_reals_equal ("top gutter reserved", 22.0, w.gutter_top, 0.000_1)
+			assert_reals_equal ("bottom gutter reserved", 22.0, w.gutter_bottom, 0.000_1)
+			assert_reals_equal ("left gutter reserved", 22.0, w.gutter_left, 0.000_1)
+			assert_reals_equal ("right stays open", 0.0, w.gutter_right, 0.000_1)
+			w.request_render
+			w.open_drawer_from_tab (1, True)
+			assert ("a drawer is up", w.is_drawer_mode)
+			w.request_render
+			w.close_sheet
+			w.open_drawer_from_tab (2, True)
+			assert ("the bottom one too", w.is_drawer_mode)
+			w.request_render
+			w.close_sheet
+			w.show_drawer_edge (create {SW_LABEL}.make_ui ("bar"), 180.0, w.Edge_top)
+			assert ("and the public edge call presents", w.is_drawer_mode)
+			w.request_render
+		end
+
 end

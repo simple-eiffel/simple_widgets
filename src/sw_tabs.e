@@ -56,6 +56,7 @@ feature -- Element change
 			create l.make_from_string_general (a_label)
 			labels.extend (l)
 			pages.extend (a_page)
+			builders.extend (Void)
 			a_page.set_parent (Current)
 			if selected_index = 0 then
 				selected_index := 1
@@ -66,10 +67,58 @@ feature -- Element change
 			something_selected: selected_index >= 1
 		end
 
+	add_lazy_page (a_label: READABLE_STRING_GENERAL; a_builder: FUNCTION [SW_WIDGET])
+			-- The page is BUILT on first selection (menus-style):
+			-- until then a weightless spacer stands in. Ten heavy
+			-- tabs cost one page's construction at startup.
+		local
+			l: STRING_32
+			stub: SW_SPACER
+		do
+			create l.make_from_string_general (a_label)
+			labels.extend (l)
+			create stub.make
+			stub.set_parent (Current)
+			pages.extend (stub)
+			builders.extend (a_builder)
+			if selected_index = 0 then
+				selected_index := 1
+			end
+		ensure
+			grew: pages.count = old pages.count + 1
+			armed: builders.last = a_builder
+			something_selected: selected_index >= 1
+		end
+
+	builders: ARRAYED_LIST [detachable FUNCTION [SW_WIDGET]]
+			-- Parallel to `pages': the pending constructor, consumed
+			-- by `ensure_built' on first selection; Void = eager.
+		attribute
+			create Result.make (4)
+		end
+
+	ensure_built (a_i: INTEGER)
+			-- Materialize page `a_i' if a builder is still pending.
+		require
+			in_range: a_i >= 1 and a_i <= pages.count
+		local
+			pg: SW_WIDGET
+		do
+			if attached builders.i_th (a_i) as b then
+				pg := b.item ([])
+				pg.set_parent (Current)
+				pages.put_i_th (pg, a_i)
+				builders.put_i_th (Void, a_i)
+			end
+		ensure
+			built: builders.i_th (a_i) = Void
+		end
+
 	select_tab (a_i: INTEGER)
 		require
 			in_range: a_i >= 1 and a_i <= pages.count
 		do
+			ensure_built (a_i)
 			if a_i /= selected_index then
 				selected_index := a_i
 				if attached on_change as a then

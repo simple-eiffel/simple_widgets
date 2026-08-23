@@ -365,6 +365,12 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_file_dialog_pattern_sets, "file_dialog_pattern_sets")
 			run_test (agent deepening_tests.test_color_picker_hex_input, "color_picker_hex_input")
 			run_test (agent deepening_tests.test_avatar_photo_clips_to_disc, "avatar_photo_clips_to_disc")
+			run_test (agent deepening_tests.test_row_wrap_math, "row_wrap_math")
+			run_test (agent deepening_tests.test_row_wrap_arranges_lines, "row_wrap_arranges_lines")
+			run_test (agent deepening_tests.test_splitter_horizontal_and_dblclick_reset, "splitter_horizontal_and_dblclick_reset")
+			run_test (agent deepening_tests.test_tabs_lazy_builders, "tabs_lazy_builders")
+			run_test (agent deepening_tests.test_separator_vertical, "separator_vertical")
+			run_test (agent deepening_tests.test_drawer_all_four_edges, "drawer_all_four_edges")
 		end
 
 	deepening_tests: SW_DEEPENING_ASSAULT

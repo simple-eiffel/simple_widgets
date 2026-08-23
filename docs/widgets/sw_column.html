@@ -66,7 +66,7 @@ window.set_root (root)</code></pre>
         <section id="future">
             <h2>Extension plans &amp; possibilities</h2>
             <ul>
-                <li>Scroll-aware columns (auto-adopt a scroll area when overflowing).</li>
+                <li>Scroll-aware auto-adoption - REFUSED BY DESIGN (verdict 2026-08-23): a container re-parenting itself mid-arrange mutates the tree during layout; wrap the column in SW_SCROLL_AREA explicitly - composition stays visible in the code.</li>
                 <li>Named layout regions (header/content/footer sugar over the spacer idiom).</li>
             </ul>
         </section>

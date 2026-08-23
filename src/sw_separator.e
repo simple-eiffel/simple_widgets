@@ -6,9 +6,12 @@ class
 
 inherit
 	SW_WIDGET
+		redefine
+			preferred_width
+		end
 
 create
-	make, make_labeled
+	make, make_labeled, make_vertical
 
 feature {NONE} -- Initialization
 
@@ -29,11 +32,35 @@ feature -- Access
 
 	label: detachable STRING_32
 
+	is_vertical: BOOLEAN
+			-- A upright rule for rows (menus and toolbars draw their
+			-- own; this one is for YOUR rows).
+
+	make_vertical
+		do
+			is_vertical := True
+		ensure
+			upright: is_vertical
+		end
+
 feature -- Layout
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 		do
-			Result := 9.0
+			if is_vertical then
+				Result := 24.0
+			else
+				Result := 9.0
+			end
+		end
+
+	preferred_width (a_p: SW_PAINTER): REAL_64
+		do
+			if is_vertical then
+				Result := 9.0
+			else
+				Result := Precursor (a_p)
+			end
 		end
 
 feature -- Drawing
@@ -50,6 +77,8 @@ feature -- Drawing
 				a_p.set_color (a_p.theme.ink_muted)
 				a_p.text (x + half + 10.0, y + height / 2.0 + a_p.theme.size_chip / 2.0 - 1.0, l)
 				a_p.hline (x + half + lw + 18.0, y + height / 2.0, half.max (2.0))
+			elseif is_vertical then
+				a_p.vline (x + width / 2.0, y + 2.0, height - 4.0)
 			else
 				a_p.hline (x + 2.0, y + height / 2.0, width - 4.0)
 			end

@@ -61,15 +61,15 @@
                 <tr><td><strong>2</strong></td><td>The window's manners: Tab focus traversal (pure focusables ring, Shift+Tab, wants_tab), cursor shaping (I-beam over text, resize over dividers - simple_shell WM_SETCURSOR), popover auto-close-on-pick, drawer peek-close grace. Plus SW_THEME.text_scale - one knob, every glyph obeys.</td></tr>
                 <tr><td><strong>3</strong></td><td>THE DRAWN-GLYPH SET: 25 kinds on the painter (R7-pure, each one pixel-proven every run), adopted by icon buttons, toolbar icon items (labels demoted to tooltips), icon segments, and empty-state pictograms.</td></tr>
                 <tr><td><strong>4</strong></td><td>Data &amp; enterprise: the grid's STABLE MERGE SORT (a real descending-equals bug, failing test first; 2000 rows assaulted), list keyboard navigation (arrows/PgUp/PgDn/Home/End with scroll-into-view), grid page keys, calendar min/max windows (click-storm proven), date-picker delegation, file-dialog pattern sets, colour-picker hex typing, photo avatars clipped to the disc (new push_circle_clip primitive).</td></tr>
+                <tr><td><strong>5</strong></td><td>Layout: row WRAP (pure wrap_starts math, assaulted with bare numbers) + cross-axis options, splitter horizontal + double-click reset, tabs LAZY page builders (build on first selection), vertical separator, and drawer gutters on ALL FOUR edges (the Edge_top/Edge_bottom precondition opened; headless render assaulted per edge). Verdicts recorded: column auto-scroll-adoption and the vanishing spacer are BY DESIGN.</td></tr>
             </table>
-            <p>Suite standing: <strong>180/180</strong> under full DBC, F_code.</p>
+            <p>Suite standing: <strong>186/186</strong> under full DBC, F_code.</p>
         </section>
 
         <section id="verdicts">
             <h2>Still ahead</h2>
             <ul>
                 
-                <li><strong>Sweep 5</strong> - layout: row wrap, window auto-scroll, horizontal splitter + double-click reset, lazy tab builders, top/bottom drawer gutters.</li>
                 <li><strong>THE VERDICT PASS</strong> - every remaining S04 line gets fixed or an honest written reason: multi-window, dirty-rect rendering, IME, UIA accessibility, bidi shaping, JPEG, rich-text runs, submenus. No item left unanswered.</li>
             </ul>
             <p class="muted">History and evidence: <code>CHANGELOG.md</code> carries each movement

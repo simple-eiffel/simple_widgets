@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (DEEPENING SWEEP 5 - layout learns to bend)
+- SW_ROW WRAP: with_wrapping reflows children into greedy lines; the
+  wrap_starts math is a pure public feature assaulted with bare
+  numbers (oversized children take their own line, empty in - empty
+  out), and preferred_height answers wrapped truth before arrange
+  proves it. Cross-axis options: center (the old law, default), top,
+  stretch. Baseline stays open honestly (toy text API metrics).
+- SW_SPLITTER horizontal: with_horizontal flips every geometry site
+  (arrange, hit test, drag, divider paint, north-south cursor);
+  double-click the divider and the ratio snaps home to 0.5.
+- SW_TABS lazy pages: add_lazy_page builds on FIRST selection only -
+  ten heavy tabs cost one page at startup (assaulted: adding is
+  free, re-selection never rebuilds, built pages are adopted).
+- SW_SEPARATOR make_vertical: the upright rule for rows.
+- DRAWER GUTTERS ON ALL FOUR EDGES: Edge_top/Edge_bottom open (the
+  precondition that refused them is gone), horizontal tabs along the
+  top/bottom rails, Mode_top/Mode_bottom presentation, the root
+  shrinks by every reserved gutter, show_drawer_edge for hosts.
+  Assaulted with full headless renders on every edge.
+- VERDICTS (by design, recorded in the docs): column scroll-area
+  auto-adoption refused (no tree mutation mid-arrange - compose
+  SW_SCROLL_AREA explicitly); the spacer's vanishing-at-zero-slack
+  IS its contract.
+- Suite 186/186.
+
 ### Fixed + Added (DEEPENING SWEEP 4 - data earns its keep)
 - FIXED (failing test first): SW_DATA_GRID's descending sort REORDERED
   EQUAL KEYS - the insertion sort's blanket 'less := not less' swapped

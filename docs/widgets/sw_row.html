@@ -48,7 +48,7 @@ buttons.put ((<span class="keyword">create</span> {<span class="type">SW_TEXT_BO
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>No wrapping row yet (flex-wrap) - children beyond the width clip.</li>
+                <li>Wrapping SHIPPED 2026-08-23: with_wrapping reflows children into greedy lines (the pure wrap_starts math is assaulted with bare numbers); cross_axis places within a line (center default, top, stretch).</li>
                 <li>Vertical alignment is top-aligned per child height; no baseline alignment.</li>
             </ul>
         </section>
@@ -63,8 +63,8 @@ buttons.put ((<span class="keyword">create</span> {<span class="type">SW_TEXT_BO
         <section id="future">
             <h2>Extension plans &amp; possibilities</h2>
             <ul>
-                <li>Wrapping mode (flex-wrap) for chip sets and toolbars that reflow.</li>
-                <li>Cross-axis alignment options (center, baseline, stretch).</li>
+                <li>Wrapping mode (flex-wrap). - SHIPPED 2026-08-23; grow shares are ignored while wrapping, flexbox's own law.</li>
+                <li>Cross-axis alignment - center/top/stretch SHIPPED 2026-08-23; BASELINE stays open (it needs per-face font metrics the toy text API does not expose).</li>
             </ul>
         </section>
     </main>

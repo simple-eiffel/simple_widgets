@@ -161,9 +161,7 @@ feature {NONE} -- Dispatch
 					tk.call
 				end
 				age_toasts
-				if sheet /= Void and then not drawer_pinned
-					and then (sheet_mode = Mode_left or sheet_mode = Mode_right)
-				then
+				if is_drawer_mode and then not drawer_pinned then
 					if peek_close_due (not point_in_sheet_panel (last_pointer_x, last_pointer_y)
 						and then drawer_tab_at (last_pointer_x, last_pointer_y) = 0)
 					then
@@ -285,6 +283,17 @@ feature -- Sheets
 	Mode_left: INTEGER = 1
 	Mode_right: INTEGER = 2
 	Mode_anchored: INTEGER = 3
+	Mode_top: INTEGER = 4
+	Mode_bottom: INTEGER = 5
+
+	is_drawer_mode: BOOLEAN
+			-- Is the current overlay an edge drawer (any of the four
+			-- edges)? Popovers and centered sheets are not.
+		do
+			Result := sheet /= Void and then (sheet_mode = Mode_left
+				or sheet_mode = Mode_right or sheet_mode = Mode_top
+				or sheet_mode = Mode_bottom)
+		end
 
 	lens: DEV_LENS
 			-- The dev seam: a no-op in release builds, the real
@@ -396,6 +405,28 @@ feature -- Sheets
 			positive: a_width > 0.0
 		do
 			present (a_content, a_width, Mode_anchored, a_x, a_y)
+		ensure
+			shown: sheet = a_content
+		end
+
+	show_drawer_edge (a_content: SW_WIDGET; a_thickness: REAL_64; a_edge: INTEGER)
+			-- Present `a_content' as an edge panel on ANY of the four
+			-- edges - the S04 gutters, landed. `a_thickness' is the
+			-- panel's width (left/right) or height (top/bottom).
+		require
+			positive: a_thickness > 0.0
+			edge_known: a_edge >= Edge_left and a_edge <= Edge_bottom
+		do
+			inspect a_edge
+			when 1 then
+				present (a_content, a_thickness, Mode_left, 0.0, 0.0)
+			when 2 then
+				present (a_content, a_thickness, Mode_right, 0.0, 0.0)
+			when 3 then
+				present (a_content, a_thickness, Mode_top, 0.0, 0.0)
+			else
+				present (a_content, a_thickness, Mode_bottom, 0.0, 0.0)
+			end
 		ensure
 			shown: sheet = a_content
 		end
@@ -595,8 +626,7 @@ feature {NONE} -- Popup lifecycle
 						-- centered sheets are truly modal and ignore it
 					close_sheet
 				end
-				if sheet /= Void and then not drawer_pinned
-					and then (sheet_mode = Mode_left or sheet_mode = Mode_right)
+				if is_drawer_mode and then not drawer_pinned
 					and then point_in_sheet_panel (a_x, a_y)
 					and then not point_on_pin (a_x, a_y)
 				then
@@ -727,8 +757,7 @@ feature {NONE} -- Popup lifecycle
 				after_input
 			when 11 then
 				if lens.is_active (is_dev_mode)
-					and then (sheet = Void or else
-						((sheet_mode = Mode_left or sheet_mode = Mode_right) and then drawer_pinned))
+					and then (sheet = Void or else (is_drawer_mode and then drawer_pinned))
 					and then attached target_at (a_x, a_y) as dw
 					and then lens.observes (dw)
 				then
@@ -1021,7 +1050,9 @@ feature {NONE} -- Rendering
 			painter.set_color (theme.background)
 			ctx.paint.do_nothing
 			if attached root as r then
-				r.set_bounds (gutter_left, 0.0, win_w - gutter_left - gutter_right, win_h)
+				r.set_bounds (gutter_left, gutter_top,
+					win_w - gutter_left - gutter_right,
+					win_h - gutter_top - gutter_bottom)
 				r.arrange (painter)
 				r.draw (painter)
 			end
@@ -1082,6 +1113,26 @@ feature {NONE} -- Rendering
 						painter.vline (sheet_px + 0.5, 0.0, win_h)
 					end
 					s.set_bounds (sheet_px + 14.0, 14.0, sheet_pw - 28.0, win_h - 28.0)
+				elseif sheet_mode = Mode_top or sheet_mode = Mode_bottom then
+					painter.set_color_alpha (0x000000, 0.25)
+					painter.fill_rect (0.0, 0.0, win_w, win_h)
+					sheet_px := 0.0
+					sheet_pw := win_w
+					sheet_ph := sheet_width
+					if sheet_mode = Mode_top then
+						sheet_py := 0.0
+					else
+						sheet_py := win_h - sheet_ph
+					end
+					painter.set_color (theme.surface)
+					painter.fill_rect (sheet_px, sheet_py, sheet_pw, sheet_ph)
+					painter.set_color (theme.outline)
+					if sheet_mode = Mode_top then
+						painter.hline (0.0, sheet_py + sheet_ph - 0.5, win_w)
+					else
+						painter.hline (0.0, sheet_py + 0.5, win_w)
+					end
+					s.set_bounds (14.0, sheet_py + 14.0, win_w - 28.0, sheet_ph - 28.0)
 				else
 						-- anchored popover: no backdrop, clamped into the window
 					sheet_pw := sheet_width + 24.0
@@ -1098,12 +1149,18 @@ feature {NONE} -- Rendering
 				painter.push_clip (sheet_px + 1.0, sheet_py + 1.0, sheet_pw - 2.0, sheet_ph - 2.0)
 				s.draw (painter)
 				painter.pop_clip
-				if sheet_mode = Mode_left or sheet_mode = Mode_right then
+				if is_drawer_mode then
 						-- the pushpin, left of the drawer's own close X:
 						-- filled when pinned, hollow while peeking; click
 						-- toggles auto-hide
 					pin_x := sheet_px + sheet_pw - 48.0
-					pin_y := 21.0
+					if sheet_mode = Mode_top then
+						pin_y := sheet_py + sheet_ph - 21.0
+					elseif sheet_mode = Mode_bottom then
+						pin_y := sheet_py + 21.0
+					else
+						pin_y := 21.0
+					end
 					if drawer_pinned then
 						painter.set_color (theme.accent)
 						painter.circle_fill (pin_x, pin_y - 2.0, 4.5)
@@ -1163,7 +1220,7 @@ feature {NONE} -- Rendering
 		local
 			i: INTEGER
 			ly, lx, th: REAL_64
-			lefts, rights: INTEGER
+			lefts, rights, tops, bottoms: INTEGER
 		do
 			tab_rects.wipe_out
 			if gutter_left > 0.0 then
@@ -1178,31 +1235,76 @@ feature {NONE} -- Rendering
 				painter.set_color (theme.outline)
 				painter.vline (win_w - Gutter_w + 0.5, 0.0, win_h)
 			end
+			if gutter_top > 0.0 then
+				painter.set_color (theme.surface_variant)
+				painter.fill_rect (gutter_left, 0.0, win_w - gutter_left - gutter_right, Gutter_w)
+				painter.set_color (theme.outline)
+				painter.hline (gutter_left, Gutter_w - 0.5, win_w - gutter_left - gutter_right)
+			end
+			if gutter_bottom > 0.0 then
+				painter.set_color (theme.surface_variant)
+				painter.fill_rect (gutter_left, win_h - Gutter_w, win_w - gutter_left - gutter_right, Gutter_w)
+				painter.set_color (theme.outline)
+				painter.hline (gutter_left, win_h - Gutter_w + 0.5, win_w - gutter_left - gutter_right)
+			end
 			painter.font ({SW_PAINTER}.Role_ui, theme.size_chip, True)
 			from
 				i := 1
 			until
 				i > drawer_tabs.count
 			loop
-				th := drawer_tabs.i_th (i).label.count * 12.0 + 34.0
-				if drawer_tabs.i_th (i).from_right then
+				inspect drawer_tabs.i_th (i).edge
+				when 2 then
+					th := drawer_tabs.i_th (i).label.count * 12.0 + 34.0
 					lx := win_w - Gutter_w
 					ly := 120.0 + rights * (th + 14.0)
 					rights := rights + 1
+					if sheet = Void then
+						painter.set_color (theme.surface)
+						painter.rrect_fill (lx + 2.0, ly, Gutter_w - 4.0, th, 5.0)
+						painter.set_color (theme.accent)
+						painter.rrect_stroke (lx + 2.5, ly + 0.5, Gutter_w - 5.0, th - 1.0, 5.0)
+						draw_drawer_icon (lx + Gutter_w / 2.0, ly + 11.0)
+						draw_vertical_label (drawer_tabs.i_th (i).label, lx + Gutter_w / 2.0, ly + 28.0)
+					end
+					tab_rects.extend ([lx, ly, Gutter_w, th])
+				when 3, 4 then
+						-- horizontal tabs along the top or bottom rail
+					th := drawer_tabs.i_th (i).label.count * 8.0 + 40.0
+					if drawer_tabs.i_th (i).edge = 3 then
+						ly := 0.0
+						lx := 120.0 + tops * (th + 14.0)
+						tops := tops + 1
+					else
+						ly := win_h - Gutter_w
+						lx := 120.0 + bottoms * (th + 14.0)
+						bottoms := bottoms + 1
+					end
+					if sheet = Void then
+						painter.set_color (theme.surface)
+						painter.rrect_fill (lx, ly + 2.0, th, Gutter_w - 4.0, 5.0)
+						painter.set_color (theme.accent)
+						painter.rrect_stroke (lx + 0.5, ly + 2.5, th - 1.0, Gutter_w - 5.0, 5.0)
+						draw_drawer_icon (lx + 13.0, ly + Gutter_w / 2.0)
+						painter.set_color (theme.ink_muted)
+						painter.text (lx + 26.0, ly + Gutter_w / 2.0 + 4.0, drawer_tabs.i_th (i).label)
+					end
+					tab_rects.extend ([lx, ly, th, Gutter_w])
 				else
+					th := drawer_tabs.i_th (i).label.count * 12.0 + 34.0
 					lx := 0.0
 					ly := 120.0 + lefts * (th + 14.0)
 					lefts := lefts + 1
+					if sheet = Void then
+						painter.set_color (theme.surface)
+						painter.rrect_fill (lx + 2.0, ly, Gutter_w - 4.0, th, 5.0)
+						painter.set_color (theme.accent)
+						painter.rrect_stroke (lx + 2.5, ly + 0.5, Gutter_w - 5.0, th - 1.0, 5.0)
+						draw_drawer_icon (lx + Gutter_w / 2.0, ly + 11.0)
+						draw_vertical_label (drawer_tabs.i_th (i).label, lx + Gutter_w / 2.0, ly + 28.0)
+					end
+					tab_rects.extend ([lx, ly, Gutter_w, th])
 				end
-				if sheet = Void then
-					painter.set_color (theme.surface)
-					painter.rrect_fill (lx + 2.0, ly, Gutter_w - 4.0, th, 5.0)
-					painter.set_color (theme.accent)
-					painter.rrect_stroke (lx + 2.5, ly + 0.5, Gutter_w - 5.0, th - 1.0, 5.0)
-					draw_drawer_icon (lx + Gutter_w / 2.0, ly + 11.0)
-					draw_vertical_label (drawer_tabs.i_th (i).label, lx + Gutter_w / 2.0, ly + 28.0)
-				end
-				tab_rects.extend ([lx, ly, Gutter_w, th])
 				i := i + 1
 			end
 		end
@@ -1460,10 +1562,11 @@ feature {NONE} -- State
 
 feature -- Drawer tab (peek and pin)
 
-	drawer_tabs: ARRAYED_LIST [TUPLE [label: STRING_32; builder: FUNCTION [SW_WIDGET]; from_right: BOOLEAN]]
-			-- The registered edge tabs. Tabs live in reserved edge
-			-- GUTTERS outside the content and its scrollbars, so
-			-- aiming at a scrollbar thumb can never peek a drawer.
+	drawer_tabs: ARRAYED_LIST [TUPLE [label: STRING_32; builder: FUNCTION [SW_WIDGET]; edge: INTEGER]]
+			-- The registered edge tabs (Edge_left..Edge_bottom). Tabs
+			-- live in reserved edge GUTTERS outside the content and
+			-- its scrollbars, so aiming at a scrollbar thumb can
+			-- never peek a drawer.
 
 	drawer_pinned: BOOLEAN
 			-- Pinned drawers stay until dismissed; peeked ones close
@@ -1477,7 +1580,7 @@ feature -- Drawer tab (peek and pin)
 			across
 				drawer_tabs as dt
 			loop
-				if not dt.from_right then
+				if dt.edge = Edge_left then
 					Result := Gutter_w
 				end
 			end
@@ -1488,7 +1591,30 @@ feature -- Drawer tab (peek and pin)
 			across
 				drawer_tabs as dt
 			loop
-				if dt.from_right then
+				if dt.edge = Edge_right then
+					Result := Gutter_w
+				end
+			end
+		end
+
+	gutter_top: REAL_64
+			-- Reserved height on the top edge; 0 without top tabs.
+		do
+			across
+				drawer_tabs as dt
+			loop
+				if dt.edge = Edge_top then
+					Result := Gutter_w
+				end
+			end
+		end
+
+	gutter_bottom: REAL_64
+		do
+			across
+				drawer_tabs as dt
+			loop
+				if dt.edge = Edge_bottom then
 					Result := Gutter_w
 				end
 			end
@@ -1502,17 +1628,15 @@ feature -- Drawer tab (peek and pin)
 	set_drawer_tab, add_drawer_tab (a_label: READABLE_STRING_GENERAL; a_builder: FUNCTION [SW_WIDGET]; a_edge: INTEGER)
 			-- Register an edge tab: hovering it peeks its drawer,
 			-- clicking it pins it open. Several tabs stack per edge.
-			-- Placement is the programmer's option; the signature
-			-- accepts all four edges so it never churns - top and
-			-- bottom gutters arrive with S04.
+			-- ALL FOUR edges live since 2026-08-23 (the S04 gutters,
+			-- landed).
 		require
 			edge_known: a_edge >= Edge_left and a_edge <= Edge_bottom
-			edge_supported_today: a_edge = Edge_left or a_edge = Edge_right
 		local
 			l: STRING_32
 		do
 			create l.make_from_string_general (a_label)
-			drawer_tabs.extend ([l, a_builder, a_edge = Edge_right])
+			drawer_tabs.extend ([l, a_builder, a_edge])
 		ensure
 			grew: drawer_tabs.count = old drawer_tabs.count + 1
 		end
@@ -1603,8 +1727,16 @@ feature -- Drawer tab (peek and pin)
 		require
 			in_range: a_i >= 1 and a_i <= drawer_tabs.count
 		do
-			present (drawer_tabs.i_th (a_i).builder.item ([]), 300.0,
-				(if drawer_tabs.i_th (a_i).from_right then Mode_right else Mode_left end), 0.0, 0.0)
+			inspect drawer_tabs.i_th (a_i).edge
+			when 1 then
+				present (drawer_tabs.i_th (a_i).builder.item ([]), 300.0, Mode_left, 0.0, 0.0)
+			when 2 then
+				present (drawer_tabs.i_th (a_i).builder.item ([]), 300.0, Mode_right, 0.0, 0.0)
+			when 3 then
+				present (drawer_tabs.i_th (a_i).builder.item ([]), 220.0, Mode_top, 0.0, 0.0)
+			else
+				present (drawer_tabs.i_th (a_i).builder.item ([]), 220.0, Mode_bottom, 0.0, 0.0)
+			end
 			drawer_pinned := a_pinned
 		end
 
@@ -1630,8 +1762,7 @@ feature -- Drawer tab (peek and pin)
 			if attached sheet as s then
 				if sheet_mode = Mode_center or else point_in_sheet_panel (a_x, a_y) then
 					Result := s.widget_at (a_x, a_y)
-				elseif drawer_pinned
-					and then (sheet_mode = Mode_left or sheet_mode = Mode_right)
+				elseif drawer_pinned and then is_drawer_mode
 					and then attached root as r
 				then
 					Result := r.widget_at (a_x, a_y)

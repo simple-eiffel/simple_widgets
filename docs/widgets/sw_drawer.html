@@ -63,7 +63,7 @@ on_drawer_close
             <ul>
                 <li>No slide animation - the drawer appears (heartbeat easing is queued).</li>
                 <li>One overlay at a time: a drawer displaces an open sheet or popover.</li>
-                <li>Tab gutters: left and right today; Edge_top/Edge_bottom are accepted by the API but precondition-blocked until their gutters land (S04).</li>
+                <li>ALL FOUR edge gutters live since 2026-08-23: top/bottom tabs draw horizontally along their rails, drawers present in Mode_top/Mode_bottom, the root shrinks by every reserved gutter, show_drawer_edge for hosts - a full headless render assaulted per edge.</li>
                 <li>Peek-close grace SHIPPED 2026-08-23: an unpinned drawer survives one heartbeat outside (about half a second) before closing; re-entry resets the clock.</li>
                 <li>One overlay at a time by law: dual pinned drawers await true docking (Wave 5).</li>
             </ul>
