@@ -33,6 +33,10 @@ Toolkit-wide near-term items (from the same read):
 - [ ] Cursor API (I-beam, resize arrows).
 - [ ] DEPENDENCY AUDIT (Larry, 2026-08-22): sweep every ECF and source
       file for ISE/Gobo touchpoints (DIRECTORY, PATH, DATE, INTERNAL...),
+      PART DONE 2026-08-23: the C half is settled - every Win32 external
+      carved into the new simple_shell library (deferred SHELL_WINDOW,
+      descend-and-use); simple_widgets is pure Eiffel, Clib deleted.
+      The ISE/Gobo class-level sweep remains open below:
       map each to an existing simple_* library or flag a backfill hole.
       simple_datetime adoption was the live example; the file dialog's
       base PATH/DIRECTORY is the first candidate (simple_file).
@@ -72,7 +76,7 @@ Planned extensions:
 - [ ] Cursor API (I-beam over text, resize arrows over splitters).
 - [ ] Dirty-rectangle rendering and batched text runs to erase resize lag.
 - [x] Dev-mode inspector overlay (SW_INSPECTOR, S02): SHIPPED - reflection-driven reveals; the gate as BUILT is the devkit ECF override cluster (finalization strips debug-clauses - oracle law), binary-measured absence.
-- [ ] Per-window text scale (grow/shrink all fonts) via a theme scale factor.
+- [x] Per-window text scale (grow/shrink all fonts) via a theme scale factor. — DONE 2026-08-23 (SW_THEME.text_scale at the painter font choke point; assaulted with real advance measurement)
 
 Gotcha docket (fix where a plan exists; else design around):
 
@@ -116,7 +120,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] A scale factor multiplying the whole metric set - Larry's grow/shrink-font control applied theme-wide, or per container.
+- [x] A scale factor multiplying the whole metric set - Larry's grow/shrink-font control applied theme-wide, or per container. — TEXT half DONE 2026-08-23 (text_scale); the full METRIC set (pads, heights) stays open: scaling those distorts fixed layouts and needs a per-metric pass
 - [ ] Named palette registry (load/save themes).
 - [ ] High-contrast palette meeting WCAG AAA.
 - [ ] Per-widget style variants layered between kind and theme (S03's style axis, deepened).

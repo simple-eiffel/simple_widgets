@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-160%2F160-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-162%2F162-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -25,7 +25,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 160 contract-assault tests passing
+- 162 contract-assault tests passing
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
   compiled out of release-shaped builds via the devkit override
@@ -39,10 +39,15 @@ The classic Eiffel GUI chain was **WEL** (raw Win32) → **Vision2** (portable
 widgets) → your application. The simple chain is:
 
 ```
+simple_shell      the platform    (native window, pump, clipboard, keys)
 simple_cairo      the substrate   (canvas, text, PNG)
 simple_widgets    the vocabulary  (window runtime, theme, painter, 59 controls)
 your application  the intent      (what exists and what happens)
 ```
+
+simple_widgets itself is **pure Eiffel — zero C**: every Win32 external
+lives in [simple_shell](https://github.com/simple-eiffel/simple_shell)
+(deferred `SHELL_WINDOW`, effected here), every pixel in simple_cairo.
 
 Before this library, a production face over simple_cairo meant ~2,000 lines of
 boilerplate per application. That boilerplate is now a toolkit — with contracts.
@@ -137,7 +142,7 @@ back after building).
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/sw_demo/F_code/
 ./EIFGENs/sw_demo/F_code/simple_widgets.exe
 
-# the contract assault (160 tests, all assertions live)
+# the contract assault (162 tests, all assertions live)
 /d/prod/ec.sh test -config simple_widgets.ecf -target simple_widgets_tests
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 ./EIFGENs/simple_widgets_tests/F_code/simple_widgets.exe

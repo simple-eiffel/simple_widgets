@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Changed (THE CARVE - simple_widgets is now pure Eiffel)
+- ALL Win32 C moved to the new simple_shell library (Larry's descend-
+  and-use directive): SW_WINDOW now inherits deferred SHELL_WINDOW and
+  effects `dispatch'; SW_KEYS / SW_CLIPBOARD / SW_SPELLER are facades
+  over SHELL_KEYS / SHELL_CLIPBOARD / SHELL_SPELLER. Clib/ is GONE -
+  zero externals remain in this library. The queue-poll pump
+  architecture crossed unchanged (the EIF_THREADS $-callback SEGV law).
+- NEW SW_SCREEN: the carve's dividend - SHELL_DESKTOP's raw desktop
+  grab married to cairo; a virtual-screen region arrives as a
+  CAIRO_SURFACE (the pure-route EV_SCREEN, completed). Assaulted for
+  real: 6x6 desktop pixels grabbed every suite run.
+- SW_THEME.text_scale: one knob, every glyph obeys (painter font choke
+  point) - proven by measuring real cairo advances at 1.0 vs 1.5.
+- Suite 162/162 (screen grab + text scale join the battery).
+
 ### Added (DEEPENING SWEEP 1 - eighteen limits fallen, test-first)
 - SW_TEXT_BOX UNDO/REDO - the docket's 'most-missed feature', landed
   test-FIRST (the failing VEEN is in the log): snapshot history with

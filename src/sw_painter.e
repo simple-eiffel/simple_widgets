@@ -64,7 +64,7 @@ feature -- Type
 			else
 				context.select_font (fam, context.Slant_normal, context.Weight_normal).do_nothing
 			end
-			context.set_font_size (a_size).do_nothing
+			context.set_font_size (a_size * theme.text_scale).do_nothing
 		end
 
 	text (a_x, a_y: REAL_64; a_s: READABLE_STRING_GENERAL)

@@ -187,4 +187,45 @@ feature -- Batch 1: small controls, limits fallen
 			assert ("the zero policy is recorded", b.hides_at_zero)
 		end
 
+feature -- Batch 2: toolkit-wide reach
+
+	test_theme_text_scale
+			-- Larry's grow/shrink ask: one theme knob, every glyph
+			-- obeys, proven by measuring real cairo advances.
+		local
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			w1, w2: REAL_64
+		do
+			create th.make_dark
+			assert_reals_equal ("nominal out of the box", 1.0, th.text_scale, 0.000_1)
+			create surf.make (64, 32)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			p.font ({SW_PAINTER}.Role_ui, 12.0, False)
+			w1 := p.advance ("mmmm")
+			th.set_text_scale (1.5)
+			p.font ({SW_PAINTER}.Role_ui, 12.0, False)
+			w2 := p.advance ("mmmm")
+			assert ("half again bigger text is measurably wider", w2 > w1 * 1.2)
+		end
+
+	test_screen_grab_marries_cairo
+			-- The carve's dividend: SHELL_DESKTOP's raw grab arrives
+			-- as a real CAIRO_SURFACE - 6x6 desktop pixels, for real.
+		local
+			sc: SW_SCREEN
+		do
+			create sc
+			if attached sc.grab (sc.virtual_x, sc.virtual_y, 6, 6) as s then
+				assert_integers_equal ("width honoured", 6, s.width)
+				assert_integers_equal ("height honoured", 6, s.height)
+				s.destroy
+			else
+				assert ("desktop unreadable only in a locked session", False)
+			end
+		end
+
 end

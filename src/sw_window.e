@@ -15,6 +15,12 @@ note
 class
 	SW_WINDOW
 
+inherit
+	SHELL_WINDOW
+		redefine
+			on_shell_open
+		end
+
 create
 	make
 
@@ -31,7 +37,6 @@ feature {NONE} -- Initialization
 			win_h := a_h
 			theme := a_theme
 			create cairo.make
-			create ev_buf.make (16)
 			create frame_echo_path.make_empty
 			create drawer_tabs.make (2)
 			create lens
@@ -72,9 +77,7 @@ feature -- Element change
 		do
 			theme := a_theme
 			create painter.make (ctx, a_theme)
-			if hwnd /= default_pointer then
-				c_set_backdrop (hwnd, a_theme.background.to_integer_32)
-			end
+			set_backdrop_rgb (a_theme.background.to_integer_32)
 		ensure
 			swapped: theme = a_theme
 		end
@@ -84,21 +87,6 @@ feature -- Element change
 			-- the testing hook that lets a harness see the pixels.
 		do
 			create frame_echo_path.make_from_string_general (a_path)
-		end
-
-feature -- Fonts
-
-	add_font (a_path: READABLE_STRING_GENERAL): BOOLEAN
-			-- Load a TTF for this process only (FR_PRIVATE); its family
-			-- name becomes selectable. False when the file is missing
-			-- or rejected.
-		local
-			s8: STRING_8
-			cs: C_STRING
-		do
-			s8 := a_path.to_string_8
-			create cs.make (s8)
-			Result := c_add_font (cs.item) > 0
 		end
 
 feature -- Log
@@ -128,38 +116,25 @@ feature -- Log
 feature -- Operation
 
 	run
-			-- Show the window and pump until it closes.
-		local
-			ns: NATIVE_STRING
-			quit: BOOLEAN
-			ev: INTEGER
+			-- Show the window and pump until it closes. The pump and
+			-- the native window live in SHELL_WINDOW (simple_shell);
+			-- this class supplies `dispatch' - the deferred half.
 		do
 			render
-			create ns.make (title)
-			hwnd := c_create_window (ns.item, win_x, win_y, win_w, win_h)
+			shell_run (title, win_x, win_y, win_w, win_h)
 			if hwnd = default_pointer then
 				log_line ("sw: window creation FAILED")
 			else
-				log_line ("sw: window up")
-				c_set_backdrop (hwnd, theme.background.to_integer_32)
-				from
-				until
-					quit
-				loop
-					if c_pump = 0 then
-						quit := True
-					end
-					from
-						ev := c_next_event (ev_buf.item)
-					until
-						ev = 0
-					loop
-						dispatch (ev, ev_buf.read_integer_32 (4), ev_buf.read_integer_32 (8))
-						ev := c_next_event (ev_buf.item)
-					end
-				end
+				log_line ("sw: window closed")
 			end
-			log_line ("sw: window closed")
+		end
+
+	on_shell_open
+			-- The native window is up: ground the class brush in the
+			-- theme and note the moment.
+		do
+			set_backdrop_rgb (theme.background.to_integer_32)
+			log_line ("sw: window up")
 		end
 
 	request_render
@@ -571,7 +546,7 @@ feature {NONE} -- Popup lifecycle
 				end
 			when 4 then
 				if attached focused as w then
-					w.handle_key (a_x, c_shift_down = 1)
+					w.handle_key (a_x, shift_is_down)
 					after_input
 				end
 			when 6 then
@@ -658,7 +633,7 @@ feature {NONE} -- Popup lifecycle
 
 			when 15 then
 				if attached target_at (a_x, a_y) as w then
-					bubble_wheel (w, ev_buf.read_integer_32 (12))
+					bubble_wheel (w, event_extra)
 				end
 				after_input
 			when 11 then
@@ -838,46 +813,6 @@ feature {NONE} -- Popup lifecycle
 			end
 		end
 
-	take_dropped_paths: ARRAYED_LIST [STRING_32]
-			-- The pump's dropped paths, surrogate-paired (R8), split
-			-- on the newline joins; the buffer clears on read.
-		local
-			buf: MANAGED_POINTER
-			n, i: INTEGER
-			c: NATURAL_16
-			cur: STRING_32
-		do
-			create Result.make (4)
-			create buf.make (32768)
-			n := c_drop_paths (buf.item, 16384)
-			create cur.make (64)
-			from
-				i := 0
-			until
-				i >= n
-			loop
-				c := buf.read_natural_16 (i * 2)
-				if c = 10 then
-					if not cur.is_empty then
-						Result.extend (cur.twin)
-						cur.wipe_out
-					end
-					i := i + 1
-				elseif c >= 0xD800 and c <= 0xDBFF and i + 1 < n then
-					cur.append_code (0x10000
-						+ (c.to_natural_32 - 0xD800) * 0x400
-						+ (buf.read_natural_16 ((i + 1) * 2).to_natural_32 - 0xDC00))
-					i := i + 2
-				else
-					cur.append_character (c.to_character_32)
-					i := i + 1
-				end
-			end
-			if not cur.is_empty then
-				Result.extend (cur)
-			end
-		end
-
 	pick_from (a_target: SW_WIDGET; a_x, a_y: INTEGER)
 			-- Walk the spine for the first widget offering a pebble.
 		local
@@ -952,14 +887,14 @@ feature {NONE} -- Popup lifecycle
 		do
 			if not in_frame then
 				in_frame := True
-				t0 := c_tick_ms
+				t0 := tick_ms
 				if attached before_render_event as be then
 					be.call ([])
 				end
 				refresh_enabling_states
 				render
 				blit
-				last_render_ms := c_tick_ms - t0
+				last_render_ms := tick_ms - t0
 				if last_render_ms > 100 then
 					log_line ("sw: SLOW frame " + last_render_ms.out + "ms at " + win_w.out + "x" + win_h.out)
 				end
@@ -1355,7 +1290,7 @@ feature {NONE} -- Notification internals
 			ws: CAIRO_SURFACE
 			c2: CAIRO_CONTEXT
 		do
-			hdc := c_get_dc
+			hdc := window_dc
 			if hdc /= default_pointer then
 				create ws.make_for_dc (hdc)
 				if ws.is_valid then
@@ -1364,7 +1299,7 @@ feature {NONE} -- Notification internals
 					c2.destroy
 				end
 				ws.destroy
-				c_release_dc (hdc)
+				release_window_dc (hdc)
 			end
 		end
 
@@ -1644,82 +1579,7 @@ feature -- Drawer tab (peek and pin)
 	cairo: SIMPLE_CAIRO
 	offscreen: CAIRO_SURFACE
 	ctx: CAIRO_CONTEXT
-	ev_buf: MANAGED_POINTER
-	hwnd: POINTER
 	frame_echo_path: STRING_32
-
-feature {NONE} -- Externals
-
-	c_create_window (a_title: POINTER; a_x, a_y, a_w, a_h: INTEGER): POINTER
-		external
-			"C inline use %"simple_widgets.h%""
-		alias
-			"return sw_create_window((const wchar_t*)$a_title, (int)$a_x, (int)$a_y, (int)$a_w, (int)$a_h);"
-		end
-
-	c_pump: INTEGER
-		external
-			"C inline use %"simple_widgets.h%""
-		alias
-			"return sw_pump();"
-		end
-
-	c_next_event (a_buf: POINTER): INTEGER
-		external
-			"C inline use %"simple_widgets.h%""
-		alias
-			"return sw_next_event((int*)$a_buf);"
-		end
-
-	c_get_dc: POINTER
-		external
-			"C inline use %"simple_widgets.h%""
-		alias
-			"return sw_get_dc();"
-		end
-
-	c_release_dc (a_dc: POINTER)
-		external
-			"C inline use %"simple_widgets.h%""
-		alias
-			"sw_release_dc($a_dc);"
-		end
-
-	c_add_font (a_path: POINTER): INTEGER
-		external
-			"C inline use %"simple_widgets.h%""
-		alias
-			"return sw_add_font((const char*)$a_path);"
-		end
-
-	c_tick_ms: INTEGER
-		external
-			"C inline use %"simple_widgets.h%""
-		alias
-			"return (EIF_INTEGER)GetTickCount();"
-		end
-
-	c_set_backdrop (a_hwnd: POINTER; a_rgb: INTEGER)
-		external
-			"C inline use %"simple_widgets.h%""
-		alias
-			"sw_set_backdrop($a_hwnd, $a_rgb);"
-		end
-
-
-	c_drop_paths (a_buf: POINTER; a_cap: INTEGER): INTEGER
-		external
-			"C inline use %"simple_widgets.h%""
-		alias
-			"return sw_drop_paths((wchar_t*)$a_buf, $a_cap);"
-		end
-
-	c_shift_down: INTEGER
-		external
-			"C inline use %"simple_widgets.h%""
-		alias
-			"return sw_shift_down();"
-		end
 
 invariant
 	painter_attached: painter /= Void

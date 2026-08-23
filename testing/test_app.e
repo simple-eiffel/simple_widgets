@@ -345,6 +345,8 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_number_box_direct_typing, "number_box_direct_typing")
 			run_test (agent deepening_tests.test_locale_number_formatting, "locale_number_formatting")
 			run_test (agent deepening_tests.test_badge_kind_and_zero_policy, "badge_kind_and_zero_policy")
+			run_test (agent deepening_tests.test_theme_text_scale, "theme_text_scale")
+			run_test (agent deepening_tests.test_screen_grab_marries_cairo, "screen_grab_marries_cairo")
 		end
 
 	deepening_tests: SW_DEEPENING_ASSAULT

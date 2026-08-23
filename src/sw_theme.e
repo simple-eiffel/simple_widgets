@@ -76,6 +76,7 @@ feature {NONE} -- Initialization
 
 	set_metrics
 		do
+			text_scale := 1.0
 			radius := 3.0
 			gap := 8.0
 			pad := 12.0
@@ -123,6 +124,20 @@ feature -- Type roles
 	family_mono: STRING_32
 
 feature -- Metrics
+
+	text_scale: REAL_64
+			-- Global text magnification applied at the painter's font
+			-- choke point. 1.0 is nominal.
+
+	set_text_scale (a_scale: REAL_64)
+			-- Grow or shrink every piece of text in the toolkit.
+		require
+			sane: a_scale >= 0.5 and a_scale <= 3.0
+		do
+			text_scale := a_scale
+		ensure
+			set: text_scale = a_scale
+		end
 
 	radius: REAL_64
 	gap: REAL_64
@@ -233,6 +248,7 @@ feature {NONE} -- Implementation
 		end
 
 invariant
+	text_scale_positive: text_scale > 0.0
 	ink_readable_on_surface: contrast_ratio (ink, surface) >= 4.5
 	muted_readable_on_surface: contrast_ratio (ink_muted, surface) >= 3.0
 
