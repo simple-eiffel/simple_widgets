@@ -314,6 +314,19 @@ feature -- Sheets
 			flipped: is_dev_mode = not old is_dev_mode
 		end
 
+	on_shell_event: detachable PROCEDURE [INTEGER, INTEGER, INTEGER]
+			-- Where event types this window does not route go: the
+			-- status strip's 21..23 and the overlay's 31..35 - an
+			-- application (the OCR capture tool) owns those windows
+			-- and hears them here, x/y in their client coordinates.
+
+	set_on_shell_event (a_action: PROCEDURE [INTEGER, INTEGER, INTEGER])
+		do
+			on_shell_event := a_action
+		ensure
+			set: on_shell_event = a_action
+		end
+
 	on_tick: detachable PROCEDURE
 			-- Fired every heartbeat (250ms) - the application's clock
 			-- for timers, elapsed displays, ambient animation.
@@ -778,6 +791,9 @@ feature {NONE} -- Popup lifecycle
 				end
 				after_input
 			else
+				if attached on_shell_event as sh then
+					sh.call (a_type, a_x, a_y)
+				end
 			end
 		end
 
