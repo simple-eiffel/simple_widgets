@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_CHAT_THREAD - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_CHAT_THREAD</h1>
+        <p class="tagline">Role bubbles - mine right, theirs left, system centred - streaming appends, sticky tail.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Word-wrapped bubbles by role, wheel scrolling, and the stickiness law every chat client honours: the thread follows its tail until the reader scrolls back up, and appends stop yanking. append_to_last grows the last bubble in place - the streaming substrate. Model and streaming assaulted headless.</p>
+            <p class="muted"><em>Source: <code>src/sw_chat_thread.e</code> &middot; since Wave 6 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A conversation</h2>
+<pre><code><span class="keyword">create</span> th.make
+th.add_message (th.Role_mine, <span <span class="keyword">class</span>="string">&quot;hello&quot;</span>)
+th.add_message (th.Role_theirs, <span <span class="keyword">class</span>="string">&quot;&quot;</span>)
+th.append_to_last (<span <span class="keyword">class</span>="string">&quot;wor&quot;</span>)
+th.append_to_last (<span <span class="keyword">class</span>="string">&quot;ld&quot;</span>)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Plain text bubbles - links, code spans and images await the rich-text substrate.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Bubble heights are measured during draw; content_h is 0 before the first frame - scroll math self-corrects at that frame.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Timestamps; avatars via SW_AVATAR; per-range styling when the substrate lands.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

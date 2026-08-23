@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_CROP_BOX - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_CROP_BOX</h1>
+        <p class="tagline">A drag marquee over an image reporting NORMALIZED crop fractions - any drag direction.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Press, drag, release: on_crop fires (fx, fy, fw, fh) as 0..1 fractions of the face, corners sorted whichever way the drag ran, wild drags clamped into the unit box - all assaulted. Mapping through the image's own letterboxing is the stated next step.</p>
+            <p class="muted"><em>Source: <code>src/sw_crop_box.e</code> &middot; since Wave 6 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Cropping</h2>
+<pre><code><span class="keyword">create</span> cb.make (<span <span class="keyword">class</span>="string">&quot;photo.png&quot;</span>)
+cb.set_on_crop (<span class="keyword">agent</span> on_crop_changed)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Fractions are of the WIDGET face, not yet of the image's letterboxed pixels.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Every press starts a NEW marquee - there are no resize handles on the old one yet.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Letterbox-aware image-space fractions; corner handles; fixed-ratio locks.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

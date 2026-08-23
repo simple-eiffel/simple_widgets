@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_CAROUSEL - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_CAROUSEL</h1>
+        <p class="tagline">One image at a time: edge clicks and chevrons page it, dots jump, paging wraps both ways.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Paths become SW_IMAGE organs; the current one draws letter-boxed between chevrons, dots name the count and jump directly. The paging model (next/previous wrap, go_to clamps, dot_at slot math) is public and assaulted; a missing file draws as a quiet frame, honestly.</p>
+            <p class="muted"><em>Source: <code>src/sw_carousel.e</code> &middot; since Wave 6 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Paging</h2>
+<pre><code><span class="keyword">create</span> car.make
+car.add_image (<span <span class="keyword">class</span>="string">&quot;one.png&quot;</span>)
+car.add_image (<span <span class="keyword">class</span>="string">&quot;two.png&quot;</span>)
+car.next        <span class="comment">-- wraps at the end</span>
+car.go_to (2)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No slide animation yet (the heartbeat could carry one).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Left and right QUARTERS page; the middle half is inert by design - room for future zoom.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Slide/fade on the heartbeat; captions; autoplay with pause-on-hover.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

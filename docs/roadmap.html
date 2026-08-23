@@ -169,15 +169,25 @@
             <h2>Wave 6 - media and conversational/AI (11 concepts)</h2>
             <table>
                 <tr><th>Cluster</th><th>Concepts</th><th>Notes</th></tr>
-                <tr><td>Media</td><td>carousel, gallery, players, image tools, PDF view</td>
-                    <td>SW_IMAGE grows sub-rect blits and async load first (its page says so);
-                    PDF likely rides a simple_* sibling.</td></tr>
-                <tr><td>Conversational</td><td>chat thread, AI prompt view, smart textarea</td>
-                    <td>The engine side rides simple_narrate's plumbing; the text box's future
-                    per-range styling hook is the substrate.</td></tr>
-                <tr><td>Dictation</td><td>push-to-talk into any text box</td>
-                    <td>whisper.cpp, CPU-only (R03 survey); queued as a text-box SERVICE, not a
-                    widget - Larry's standing 'Do it'.</td></tr>
+                <tr><td>Media — <em>substantially SHIPPED 2026-08-22</em></td>
+                    <td>SW_CAROUSEL, SW_GALLERY, SW_MEDIA_TRANSPORT (the codec-agnostic
+                    control surface), SW_CROP_BOX - all assaulted</td>
+                    <td>Honestly future-gated: playback CODECS (the transport awaits
+                    simple_audio's player marriage), PDF view (rides the simple_pdf sibling's
+                    render bridge when it grows one), sub-rect blits / async image load.</td></tr>
+                <tr><td>Conversational — <em>SHIPPED 2026-08-22</em></td>
+                    <td>SW_CHAT_THREAD (role bubbles, streaming append_to_last, the sticky-tail
+                    law) and SW_PROMPT_VIEW (submit round trip + begin/append/end token
+                    streaming - the demo wires an echo engine)</td>
+                    <td>Smart textarea stays future-gated on the per-range styling substrate,
+                    as its note always said; simple_narrate is the real engine mate.</td></tr>
+                <tr><td>Dictation — <em>SHIPPED 2026-08-22, proof in the suite</em></td>
+                    <td>SW_DICTATION in its own speechkit cluster: simple_audio records,
+                    whisper.cpp transcribes through simple_speech, honest absence when the
+                    model is missing (the demo's mic greys itself via set_enabled_when)</td>
+                    <td>Larry's standing 'Do it' - DONE, and the assault is REAL: every suite
+                    run loads ggml-base.en and turns a sample wav into words. Streaming
+                    partials and VAD ride later.</td></tr>
             </table>
         </section>
 

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_PROMPT_VIEW - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_PROMPT_VIEW</h1>
+        <p class="tagline">The AI face: thread above, prompt below, streaming replies token by token - the engine is the host&#x27;s.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Submit posts a mine-bubble, clears the box, fires on_submit; the answering side streams through begin_reply / append_token / end_reply into one growing theirs-bubble. say_system narrates. The demo wires an echo engine; simple_narrate's plumbing is the real mate, as the roadmap pinned. Round trip and streaming assaulted.</p>
+            <p class="muted"><em>Source: <code>src/sw_prompt_view.e</code> &middot; since Wave 6 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Wired to an engine</h2>
+<pre><code><span class="keyword">create</span> pv.make
+pv.set_on_submit (<span class="keyword">agent</span> ask_engine)
+<span class="comment">-- engine callbacks:</span>
+pv.begin_reply
+pv.append_token (chunk)
+pv.end_reply</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Single-line prompt box v1 (multiline follows the text box's own growth).</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>An empty box submits nothing - by contract of use, not by error.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Multiline prompts; stop-generation button; simple_narrate demo marriage.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

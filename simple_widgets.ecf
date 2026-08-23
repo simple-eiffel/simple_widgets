@@ -27,7 +27,10 @@
 	<target name="sw_demo" extends="simple_widgets">
 		<root class="SW_DEMO" feature="make"/>
 		<setting name="console_application" value="false"/>
+		<library name="simple_audio" location="$SIMPLE_EIFFEL/simple_audio/simple_audio.ecf"/>
+		<library name="simple_speech" location="$SIMPLE_EIFFEL/simple_speech/simple_speech.ecf"/>
 		<cluster name="demo" location=".\demo\" recursive="true"/>
+		<cluster name="speechkit" location=".\speechkit\"/>
 		<override name="devkit" location=".\devkit\"/>
 	</target>
 	<target name="sw_7guis" extends="simple_widgets">
@@ -43,7 +46,10 @@
 		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
 		<cluster name="test" location=".\testing\" recursive="true"/>
 		<cluster name="guis7" location=".\demo7guis\" recursive="true"/>
+		<library name="simple_audio" location="$SIMPLE_EIFFEL/simple_audio/simple_audio.ecf"/>
+		<library name="simple_speech" location="$SIMPLE_EIFFEL/simple_speech/simple_speech.ecf"/>
 		<cluster name="demoapp" location=".\demo\" recursive="true"/>
+		<cluster name="speechkitt" location=".\speechkit\"/>
 		<override name="devkitt" location=".\devkit\"/>
 	</target>
 </system>

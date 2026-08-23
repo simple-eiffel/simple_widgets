@@ -60,6 +60,9 @@ feature {NONE} -- Initialization
 			danger_button.set_dev_note ("armed by the Danger armed check box; fires on_delete")
 			create danger_check.make ("Danger armed", True, Void)
 			create click_me_button.make_primary ("Click Me", Void)
+			create dictation.make ("D:\prod\simple_speech\models\ggml-base.en.bin")
+			create prompt_view.make
+			generate_swatches
 			create perf_chart.make
 			perf_chart.set_capacity (150)
 			perf_chart.add_series ("frame ms")
@@ -96,6 +99,7 @@ feature {NONE} -- Initialization
 				-- Wave 4 dogfood: the perf line chart drinks straight
 				-- from the cairo render bell
 			window.after_render_actions.subscribe (agent on_frame_cost)
+			prompt_view.set_on_submit (agent on_prompt_submitted)
 			danger_button.set_enabled_when (agent danger_check.is_checked)
 			window.add_font ("D:\prod\simple_narrate\fonts\Archivo.ttf").do_nothing
 			window.add_font ("D:\prod\simple_narrate\fonts\Literata.ttf").do_nothing
@@ -299,6 +303,8 @@ feature {NONE} -- Initialization
 			tabs.add_page ("Enterprise", enterprise_page)
 			tabs.add_page ("Boards", boards_page)
 			tabs.add_page ("Dock", dock_page)
+			tabs.add_page ("Media", media_page)
+			tabs.add_page ("Chat", chat_page)
 			tabs.set_on_change (agent on_tab_changed)
 			create Result.make_striped (a_theme.warning)
 			Result.put ((create {SW_LABEL}.make_ui ("SW_TABS %/8212/ pages swap; hover the bar")).as_muted)
@@ -886,6 +892,164 @@ feature {NONE} -- Behaviour
 		do
 			statusbar.set_left ({STRING_32} "open: " + a_path)
 			window.toast ({STRING_32} "would open " + a_path, 2)
+		end
+
+	media_page: SW_COLUMN
+			-- Wave 6 media: carousel, gallery, transport, crop box.
+		local
+			car: SW_CAROUSEL
+			gal: SW_GALLERY
+			tr: SW_MEDIA_TRANSPORT
+			cb: SW_CROP_BOX
+			i: INTEGER
+		do
+			create Result.make
+			Result := Result.with_padding (12.0).with_gap (10.0)
+			Result.put ((create {SW_LABEL}.make_ui ("Wave 6 media %/8212/ generated swatch PNGs feed carousel, gallery and the crop marquee; the transport is codec-agnostic by design")).as_muted)
+			create car.make
+			from
+				i := 1
+			until
+				i > 5
+			loop
+				car.add_image (swatch_path (i))
+				i := i + 1
+			end
+			Result.put (car)
+			create gal.make
+			from
+				i := 1
+			until
+				i > 8
+			loop
+				gal.add_image (swatch_path ((i - 1) \\ 5 + 1))
+				i := i + 1
+			end
+			gal.set_on_pick (agent on_thumb_picked)
+			Result.put (gal)
+			create tr.make (245.0)
+			tr.set_on_seek (agent on_seeked)
+			Result.put (tr)
+			create cb.make (swatch_path (3))
+			cb.set_on_crop (agent on_cropped)
+			Result.put (cb)
+		end
+
+	swatch_path (a_i: INTEGER): STRING_32
+		do
+			create Result.make_from_string_general ("sw_swatch_" + a_i.out + ".png")
+		end
+
+	generate_swatches
+			-- Five coloured PNGs beside the exe: the demo feeds its
+			-- own media (an app may use simple_cairo directly - R2
+			-- binds widgets, not hosts).
+		local
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			i: INTEGER
+			cols: ARRAY [INTEGER]
+		do
+			cols := <<0x4D8FD6, 0x3E7D5A, 0xD6A344, 0xE0563A, 0x8B6FC8>>
+			from
+				i := 1
+			until
+				i > 5
+			loop
+				create surf.make (160, 100)
+				create ctx.make (surf)
+				ctx.set_color_rgb (
+					cols [i].bit_shift_right (16).bit_and (0xFF) / 255.0,
+					cols [i].bit_shift_right (8).bit_and (0xFF) / 255.0,
+					cols [i].bit_and (0xFF) / 255.0).do_nothing
+				ctx.rectangle (0.0, 0.0, 160.0, 100.0).fill.do_nothing
+				if surf.write_png (swatch_path (i)) then
+				end
+				i := i + 1
+			end
+		end
+
+	on_thumb_picked (a_index: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "gallery picked " + a_index.out)
+		end
+
+	on_seeked (a_seconds: REAL_64)
+		do
+			statusbar.set_left ({STRING_32} "seek " + a_seconds.rounded.out + {STRING_32} "s")
+		end
+
+	on_cropped (a_fx, a_fy, a_fw, a_fh: REAL_64)
+		do
+			statusbar.set_left ({STRING_32} "crop " + (a_fw * 100.0).rounded.out
+				+ {STRING_32} "%% x " + (a_fh * 100.0).rounded.out + {STRING_32} "%%")
+		end
+
+	chat_page: SW_COLUMN
+			-- Wave 6 conversational + DICTATION: the prompt view
+			-- echoes by streaming; the mic button feeds the box
+			-- through whisper - or greys itself honestly when the
+			-- model is absent (set_enabled_when doing its law).
+		local
+			mic_row: SW_ROW
+			mb: SW_BUTTON
+		do
+			create Result.make
+			Result := Result.with_padding (12.0).with_gap (8.0)
+			Result.put ((create {SW_LABEL}.make_ui ("Wave 6 conversational %/8212/ submit streams an echo reply token by token; the mic button is whisper.cpp through simple_speech + simple_audio")).as_muted)
+			prompt_view.say_system ("the echo engine is listening")
+			Result.put (prompt_view.growing)
+			create mic_row.make
+			mic_row := mic_row.with_gap (8.0)
+			create mb.make ("mic: start listening", Void)
+			mb.set_on_click (agent on_mic_toggled)
+			mb.set_enabled_when (agent dictation_ready_or_listening)
+			mic_button := mb
+			mic_row.put (mb)
+			if dictation.is_ready then
+				mic_row.put ((create {SW_LABEL}.make_ui ("model loaded: ggml-base.en")).as_muted)
+			else
+				mic_row.put ((create {SW_LABEL}.make_ui ("model not found at simple_speech/models %/8212/ the button greys itself, honestly")).as_muted)
+			end
+			Result.put (mic_row)
+		end
+
+	dictation: SW_DICTATION
+
+	prompt_view: SW_PROMPT_VIEW
+
+	mic_button: detachable SW_BUTTON
+
+	dictation_ready_or_listening: BOOLEAN
+		do
+			Result := dictation.is_ready
+		end
+
+	on_mic_toggled
+		do
+			if dictation.is_listening then
+				if attached mic_button as b then
+					b.set_label ("mic: start listening")
+				end
+				prompt_view.prompt_box.set_text
+					(prompt_view.prompt_box.text + dictation.stop_and_deliver)
+				statusbar.set_left ({STRING_32} "heard: " + dictation.last_transcript)
+			elseif dictation.is_ready then
+				dictation.start_listening
+				if attached mic_button as b then
+					b.set_label ("mic: STOP + transcribe")
+				end
+				statusbar.set_left ("listening... speak, then press again")
+			end
+		end
+
+	on_prompt_submitted (a_text: STRING_32)
+			-- The demo's echo engine: stream the reply token-ish.
+		do
+			prompt_view.begin_reply
+			prompt_view.append_token ("echo: ")
+			prompt_view.append_token (a_text)
+			prompt_view.end_reply
 		end
 
 	space_page: SW_COLUMN

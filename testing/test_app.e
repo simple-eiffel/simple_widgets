@@ -62,6 +62,9 @@ feature {NONE} -- Initialization
 			print ("%N=== WAVE 5 ENTERPRISE ===%N")
 			run_enterprise_tests
 
+			print ("%N=== WAVE 6 MEDIA + CHAT ===%N")
+			run_media_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -310,6 +313,21 @@ feature {NONE} -- Test runners
 		end
 
 	enterprise_tests: SW_ENTERPRISE_ASSAULT
+
+	run_media_tests
+		do
+			create media_tests
+			run_test (agent media_tests.test_carousel_pages_wrap, "carousel_pages_wrap")
+			run_test (agent media_tests.test_gallery_flow_math, "gallery_flow_math")
+			run_test (agent media_tests.test_transport_clock_and_seek, "transport_clock_and_seek")
+			run_test (agent media_tests.test_crop_normalizes_any_direction, "crop_normalizes_any_direction")
+			run_test (agent media_tests.test_chat_thread_roles_and_streaming, "chat_thread_roles_and_streaming")
+			run_test (agent media_tests.test_prompt_view_round_trip, "prompt_view_round_trip")
+			run_test (agent media_tests.test_dictation_honest_absence, "dictation_honest_absence")
+			run_test (agent media_tests.test_dictation_transcribes_a_real_wav, "dictation_transcribes_a_real_wav")
+		end
+
+	media_tests: SW_MEDIA_ASSAULT
 
 	run_file_dialog_tests
 		do

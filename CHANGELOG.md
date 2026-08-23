@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (WAVE 6 - media + conversational + DICTATION)
+- SW_CAROUSEL (wrapping pages, dot jumps), SW_GALLERY (width-flow slot
+  math), SW_MEDIA_TRANSPORT (codec-agnostic control: honest m:ss
+  clocks that never wrap into lies, clamped seek), SW_CROP_BOX
+  (normalized marquee from any drag direction) - all assaulted; the
+  assault generates its own real PNG fixture through simple_cairo.
+- SW_CHAT_THREAD: role bubbles (mine/theirs/system), word wrap,
+  streaming append_to_last, and the sticky-tail law every chat client
+  honours. SW_PROMPT_VIEW: submit round trip, begin/append/end token
+  streaming, say_system - the demo wires an echo engine; the real
+  mate is simple_narrate.
+- SW_DICTATION - Larry's standing 'Do it', DONE: a speechkit-cluster
+  SERVICE (the devkit packaging lesson - only targets wanting the
+  dependency add it) riding simple_audio's recorder and simple_speech
+  (whisper.cpp). Honest absence: a missing model leaves is_ready
+  False and the demo's mic button greys itself through
+  set_enabled_when. THE PROOF IS IN THE SUITE: every run loads
+  ggml-base.en and transcribes a real sample wav into real words
+  (honest skip on machines without the model). Runtime freight rule
+  extended: whisper.dll + ggml*.dll beside the exe, like cairo.dll.
+- Honestly future-gated, stated on the roadmap: playback codecs,
+  PDF view (awaits the simple_pdf render bridge), smart textarea
+  (awaits per-range styling).
+- Demo: Media tab (self-generated swatch PNGs feed carousel, gallery
+  and crop) and Chat tab (streamed echo replies + the live mic).
+- 8 new assaults: suite 150/150.
+
 ### Added (WAVE 5 COMPLETE - enterprise composites, one sitting)
 - SW_TREE_TABLE: the tree's flatten engine wearing grid columns - the
   promised convergence; header-offset row math assaulted.

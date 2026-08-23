@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_MEDIA_TRANSPORT - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_MEDIA_TRANSPORT</h1>
+        <p class="tagline">Play/pause, seek bar, honest m:ss clocks - codec-agnostic by design.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>The control surface of playback with none of the codec: hosts subscribe on_play/on_pause/on_seek and report progress through set_position. simple_audio's player is the natural mate. format_clock refuses to lie on the hour boundary (75:00, never a wrap); seek math clamps; all assaulted.</p>
+            <p class="muted"><em>Source: <code>src/sw_media_transport.e</code> &middot; since Wave 6 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Wired to a host</h2>
+<pre><code><span class="keyword">create</span> tr.make (245.0)
+tr.set_on_seek (<span class="keyword">agent</span> player_seek)
+tr.set_on_play (<span class="keyword">agent</span> player_go)
+<span class="comment">-- heartbeat: tr.set_position (player_position)</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No volume or scrubbing preview; the bar is position only, v1.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>set_position clamps into the duration - a runaway host reads as pinned at the end, not as an error.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Volume flyout; buffered-range shading; simple_audio player marriage in the demo.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>
