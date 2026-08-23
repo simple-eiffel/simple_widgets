@@ -1,5 +1,14 @@
 # S04 - ROADMAP: the per-control docket
 
+> **2026-08-23 — the deepening sweep closed.** 90 of 339 items fell with
+> proofs (suites 150→186/186); the HIGH-VALUE remainder is answered
+> individually in **specs/S05-VERDICTS.md** (multi-window, dirty-rect,
+> IME, UIA, shaping, JPEG, rich runs, submenus, multi-select, animation,
+> shadows, eyedropper, alpha, tree-table, in-place editors, log/time
+> scales, live-resize, and the EXECUTED dependency audit). Everything
+> else below stays open as the living wishlist, by decision (Larry:
+> "do the high value targets and leave the rest").
+
 Consolidated from the per-control documentation pages (docs/widgets/) -
 generated from the same source data, so the two cannot drift. Larry's
 directives (2026-08-22): (1) every documented "Extension plan" is a
