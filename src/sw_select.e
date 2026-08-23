@@ -29,6 +29,35 @@ feature -- Access
 
 	options: ARRAYED_LIST [STRING_32]
 
+	option_enabled: ARRAYED_LIST [BOOLEAN]
+			-- Parallel per-option availability (the underlying
+			-- SW_MENU always supported it; now the select does).
+		attribute
+			create Result.make (8)
+		end
+
+	separators_after: ARRAYED_LIST [INTEGER]
+			-- Option indices followed by a group separator.
+		attribute
+			create Result.make (2)
+		end
+
+	set_option_enabled (a_index: INTEGER; a_enabled: BOOLEAN)
+		require
+			known: a_index >= 1 and a_index <= options.count
+		do
+			option_enabled.put_i_th (a_enabled, a_index)
+		ensure
+			set: option_enabled.i_th (a_index) = a_enabled
+		end
+
+	add_separator_after (a_index: INTEGER)
+		require
+			known: a_index >= 1 and a_index <= options.count
+		do
+			separators_after.extend (a_index)
+		end
+
 	selected_index: INTEGER
 			-- 1-based selection; 0 = nothing selected yet.
 
@@ -50,6 +79,7 @@ feature -- Element change
 			s: STRING_32
 		do
 			create s.make_from_string_general (a_text)
+			option_enabled.extend (True)
 			options.extend (s)
 		ensure
 			grew: options.count = old options.count + 1
@@ -163,7 +193,10 @@ feature -- Input
 				until
 					i > options.count
 				loop
-					m.add_item (options.i_th (i), "", True, agent select_index (i))
+					m.add_item (options.i_th (i), "", option_enabled.i_th (i), agent select_index (i))
+					if separators_after.has (i) then
+						m.add_separator
+					end
 					i := i + 1
 				end
 				pending_menu := m

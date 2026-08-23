@@ -39,6 +39,27 @@ feature -- Access
 
 	count: INTEGER
 
+	kind: INTEGER
+			-- 0 danger (default), 1 accent, 2 success, 3 warning.
+
+	hides_at_zero: BOOLEAN
+
+	set_kind (a_kind: INTEGER)
+		require
+			known: a_kind >= 0 and a_kind <= 3
+		do
+			kind := a_kind
+		ensure
+			set: kind = a_kind
+		end
+
+	set_hides_at_zero (a_flag: BOOLEAN)
+		do
+			hides_at_zero := a_flag
+		ensure
+			set: hides_at_zero = a_flag
+		end
+
 	is_dot: BOOLEAN
 			-- A bare presence dot, no number.
 
@@ -95,14 +116,27 @@ feature -- Drawing
 			t: SW_THEME
 		do
 			t := a_p.theme
-			a_p.set_color (t.danger)
-			if is_dot then
-				a_p.circle_fill (x + width / 2.0, y + height / 2.0, 5.0)
+			if hides_at_zero and then not is_dot and then count = 0 then
+					-- zero with the policy on: nothing to say
 			else
-				a_p.rrect_fill (x, y, width, height, height / 2.0)
-				a_p.font ({SW_PAINTER}.Role_ui, t.size_chip, True)
-				a_p.set_color (t.surface)
-				a_p.text (x + (width - a_p.advance (caption)) / 2.0, y + height - 5.0, caption)
+				inspect kind
+				when 1 then
+					a_p.set_color (t.accent)
+				when 2 then
+					a_p.set_color (t.success)
+				when 3 then
+					a_p.set_color (t.warning)
+				else
+					a_p.set_color (t.danger)
+				end
+				if is_dot then
+					a_p.circle_fill (x + width / 2.0, y + height / 2.0, 5.0)
+				else
+					a_p.rrect_fill (x, y, width, height, height / 2.0)
+					a_p.font ({SW_PAINTER}.Role_ui, t.size_chip, True)
+					a_p.set_color (t.surface)
+					a_p.text (x + (width - a_p.advance (caption)) / 2.0, y + height - 5.0, caption)
+				end
 			end
 		end
 

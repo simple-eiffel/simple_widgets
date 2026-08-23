@@ -10,6 +10,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
+			handle_click,
 			preferred_width
 		end
 
@@ -35,6 +36,29 @@ feature {NONE} -- Initialization
 		ensure
 			labelled: label.same_string_general (a_label)
 			kind_set: kind = a_kind
+		end
+
+feature -- Removal
+
+	is_removable: BOOLEAN
+
+	on_remove: detachable PROCEDURE
+
+	with_remove (a_action: PROCEDURE): like Current
+			-- Fluent: grow an x zone that fires `a_action'.
+		do
+			is_removable := True
+			on_remove := a_action
+			Result := Current
+		ensure
+			armed: is_removable and on_remove = a_action
+			chained: Result = Current
+		end
+
+	remove_zone_contains (a_px: REAL_64): BOOLEAN
+			-- Is a surface x inside the x-glyph zone (right 16px)?
+		do
+			Result := is_removable and then a_px >= x + width - 16.0 and then a_px <= x + width
 		end
 
 feature -- Access
@@ -71,6 +95,18 @@ feature -- Layout
 			Result := a_p.theme.chip_height
 		end
 
+feature -- Input
+
+	handle_click (a_px, a_py: REAL_64): BOOLEAN
+		do
+			if is_enabled and then remove_zone_contains (a_px) then
+				if attached on_remove as a then
+					a.call (Void)
+				end
+				Result := True
+			end
+		end
+
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
@@ -98,6 +134,13 @@ feature -- Drawing
 			end
 			a_p.set_color (bg)
 			a_p.rrect_fill (x, y, width, height, t.radius)
+			if is_removable then
+				a_p.set_color (fg)
+				a_p.line (x + width - 12.0, y + height / 2.0 - 3.5,
+					x + width - 5.0, y + height / 2.0 + 3.5, 1.4)
+				a_p.line (x + width - 12.0, y + height / 2.0 + 3.5,
+					x + width - 5.0, y + height / 2.0 - 3.5, 1.4)
+			end
 			if kind = Kind_neutral then
 				a_p.set_color (t.outline)
 			else

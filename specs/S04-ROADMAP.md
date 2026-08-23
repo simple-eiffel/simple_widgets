@@ -25,7 +25,7 @@ Toolkit-wide near-term items (from the same read):
       library-grade - ranges (A0:B9), SUM/AVG/MIN/MAX/COUNT, formula
       bar, TSV block clipboard, CSV in/out, command-pattern undo
       (Larry's spreadsheet doctrine, 2026-08-22).
-- [ ] Undo/redo engine for SW_TEXT_BOX - the most-missed feature.
+- [x] Undo/redo engine for SW_TEXT_BOX - the most-missed feature. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Focus traversal (Tab order) - unlocks default buttons, keyboard
       activation, list keyboard selection.
 - [ ] Dirty-rect rendering + batched text runs - erases resize lag.
@@ -160,7 +160,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Undo/redo stack (command-pattern edits are a natural fit for the engine).
+- [x] Undo/redo stack (command-pattern edits are a natural fit for the engine). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Find/replace bar riding the same range machinery as multi-select.
 - [ ] Horizontal scroll + ellipsis policies for single-line mode.
 - [ ] Push-to-talk dictation (whisper.cpp, CPU-only) feeding receive_pebble-style insertion - queued from the AI-assist survey (R03).
@@ -175,7 +175,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] No undo/redo yet - the most-missed feature; it is first in line (see Future).
+- [x] No undo/redo yet - the most-missed feature; it is first in line (see Future). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Single-line boxes do not scroll horizontally; text beyond the width clips until the box grows.
 - [ ] No IME composition window for CJK input; code points arrive via WM_CHAR only (surrogate pairs are handled - see R8 - but composition UX is absent).
 - [ ] Word wrap is greedy per word; no hyphenation or break-opportunity analysis.
@@ -206,7 +206,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Option groups with separators; per-option enabled flags.
+- [x] Option groups with separators; per-option enabled flags. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] A multi-select variant rendering chips of the chosen set.
 - [ ] Type-to-jump (first-letter navigation) while the menu is open.
 
@@ -219,7 +219,7 @@ Limits to push:
 
 - [ ] Single selection only; no multi-select variant yet.
 - [ ] The menu shows all options at once - no scroll for very long lists.
-- [ ] No per-option disabling yet (the underlying SW_MENU supports it; the select API does not surface it).
+- [x] No per-option disabling yet (the underlying SW_MENU supports it; the select API does not surface it). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
 ## SW_BUTTON
@@ -264,7 +264,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Tri-state for hierarchical selection (with SW_TREE).
+- [x] Tri-state for hierarchical selection (with SW_TREE). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Check-box groups with select-all headers.
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -273,7 +273,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] No tri-state (indeterminate) mode yet - it arrives with the tree's cascading checks.
+- [x] No tri-state (indeterminate) mode yet - it arrives with the tree's cascading checks. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Label is plain text (single style).
 
 
@@ -282,7 +282,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Knob travel animation from the tick.
-- [ ] Optional on/off captions inside the track.
+- [x] Optional on/off captions inside the track. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 Gotcha docket (fix where a plan exists; else design around):
 
@@ -297,7 +297,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Vertical orientation flag.
+- [x] Vertical orientation flag. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Radio cards (rich content per option) as a component-layer composite.
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -306,8 +306,8 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Horizontal layout only; a vertical variant is trivial and queued.
-- [ ] No per-option disabling yet.
+- [x] Horizontal layout only; a vertical variant is trivial and queued. — DONE 2026-08-23 (deepening sweep 1; assaulted)
+- [x] No per-option disabling yet. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
 ## SW_SLIDER
@@ -315,7 +315,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Vertical orientation; range sliders (two knobs).
-- [ ] Tick marks with optional snapping; arrow-key nudges once focus traversal lands.
+- [x] Tick marks with optional snapping; arrow-key nudges once focus traversal lands. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 Gotcha docket (fix where a plan exists; else design around):
 
@@ -324,7 +324,7 @@ Gotcha docket (fix where a plan exists; else design around):
 Limits to push:
 
 - [ ] Horizontal only; no vertical orientation yet.
-- [ ] No tick marks, snap points or keyboard nudging yet.
+- [x] No tick marks, snap points or keyboard nudging yet. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Continuous fractions only - integer stepping is SW_NUMBER_BOX's job.
 
 
@@ -332,7 +332,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Editable value area (single-line text box fusion) with parse-on-commit.
+- [x] Editable value area (single-line text box fusion) with parse-on-commit. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] REAL_64 variant with precision control; unit suffixes (px, %, pt).
 - [ ] Hold-to-repeat on the spinners.
 
@@ -343,14 +343,14 @@ Gotcha docket (fix where a plan exists; else design around):
 Limits to push:
 
 - [ ] Integers only (REAL variant queued).
-- [ ] No direct typing into the box yet - values move by spin and wheel; a text-entry marriage with SW_TEXT_BOX is planned.
+- [x] No direct typing into the box yet - values move by spin and wheel; a text-entry marriage with SW_TEXT_BOX is planned. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
 ## SW_PROGRESS
 
 Planned extensions:
 
-- [ ] Indeterminate mode (marquee pulse from the tick).
+- [x] Indeterminate mode (marquee pulse from the tick). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Segmented and stacked variants (multi-part totals).
 - [ ] Circular progress for dashboards (SW_PAINTER circles are ready).
 
@@ -360,7 +360,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Determinate only - no indeterminate 'working...' pulse yet.
+- [x] Determinate only - no indeterminate 'working...' pulse yet. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] No transition animation between values.
 
 
@@ -368,7 +368,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Removable chips (x zone + removal agent) for tag editors.
+- [x] Removable chips (x zone + removal agent) for tag editors. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Choice chips (single/multi select sets) - the web sweep's filter-chip pattern.
 - [ ] Counting badges attachable to other widgets (with SW_BADGE in Wave 3).
 
@@ -378,7 +378,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Read-only: no close button, no click action (interactive/removable chips are a planned variant).
+- [x] Read-only: no close button, no click action (interactive/removable chips are a planned variant). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
 ## SW_ROW
@@ -455,7 +455,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Vertical variant for rows.
-- [ ] Labeled separator (text carved mid-line, SW_GROUP-style).
+- [x] Labeled separator (text carved mid-line, SW_GROUP-style). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 Gotcha docket (fix where a plan exists; else design around):
 
@@ -464,14 +464,14 @@ Gotcha docket (fix where a plan exists; else design around):
 Limits to push:
 
 - [ ] Horizontal only (menus and toolbars draw their own vertical gaps).
-- [ ] No label-in-line variant ('--- OR ---') yet.
+- [x] No label-in-line variant ('--- OR ---') yet. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
 ## SW_SPACER
 
 Planned extensions:
 
-- [ ] Weighted convenience creation (make_weighted (2.0)) - today use set_grow after creation.
+- [x] Weighted convenience creation (make_weighted (2.0)) - today use set_grow after creation. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 Gotcha docket (fix where a plan exists; else design around):
 
@@ -711,14 +711,14 @@ Gotcha docket (fix where a plan exists; else design around):
 Limits to push:
 
 - [ ] Text only - no images, files or custom formats yet.
-- [ ] Reads cap at 128k characters (a paste larger than that truncates).
+- [x] Reads cap at 128k characters (a paste larger than that truncates). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
 ## SW_KEYS
 
 Planned extensions:
 
-- [ ] Ctrl/Alt/Win queries; a snapshot record for gesture recognizers.
+- [x] Ctrl/Alt/Win queries; a snapshot record for gesture recognizers. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] A keymap/accelerator service registering app-wide shortcuts (feeding menu hints).
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -727,7 +727,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Shift only - Ctrl and Alt queries are trivial additions awaiting a consumer.
+- [x] Shift only - Ctrl and Alt queries are trivial additions awaiting a consumer. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
 ## SW_SPELLER
@@ -755,8 +755,8 @@ Limits to push:
 Planned extensions:
 
 - [ ] Overlay anchoring: badge attached to any widget's corner (composition-layer helper).
-- [ ] Semantic kind parameter (accent/success/warning) mirroring SW_CHIP.
-- [ ] Auto-hide-at-zero policy flag.
+- [x] Semantic kind parameter (accent/success/warning) mirroring SW_CHIP. — DONE 2026-08-23 (deepening sweep 1; assaulted)
+- [x] Auto-hide-at-zero policy flag. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 Gotcha docket (fix where a plan exists; else design around):
 
@@ -765,7 +765,7 @@ Gotcha docket (fix where a plan exists; else design around):
 Limits to push:
 
 - [ ] Standalone widget for now - no attach-to-corner-of-another-widget overlay yet.
-- [ ] Danger red only; semantic kinds are a small addition awaiting a consumer.
+- [x] Danger red only; semantic kinds are a small addition awaiting a consumer. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
 ## SW_AVATAR
@@ -808,8 +808,8 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Half-star precision (display first, then input by half-zones).
-- [ ] Read-only mode with value caption ('4.2 (128)').
+- [x] Half-star precision (display first, then input by half-zones). — DONE 2026-08-23 (deepening sweep 1; assaulted)
+- [x] Read-only mode with value caption ('4.2 (128)'). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Custom glyph agent (hearts, thumbs) over the same zone engine.
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -818,15 +818,15 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Whole stars only - no half-star display or input.
-- [ ] Read-write only; a display-only mode is a one-flag addition awaiting a consumer.
+- [x] Whole stars only - no half-star display or input. — DONE 2026-08-23 (deepening sweep 1; assaulted)
+- [x] Read-write only; a display-only mode is a one-flag addition awaiting a consumer. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
 ## SW_SKELETON
 
 Planned extensions:
 
-- [ ] Shape variants (disc, rect, card composite) mirroring the content they stand for.
+- [x] Shape variants (disc, rect, card composite) mirroring the content they stand for. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] A faster dedicated animation tick if the heartbeat gains variable rate.
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -835,7 +835,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Line shapes only - no circle/rect skeleton variants (avatar/image placeholders) yet.
+- [x] Line shapes only - no circle/rect skeleton variants (avatar/image placeholders) yet. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Shimmer advances per render (~2fps on the heartbeat): deliberate calm, not a spinner.
 
 
@@ -863,7 +863,7 @@ Planned extensions:
 
 - [ ] Count-up animation on the heartbeat when the value changes.
 - [x] Sparkline pairing - SHIPPED 2026-08-22: SW_SPARKLINE sits beside SW_STATISTIC in the demo, both fed by after_render_actions.
-- [ ] Number formatting helpers (thousands separators, units).
+- [x] Number formatting helpers (thousands separators, units). — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 Gotcha docket (fix where a plan exists; else design around):
 
@@ -1060,7 +1060,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Locale-aware number formatting (thousands, the carried decimal mark) for SW_NUMBER_BOX and SW_STATISTIC.
+- [x] Locale-aware number formatting (thousands, the carried decimal mark) for SW_NUMBER_BOX and SW_STATISTIC. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 - [ ] Collation hooks for SW_DATA_GRID sorting.
 - [ ] Windows ICU bridge for full CLDR names when a consumer demands it.
 - [x] Timezone tools (Larry, 2026-08-22) - SHIPPED same day the map landed: SW_WORLD_CLOCK + SW_TIMEZONE_PICKER over SW_MAP.
@@ -1074,7 +1074,7 @@ Limits to push:
 
 - [ ] Names ship in English; localize via set_names (no CLDR data bundled - Windows carries ICU when depth is ever needed).
 - [ ] No collation yet: sorted grids compare code points, not locale rules (S04).
-- [ ] The decimal separator is carried but no numeric formatter consumes it yet.
+- [x] The decimal separator is carried but no numeric formatter consumes it yet. — DONE 2026-08-23 (deepening sweep 1; assaulted)
 
 
 ## SW_CALENDAR

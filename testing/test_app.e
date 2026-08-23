@@ -65,6 +65,9 @@ feature {NONE} -- Initialization
 			print ("%N=== WAVE 6 MEDIA + CHAT ===%N")
 			run_media_tests
 
+			print ("%N=== DEEPENING SWEEP ===%N")
+			run_deepening_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -328,6 +331,23 @@ feature {NONE} -- Test runners
 		end
 
 	media_tests: SW_MEDIA_ASSAULT
+
+	run_deepening_tests
+		do
+			create deepening_tests
+			run_test (agent deepening_tests.test_textbox_undo_redo, "textbox_undo_redo")
+			run_test (agent deepening_tests.test_select_option_enablement, "select_option_enablement")
+			run_test (agent deepening_tests.test_radio_vertical_and_enablement, "radio_vertical_and_enablement")
+			run_test (agent deepening_tests.test_chip_removal_zone, "chip_removal_zone")
+			run_test (agent deepening_tests.test_checkbox_tristate_resolves_to_checked, "checkbox_tristate_resolves_to_checked")
+			run_test (agent deepening_tests.test_rating_read_only_and_halves, "rating_read_only_and_halves")
+			run_test (agent deepening_tests.test_slider_tick_snapping, "slider_tick_snapping")
+			run_test (agent deepening_tests.test_number_box_direct_typing, "number_box_direct_typing")
+			run_test (agent deepening_tests.test_locale_number_formatting, "locale_number_formatting")
+			run_test (agent deepening_tests.test_badge_kind_and_zero_policy, "badge_kind_and_zero_policy")
+		end
+
+	deepening_tests: SW_DEEPENING_ASSAULT
 
 	run_file_dialog_tests
 		do

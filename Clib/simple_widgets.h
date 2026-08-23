@@ -447,6 +447,14 @@ static int sw_shift_down(void) {
     return (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0;
 }
 
+static int sw_control_down(void) {
+    return (GetKeyState(VK_CONTROL) & 0x8000) ? 1 : 0;
+}
+
+static int sw_alt_down(void) {
+    return (GetKeyState(VK_MENU) & 0x8000) ? 1 : 0;
+}
+
 /* ---- clipboard (CF_UNICODETEXT) ---- */
 static int sw_drop_paths (wchar_t *buf, int cap) {
     int n = s_sw_drops_len;

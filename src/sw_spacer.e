@@ -13,7 +13,7 @@ inherit
 	SW_WIDGET
 
 create
-	make
+	make, make_weighted
 
 feature {NONE} -- Initialization
 
@@ -22,6 +22,18 @@ feature {NONE} -- Initialization
 			grow := 1.0
 		ensure
 			born_growing: grow = 1.0
+		end
+
+feature {NONE} -- Weighted variant
+
+	make_weighted (a_weight: REAL_64)
+		require
+			positive: a_weight > 0.0
+		do
+			make
+			grow := a_weight
+		ensure
+			weighted: grow = a_weight
 		end
 
 feature -- Layout

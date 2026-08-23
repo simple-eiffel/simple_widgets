@@ -199,6 +199,69 @@ feature -- Dates
 
 feature -- Time
 
+	format_number (a_value: REAL_64; a_decimals: INTEGER): STRING_32
+			-- The value with thousands grouping and THIS locale's
+			-- decimal mark; the grouping mark is the opposite one.
+			-- Rounds half away from zero at `a_decimals'.
+		require
+			sane: a_decimals >= 0 and a_decimals <= 9
+		local
+			whole, frac_part, scale, i: INTEGER_64
+			digits, grouped: STRING_32
+			negative: BOOLEAN
+			v: REAL_64
+			k: INTEGER
+		do
+			create Result.make (16)
+			negative := a_value < 0.0
+			v := a_value.abs
+			scale := 1
+			from
+				k := 1
+			until
+				k > a_decimals
+			loop
+				scale := scale * 10
+				k := k + 1
+			end
+			whole := ((v * scale) + 0.5).floor
+			frac_part := whole \\ scale
+			whole := whole // scale
+			create digits.make (20)
+			digits.append_string_general (whole.out)
+			create grouped.make (26)
+			from
+				k := 1
+			until
+				k > digits.count
+			loop
+				if k > 1 and then (digits.count - k + 1) \\ 3 = 0 then
+					if decimal_separator = ',' then
+						grouped.append_character ('.')
+					else
+						grouped.append_character (',')
+					end
+				end
+				grouped.append_character (digits.item (k))
+				k := k + 1
+			end
+			if negative and then (whole > 0 or frac_part > 0) then
+				Result.append_character ('-')
+			end
+			Result.append (grouped)
+			if a_decimals > 0 then
+				Result.append_character (decimal_separator)
+				digits := frac_part.out.to_string_32
+				from
+				until
+					digits.count >= a_decimals
+				loop
+					digits.prepend_character ('0')
+				end
+				Result.append (digits)
+			end
+		end
+
 	format_time (a_hour, a_minute: INTEGER): STRING_32
 			-- 24-hour "HH:MM", or 12-hour "H:MM AM/PM", per locale.
 		require

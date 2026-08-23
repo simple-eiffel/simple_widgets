@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (DEEPENING SWEEP 1 - eighteen limits fallen, test-first)
+- SW_TEXT_BOX UNDO/REDO - the docket's 'most-missed feature', landed
+  test-FIRST (the failing VEEN is in the log): snapshot history with
+  typing/deleting runs coalesced, blocks (paste, cut, drop) standing
+  alone, Ctrl+Z/Y on the char path, programmatic set_text clearing
+  history by editor law.
+- SW_SELECT: per-option enabled flags + group separators (the menu
+  always supported them; now the select surfaces them).
+- SW_RADIO_GROUP: vertical orientation (drawn + clickable + measured)
+  and per-option enablement.
+- SW_CHIP: removable (with_remove draws the x, the zone answers,
+  the agent fires - assaulted).
+- SW_CHECK_BOX: tri-state (dash drawn; any click resolves to checked
+  - assaulted; the tree cascade remains queued).
+- SW_SWITCH: on/off captions in the track.
+- SW_PROGRESS: indeterminate marquee (phase on the ambient repaint).
+- SW_RATING: read-only mode, HALF-STAR display (clip-drawn), caption.
+- SW_SKELETON: disc and rect shimmer variants.
+- SW_BADGE: semantic kinds + hide-at-zero policy.
+- SW_SEPARATOR: the labeled '--- OR ---' variant.
+- SW_SLIDER: tick marks with optional snapping (snap math assaulted;
+  applied in the drag path).
+- SW_NUMBER_BOX: direct typing - digits build a buffer, Enter parses
+  and CLAMPS (the box's law), Escape abandons - assaulted end to end.
+- SW_SPACER: make_weighted.
+- SW_KEYS: control_down / alt_down (physical, like shift).
+- SW_CLIPBOARD: paste cap raised 128k -> 1M characters.
+- SW_LOCALE: format_number - thousands grouping with the carried
+  decimal mark, the grouping mark its opposite; US and European laws
+  assaulted, negatives and zero-decimals included.
+- 10 new assaults: suite 160/160.
+
 ### Added (WAVE 6 - media + conversational + DICTATION)
 - SW_CAROUSEL (wrapping pages, dot jumps), SW_GALLERY (width-flow slot
   math), SW_MEDIA_TRANSPORT (codec-agnostic control: honest m:ss

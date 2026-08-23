@@ -36,6 +36,15 @@ feature -- Access
 
 	on_change: detachable PROCEDURE
 
+	on_caption, off_caption: detachable STRING_32
+			-- Optional words inside the track.
+
+	set_captions (a_on, a_off: READABLE_STRING_GENERAL)
+		do
+			create on_caption.make_from_string_general (a_on)
+			create off_caption.make_from_string_general (a_off)
+		end
+
 feature -- Element change
 
 	set_on (a_on: BOOLEAN)
@@ -92,6 +101,14 @@ feature -- Drawing
 			end
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (kx, ty + 3.0, Track_h - 6.0, Track_h - 6.0, (Track_h - 6.0) / 2.0)
+			a_p.font ({SW_PAINTER}.Role_ui, 9.5, True)
+			if is_on and then attached on_caption as oc then
+				a_p.set_color (t.surface)
+				a_p.text (x + 6.0, ty + Track_h - 7.0, oc)
+			elseif not is_on and then attached off_caption as fc then
+				a_p.set_color (t.ink_muted)
+				a_p.text (x + Track_h - 3.0, ty + Track_h - 7.0, fc)
+			end
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
 			if is_enabled then
 				a_p.set_color (t.ink)

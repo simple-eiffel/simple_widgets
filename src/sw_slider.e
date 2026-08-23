@@ -33,6 +33,36 @@ feature -- Access
 
 	fraction: REAL_64
 
+	tick_count: INTEGER
+			-- Number of intervals marked; 0 = no ticks.
+
+	snaps_to_ticks: BOOLEAN
+
+	set_ticks (a_count: INTEGER; a_snap: BOOLEAN)
+		require
+			sane: a_count >= 0
+		do
+			tick_count := a_count
+			snaps_to_ticks := a_snap
+		ensure
+			kept: tick_count = a_count and snaps_to_ticks = a_snap
+		end
+
+	snapped (a_fraction: REAL_64): REAL_64
+			-- The nearest tick fraction when snapping; else as given.
+		require
+			unit: a_fraction >= 0.0 and a_fraction <= 1.0
+		do
+			if snaps_to_ticks and then tick_count > 0 then
+				Result := ((a_fraction * tick_count) + 0.5).floor / tick_count
+				Result := Result.max (0.0).min (1.0)
+			else
+				Result := a_fraction
+			end
+		ensure
+			unit: Result >= 0.0 and Result <= 1.0
+		end
+
 	on_change: detachable PROCEDURE [REAL_64]
 
 feature -- Element change
@@ -78,6 +108,14 @@ feature -- Drawing
 			cy := y + height / 2.0
 			a_p.set_color (t.outline)
 			a_p.rrect_fill (x + Knob_r, cy - 2.5, width - 2.0 * Knob_r, 5.0, 2.5)
+			if tick_count > 0 then
+				across
+					0 |..| tick_count as k
+				loop
+					a_p.vline (x + Knob_r + (width - 2.0 * Knob_r) * k / tick_count,
+						cy + 5.0, 5.0)
+				end
+			end
 			if fraction > 0.0 then
 				if is_enabled then
 					a_p.set_color (t.accent)
@@ -128,7 +166,7 @@ feature {NONE} -- Implementation
 	move_to (a_px: REAL_64)
 		do
 			if width > 2.0 * Knob_r then
-				set_fraction (((a_px - x - Knob_r) / (width - 2.0 * Knob_r)).max (0.0).min (1.0))
+				set_fraction (snapped (((a_px - x - Knob_r) / (width - 2.0 * Knob_r)).max (0.0).min (1.0)))
 				notify
 			end
 		end

@@ -35,6 +35,30 @@ feature -- Access
 
 	options: ARRAYED_LIST [STRING_32]
 
+	is_vertical: BOOLEAN
+			-- Stack options downward instead of across.
+
+	option_enabled: ARRAYED_LIST [BOOLEAN]
+		attribute
+			create Result.make (4)
+		end
+
+	set_vertical (a_vertical: BOOLEAN)
+		do
+			is_vertical := a_vertical
+		ensure
+			set: is_vertical = a_vertical
+		end
+
+	set_option_enabled (a_index: INTEGER; a_enabled: BOOLEAN)
+		require
+			known: a_index >= 1 and a_index <= options.count
+		do
+			option_enabled.put_i_th (a_enabled, a_index)
+		ensure
+			set: option_enabled.i_th (a_index) = a_enabled
+		end
+
 	selected_index: INTEGER
 			-- 1-based choice; 0 = none yet.
 
@@ -47,6 +71,7 @@ feature -- Element change
 			s: STRING_32
 		do
 			create s.make_from_string_general (a_text)
+			option_enabled.extend (True)
 			options.extend (s)
 			if selected_index = 0 then
 					-- a radio group always has exactly one choice; the
@@ -93,12 +118,20 @@ feature -- Layout
 	preferred_width (a_p: SW_PAINTER): REAL_64
 		do
 			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
-			across
-				options as o
-			loop
-				Result := Result + Dot_s + 7.0 + a_p.advance (o) + Gap_between
+			if is_vertical then
+				across
+					options as o
+				loop
+					Result := Result.max (Dot_s + 7.0 + a_p.advance (o))
+				end
+			else
+				across
+					options as o
+				loop
+					Result := Result + Dot_s + 7.0 + a_p.advance (o) + Gap_between
+				end
+				Result := (Result - Gap_between).max (0.0)
 			end
-			Result := (Result - Gap_between).max (0.0)
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
@@ -119,14 +152,20 @@ feature -- Drawing
 			cx := x
 			cy := y + height / 2.0
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+			if is_vertical then
+				cy := y + 13.0
+			end
 			from
 				i := 1
 			until
 				i > options.count
 			loop
-				if i = selected_index and is_enabled then
+				if i = selected_index and is_enabled and option_enabled.i_th (i) then
 					a_p.set_color (t.accent)
 					a_p.set_line_width (2.0)
+				elseif not option_enabled.i_th (i) then
+					a_p.set_color (t.outline)
+					a_p.set_line_width (1.0)
 				elseif shows_hover
 					and then hover_px >= cx
 					and then hover_px <= cx + Dot_s + 7.0 + a_p.advance (options.i_th (i))
@@ -147,16 +186,22 @@ feature -- Drawing
 					end
 					a_p.circle_fill (cx + Dot_s / 2.0, cy, Dot_s / 2.0 - 6.0)
 				end
-				if is_enabled then
+				if is_enabled and option_enabled.i_th (i) then
 					a_p.set_color (t.ink)
 				else
 					a_p.set_color (t.ink_muted)
 				end
 				a_p.text (cx + Dot_s + 7.0, cy + t.size_label / 2.0 - 2.0, options.i_th (i))
-				cx := cx + Dot_s + 7.0 + a_p.advance (options.i_th (i)) + Gap_between
+				if is_vertical then
+					cy := cy + Row_h
+				else
+					cx := cx + Dot_s + 7.0 + a_p.advance (options.i_th (i)) + Gap_between
+				end
 				i := i + 1
 			end
 		end
+
+	Row_h: REAL_64 = 26.0
 
 feature -- Input
 
@@ -167,19 +212,30 @@ feature -- Input
 			i: INTEGER
 		do
 			if is_enabled and then attached probe_painter as pp then
-				cx := x
-				from
-					i := 1
-				until
-					i > options.count or Result
-				loop
-					pp.font ({SW_PAINTER}.Role_ui, pp.theme.size_label, False)
-					if a_px >= cx and then a_px <= cx + Dot_s + 7.0 + pp.advance (options.i_th (i)) then
+				if is_vertical then
+					i := ((a_py - y) / Row_h).truncated_to_integer + 1
+					if i >= 1 and then i <= options.count
+						and then option_enabled.i_th (i)
+					then
 						select_index (i)
-						Result := True
 					end
-					cx := cx + Dot_s + 7.0 + pp.advance (options.i_th (i)) + Gap_between
-					i := i + 1
+				else
+					cx := x
+					from
+						i := 1
+					until
+						i > options.count or Result
+					loop
+						pp.font ({SW_PAINTER}.Role_ui, pp.theme.size_label, False)
+						if a_px >= cx and then a_px <= cx + Dot_s + 7.0 + pp.advance (options.i_th (i)) then
+							if option_enabled.i_th (i) then
+								select_index (i)
+							end
+							Result := True
+						end
+						cx := cx + Dot_s + 7.0 + pp.advance (options.i_th (i)) + Gap_between
+						i := i + 1
+					end
 				end
 				Result := True
 			else

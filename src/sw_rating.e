@@ -35,6 +35,37 @@ feature -- Access
 
 	value: INTEGER
 
+	is_read_only: BOOLEAN
+			-- Display-only mode: clicks are inert.
+
+	display_value: REAL_64
+			-- When read-only and non-zero, HALF-star precision
+			-- display (4.5 draws four and a half stars).
+
+	caption: detachable STRING_32
+			-- Optional trailing text ('4.2 (128)').
+
+	set_read_only (a_read_only: BOOLEAN)
+		do
+			is_read_only := a_read_only
+		ensure
+			set: is_read_only = a_read_only
+		end
+
+	set_display_value (a_value: REAL_64)
+		require
+			sane: a_value >= 0.0
+		do
+			display_value := a_value
+		ensure
+			set: display_value = a_value
+		end
+
+	set_caption (a_text: READABLE_STRING_GENERAL)
+		do
+			create caption.make_from_string_general (a_text)
+		end
+
 	max_stars: INTEGER
 
 	on_change: detachable PROCEDURE [INTEGER]
@@ -89,6 +120,17 @@ feature -- Layout
 
 feature -- Drawing
 
+	shown_stars: REAL_64
+			-- What the stars display: the live value, or the half-
+			-- precision display_value in read-only mode.
+		do
+			if is_read_only and then display_value > 0.0 then
+				Result := display_value.min (max_stars.to_double)
+			else
+				Result := value.to_double
+			end
+		end
+
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
@@ -106,17 +148,30 @@ feature -- Drawing
 				i > max_stars
 			loop
 				cx := x + (i - 1) * Star_step + Star_step / 2.0
-				if hot > 0 and then i <= hot then
+				if not is_read_only and then hot > 0 and then i <= hot then
 					a_p.set_color (t.accent)
 					a_p.star_fill (cx, cy, 11.0)
-				elseif i <= value then
+				elseif shown_stars >= i.to_double then
 					a_p.set_color (t.warning)
 					a_p.star_fill (cx, cy, 11.0)
+				elseif shown_stars >= i.to_double - 0.5 then
+						-- the half: a filled star clipped to its left half
+					a_p.set_color (t.outline)
+					a_p.star_stroke (cx, cy, 10.0)
+					a_p.push_clip (cx - 12.0, cy - 12.0, 12.0, 24.0)
+					a_p.set_color (t.warning)
+					a_p.star_fill (cx, cy, 11.0)
+					a_p.pop_clip
 				else
 					a_p.set_color (t.outline)
 					a_p.star_stroke (cx, cy, 10.0)
 				end
 				i := i + 1
+			end
+			if attached caption as cap then
+				a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+				a_p.set_color (t.ink_muted)
+				a_p.text (x + max_stars * Star_step + 8.0, cy + 5.0, cap)
 			end
 		end
 
@@ -126,7 +181,7 @@ feature -- Input
 		local
 			k: INTEGER
 		do
-			if is_enabled then
+			if is_enabled and then not is_read_only then
 				k := star_at (a_px)
 				if k > 0 then
 					if k = value then

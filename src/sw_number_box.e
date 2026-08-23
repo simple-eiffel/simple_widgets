@@ -12,7 +12,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click, handle_wheel
+			preferred_width, handle_click, handle_wheel,
+			handle_char, accepts_focus
 		end
 
 create
@@ -37,6 +38,59 @@ feature {NONE} -- Initialization
 feature -- Access
 
 	value: INTEGER
+
+	is_editing: BOOLEAN
+
+	edit_buffer: STRING_32
+		attribute
+			create Result.make_empty
+		end
+
+	accepts_focus: BOOLEAN
+		do
+			Result := True
+		end
+
+	handle_char (a_code: INTEGER)
+			-- Direct typing: digits and minus build a buffer; Enter
+			-- parses and CLAMPS (the box's law); Escape abandons.
+		do
+			if a_code = 13 then
+				commit_typed
+			elseif a_code = 27 then
+				is_editing := False
+				edit_buffer.wipe_out
+			elseif a_code = 8 then
+				if is_editing and then not edit_buffer.is_empty then
+					edit_buffer.remove_tail (1)
+				end
+			elseif (a_code >= 48 and a_code <= 57)
+				or else (a_code = 45 and not is_editing)
+			then
+				if not is_editing then
+					is_editing := True
+					edit_buffer.wipe_out
+				end
+				edit_buffer.append_code (a_code.to_natural_32)
+			end
+		end
+
+	commit_typed
+			-- Parse-on-commit; non-numbers abandon silently.
+		do
+			if is_editing then
+				if edit_buffer.is_integer then
+					set_value (edit_buffer.to_integer.max (min_value).min (max_value))
+					if attached on_change as a then
+						a.call (value)
+					end
+				end
+				is_editing := False
+				edit_buffer.wipe_out
+			end
+		ensure
+			landed: not is_editing
+		end
 	min_value: INTEGER
 	max_value: INTEGER
 	step: INTEGER
@@ -107,6 +161,11 @@ feature -- Drawing
 				a_p.set_color (t.ink_muted)
 			end
 			a_p.text (x + Btn_w / 2.0 - 5.0, y + height / 2.0 + 6.0, "-")
+			if is_editing then
+				a_p.set_color (t.accent)
+				a_p.text (x + Btn_w + 8.0, y + height / 2.0 + 6.0,
+					edit_buffer + {STRING_32} "|")
+			end
 			if is_enabled and value < max_value then
 				a_p.set_color (t.ink)
 			else

@@ -82,8 +82,9 @@ feature -- Element change
 
 feature {NONE} -- Implementation
 
-	Buffer_bytes: INTEGER = 262144
-			-- 128k characters of paste is plenty for a text box.
+	Buffer_bytes: INTEGER = 2097152
+			-- One million characters of paste headroom (the old 128k
+			-- cap was the limit a document paste could actually hit).
 
 feature {NONE} -- Externals
 

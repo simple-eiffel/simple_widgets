@@ -160,6 +160,87 @@ feature -- Status
 			empty_without_selection: not has_selection implies Result.is_empty
 		end
 
+feature -- Undo and redo (the most-missed feature, landed)
+
+	can_undo: BOOLEAN
+		do
+			Result := not undo_stack.is_empty
+		end
+
+	can_redo: BOOLEAN
+		do
+			Result := not redo_stack.is_empty
+		end
+
+	undo
+			-- Unwind the last edit RUN (typing coalesces; deletes
+			-- coalesce; blocks - paste, cut, drop - stand alone).
+		require
+			something: can_undo
+		local
+			snap: TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER]
+		do
+			redo_stack.extend ([text.twin, caret, sel_anchor])
+			snap := undo_stack.last
+			undo_stack.finish
+			undo_stack.remove
+			text := snap.snapshot.twin
+			caret := snap.snap_caret.min (text.count)
+			sel_anchor := snap.snap_anchor.min (text.count)
+			last_edit_kind := 0
+			changed
+		ensure
+			redoable: can_redo
+		end
+
+	redo
+		require
+			something: can_redo
+		local
+			snap: TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER]
+		do
+			undo_stack.extend ([text.twin, caret, sel_anchor])
+			snap := redo_stack.last
+			redo_stack.finish
+			redo_stack.remove
+			text := snap.snapshot.twin
+			caret := snap.snap_caret.min (text.count)
+			sel_anchor := snap.snap_anchor.min (text.count)
+			last_edit_kind := 0
+			changed
+		ensure
+			undoable: can_undo
+		end
+
+feature {NONE} -- Undo machinery
+
+	Kind_typing: INTEGER = 1
+	Kind_deleting: INTEGER = 2
+	Kind_block: INTEGER = 3
+
+	undo_stack: ARRAYED_LIST [TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER]]
+		attribute
+			create Result.make (8)
+		end
+
+	redo_stack: ARRAYED_LIST [TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER]]
+		attribute
+			create Result.make (4)
+		end
+
+	last_edit_kind: INTEGER
+
+	remember (a_kind: INTEGER)
+			-- Snapshot before a mutation; consecutive edits of the
+			-- same kind coalesce into one step, blocks never do.
+		do
+			if a_kind = Kind_block or a_kind /= last_edit_kind then
+				undo_stack.extend ([text.twin, caret, sel_anchor])
+				redo_stack.wipe_out
+			end
+			last_edit_kind := a_kind
+		end
+
 feature -- Clipboard and selection commands
 
 	select_all
@@ -239,6 +320,7 @@ feature -- Clipboard and selection commands
 	cut_selection
 		do
 			if not is_read_only and then has_selection then
+				remember (Kind_block)
 				copy_selection
 				delete_selection
 				changed
@@ -258,6 +340,7 @@ feature -- Clipboard and selection commands
 					s.replace_substring_all ({STRING_32} "%N", {STRING_32} " ")
 				end
 				if not s.is_empty then
+					remember (Kind_block)
 					if has_selection then
 						delete_selection
 					end
@@ -276,6 +359,9 @@ feature -- Element change
 			-- text dies with it - ranges into a vanished string are
 			-- exactly the invariant breach DBC exists to forbid.
 		do
+			undo_stack.wipe_out
+			redo_stack.wipe_out
+			last_edit_kind := 0
 			create text.make_from_string_general (a_text)
 			caret := caret.min (text.count)
 			sel_anchor := caret
@@ -580,8 +666,19 @@ feature -- Input
 				cut_selection
 			elseif a_code = 22 then -- Ctrl+V
 				paste_clipboard
+			elseif a_code = 26 then -- Ctrl+Z
+				if not is_read_only and then can_undo then
+					undo
+				end
+			elseif a_code = 25 then -- Ctrl+Y
+				if not is_read_only and then can_redo then
+					redo
+				end
 			elseif not is_read_only then
 				if a_code = 8 then
+					if has_selection or caret > 0 then
+						remember (Kind_deleting)
+					end
 					if has_selection then
 						delete_selection
 					elseif caret > 0 then
@@ -591,6 +688,7 @@ feature -- Input
 					end
 					changed
 				elseif a_code >= 32 or else (a_code = 13 and not is_single_line) then
+					remember (Kind_typing)
 					if has_selection then
 						delete_selection
 					end
@@ -619,6 +717,7 @@ feature -- Input
 		do
 			if attached {READABLE_STRING_GENERAL} a_pebble as rs then
 				create s.make_from_string_general (rs)
+				remember (Kind_block)
 				if has_selection then
 					delete_selection
 				end
@@ -697,6 +796,9 @@ feature -- Input
 				collapse_unless (a_shift)
 			when 46 then -- DELETE
 				if not is_read_only then
+					if has_selection or caret < text.count then
+						remember (Kind_deleting)
+					end
 					if has_selection then
 						delete_selection
 						changed

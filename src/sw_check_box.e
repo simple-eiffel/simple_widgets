@@ -35,6 +35,17 @@ feature -- Access
 
 	is_checked: BOOLEAN
 
+	is_indeterminate: BOOLEAN
+			-- The third state (a dash): meaningful for cascades.
+			-- Any user click resolves it to checked.
+
+	set_indeterminate
+		do
+			is_indeterminate := True
+		ensure
+			mixed: is_indeterminate
+		end
+
 	on_change: detachable PROCEDURE
 
 feature -- Element change
@@ -78,7 +89,12 @@ feature -- Drawing
 			t := a_p.theme
 			bx := x
 			by := y + (height - Box_s) / 2.0
-			if is_checked and is_enabled then
+			if is_indeterminate and is_enabled then
+				a_p.set_color (t.accent)
+				a_p.rrect_fill (bx, by, Box_s, Box_s, t.radius)
+				a_p.set_color (t.surface)
+				a_p.line (bx + 4.0, by + Box_s / 2.0, bx + Box_s - 4.0, by + Box_s / 2.0, 2.4)
+			elseif is_checked and is_enabled then
 				a_p.set_color (t.accent)
 				a_p.rrect_fill (bx, by, Box_s, Box_s, t.radius)
 			else
@@ -114,7 +130,12 @@ feature -- Input
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
 		do
 			if is_enabled then
-				is_checked := not is_checked
+				if is_indeterminate then
+					is_indeterminate := False
+					is_checked := True
+				else
+					is_checked := not is_checked
+				end
 				if attached on_change as a then
 					a.call
 				end
