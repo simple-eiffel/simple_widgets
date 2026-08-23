@@ -16,7 +16,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-✅ **Waves 1–5 COMPLETE** — 95 classes (90 library + 5 devkit tooling)
+✅ **Waves 1–5 COMPLETE** — 96 classes (91 library + 5 devkit tooling)
 - Wave 5 (all 11 composites): tree table, spreadsheet doctrine whole,
   pivot, kanban, scheduler, gantt, file manager, query builder, form
   generator, org chart, TRUE DOCKING with collapsing reflow zones
