@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_FORM_GENERATOR - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_FORM_GENERATOR</h1>
+        <p class="tagline">Forms from field specs: the input fleet assembled, values read back, required-ness enforced.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Declare text/number/check/choice fields and the labelled column builds itself from shipped organs. value_of reads any field as text (checks speak True/False), is_complete reports whether every required field holds something - the model surface assaulted without a pixel. Pairs with Smart Paste when R03 lands, as the roadmap pinned.</p>
+            <p class="muted"><em>Source: <code>src/sw_form_generator.e</code> &middot; since Wave 5 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A form</h2>
+<pre><code><span class="keyword">create</span> fg.make
+fg.add_field (<span <span class="keyword">class</span>="string">&quot;title&quot;</span>, fg.Kind_text, <span class="keyword">True</span>)
+fg.add_choice_field (<span <span class="keyword">class</span>="string">&quot;wave&quot;</span>, &lt;&lt;<span <span class="keyword">class</span>="string">&quot;four&quot;</span>, <span <span class="keyword">class</span>="string">&quot;five&quot;</span>&gt;&gt;, <span class="keyword">False</span>)
+fg.set_value (<span <span class="keyword">class</span>="string">&quot;title&quot;</span>, <span <span class="keyword">class</span>="string">&quot;hello&quot;</span>)
+fg.is_complete   <span class="comment">-- True</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Validation is presence-only; format rules ride the boxes' own validity machinery later.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Choice fields read back the combo TEXT - free typing is legal there by the combo's nature.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Smart Paste filling; per-field validators; two-column layouts.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

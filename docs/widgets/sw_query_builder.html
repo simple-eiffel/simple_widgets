@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_QUERY_BUILDER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_QUERY_BUILDER</h1>
+        <p class="tagline">Field / operator / value rows emitting an SQL-shaped WHERE - quoting assaulted, never executed.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Combo-and-box rows over a declared field list, joined ALL (AND) or ANY (OR). query_text is pure public string math, assaulted: numbers ride bare, text quotes with doubled inner quotes (O''Brien), contains becomes LIKE with wildcards, valueless clauses are skipped. This builds the question; executing it belongs to whoever owns a store.</p>
+            <p class="muted"><em>Source: <code>src/sw_query_builder.e</code> &middot; since Wave 5 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A question</h2>
+<pre><code><span class="keyword">create</span> qb.make (&lt;&lt;<span <span class="keyword">class</span>="string">&quot;name&quot;</span>, <span <span class="keyword">class</span>="string">&quot;age&quot;</span>&gt;&gt;)
+qb.add_clause
+qb.set_clause (1, 1, 1, <span <span class="keyword">class</span>="string">&quot;O&#x27;Brien&quot;</span>)
+qb.query_text   <span class="comment">-- name = &#x27;O&#x27;&#x27;Brien&#x27;</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Flat clause list - no nested groups (parentheses) yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The emission quotes for SQL convention but is NOT injection-proof armour - parameterize at the store when stakes are real.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Nested groups; per-field operator sets; date pickers as value editors.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

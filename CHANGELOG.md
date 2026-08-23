@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (WAVE 5 COMPLETE - enterprise composites, one sitting)
+- SW_TREE_TABLE: the tree's flatten engine wearing grid columns - the
+  promised convergence; header-offset row math assaulted.
+- SW_CELLS_ENGINE (the 7GUIs brain graduated library-grade) +
+  SW_SPREADSHEET: ranges in SUM/AVG/MIN/MAX/COUNT with per-member
+  dependencies (filling an EMPTY cell inside a summed range
+  propagates - assaulted), TSV blocks both ways, CSV with honest
+  quoting, command undo that REPLAYS THROUGH COMMIT; the widget adds
+  a formula bar, shift ranges, type-in-place, Ctrl+C/V/Z/Y via
+  WM_CHAR codes. The aggregate law stated and assaulted: SUM/COUNT
+  of nothing are 0, AVG/MIN/MAX of nothing are #ERR, any erroring
+  member poisons the whole.
+- SW_PIVOT: first-appearance keys, SUM/COUNT/AVG folds, row/col/grand
+  totals - all assaulted.
+- SW_KANBAN + SW_KANBAN_LANE: the board owns truth, lanes are pebble
+  sources and drop holes; middle-click moves cards. Assaulted.
+- SW_SCHEDULER: the week with GREEDY OVERLAP LANES (assaulted on the
+  classic triple); locale day names; SW_SCALE minute axis.
+- SW_GANTT: bars on the day ladder, elbow dependencies (contract-
+  refused self-loops), today line; chained bars abut exactly.
+- SW_FILE_MANAGER: lazy dir tree + virtualized file list over plain
+  base DIRECTORY; engine assaulted against a real disk fixture.
+- SW_QUERY_BUILDER: WHERE emission assaulted (bare numbers, doubled
+  quotes, LIKE wildcards, AND/OR, skip-empty). Builds questions,
+  never executes them.
+- SW_FORM_GENERATOR: forms from specs; value_of / is_complete are a
+  widget-free model surface, assaulted.
+- SW_ORG_CHART: tidy layered layout; the parent-centres-over-span law
+  proven; click select.
+- SW_DOCK_HOST + SW_DOCK_ZONE - TRUE DOCKING: west/east/south reflow
+  zones around a centre document; EMPTY ZONES COLLAPSE TO NOTHING
+  (zone_rect/center_rect assaulted); panels move by pebble or
+  move_panel; hit-testing routes through so docked widgets stay
+  alive. The overlap law's promise, kept.
+- Demo: three new tabs (Enterprise, Boards, Dock) wiring all eleven.
+- 19 new assaults across the wave: suite 142/142.
+
 ### Added (Wave 4 coda - the timezone tools, Larry's idea kept)
 - SW_TIMEZONE_PICKER: the pickable band map, pinned as an idea on day
   one of the locale work and built the day SW_MAP made it possible.

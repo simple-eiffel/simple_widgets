@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_ORG_CHART - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_ORG_CHART</h1>
+        <p class="tagline">Tidy layered hierarchy boxes: parents centred over their children&#x27;s span - the law is assaulted.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Not force physics - the classic org drawing: leaves pack left to right by subtree width, every parent centres over its children, rows stack by depth, elbows connect. node_x/node_y/depth_of/subtree_width are deterministic public math; the assault proves the centring law to a ten-thousandth. Click selects and fires on_select.</p>
+            <p class="muted"><em>Source: <code>src/sw_org_chart.e</code> &middot; since Wave 5 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A hierarchy</h2>
+<pre><code><span class="keyword">create</span> oc.make
+boss := oc.add_node (<span <span class="keyword">class</span>="string">&quot;Larry&quot;</span>, 0)
+a := oc.add_node (<span <span class="keyword">class</span>="string">&quot;widgets&quot;</span>, boss)
+b := oc.add_node (<span <span class="keyword">class</span>="string">&quot;oracle&quot;</span>, boss)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Top-down only; no collapse yet; wide trees clip rather than shrink.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>node_x recurses by subtree - thousands of nodes deserve the future cache, not v1.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Subtree collapse; horizontal orientation; SW_DIAGRAM cross-over view.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SPREADSHEET + SW_CELLS_ENGINE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SPREADSHEET + SW_CELLS_ENGINE</h1>
+        <p class="tagline">The doctrine&#x27;s top tier: formulas, ranges, aggregates, TSV clipboard, CSV, command undo - engine assaulted, chrome honest.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>The 7GUIs Cells engine graduated library-grade as <code>SW_CELLS_ENGINE</code>: '='-led formulas, A0-Z99 references, arithmetic with parentheses, TWO cycle guards (the visiting stack and the structural sweep the value cache taught us to need), and the graduations - <strong>RANGES</strong> in SUM/AVG/MIN/MAX/COUNT where every member wires a dependency (filling an empty cell inside a summed range propagates - assaulted), <strong>TSV blocks</strong> in and out (Excel interop for free), <strong>CSV</strong> of the used extent with honest quoting, and <strong>command undo</strong> - commit records, undo and redo REPLAY THROUGH COMMIT so propagation is never special-cased.</p>
+            <p>The aggregate law, stated and assaulted: empty members count for nothing; SUM and COUNT of nothing are 0; AVG, MIN and MAX of nothing are #ERR; any erroring member poisons the whole.</p>
+            <p>The widget: formula bar naming the anchor, click-select with shift ranges, type-in-place editing (Enter down, Tab right, Escape abandons), Ctrl+C/V as TSV via SW_CLIPBOARD, Ctrl+Z/Y driving the engine's history - all through WM_CHAR control codes, no new key machinery. Deliberately NOT here, per the pinned doctrine: macros, per-cell styling wars, charts-in-cells.</p>
+            <p class="muted"><em>Source: <code>src/sw_spreadsheet.e</code> &middot; since Wave 5 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Cells with truth</h2>
+<pre><code><span class="keyword">create</span> sh.make
+sh.engine.commit (sh.engine.key (0, 1), <span <span class="keyword">class</span>="string">&quot;10&quot;</span>)
+sh.engine.commit (sh.engine.key (0, 2), <span <span class="keyword">class</span>="string">&quot;=<span class="type">SUM</span>(A0:A2)&quot;</span>)
+<span class="comment">-- the widget renders; the engine answers:</span>
+sh.engine.display (sh.engine.key (0, 2))   <span class="comment">-- &quot;10&quot;</span>
+sh.engine.undo                              <span class="comment">-- history walks back</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>26 columns x 100 rows (the Cells benchmark's canvas); no absolute/relative reference distinction.</li>
+                <li>Vertical scroll only; column A..Z fit most widths.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>COUNT counts OCCUPIED NUMERIC cells - text cells are nothing to arithmetic.</li>
+                <li>paste_tsv drops cells beyond the sheet's edge rather than wrapping - stated, not silent.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Reference rewriting on row/col insert; larger sheets; fill-down; number formats.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

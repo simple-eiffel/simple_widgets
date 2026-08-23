@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_KANBAN + SW_KANBAN_LANE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_KANBAN + SW_KANBAN_LANE</h1>
+        <p class="tagline">Lanes and cards; pick-and-drop moves cards between lanes - the pebble protocol&#x27;s enterprise keep.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>The board owns the truth (cards registry, lane assignment, move_card firing on_move); lanes are real widgets, each a pebble source (middle-click lifts the card under the pointer) and a drop hole (receiving asks the board to move here). A drop home is a quiet no-op. cards_in ordering, move semantics and the lane's card_at arithmetic are assaulted.</p>
+            <p class="muted"><em>Source: <code>src/sw_kanban.e</code> &middot; since Wave 5 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A board</h2>
+<pre><code><span class="keyword">create</span> kb.make
+todo := kb.add_lane (<span <span class="keyword">class</span>="string">&quot;todo&quot;</span>)
+done := kb.add_lane (<span <span class="keyword">class</span>="string">&quot;done&quot;</span>)
+id := kb.add_card (todo, <span <span class="keyword">class</span>="string">&quot;ship wave 5&quot;</span>)
+kb.set_on_move (<span class="keyword">agent</span> on_moved)
+<span class="comment">-- middle-click the card, drop on the done lane</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No in-lane reordering yet - cards stack in id order.</li>
+                <li>No card editing in place; compose with a form in a popover.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Card ids are stable forever; lanes change, ids never do.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>In-lane reordering; card colours by age; WIP limits with danger tint.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

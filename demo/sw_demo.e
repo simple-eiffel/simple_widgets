@@ -296,6 +296,9 @@ feature {NONE} -- Initialization
 			tabs.add_page ("Tree & Color", page)
 			tabs.add_page ("Charts", charts_page)
 			tabs.add_page ("Space", space_page)
+			tabs.add_page ("Enterprise", enterprise_page)
+			tabs.add_page ("Boards", boards_page)
+			tabs.add_page ("Dock", dock_page)
 			tabs.set_on_change (agent on_tab_changed)
 			create Result.make_striped (a_theme.warning)
 			Result.put ((create {SW_LABEL}.make_ui ("SW_TABS %/8212/ pages swap; hover the bar")).as_muted)
@@ -724,6 +727,165 @@ feature {NONE} -- Behaviour
 			else
 				statusbar.set_left ("dev mode off")
 			end
+		end
+
+	enterprise_page: SW_COLUMN
+			-- Wave 5: the data composites, every organ reused.
+		local
+			tt: SW_TREE_TABLE [DEMO_NODE]
+			roots: ARRAYED_LIST [DEMO_NODE]
+			nd: DEMO_NODE
+			sh: SW_SPREADSHEET
+			pv: SW_PIVOT
+			qb: SW_QUERY_BUILDER
+			fg: SW_FORM_GENERATOR
+			oc: SW_ORG_CHART
+			boss, vp1, vp2: INTEGER
+		do
+			create Result.make
+			Result := Result.with_padding (12.0).with_gap (10.0)
+			Result.put ((create {SW_LABEL}.make_ui ("Wave 5 %/8212/ enterprise composites: every organ below is a shipped part reused")).as_muted)
+			create nd.make ("fleet")
+			nd := nd.with_child ("alpha").with_child ("beta").with_child ("gamma")
+			create roots.make (1)
+			roots.extend (nd)
+			create tt.make (170.0)
+			tt.set_label (agent demo_node_label)
+			tt.set_children (agent demo_node_children)
+			tt.set_roots (roots)
+			tt.add_column (create {SW_GRID_COLUMN [DEMO_NODE]}.make ("children", 90.0, agent demo_node_size))
+			tt.add_column (create {SW_GRID_COLUMN [DEMO_NODE]}.make ("label len", 90.0, agent demo_node_len))
+			Result.put (tt)
+			create sh.make
+			sh.engine.commit (sh.engine.key (0, 1), "10")
+			sh.engine.commit (sh.engine.key (1, 1), "20")
+			sh.engine.commit (sh.engine.key (2, 1), "30")
+			sh.engine.commit (sh.engine.key (0, 2), "=SUM(A0:A2)")
+			sh.engine.commit (sh.engine.key (1, 2), "=AVG(A0:A2)")
+			sh.engine.commit (sh.engine.key (2, 2), "=B0*2")
+			Result.put (sh)
+			Result.put ((create {SW_LABEL}.make_ui ("click a cell, type, Enter %/8212/ Ctrl+C/V move TSV blocks, Ctrl+Z/Y walk history; formulas: =SUM(A0:A2)")).as_muted)
+			create pv.make
+			pv.add_record ("north", "Q1", 120.0)
+			pv.add_record ("north", "Q2", 90.0)
+			pv.add_record ("south", "Q1", 70.0)
+			pv.add_record ("south", "Q2", 110.0)
+			pv.add_record ("north", "Q1", 45.0)
+			Result.put (pv.with_title ("pivot %/8212/ records folded with totals"))
+			create qb.make (<<"name", "age", "city">>)
+			qb.add_clause
+			Result.put (qb)
+			create fg.make
+			fg.add_field ("title", fg.Kind_text, True)
+			fg.add_field ("count", fg.Kind_number, False)
+			fg.add_field ("armed", fg.Kind_check, False)
+			fg.add_choice_field ("wave", <<"one", "two", "three", "four", "five">>, False)
+			Result.put (fg)
+			create oc.make
+			boss := oc.add_node ("Larry", 0)
+			vp1 := oc.add_node ("widgets", boss)
+			vp2 := oc.add_node ("oracle", boss)
+			oc.set_on_select (agent on_org_picked)
+			if oc.add_node ("charts", vp1) > 0 then end
+			if oc.add_node ("devkit", vp1) > 0 then end
+			if oc.add_node ("gotchas", vp2) > 0 then end
+			Result.put (oc.with_title ("org chart %/8212/ click a box"))
+		end
+
+	demo_node_label (a_n: DEMO_NODE): STRING_32
+		do
+			Result := a_n.label
+		end
+
+	demo_node_children (a_n: DEMO_NODE): ARRAYED_LIST [DEMO_NODE]
+		do
+			Result := a_n.children
+		end
+
+	demo_node_size (a_n: DEMO_NODE): STRING_32
+		do
+			Result := a_n.children.count.out.to_string_32
+		end
+
+	demo_node_len (a_n: DEMO_NODE): STRING_32
+		do
+			Result := a_n.label.count.out.to_string_32
+		end
+
+	on_org_picked (a_node: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "org node " + a_node.out + {STRING_32} " picked")
+		end
+
+	boards_page: SW_COLUMN
+			-- Wave 5: kanban (pebbles move cards), the week, the plan.
+		local
+			kb: SW_KANBAN
+			l1, l2, l3: INTEGER
+			sc: SW_SCHEDULER
+			gt: SW_GANTT
+			t1, t2, t3: INTEGER
+		do
+			create Result.make
+			Result := Result.with_padding (12.0).with_gap (10.0)
+			Result.put ((create {SW_LABEL}.make_ui ("Boards %/8212/ middle-click a kanban card and drop it on another lane")).as_muted)
+			create kb.make
+			l1 := kb.add_lane ("todo")
+			l2 := kb.add_lane ("doing")
+			l3 := kb.add_lane ("done")
+			if kb.add_card (l1, "wave 6 media") > 0 then end
+			if kb.add_card (l1, "queue sweep") > 0 then end
+			if kb.add_card (l2, "wave 5 push") > 0 then end
+			if kb.add_card (l3, "wave 4") > 0 then end
+			kb.set_on_move (agent on_card_moved)
+			Result.put (kb)
+			create sc.make
+			sc.add_event (2, 9 * 60, 10 * 60, "standup")
+			sc.add_event (2, 9 * 60 + 30, 11 * 60, "review")
+			sc.add_event (4, 13 * 60, 15 * 60, "deep work")
+			sc.add_event (5, 10 * 60, 12 * 60, "demo")
+			Result.put (sc.with_title ("the week %/8212/ overlaps split into lanes"))
+			create gt.make
+			t1 := gt.add_task ("design", 0, 4)
+			t2 := gt.add_task ("build", 4, 6)
+			t3 := gt.add_task ("assault", 8, 3)
+			gt.add_dependency (t1, t2)
+			gt.add_dependency (t2, t3)
+			gt.set_today (7)
+			Result.put (gt.with_title ("the plan %/8212/ elbows chain tasks; the red line is today"))
+		end
+
+	on_card_moved (a_card, a_lane: INTEGER)
+		do
+			statusbar.set_left ({STRING_32} "card " + a_card.out + {STRING_32} " moved to lane " + a_lane.out)
+		end
+
+	dock_page: SW_COLUMN
+			-- Wave 5 finale: the file manager and TRUE DOCKING.
+		local
+			fm: SW_FILE_MANAGER
+			dh: SW_DOCK_HOST
+			doc: SW_LABEL
+		do
+			create Result.make
+			Result := Result.with_padding (12.0).with_gap (10.0)
+			Result.put ((create {SW_LABEL}.make_ui ("The file manager (left tree lazy, right files live) and TRUE DOCKING %/8212/ middle-click a panel title, drop on another edge; empty zones collapse")).as_muted)
+			create fm.make ("D:\prod\simple_widgets")
+			fm.set_on_open (agent on_fm_open)
+			Result.put (fm)
+			create doc.make_body ("the document takes every pixel the panels do not %/8212/ move them and watch the reflow")
+			doc := doc.with_wrap
+			create dh.make (doc)
+			if dh.add_panel ("explorer", create {SW_LABEL}.make_ui ("a docked tree would live here"), dh.Zone_west) > 0 then end
+			if dh.add_panel ("properties", create {SW_LABEL}.make_ui ("a docked form"), dh.Zone_east) > 0 then end
+			if dh.add_panel ("output", create {SW_LABEL}.make_ui ("a docked log"), dh.Zone_south) > 0 then end
+			Result.put (dh)
+		end
+
+	on_fm_open (a_path: STRING_32)
+		do
+			statusbar.set_left ({STRING_32} "open: " + a_path)
+			window.toast ({STRING_32} "would open " + a_path, 2)
 		end
 
 	space_page: SW_COLUMN

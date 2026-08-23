@@ -59,6 +59,9 @@ feature {NONE} -- Initialization
 			print ("%N=== WAVE 4 CHARTS ===%N")
 			run_chart_tests
 
+			print ("%N=== WAVE 5 ENTERPRISE ===%N")
+			run_enterprise_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -283,6 +286,30 @@ feature {NONE} -- Test runners
 		end
 
 	chart_tests: SW_CHART_ASSAULT
+
+	run_enterprise_tests
+		do
+			create enterprise_tests
+			run_test (agent enterprise_tests.test_tree_table_slots_and_header, "tree_table_slots_and_header")
+			run_test (agent enterprise_tests.test_cells_aggregate_law, "cells_aggregate_law")
+			run_test (agent enterprise_tests.test_cells_range_propagation, "cells_range_propagation")
+			run_test (agent enterprise_tests.test_cells_undo_walks_both_ways, "cells_undo_walks_both_ways")
+			run_test (agent enterprise_tests.test_cells_tsv_blocks, "cells_tsv_blocks")
+			run_test (agent enterprise_tests.test_cells_csv_round_trip, "cells_csv_round_trip")
+			run_test (agent enterprise_tests.test_spreadsheet_slots_and_keyboard_commit, "spreadsheet_slots_and_keyboard_commit")
+			run_test (agent enterprise_tests.test_pivot_folds_and_totals, "pivot_folds_and_totals")
+			run_test (agent enterprise_tests.test_kanban_board_truth, "kanban_board_truth")
+			run_test (agent enterprise_tests.test_kanban_lane_pebbles, "kanban_lane_pebbles")
+			run_test (agent enterprise_tests.test_scheduler_overlap_lanes, "scheduler_overlap_lanes")
+			run_test (agent enterprise_tests.test_gantt_geometry_and_contracts, "gantt_geometry_and_contracts")
+			run_test (agent enterprise_tests.test_file_manager_engine, "file_manager_engine")
+			run_test (agent enterprise_tests.test_query_builder_emission, "query_builder_emission")
+			run_test (agent enterprise_tests.test_form_generator_model, "form_generator_model")
+			run_test (agent enterprise_tests.test_org_chart_layout_law, "org_chart_layout_law")
+			run_test (agent enterprise_tests.test_dock_reflow_law, "dock_reflow_law")
+		end
+
+	enterprise_tests: SW_ENTERPRISE_ASSAULT
 
 	run_file_dialog_tests
 		do

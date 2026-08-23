@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_FILE_MANAGER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_FILE_MANAGER</h1>
+        <p class="tagline">Lazy directory tree beside a live file list; on_open fires full paths.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>A splitter of SW_TREE (directories on demand via plain base DIRECTORY - the file dialog's honesty) and SW_LIST (files of the selected folder, virtualized, case-blind sorted), with a path label telling the truth. The engine surface (subdirs, refresh_listing, file_count/file_name, enter_directory) is public and assaulted against a real fixture on disk.</p>
+            <p class="muted"><em>Source: <code>src/sw_file_manager.e</code> &middot; since Wave 5 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Browsing</h2>
+<pre><code><span class="keyword">create</span> fm.make (<span <span class="keyword">class</span>="string">&quot;D:\prod\simple_widgets&quot;</span>)
+fm.set_on_open (<span class="keyword">agent</span> on_open_file)
+page.put (fm)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No rename/delete/copy operations - browsing and opening only, v1.</li>
+                <li>No drive switching; root is the given root.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>subdirs and the listing read the disk on demand - a vanished folder lists empty rather than erroring.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>File operations behind confirmations; breadcrumbs; the dropzone marriage (drop files INTO the listing).</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

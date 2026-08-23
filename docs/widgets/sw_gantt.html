@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_GANTT - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_GANTT</h1>
+        <p class="tagline">Tasks as bars on the day ladder, elbow dependencies, a today line.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Rows of (label, start day, duration) over SW_SCALE's x ladder; dependencies draw as elbows from a task's end into its successor's start, refused for unknowns and self-loops by contract; set_today plants the danger-red line. bar_x/bar_w/row_y are public scale math, assaulted (chained tasks abut exactly).</p>
+            <p class="muted"><em>Source: <code>src/sw_gantt.e</code> &middot; since Wave 5 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A plan</h2>
+<pre><code><span class="keyword">create</span> gt.make
+t1 := gt.add_task (<span <span class="keyword">class</span>="string">&quot;design&quot;</span>, 0, 4)
+t2 := gt.add_task (<span <span class="keyword">class</span>="string">&quot;build&quot;</span>, 4, 6)
+gt.add_dependency (t1, t2)
+gt.set_today (7)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Days only (no hours); no critical-path math; bars are not draggable yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The horizon is computed from tasks - an empty gantt still draws a 0..1 ladder honestly.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Drag to reschedule; progress fills; critical-path tinting.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

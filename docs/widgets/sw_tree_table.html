@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_TREE_TABLE [G] - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_TREE_TABLE [G]</h1>
+        <p class="tagline">The tree&#x27;s flatten engine wearing the data grid&#x27;s columns - the promised convergence.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_TREE's lazy flatten, identity-stable selection and virtualization, with SW_GRID_COLUMN values rendered beside every node. A header band names the columns; rows band per SW_SHEET's discipline. The slot math (column_x) and the header's row-offset arithmetic (row_at shifts under Header_h) are public and assaulted.</p>
+            <p class="muted"><em>Source: <code>src/sw_tree_table.e</code> &middot; since Wave 5 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Columns on a tree</h2>
+<pre><code><span class="keyword">create</span> tt.make (260.0)
+tt.set_label (<span class="keyword">agent</span> label_of)
+tt.set_children (<span class="keyword">agent</span> kids_of)
+tt.set_roots (roots)
+tt.add_column (<span class="keyword">create</span> {<span class="type">SW_GRID_COLUMN</span> [<span class="type">NODE</span>]}.make (<span <span class="keyword">class</span>="string">&quot;size&quot;</span>, 90.0, <span class="keyword">agent</span> size_of))</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>No header-click sorting - reordering a TREE reorders siblings, a semantic step deferred deliberately.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Column cells render from the same node object the tree row shows - keep value agents cheap; they run per visible row per frame.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Sibling sorting; column resize grips; cell editors.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

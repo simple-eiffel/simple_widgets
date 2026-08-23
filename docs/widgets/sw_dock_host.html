@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_DOCK_HOST + SW_DOCK_ZONE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_DOCK_HOST + SW_DOCK_ZONE</h1>
+        <p class="tagline">TRUE DOCKING: reflow panels in west/east/south zones around a centre document; empty zones collapse to nothing.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>The promise kept from the day the overlap law was declared: workbench panels that RESHAPE the page instead of floating over it. Three zones, each a real widget stacking its panels under title bars; the centre document takes every pixel the zones do not; an EMPTY ZONE COLLAPSES TO ZERO - zone_rect and center_rect are public reflow math, assaulted (occupied west takes its fraction, empty east is nothing, the centre grows the moment a zone empties).</p>
+            <p>Panels move by pick-and-drop - middle-click a title bar, drop on another zone - or programmatically via move_panel; both fire on_layout_change. Hit testing routes THROUGH to panel contents, so docked widgets stay fully alive.</p>
+            <p class="muted"><em>Source: <code>src/sw_dock_host.e</code> &middot; since Wave 5 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A workbench</h2>
+<pre><code><span class="keyword">create</span> dh.make (document)
+p1 := dh.add_panel (<span <span class="keyword">class</span>="string">&quot;explorer&quot;</span>, tree, dh.Zone_west)
+p2 := dh.add_panel (<span <span class="keyword">class</span>="string">&quot;output&quot;</span>, log, dh.Zone_south)
+dh.move_panel (p1, dh.Zone_east)   <span class="comment">-- west collapses, east stands up</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Three zones (west/east/south) v1; zone fractions are settable but not grip-draggable yet.</li>
+                <li>No floating windows - docked or nothing, by design.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>An empty zone is INVISIBLE - that is the reflow promise, not a missing panel.</li>
+                <li>Panel ids are stable; zones change, ids never do (the kanban's law).</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Zone-edge resize grips; drop-hint overlays while a pebble flies; panel close/collapse buttons; layout persistence.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

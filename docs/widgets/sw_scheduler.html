@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SCHEDULER - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SCHEDULER</h1>
+        <p class="tagline">The week with overlap lanes: events sharing time split their day column side by side.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Seven day columns named by the theme's locale, a minute axis through SW_SCALE, and the lane law: greedy lowest-free-lane in add order - assaulted on the classic triple (A, overlapping B, back-to-back C reclaiming lane one).</p>
+            <p class="muted"><em>Source: <code>src/sw_scheduler.e</code> &middot; since Wave 5 (2026-08-22).
+            Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A week</h2>
+<pre><code><span class="keyword">create</span> sc.make
+sc.add_event (2, 9 * 60, 10 * 60, <span <span class="keyword">class</span>="string">&quot;standup&quot;</span>)
+sc.add_event (2, 9 * 60 + 30, 11 * 60, <span <span class="keyword">class</span>="string">&quot;review&quot;</span>)  <span class="comment">-- lane two</span>
+sc.set_window (7 * 60, 19 * 60)</code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Single week, no dates - pair with SW_CALENDAR for navigation.</li>
+                <li>No drag-to-move events yet.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Lanes are per-DAY: the same meeting pattern lanes independently each day.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Event drag; day/agenda variants; calendar pairing.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

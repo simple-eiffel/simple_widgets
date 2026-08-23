@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-125%2F125-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-142%2F142-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -16,13 +16,16 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-✅ **Waves 1–4 COMPLETE** — 82 classes (77 library + 5 devkit tooling)
+✅ **Waves 1–5 COMPLETE** — 95 classes (90 library + 5 devkit tooling)
+- Wave 5 (all 11 composites): tree table, spreadsheet doctrine whole,
+  pivot, kanban, scheduler, gantt, file manager, query builder, form
+  generator, org chart, TRUE DOCKING with collapsing reflow zones
 - Wave 4 (all 15 concepts): SW_SCALE axis engine, line/bar/area/scatter,
   pie/donut + funnel + legend, gauge + sparkline, heatmap + treemap, sankey,
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 125 contract-assault tests passing
+- 142 contract-assault tests passing
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
   compiled out of release-shaped builds via the devkit override
@@ -134,7 +137,7 @@ back after building).
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/sw_demo/F_code/
 ./EIFGENs/sw_demo/F_code/simple_widgets.exe
 
-# the contract assault (125 tests, all assertions live)
+# the contract assault (142 tests, all assertions live)
 /d/prod/ec.sh test -config simple_widgets.ecf -target simple_widgets_tests
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 ./EIFGENs/simple_widgets_tests/F_code/simple_widgets.exe
@@ -153,11 +156,17 @@ live world clock). The same day delivered the event layer (SW_EVENT,
 ACTION_SEQUENCE architecture), Vision2-style sensitivity
 (set_enabled_when), and subscribable render bells.
 
-**Next: Wave 5 enterprise composites** (spreadsheet doctrine:
-SHEET -> DATA_GRID -> SPREADSHEET with ranges, aggregates, formula bar,
-TSV clipboard, CSV, command undo; true docking from the overlay engine;
-tree table; and friends), then Wave 6 media + conversational (dictation
-via whisper.cpp queued as a text-box service).
+**Wave 5 is COMPLETE, in one sitting**: tree table, the SPREADSHEET
+doctrine whole (graduated cells engine - ranges, aggregates with a
+stated assaulted law, TSV/CSV, command undo - under a formula-bar
+widget), pivot, kanban moved by pebbles, scheduler with assaulted
+overlap lanes, gantt with elbow dependencies, file manager, query
+builder, form generator, org chart with its centring law proven, and
+TRUE DOCKING - reflow zones that collapse when empty.
+
+**Next: Wave 6 media + conversational** (dictation via whisper.cpp
+queued as a text-box service), and the standing threads: the
+on_[event] queue sweep, modal-resize round two, the ISE/Gobo audit.
 
 **The full plan:** [What's Still Coming](https://simple-eiffel.github.io/simple_widgets/roadmap.html)
 — per-wave detail; `specs/S04-ROADMAP.md` is the per-control checkbox
