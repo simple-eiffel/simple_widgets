@@ -377,6 +377,7 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_map_city_adoption_and_bands, "map_city_adoption_and_bands")
 			run_test (agent deepening_tests.test_map_zoom_laws, "map_zoom_laws")
 			run_test (agent deepening_tests.test_zoomed_band_pick_stays_true, "zoomed_band_pick_stays_true")
+			run_test (agent deepening_tests.test_click_on_atlanta_answers_eastern, "click_on_atlanta_answers_eastern")
 		end
 
 	deepening_tests: SW_DEEPENING_ASSAULT

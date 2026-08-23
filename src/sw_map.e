@@ -264,12 +264,14 @@ feature -- World cities
 				wc.cities as c
 			loop
 				if c.population >= a_min_population then
-					create lbl.make (40)
+					create lbl.make (48)
 					lbl.append (c.name)
 					lbl.append ({STRING_32} " %/183/ ")
 					lbl.append (c.country)
 					lbl.append ({STRING_32} " %/183/ ")
 					lbl.append (pop_text (c.population))
+					lbl.append ({STRING_32} " %/183/ ")
+					lbl.append (utc_text (c.offset_minutes))
 					add_marker (lbl, c.lat, c.lon)
 				end
 			end
@@ -278,12 +280,17 @@ feature -- World cities
 		end
 
 	cities_in_band (a_offset, a_max: INTEGER): ARRAYED_LIST [STRING_32]
-			-- Names of the biggest adopted cities whose longitude
-			-- rounds to UTC band `a_offset', biggest first, at most
-			-- `a_max'. Empty before `add_world_cities' - and for
-			-- honest mid-ocean bands.
+			-- Names of the biggest adopted cities whose CIVIL utc
+			-- offset falls in hour `a_offset', biggest first, at
+			-- most `a_max'. Civil, not solar: Atlanta lives at 84W
+			-- (a solar -6 longitude) yet answers here under -5,
+			-- because Georgia rides Eastern - the map's stripe stays
+			-- solar geometry, this list is political truth.
+			-- Half-hour zones bucket toward zero (Mumbai +5:30
+			-- lists under +5). Empty before `add_world_cities' -
+			-- and for honest open-ocean hours.
 		require
-			band_sane: a_offset >= -12 and a_offset <= 12
+			band_sane: a_offset >= -12 and a_offset <= 14
 			some_wanted: a_max >= 1
 		do
 			create Result.make (a_max)
@@ -292,7 +299,7 @@ feature -- World cities
 					wc.cities as c
 				loop
 					if Result.count < a_max
-						and then (c.lon / 15.0).rounded = a_offset
+						and then (c.offset_minutes / 60.0).truncated_to_integer = a_offset
 					then
 						Result.extend (c.name)
 					end
@@ -300,6 +307,61 @@ feature -- World cities
 			end
 		ensure
 			bounded: Result.count <= a_max
+		end
+
+	No_city: INTEGER = -99
+
+	civil_offset_bucket_near (a_px, a_py, a_reach: REAL_64): INTEGER
+			-- The civil hour bucket of the nearest adopted city
+			-- within `a_reach' pixels of the point; No_city when
+			-- none is close enough (or none adopted). This is what
+			-- lets a CLICK answer political truth: zones are not
+			-- bands, and a click on Atlanta must say Eastern.
+		require
+			reach_positive: a_reach > 0.0
+		local
+			dx, dy, dd, best: REAL_64
+			best_off: INTEGER
+		do
+			Result := No_city
+			best := a_reach * a_reach + 1.0
+			if attached world_cities as wc then
+				across
+					wc.cities as c
+				loop
+					dx := x_of_lon (c.lon) - a_px
+					dy := y_of_lat (c.lat) - a_py
+					dd := dx * dx + dy * dy
+					if dd < best and dd <= a_reach * a_reach then
+						best := dd
+						best_off := (c.offset_minutes / 60.0).truncated_to_integer
+						Result := best_off
+					end
+				end
+			end
+		end
+
+	utc_text (a_minutes: INTEGER): STRING_32
+			-- 'UTC-5', 'UTC+5:30', 'UTC+0' from civil minutes.
+		local
+			h, m2: INTEGER
+		do
+			create Result.make_from_string_general ("UTC")
+			if a_minutes >= 0 then
+				Result.append_character ('+')
+			else
+				Result.append_character ('-')
+			end
+			h := a_minutes.abs // 60
+			m2 := a_minutes.abs \\ 60
+			Result.append_string_general (h.out)
+			if m2 /= 0 then
+				Result.append_character (':')
+				if m2 < 10 then
+					Result.append_character ('0')
+				end
+				Result.append_string_general (m2.out)
+			end
 		end
 
 	pop_text (a_pop: INTEGER): STRING_32

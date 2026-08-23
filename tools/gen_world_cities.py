@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """Generate src/sw_world_cities.e from Natural Earth 110m populated places.
 
-Data: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_populated_places_simple.geojson
-(Natural Earth is public domain.)
+Data: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_populated_places.geojson
+(Natural Earth is public domain.) Civil UTC offsets derive from each
+city's TIMEZONE (Olson name) via zoneinfo at STANDARD time (utcoffset
+minus dst at a fixed instant); the few cities without a zone fall back
+to the solar band (round(lon/15)*60), which is honest, not political.
 
-Record format: name~country~lat~lon~pop;  - fields '~', records ';'.
+Record format: name~country~lat~lon~pop~offmin;  - fields '~', records ';'.
 Lines wrap ONLY at record boundaries (the coastline generator's
 mid-number lesson, applied): a newline can never fall inside a field.
 
-Usage: python3 tools/gen_world_cities.py path/to/ne_110m_populated_places_simple.geojson
+Usage: python3 tools/gen_world_cities.py path/to/ne_110m_populated_places.geojson (the FULL-attribute file)
 """
 import json, sys, pathlib, unicodedata
+from zoneinfo import ZoneInfo
+from datetime import datetime, timezone, timedelta
 
 src = pathlib.Path(sys.argv[1])
 out = pathlib.Path(__file__).resolve().parent.parent / "src" / "sw_world_cities.e"
@@ -18,17 +23,36 @@ out = pathlib.Path(__file__).resolve().parent.parent / "src" / "sw_world_cities.
 def ascii_fold(s):
     return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
 
+REF = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+
+def std_minutes(tzname, lon):
+    if tzname:
+        try:
+            z = ZoneInfo(tzname)
+            off = z.utcoffset(REF) - (z.dst(REF) or timedelta(0))
+            return int(off.total_seconds() // 60)
+        except Exception:
+            pass
+    return int(round(lon / 15.0)) * 60          # solar fallback, honest
+
+def field(pr, *names):
+    for n in names:
+        if pr.get(n) is not None:
+            return pr[n]
+    return None
+
 d = json.load(open(src, encoding="utf-8"))
 recs = []
 for f in d["features"]:
     pr = f["properties"]
     lon, lat = f["geometry"]["coordinates"][:2]
-    name = ascii_fold(pr.get("nameascii") or pr.get("name") or "?").replace("~", "-").replace(";", ",")
-    country = ascii_fold(pr.get("adm0name") or "?").replace("~", "-").replace(";", ",")
-    pop = int(pr.get("pop_max") or 0)
-    recs.append(f"{name}~{country}~{round(lat, 2)}~{round(lon, 2)}~{pop}")
+    name = ascii_fold(str(field(pr, "NAMEASCII", "nameascii", "NAME", "name") or "?")).replace("~", "-").replace(";", ",")
+    country = ascii_fold(str(field(pr, "ADM0NAME", "adm0name") or "?")).replace("~", "-").replace(";", ",")
+    pop = int(field(pr, "POP_MAX", "pop_max") or 0)
+    offmin = std_minutes(field(pr, "TIMEZONE", "timezone"), lon)
+    recs.append(f"{name}~{country}~{round(lat, 2)}~{round(lon, 2)}~{pop}~{offmin}")
 
-recs.sort(key=lambda r: -int(r.rsplit("~", 1)[1]))          # biggest first
+recs.sort(key=lambda r: -int(r.split("~")[4]))          # biggest first
 blob = ";".join(recs) + ";"
 
 # chunk into verbatim blocks, wrapping lines at ';' only
@@ -66,7 +90,9 @@ eiffel = f'''note
 \t\tEvery city Natural Earth 110m knows ({len(recs)} populated
 \t\tplaces, public domain), generated into data-only source by
 \t\ttools/gen_world_cities.py - DO NOT EDIT BY HAND. Name,
-\t\tcountry, lat/lon and peak population per city, biggest
+\t\tcountry, lat/lon, peak population and CIVIL utc offset
+\t\t(standard-time minutes; solar fallback for the zoneless
+\t\tfew) per city, biggest
 \t\tfirst, parsed once and shared.
 \t]"
 
@@ -75,7 +101,7 @@ class
 
 feature -- Access
 
-\tcities: ARRAYED_LIST [TUPLE [name, country: STRING_32; lat, lon: REAL_64; population: INTEGER]]
+\tcities: ARRAYED_LIST [TUPLE [name, country: STRING_32; lat, lon: REAL_64; population, offset_minutes: INTEGER]]
 \t\t\t-- All places, biggest population first. Parsed once.
 \t\tonce
 \t\t\tcreate Result.make ({len(recs)})
@@ -86,7 +112,7 @@ feature -- Access
 
 feature {{NONE}} -- Parsing
 
-\tparse_block (a_data: STRING; a_acc: ARRAYED_LIST [TUPLE [name, country: STRING_32; lat, lon: REAL_64; population: INTEGER]])
+\tparse_block (a_data: STRING; a_acc: ARRAYED_LIST [TUPLE [name, country: STRING_32; lat, lon: REAL_64; population, offset_minutes: INTEGER]])
 \t\t\t-- Records end at ';', fields split on '~'; line breaks
 \t\t\t-- fall only BETWEEN records by generator law, so stray
 \t\t\t-- whitespace is trimmed at field edges only.
@@ -96,7 +122,7 @@ feature {{NONE}} -- Parsing
 \t\t\tfields: ARRAY [STRING]
 \t\t\ttok: STRING
 \t\tdo
-\t\t\tcreate fields.make_filled (create {{STRING}}.make_empty, 1, 5)
+\t\t\tcreate fields.make_filled (create {{STRING}}.make_empty, 1, 6)
 \t\t\tcreate tok.make (24)
 \t\t\tf := 1
 \t\t\tn := a_data.count
@@ -108,20 +134,21 @@ feature {{NONE}} -- Parsing
 \t\t\t\tc := a_data.item (i)
 \t\t\t\tif c = ';' then
 \t\t\t\t\tfields [f] := tok.twin
-\t\t\t\t\tif f = 5 then
+\t\t\t\t\tif f = 6 then
 \t\t\t\t\t\ta_acc.extend ([
 \t\t\t\t\t\t\tfields [1].to_string_32,
 \t\t\t\t\t\t\tfields [2].to_string_32,
 \t\t\t\t\t\t\tfields [3].to_double,
 \t\t\t\t\t\t\tfields [4].to_double,
-\t\t\t\t\t\t\tfields [5].to_integer])
+\t\t\t\t\t\t\tfields [5].to_integer,
+\t\t\t\t\t\t\tfields [6].to_integer])
 \t\t\t\t\tend
 \t\t\t\t\ttok.wipe_out
 \t\t\t\t\tf := 1
 \t\t\t\telseif c = '~' then
 \t\t\t\t\tfields [f] := tok.twin
 \t\t\t\t\ttok.wipe_out
-\t\t\t\t\tif f < 5 then
+\t\t\t\t\tif f < 6 then
 \t\t\t\t\t\tf := f + 1
 \t\t\t\t\tend
 \t\t\t\telseif c = '%N' or c = '%T' or c = '%R' then
@@ -139,6 +166,6 @@ feature {{NONE}} -- Generated data (Natural Earth 110m, public domain)
 end
 '''
 out.write_text(eiffel, newline="\n")
-big = sum(1 for r in recs if int(r.rsplit("~", 1)[1]) >= 5_000_000)
-two = sum(1 for r in recs if int(r.rsplit("~", 1)[1]) >= 2_000_000)
+big = sum(1 for r in recs if int(r.split("~")[4]) >= 5_000_000)
+two = sum(1 for r in recs if int(r.split("~")[4]) >= 2_000_000)
 print(f"wrote {out} - {len(recs)} cities, {len(chunks)} blocks, {out.stat().st_size} bytes | >=5M: {big} | >=2M: {two}")

@@ -56,7 +56,11 @@ feature -- Input
 			if is_enabled and then a_px >= plot_x and then a_px <= plot_x + plot_w
 				and then a_py >= plot_y and then a_py <= plot_y + plot_h
 			then
-				selected_offset := offset_at (a_px)
+				selected_offset := civil_offset_bucket_near (a_px, a_py, 14.0)
+				if selected_offset = No_city then
+						-- open ground: only solar arithmetic is honest
+					selected_offset := offset_at (a_px)
+				end
 				highlight_utc (selected_offset)
 				if attached on_change as a then
 					a.call (selected_offset)

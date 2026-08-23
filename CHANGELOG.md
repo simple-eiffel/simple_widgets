@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (ZONES ARE NOT BANDS - civil time lands)
+- Larry's Atlanta report, root-caused: the dot was right, the band
+  arithmetic was right, but solar bands are not civil zones -
+  Atlanta at 84W is solar -6 yet rides Eastern. THREE layers fixed:
+  (1) every generated city now carries its CIVIL utc offset
+  (standard time via the tz database at generation; solar fallback
+  for the nine zoneless places); (2) labels and cities_in_band
+  speak civil truth (Mumbai +5:30 buckets under +5; hover says
+  'Atlanta (183) United States of America (183) 4.5M (183) UTC-5');
+  (3) the picker CLICK snaps to the nearest city within reach and
+  answers its civil zone - only open ground falls back to solar
+  band arithmetic, the only honest thing an unmapped point can say.
+- Pinned in the suite: solar arithmetic at 84.37W says -6, clicking
+  ATLANTA answers -5, the open Atlantic answers solar -3; Atlanta
+  lists under -5 beside New York, Miami, Toronto; civil band zero
+  is London/Abidjan/Lisbon (Paris moved to +1 where it belongs).
+  Suite 193/193.
+- The band STRIPE remains solar geometry (political zone SHAPES
+  would need Natural Earth's time-zones layer - a follow-up the
+  generator pattern is ready for).
+
 ### Added (MAP ZOOM - the wheel owns the planet)
 - SW_MAP wheel zoom AT THE POINTER: the ground under the cursor
   stays under the cursor (pinned to 4 decimals in the assault),

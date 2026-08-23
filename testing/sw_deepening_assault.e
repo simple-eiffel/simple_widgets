@@ -909,6 +909,14 @@ feature -- The pretty map (Natural Earth 110m, generated)
 					and c.population >= 0 and not c.name.is_empty
 			end
 			assert ("every record on the planet, named, non-negative", sane)
+			across
+				wc.cities as c
+			loop
+				if c.name.same_string_general ("Atlanta") then
+					assert_integers_equal ("Atlanta rides Eastern: civil -300, not solar -6h",
+						-300, c.offset_minutes)
+				end
+			end
 		end
 
 	test_map_city_adoption_and_bands
@@ -921,14 +929,18 @@ feature -- The pretty map (Natural Earth 110m, generated)
 			create m.make
 			m.add_world_cities (5_000_000)
 			assert_integers_equal ("38 five-million cities became markers", 38, m.markers.count)
-			assert ("labels carry the data",
+			assert ("labels carry the data, civil offset included",
 				m.markers.first.label.has_substring ({STRING_32} "Tokyo")
 				and m.markers.first.label.has_substring ({STRING_32} "Japan")
-				and m.markers.first.label.has_substring ({STRING_32} "35.7M"))
+				and m.markers.first.label.has_substring ({STRING_32} "35.7M")
+				and m.markers.first.label.has_substring ({STRING_32} "UTC+9"))
 			b := m.cities_in_band (0, 3)
-			assert_integers_equal ("band zero offers three", 3, b.count)
-			assert_strings_equal ("Paris biggest in band zero", "Paris", b.first)
-			assert_integers_equal ("mid-Pacific is honestly empty", 0, m.cities_in_band (-10, 5).count)
+			assert_integers_equal ("civil band zero offers three", 3, b.count)
+			assert_strings_equal ("London biggest in civil zero", "London", b.first)
+			b := m.cities_in_band (-5, 8)
+			assert ("ATLANTA ANSWERS UNDER EASTERN (the civil law, Larry's case)",
+				across b as nm some nm.same_string_general ("Atlanta") end)
+			assert_integers_equal ("open-ocean -10 is honestly empty", 0, m.cities_in_band (-10, 5).count)
 		end
 
 	test_map_zoom_laws
@@ -1025,6 +1037,39 @@ feature -- The pretty map (Natural Earth 110m, generated)
 			if zp.handle_click (zp.x_of_lon (31.0), zp.plot_y + 10.0) then
 			end
 			assert_integers_equal ("31 degrees east is band +2", 2, zp.selected_offset)
+		end
+
+	test_click_on_atlanta_answers_eastern
+			-- Larry's law: zones are not bands. Atlanta sits at 84W
+			-- (solar arithmetic says -6) but a click ON the city
+			-- answers its CIVIL zone, -5. Open ocean still answers
+			-- solar, the only honest thing it can say.
+		local
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			zp: SW_TIMEZONE_PICKER
+		do
+			create th.make_dark
+			create surf.make (600, 300)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create zp.make
+			zp.add_world_cities (2_000_000)
+			zp.set_bounds (0.0, 0.0, 600.0, 300.0)
+			zp.arrange (p)
+			zp.draw (p)
+			assert_integers_equal ("solar arithmetic at 84.37W says -6",
+				-6, zp.offset_at (zp.x_of_lon (-84.37)))
+			if zp.handle_click (zp.x_of_lon (-84.37), zp.y_of_lat (33.74)) then
+			end
+			assert_integers_equal ("but clicking ATLANTA answers Eastern",
+				-5, zp.selected_offset)
+			if zp.handle_click (zp.x_of_lon (-40.0), zp.y_of_lat (30.0)) then
+			end
+			assert_integers_equal ("open Atlantic answers solar -3",
+				-3, zp.selected_offset)
 		end
 
 end
