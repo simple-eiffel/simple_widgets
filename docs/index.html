@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-167%2F167-brightgreen.svg" alt="167/167 tests">
+            <img src="https://img.shields.io/badge/tests-172%2F172-brightgreen.svg" alt="172/172 tests">
         </div>
     </header>
 
@@ -75,8 +75,8 @@
                     <td>Controls: state, contracts, input handlers</td></tr>
                 <tr><td><strong>PAINTER</strong></td><td>SW_PAINTER, SW_THEME</td>
                     <td>The drawing vocabulary and the visual truth</td></tr>
-                <tr><td><strong>SURFACE</strong></td><td>SW_WINDOW + Clib runtime</td>
-                    <td>Win32 window, cairo surface, event pump</td></tr>
+                <tr><td><strong>SURFACE</strong></td><td>SW_WINDOW over <a href="https://github.com/simple-eiffel/simple_shell">simple_shell</a></td>
+                    <td>Deferred SHELL_WINDOW effected: native window, event pump, cairo surface - simple_widgets itself is pure Eiffel, zero C</td></tr>
             </table>
             <p>
                 Higher layers are simpler and faster to use; lower layers are more expressive and
@@ -140,6 +140,10 @@
                 <div class="feature-card">
                     <h3><a href="widgets/sw_widget.html">SW_WIDGET</a></h3>
                     <p>The contract spine: bounds, state, hints, input protocol.</p>
+                </div>
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_screen.html">SW_SCREEN</a></h3>
+                    <p>The desktop as a picture: grab any region as a CAIRO_SURFACE.</p>
                 </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_event.html">SW_EVENT</a></h3>
@@ -352,6 +356,10 @@
             </div>
             <h3 class="gallery-group">Custom drawing & data (Wave 3 / 7GUIs)</h3>
             <div class="feature-grid">
+                <div class="feature-card">
+                    <h3><a href="widgets/sw_scale.html">SW_SCALE</a></h3>
+                    <p>The axis engine every chart shares: domain, range, the 1/2/5 tick ladder.</p>
+                </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_canvas.html">SW_CANVAS</a></h3>
                     <p>Delegate-drawn surface inside the painter monopoly.</p>

@@ -320,6 +320,187 @@ feature -- Images
 			context.restore.do_nothing
 		end
 
+feature -- Glyphs (R7-pure: primitives, no font gambling)
+
+	Glyph_plus: INTEGER = 1
+	Glyph_minus: INTEGER = 2
+	Glyph_close: INTEGER = 3
+	Glyph_check: INTEGER = 4
+	Glyph_chevron_right: INTEGER = 5
+	Glyph_chevron_down: INTEGER = 6
+	Glyph_chevron_left: INTEGER = 7
+	Glyph_chevron_up: INTEGER = 8
+	Glyph_search: INTEGER = 9
+	Glyph_gear: INTEGER = 10
+	Glyph_trash: INTEGER = 11
+	Glyph_pencil: INTEGER = 12
+	Glyph_folder: INTEGER = 13
+	Glyph_document: INTEGER = 14
+	Glyph_refresh: INTEGER = 15
+	Glyph_play: INTEGER = 16
+	Glyph_pause: INTEGER = 17
+	Glyph_stop: INTEGER = 18
+	Glyph_dots: INTEGER = 19
+	Glyph_menu: INTEGER = 20
+	Glyph_info: INTEGER = 21
+	Glyph_warning: INTEGER = 22
+	Glyph_tray: INTEGER = 23
+	Glyph_offline: INTEGER = 24
+	Glyph_error: INTEGER = 25
+
+	glyph (a_kind: INTEGER; a_cx, a_cy, a_s: REAL_64)
+			-- Draw glyph `a_kind' centred at (a_cx, a_cy) inside a
+			-- box `a_s' on a side, in the CURRENT colour. Drawn from
+			-- primitives so every face ships on every machine - no
+			-- font-glyph gambling (R7).
+		require
+			known: a_kind >= Glyph_plus and a_kind <= Glyph_error
+			positive: a_s > 0.0
+		local
+			m: DOUBLE_MATH
+			h, lw, ang: REAL_64
+			pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
+			k: INTEGER
+		do
+			create m
+			h := a_s / 2.0
+			lw := (a_s / 8.0).max (1.4)
+			inspect a_kind
+			when 1 then
+				line (a_cx - h * 0.8, a_cy, a_cx + h * 0.8, a_cy, lw)
+				line (a_cx, a_cy - h * 0.8, a_cx, a_cy + h * 0.8, lw)
+			when 2 then
+				line (a_cx - h * 0.8, a_cy, a_cx + h * 0.8, a_cy, lw)
+			when 3 then
+				line (a_cx - h * 0.6, a_cy - h * 0.6, a_cx + h * 0.6, a_cy + h * 0.6, lw)
+				line (a_cx - h * 0.6, a_cy + h * 0.6, a_cx + h * 0.6, a_cy - h * 0.6, lw)
+			when 4 then
+				create pts.make (3)
+				pts.extend ([a_cx - h * 0.7, a_cy + h * 0.05])
+				pts.extend ([a_cx - h * 0.15, a_cy + h * 0.55])
+				pts.extend ([a_cx + h * 0.75, a_cy - h * 0.55])
+				polyline (pts, lw)
+			when 5 then
+				create pts.make (3)
+				pts.extend ([a_cx - h * 0.3, a_cy - h * 0.65])
+				pts.extend ([a_cx + h * 0.35, a_cy])
+				pts.extend ([a_cx - h * 0.3, a_cy + h * 0.65])
+				polyline (pts, lw)
+			when 6 then
+				create pts.make (3)
+				pts.extend ([a_cx - h * 0.65, a_cy - h * 0.3])
+				pts.extend ([a_cx, a_cy + h * 0.35])
+				pts.extend ([a_cx + h * 0.65, a_cy - h * 0.3])
+				polyline (pts, lw)
+			when 7 then
+				create pts.make (3)
+				pts.extend ([a_cx + h * 0.3, a_cy - h * 0.65])
+				pts.extend ([a_cx - h * 0.35, a_cy])
+				pts.extend ([a_cx + h * 0.3, a_cy + h * 0.65])
+				polyline (pts, lw)
+			when 8 then
+				create pts.make (3)
+				pts.extend ([a_cx - h * 0.65, a_cy + h * 0.3])
+				pts.extend ([a_cx, a_cy - h * 0.35])
+				pts.extend ([a_cx + h * 0.65, a_cy + h * 0.3])
+				polyline (pts, lw)
+			when 9 then
+				circle_stroke (a_cx - h * 0.15, a_cy - h * 0.15, h * 0.5)
+				line (a_cx + h * 0.25, a_cy + h * 0.25, a_cx + h * 0.72, a_cy + h * 0.72, lw)
+			when 10 then
+				circle_stroke (a_cx, a_cy, h * 0.26)
+				circle_stroke (a_cx, a_cy, h * 0.58)
+				from
+					k := 0
+				until
+					k > 7
+				loop
+					ang := k * 0.785398163397448
+					line (a_cx + h * 0.58 * m.cosine (ang), a_cy + h * 0.58 * m.sine (ang),
+						a_cx + h * 0.9 * m.cosine (ang), a_cy + h * 0.9 * m.sine (ang), lw)
+					k := k + 1
+				end
+			when 11 then
+				rrect_stroke (a_cx - h * 0.5, a_cy - h * 0.35, a_s * 0.5, a_s * 0.6, 1.5)
+				line (a_cx - h * 0.72, a_cy - h * 0.35, a_cx + h * 0.72, a_cy - h * 0.35, lw)
+				line (a_cx - h * 0.25, a_cy - h * 0.35, a_cx - h * 0.1, a_cy - h * 0.62, lw)
+				line (a_cx + h * 0.25, a_cy - h * 0.35, a_cx + h * 0.1, a_cy - h * 0.62, lw)
+				vline (a_cx - h * 0.18, a_cy - h * 0.1, a_s * 0.32)
+				vline (a_cx + h * 0.18, a_cy - h * 0.1, a_s * 0.32)
+			when 12 then
+				line (a_cx - h * 0.55, a_cy + h * 0.55, a_cx + h * 0.45, a_cy - h * 0.45, lw * 1.8)
+				create pts.make (3)
+				pts.extend ([a_cx - h * 0.75, a_cy + h * 0.75])
+				pts.extend ([a_cx - h * 0.55, a_cy + h * 0.3])
+				pts.extend ([a_cx - h * 0.3, a_cy + h * 0.55])
+				polygon_fill (pts)
+			when 13 then
+				rrect_stroke (a_cx - h * 0.8, a_cy - h * 0.4, a_s * 0.8, a_s * 0.62, 1.5)
+				line (a_cx - h * 0.8, a_cy - h * 0.55, a_cx - h * 0.25, a_cy - h * 0.55, lw)
+				line (a_cx - h * 0.25, a_cy - h * 0.55, a_cx - h * 0.12, a_cy - h * 0.4, lw)
+			when 14 then
+				rrect_stroke (a_cx - h * 0.55, a_cy - h * 0.75, a_s * 0.55, a_s * 0.75, 1.5)
+				hline (a_cx - h * 0.32, a_cy - h * 0.25, a_s * 0.32)
+				hline (a_cx - h * 0.32, a_cy, a_s * 0.32)
+				hline (a_cx - h * 0.32, a_cy + h * 0.25, a_s * 0.32)
+			when 15 then
+				wedge_stroke (a_cx, a_cy, h * 0.72, h * 0.5, 0.5, 5.2)
+				create pts.make (3)
+				pts.extend ([a_cx + h * 0.35, a_cy - h * 0.9])
+				pts.extend ([a_cx + h * 0.95, a_cy - h * 0.5])
+				pts.extend ([a_cx + h * 0.25, a_cy - h * 0.25])
+				polygon_fill (pts)
+			when 16 then
+				create pts.make (3)
+				pts.extend ([a_cx - h * 0.45, a_cy - h * 0.65])
+				pts.extend ([a_cx + h * 0.65, a_cy])
+				pts.extend ([a_cx - h * 0.45, a_cy + h * 0.65])
+				polygon_fill (pts)
+			when 17 then
+				fill_rect (a_cx - h * 0.5, a_cy - h * 0.6, a_s * 0.18, a_s * 0.6)
+				fill_rect (a_cx + h * 0.14, a_cy - h * 0.6, a_s * 0.18, a_s * 0.6)
+			when 18 then
+				fill_rect (a_cx - h * 0.5, a_cy - h * 0.5, a_s * 0.5, a_s * 0.5)
+			when 19 then
+				circle_fill (a_cx - h * 0.55, a_cy, lw * 0.8)
+				circle_fill (a_cx, a_cy, lw * 0.8)
+				circle_fill (a_cx + h * 0.55, a_cy, lw * 0.8)
+			when 20 then
+				line (a_cx - h * 0.7, a_cy - h * 0.45, a_cx + h * 0.7, a_cy - h * 0.45, lw)
+				line (a_cx - h * 0.7, a_cy, a_cx + h * 0.7, a_cy, lw)
+				line (a_cx - h * 0.7, a_cy + h * 0.45, a_cx + h * 0.7, a_cy + h * 0.45, lw)
+			when 21 then
+				circle_stroke (a_cx, a_cy, h * 0.8)
+				circle_fill (a_cx, a_cy - h * 0.4, lw * 0.7)
+				line (a_cx, a_cy - h * 0.05, a_cx, a_cy + h * 0.45, lw)
+			when 22 then
+				create pts.make (4)
+				pts.extend ([a_cx, a_cy - h * 0.75])
+				pts.extend ([a_cx + h * 0.8, a_cy + h * 0.6])
+				pts.extend ([a_cx - h * 0.8, a_cy + h * 0.6])
+				pts.extend ([a_cx, a_cy - h * 0.75])
+				polyline (pts, lw)
+				line (a_cx, a_cy - h * 0.3, a_cx, a_cy + h * 0.15, lw)
+				circle_fill (a_cx, a_cy + h * 0.38, lw * 0.6)
+			when 23 then
+				rrect_stroke (a_cx - h, a_cy - h * 0.73, a_s, a_s * 0.73, a_s * 0.115)
+				line (a_cx - h, a_cy - h * 0.115, a_cx - h * 0.385, a_cy - h * 0.115, lw)
+				line (a_cx + h * 0.385, a_cy - h * 0.115, a_cx + h, a_cy - h * 0.115, lw)
+				line (a_cx - h * 0.385, a_cy - h * 0.115, a_cx - h * 0.23, a_cy + h * 0.19, lw)
+				line (a_cx + h * 0.385, a_cy - h * 0.115, a_cx + h * 0.23, a_cy + h * 0.19, lw)
+				line (a_cx - h * 0.23, a_cy + h * 0.19, a_cx + h * 0.23, a_cy + h * 0.19, lw)
+			when 24 then
+				wedge_stroke (a_cx, a_cy + h * 0.5, h * 0.95, h * 0.85, 3.665, 5.76)
+				wedge_stroke (a_cx, a_cy + h * 0.5, h * 0.6, h * 0.5, 3.665, 5.76)
+				circle_fill (a_cx, a_cy + h * 0.35, lw * 0.8)
+				line (a_cx - h * 0.8, a_cy + h * 0.8, a_cx + h * 0.8, a_cy - h * 0.8, lw)
+			when 25 then
+				circle_stroke (a_cx, a_cy, h * 0.8)
+				line (a_cx, a_cy - h * 0.45, a_cx, a_cy + h * 0.05, lw)
+				circle_fill (a_cx, a_cy + h * 0.4, lw * 0.7)
+			end
+		end
+
 feature {NONE} -- Star geometry
 
 	star_path (a_cx, a_cy, a_r: REAL_64)

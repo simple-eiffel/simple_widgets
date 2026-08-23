@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (DEEPENING SWEEP 3 - the drawn-glyph set)
+- SW_PAINTER.glyph: 25 kinds drawn from primitives in the current
+  colour (plus, minus, close, check, four chevrons, search, gear,
+  trash, pencil, folder, document, refresh, play, pause, stop, dots,
+  menu, info, warning, tray, offline, error). R7-pure - no font-glyph
+  gambling; the assault draws EVERY kind and proves ink at the pixel.
+- SW_BUTTON.with_glyph: icon+text faces, or a compact icon-only
+  button when the label is empty.
+- SW_TOOLBAR.add_icon_item: the icon is the face, the label demoted
+  to its tooltip (the toolbar's destiny, S04's words).
+- SW_SEGMENTED.with_icon_segment: icon segments over a NEW shared
+  seg_w measure - layout, draw and click zones ask one feature, so
+  the class's own zone-drift gotcha is now structurally impossible.
+- SW_EMPTY_STATE.set_glyph_kind: the pictogram is choosable (search,
+  error, offline...); the tray stays the default.
+- Docs: pages for SW_SCREEN and SW_SCALE (previously undocumented),
+  roadmap.html rewritten to the post-wave truth, architecture table
+  reflects the simple_shell carve, glyph section on the painter page.
+- Suite 172/172.
+
 ### Added (DEEPENING SWEEP 2 - the window learns manners)
 - TAB FOCUS TRAVERSAL: SW_WIDGET.focusables collects the ring purely
   (enabled + accepts_focus, tree order); the window walks it on Tab,

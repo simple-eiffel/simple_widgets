@@ -43,6 +43,19 @@ feature -- Access
 			Result := not action_label.is_empty
 		end
 
+	glyph_kind: INTEGER
+			-- The pictogram drawn above the title (0 = the tray).
+			-- Any kind from SW_PAINTER's drawn-glyph set.
+
+	set_glyph_kind (a_glyph: INTEGER)
+		require
+			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_error
+		do
+			glyph_kind := a_glyph
+		ensure
+			set: glyph_kind = a_glyph
+		end
+
 feature -- Element change
 
 	set_action (a_label: READABLE_STRING_GENERAL; a_action: PROCEDURE)
@@ -72,15 +85,15 @@ feature -- Drawing
 		do
 			t := a_p.theme
 			cx := x + width / 2.0
-				-- the empty-box glyph: an open tray
+				-- the pictogram: the open tray by default, or the
+				-- host's chosen kind (search, error, offline...)
 			a_p.set_color (t.outline)
 			a_p.set_line_width (2.0)
-			a_p.rrect_stroke (cx - 26.0, y + 14.0, 52.0, 38.0, 6.0)
-			a_p.line (cx - 26.0, y + 30.0, cx - 10.0, y + 30.0, 2.0)
-			a_p.line (cx + 10.0, y + 30.0, cx + 26.0, y + 30.0, 2.0)
-			a_p.line (cx - 10.0, y + 30.0, cx - 6.0, y + 38.0, 2.0)
-			a_p.line (cx + 10.0, y + 30.0, cx + 6.0, y + 38.0, 2.0)
-			a_p.line (cx - 6.0, y + 38.0, cx + 6.0, y + 38.0, 2.0)
+			if glyph_kind > 0 then
+				a_p.glyph (glyph_kind, cx, y + 33.0, 52.0)
+			else
+				a_p.glyph ({SW_PAINTER}.Glyph_tray, cx, y + 33.0, 52.0)
+			end
 			a_p.set_line_width (1.0)
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_body, True)
 			a_p.set_color (t.ink)

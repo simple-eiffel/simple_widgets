@@ -57,6 +57,31 @@ feature -- Access
 
 	label: STRING_32
 
+	glyph_kind: INTEGER
+			-- A drawn glyph from SW_PAINTER's set (0 = none): beside
+			-- the label, or alone when the label is empty (icon
+			-- button). R7-pure - no font gambling.
+
+	set_glyph (a_glyph: INTEGER)
+		require
+			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_error
+		do
+			glyph_kind := a_glyph
+		ensure
+			set: glyph_kind = a_glyph
+		end
+
+	with_glyph (a_glyph: INTEGER): like Current
+			-- Fluent face: `create b.make ("Save", agent ...).with_glyph (...)'.
+		require
+			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_error
+		do
+			set_glyph (a_glyph)
+			Result := Current
+		ensure
+			chained: Result = Current
+		end
+
 	kind: INTEGER
 			-- The author-chosen variant; never changes with input.
 			-- (Named kind because the natural word is an Eiffel keyword.)
@@ -102,7 +127,14 @@ feature -- Layout
 	preferred_width (a_p: SW_PAINTER): REAL_64
 		do
 			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
-			Result := a_p.advance (label) + 22.0
+			if label.is_empty and glyph_kind > 0 then
+				Result := 36.0
+			else
+				Result := a_p.advance (label) + 22.0
+				if glyph_kind > 0 then
+					Result := Result + 19.0
+				end
+			end
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
@@ -190,7 +222,16 @@ feature -- Drawing (structure: three parts)
 		do
 			a_p.set_color (label_color (a_p.theme))
 			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
-			a_p.text (x + 11.0, y + height - 11.0, label)
+			if glyph_kind > 0 then
+				if label.is_empty then
+					a_p.glyph (glyph_kind, x + width / 2.0, y + height / 2.0, 15.0)
+				else
+					a_p.glyph (glyph_kind, x + 18.0, y + height / 2.0, 14.0)
+					a_p.text (x + 30.0, y + height - 11.0, label)
+				end
+			else
+				a_p.text (x + 11.0, y + height - 11.0, label)
+			end
 		end
 
 feature -- Input

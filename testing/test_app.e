@@ -352,6 +352,11 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_cursor_kinds, "cursor_kinds")
 			run_test (agent deepening_tests.test_peek_grace_law, "peek_grace_law")
 			run_test (agent deepening_tests.test_calendar_close_on_pick_request, "calendar_close_on_pick_request")
+			run_test (agent deepening_tests.test_every_glyph_draws_ink, "every_glyph_draws_ink")
+			run_test (agent deepening_tests.test_icon_button_faces, "icon_button_faces")
+			run_test (agent deepening_tests.test_toolbar_icon_items_measure_squarely, "toolbar_icon_items_measure_squarely")
+			run_test (agent deepening_tests.test_segmented_icon_segments, "segmented_icon_segments")
+			run_test (agent deepening_tests.test_empty_state_glyph_choice, "empty_state_glyph_choice")
 		end
 
 	deepening_tests: SW_DEEPENING_ASSAULT

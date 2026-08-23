@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>simple_widgets - What's Still Coming</title>
+    <title>simple_widgets - Roadmap</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -11,230 +11,73 @@
         <div class="logo-container">
             <img src="images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
         </div>
-        <h1>What's Still Coming</h1>
-        <p class="tagline">The waves ahead - Wave 3's finale through Wave 6, and the toolkit-wide work between them</p>
+        <h1>Roadmap</h1>
+        <p class="tagline">All six waves shipped. Now: the deepening sweep - every limit falls or gets an honest verdict.</p>
     </header>
     <nav>
         <ul>
             <li><a href="index.html">simple_widgets home</a></li>
-            <li><a href="#position">Where we are</a></li>
-            <li><a href="#wave3">Wave 3 finale</a></li>
-            <li><a href="#wave4">Wave 4</a></li>
-            <li><a href="#wave5">Wave 5</a></li>
-            <li><a href="#wave6">Wave 6</a></li>
-            <li><a href="#crosscut">Cross-cutting</a></li>
+            <li><a href="#shipped">What shipped</a></li>
+            <li><a href="#sweep">The deepening sweep</a></li>
+            <li><a href="#verdicts">Still ahead</a></li>
             <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
         </ul>
     </nav>
+
     <main>
-        <section id="position">
-            <h2>Where we are (2026-08-22, end of day)</h2>
-            <p>
-                <strong>Waves 1 through 4 are COMPLETE.</strong> Waves 1-2: foundations through
-                the drawn file dialog. Wave 3: indicators, disclosure, the 7GUIs organs, the
-                data-grid crown, the culture batch, tree, colour picker, dropzone - closed by the
-                dev-mode suite (inspector, force mesh, dev studio with dock and pick-and-drop
-                re-rooting; devkit-only classes, binary-proven absent from release shapes).
-                Wave 4, all fifteen concepts in one day: the SW_SCALE axis engine, four Cartesian
-                charts, pie/donut + funnel + shared legend, gauge + sparkline, heatmap + treemap,
-                sankey ribbons, the coarse world map and the public force diagram - plus the coda
-                that kept a day-one promise: the pickable timezone map and the live world clock.
-                Along the way the toolkit grew its event layer (SW_EVENT, ACTION_SEQUENCE
-                architecture from the 25.02 source), Vision2-style sensitivity
-                (set_enabled_when re-queried after every interaction), render bells the perf
-                instruments subscribe to, and a resize path measured back to health.
-                <strong>82 classes, 125 contract assaults, a documentation page per
-                control.</strong>
-            </p>
-            <p>
-                The method carries forward unchanged: every control ships in one commit with demo
-                wiring, assault tests where the model allows, and its own documentation page;
-                <code>specs/S04-ROADMAP.md</code> is the per-control docket, harvested from the
-                same sources as the pages so the two cannot drift. This page is the narrative
-                view; S04 is the checklist; S02 is the charter.
-            </p>
-        </section>
-
-        <section id="wave3">
-            <h2>Wave 3 - the finale (next commits)</h2>
+        <section id="shipped">
+            <h2>What shipped: the six waves (2026-08-21 &rarr; 2026-08-23)</h2>
             <table>
-                <tr><th>Item</th><th>What it is</th><th>The real work</th></tr>
-                <tr><td><strong>SW_DROPZONE</strong> — <em>shipped 2026-08-22</em></td>
-                    <td>Drag files from Explorer onto a drawn target; the host receives the paths.</td>
-                    <td>WM_DROPFILES plumbing in the C pump (DragAcceptFiles, DragQueryFileW) - the
-                    first new native message since the wheel; per-widget drop targets ride the
-                    existing hit-testing.</td></tr>
-                <tr><td><strong>SW_INSPECTOR + SW_MESH + SW_DEV_STUDIO</strong> — <em>SHIPPED 2026-08-22, suite complete</em></td>
-                    <td>The dev instrument: hover chips, REFLECTOR reveals ending in a "Mesh this
-                    subtree" doorway, the force-mesh (depth-limited, frontier expansion, crowned
-                    root, kind/state colour grammar, names toggle, node menu), and the studio -
-                    mesh + living dossier pane with contract-armed live editing. Floating sheet
-                    (moveable, sizeable, close pearl) or DOCKED as a pinned drawer with the page
-                    still live; dev-mode pick-and-drop re-roots the graph on any control.</td>
-                    <td>Release gate as BUILT: the devkit ECF override cluster (DEV_FLAGS /
-                    DEV_LENS swap; all three tool classes devkit-only) - binary-measured absence
-                    in release-shaped exes (the debug-clause plan died on the finalization
-                    discovery, now oracle law). Still ahead from the S02 pinning: mutation flash,
-                    event-stream pane, computed-vs-authored layout pane, S03-narrated styles,
-                    token tweaking, agent-wiring and CONTRACTS panes.</td></tr>
+                <tr><th>Wave</th><th>Delivered</th></tr>
+                <tr><td><strong>1</strong></td><td>The runtime and the core vocabulary: window, painter, theme, buttons, text, choices, layout.</td></tr>
+                <tr><td><strong>2</strong></td><td>Text engine (selection, clipboard, spelling), lists, dialogs, menus, the drawn file dialog.</td></tr>
+                <tr><td><strong>3</strong></td><td>Disclosure (tabs, accordion, drawers, popovers), indicators, pickers, culture (SW_LOCALE), data grid, tree, colour picker, the dev-mode suite, 7GUIs complete.</td></tr>
+                <tr><td><strong>4</strong></td><td>Charts on one axis engine (<a href="widgets/sw_scale.html">SW_SCALE</a>): four Cartesian charts, pie/donut, funnel, gauge, sparkline, heatmap, treemap, sankey, world map + live world clock; SW_EVENT queues; Vision2-style sensitivity.</td></tr>
+                <tr><td><strong>5</strong></td><td>Enterprise: kanban, gantt, dock zones, spreadsheet, avatar, statistic, timeline; the inspector lens and force mesh matured.</td></tr>
+                <tr><td><strong>6</strong></td><td>Media + conversational: carousel, gallery, transport, crop, chat thread, prompt view, and SW_DICTATION (whisper.cpp through the speechkit cluster - real transcription proven in the suite).</td></tr>
             </table>
+            <p><strong>THE CARVE (2026-08-23):</strong> every Win32 external moved to
+            <a href="https://github.com/simple-eiffel/simple_shell">simple_shell</a> (deferred
+            SHELL_WINDOW - descend and effect <code>dispatch</code>). simple_widgets is now
+            <strong>pure Eiffel over two substrates</strong>: simple_cairo draws, simple_shell pumps.
+            The dividend: <a href="widgets/sw_screen.html">SW_SCREEN</a> - desktop capture as a
+            CAIRO_SURFACE.</p>
+            <p class="muted">The method carried the whole way: every control ships with demo
+            wiring, contract assaults, and its own documentation page;
+            <code>specs/S04-ROADMAP.md</code> is the per-control docket, harvested from the same
+            sources as the pages so the two cannot drift. This page is the narrative view; S04 is
+            the checklist; S02 is the charter.</p>
         </section>
 
-        <section id="wave4">
-            <h2>Wave 4 - charts and visualization (15 concepts)</h2>
-            <p>All drawn on SW_PAINTER, likely a <code>charts</code> cluster inside this library.
-            The painter grows what they need (gradients, batched runs, sub-rect blits) rather than
-            the charts bypassing it - R2 holds.</p>
+        <section id="sweep">
+            <h2>The deepening sweep (in flight)</h2>
+            <p>The standing directive: go back over the whole library and <em>handle every known
+            limit, bug, gotcha and plan - or explain honestly why not</em>. The ledger is
+            <code>specs/S04-ROADMAP.md</code> (339 items). Every fall is proven by a failing-first
+            or behaviour-pinning assault before it ships.</p>
             <table>
-                <tr><th>Cluster</th><th>Concepts</th><th>Notes</th></tr>
-                <tr><td>Cartesian suite — <em>SHIPPED 2026-08-22, Wave 4 opened</em></td>
-                    <td>SW_SCALE + SW_CHART chassis; SW_LINE_CHART (with_area covers area),
-                    SW_BAR_CHART, SW_SCATTER_CHART</td><td>The shared axis/scale engine landed
-                    first, exactly as planned: the 1/2/5 tick ladder, nice domains, inverse
-                    mapping - all contract-assaulted headless. Hover machinery on all three
-                    (crosshair-snap, bar rings, nearest-dot). The demo's line chart streams every
-                    frame's render cost live off after_render_actions. Legend + multi-series bars
-                    ride the next movement.</td></tr>
-                <tr><td>Proportions — <em>SHIPPED 2026-08-22</em></td>
-                    <td>SW_PIE_CHART (pie + true donut ring via wedge_fill/arc_negative,
-                    side legend with shares, angle-hover) and SW_FUNNEL_CHART (conversion
-                    trapezoids, descending-by-contract)</td><td>The painter grew wedges;
-                    the line chart adopted the shared legend row (multi-series names).
-                    An 'other' auto-grouping and cohort funnels ride later.</td></tr>
-                <tr><td>Indicators — <em>SHIPPED 2026-08-22</em></td>
-                    <td>SW_GAUGE (270-degree band via wedge_fill, semantic zones, clamped
-                    truth) and SW_SPARKLINE (word-sized, normalized, honest flat midline,
-                    rolling)</td><td>The pairing promise kept: the demo's sparkline sits
-                    beside SW_STATISTIC, and gauge + spark + stat + line chart all drink
-                    ONE after_render_actions subscription - four live instruments, one
-                    bell.</td></tr>
-                <tr><td>Densities — <em>SHIPPED 2026-08-22</em></td>
-                    <td>SW_HEATMAP (two-colour ramp with assaulted blend math, edge labels,
-                    grid-honest normalization) and SW_TREEMAP (deterministic slice-and-dice
-                    with EXACT area-equals-share proportionality, proven to a millionth)</td>
-                    <td>Squarified treemap layout and multi-stop heat ramps ride later; the
-                    cell-gap discipline came from SW_SHEET as promised.</td></tr>
-                <tr><td>Flows — <em>SHIPPED 2026-08-22</em></td>
-                    <td>SW_SANKEY: columned nodes, throughput-proportional bars,
-                    cubic-bezier ribbons at contiguous stacked moorings (assaulted),
-                    hover in/out totals</td><td>The painter gained ribbon_fill - curves
-                    arrived exactly where this row said they would. Ribbon hit-testing,
-                    crossing reduction and automatic layering ride later.</td></tr>
-                <tr><td>Space & structure — <em>SHIPPED 2026-08-22; WAVE 4 COMPLETE</em></td>
-                    <td>SW_MAP (built-in coarse 72x36 world, assaulted projection + geography
-                    quiz, markers, highlight_utc bands) and SW_DIAGRAM (the dev mesh's force
-                    physics graduated public: deterministic golden-angle seeding, contract-
-                    checked edges, assaulted bounds + pinning)</td><td>The timezone picker's
-                    foundation is real; the dev mesh can re-base on SW_DIAGRAM; real
-                    coastline polygons and edge routing ride later. Every Wave 4 row now
-                    reads SHIPPED - fifteen concepts, one day.</td></tr>
+                <tr><th>Sweep</th><th>Fell</th></tr>
+                <tr><td><strong>1</strong></td><td>18 limits: text-box UNDO/REDO (the most-missed feature, failing test first), select enablement + groups, radio vertical, removable chips, check tri-state, switch captions, progress marquee, rating halves + read-only, skeleton shapes, badge kinds, labeled separator, slider ticks + snap, number-box direct typing, Ctrl/Alt keys, 1M clipboard, locale number formatting.</td></tr>
+                <tr><td><strong>2</strong></td><td>The window's manners: Tab focus traversal (pure focusables ring, Shift+Tab, wants_tab), cursor shaping (I-beam over text, resize over dividers - simple_shell WM_SETCURSOR), popover auto-close-on-pick, drawer peek-close grace. Plus SW_THEME.text_scale - one knob, every glyph obeys.</td></tr>
+                <tr><td><strong>3</strong></td><td>THE DRAWN-GLYPH SET: 25 kinds on the painter (R7-pure, each one pixel-proven every run), adopted by icon buttons, toolbar icon items (labels demoted to tooltips), icon segments, and empty-state pictograms.</td></tr>
             </table>
+            <p>Suite standing: <strong>172/172</strong> under full DBC, F_code.</p>
         </section>
 
-        <section id="wave5">
-            <h2>Wave 5 - enterprise composites (11 concepts) — <em>SHIPPED 2026-08-22,
-                in one sitting</em></h2>
-            <p>The doctrine held: every composite reuses shipped organs. Tree table (tree
-            flatten + grid columns), SPREADSHEET (the Cells engine graduated with ranges,
-            aggregates, TSV/CSV and command undo - the aggregate law stated and assaulted),
-            pivot with totals, kanban moved by pebbles, scheduler with assaulted overlap
-            lanes, gantt on the day ladder with elbow dependencies, file manager over plain
-            base DIRECTORY, query builder with SQL-quoting assaulted, form generator with a
-            widget-free model surface, org chart whose centring law is proven to a
-            ten-thousandth, and TRUE DOCKING - reflow zones that collapse when empty, the
-            promise kept from the day the overlap law was declared. Suite 142/142.</p>
-            <table>
-                <tr><th>Composite</th><th>Stands on</th><th>Pinned doctrine</th></tr>
-                <tr><td>Tree table</td><td>SW_TREE + SW_DATA_GRID columns</td><td>The two engines
-                    were built to converge (both object-identity, both virtualized).</td></tr>
-                <tr><td>Pivot</td><td>Data grid</td><td>-</td></tr>
-                <tr><td><strong>Spreadsheet</strong></td><td>SW_SHEET + CELLS_ENGINE graduated
-                    library-grade</td><td>The three-tier doctrine: SHEET (shipped) -&gt; DATA_GRID
-                    (shipped) -&gt; SPREADSHEET: ranges (A0:B9), SUM/AVG/MIN/MAX/COUNT, a formula
-                    bar, TSV block clipboard (Excel interop free), CSV in/out, command-pattern
-                    undo. Deliberately NOT: macros, per-cell styling wars, charts-in-cells.</td></tr>
-                <tr><td>Scheduler, gantt, kanban</td><td>Calendar + grid + drag system</td>
-                    <td>Pick-and-drop (pebbles) already carries cross-widget drag.</td></tr>
-                <tr><td>File manager</td><td>File dialog + tree + grid + dropzone</td><td>-</td></tr>
-                <tr><td>Query builder, form generator, org chart</td><td>Combos/pickers; the whole
-                    input fleet; tree + diagram</td><td>Form generator pairs with Smart Paste
-                    (R03) when it lands.</td></tr>
-                <tr><td><strong>True docking</strong></td><td>The overlay engine</td><td>Dual
-                    pinned drawers = content-reflow workbench panels - promised when the overlap
-                    law was declared, delivered here.</td></tr>
-            </table>
-        </section>
-
-        <section id="wave6">
-            <h2>Wave 6 - media and conversational/AI (11 concepts)</h2>
-            <table>
-                <tr><th>Cluster</th><th>Concepts</th><th>Notes</th></tr>
-                <tr><td>Media — <em>substantially SHIPPED 2026-08-22</em></td>
-                    <td>SW_CAROUSEL, SW_GALLERY, SW_MEDIA_TRANSPORT (the codec-agnostic
-                    control surface), SW_CROP_BOX - all assaulted</td>
-                    <td>Honestly future-gated: playback CODECS (the transport awaits
-                    simple_audio's player marriage), PDF view (rides the simple_pdf sibling's
-                    render bridge when it grows one), sub-rect blits / async image load.</td></tr>
-                <tr><td>Conversational — <em>SHIPPED 2026-08-22</em></td>
-                    <td>SW_CHAT_THREAD (role bubbles, streaming append_to_last, the sticky-tail
-                    law) and SW_PROMPT_VIEW (submit round trip + begin/append/end token
-                    streaming - the demo wires an echo engine)</td>
-                    <td>Smart textarea stays future-gated on the per-range styling substrate,
-                    as its note always said; simple_narrate is the real engine mate.</td></tr>
-                <tr><td>Dictation — <em>SHIPPED 2026-08-22, proof in the suite</em></td>
-                    <td>SW_DICTATION in its own speechkit cluster: simple_audio records,
-                    whisper.cpp transcribes through simple_speech, honest absence when the
-                    model is missing (the demo's mic greys itself via set_enabled_when)</td>
-                    <td>Larry's standing 'Do it' - DONE, and the assault is REAL: every suite
-                    run loads ggml-base.en and turns a sample wav into words. Streaming
-                    partials and VAD ride later.</td></tr>
-            </table>
-        </section>
-
-        <section id="crosscut">
-            <h2>Cross-cutting toolkit work (between the waves)</h2>
+        <section id="verdicts">
+            <h2>Still ahead</h2>
             <ul>
-                <li><strong>Undo/redo engine for SW_TEXT_BOX</strong> - the most-missed feature;
-                    command-pattern edits.</li>
-                <li><strong>Focus traversal</strong> (Tab order) - unlocks default buttons,
-                    keyboard activation everywhere, list/grid keyboard selection polish.</li>
-                <li><strong>Dirty-rect rendering + batched text runs</strong> - erases the residual
-                    resize/scroll lag; per-widget draw-time histograms ride it (inspector
-                    performance pane).</li>
-                <li><strong>Drawn-glyph set</strong> - icon buttons, toolbar icons, segment icons,
-                    tree node icons, all R7-pure.</li>
-                <li><strong>Cursor API</strong> - I-beam over text, resize arrows over splitters
-                    and grid dividers.</li>
-                <li><strong>Overlay engine growth</strong> - top/bottom drawer gutters (the
-                    add_drawer_tab signature already accepts all four edges), slide/ease animation
-                    on the heartbeat, peek-close grace delay, popover auto-close-on-pick.</li>
-                <li><strong>Window auto-scroll policy</strong> - the window offers scrollbars
-                    itself when root content overflows (today: compose a scroll-area body, as the
-                    demo shell does).</li>
-                <li><strong>Locale growth</strong> - number formatting consuming the carried
-                    decimal mark; collation for grid sorting; Windows ICU bridge when CLDR depth
-                    is demanded.</li>
-                <li><strong>Timezone tools — SHIPPED 2026-08-22</strong>: SW_TIMEZONE_PICKER
-                    (the pickable band map, riding SW_MAP the day it landed) and
-                    SW_WORLD_CLOCK (live per-zone clocks off SIMPLE_DATE_TIME.make_now_utc,
-                    minute offsets first-class, locale-lawful rendering, honest +1d/-1d).
-                    Larry's day-one idea, kept. DST rule tables remain future law.</li>
-                <li><strong>Dependency audit</strong> - sweep ECFs and sources for ISE/Gobo
-                    touchpoints; map each to a simple_* library or flag the backfill hole
-                    (simple_datetime was the live win; the file dialog's base PATH/DIRECTORY is
-                    the first candidate).</li>
-                <li><strong>Theme text scale</strong> - Larry's grow/shrink-font control applied
-                    theme-wide.</li>
+                <li><strong>Sweep 4</strong> - charts &amp; enterprise deepening: squarified treemap, grid merge-sort, list keyboard navigation, gantt progress fills, calendar min/max, colour-picker hex entry, file-dialog multi-pattern filters.</li>
+                <li><strong>Sweep 5</strong> - layout: row wrap, window auto-scroll, horizontal splitter + double-click reset, lazy tab builders, top/bottom drawer gutters.</li>
+                <li><strong>THE VERDICT PASS</strong> - every remaining S04 line gets fixed or an honest written reason: multi-window, dirty-rect rendering, IME, UIA accessibility, bidi shaping, JPEG, rich-text runs, submenus. No item left unanswered.</li>
             </ul>
-            <p class="muted"><em>The full per-control docket - every documented extension plan,
-            fixable gotcha and pushable limit, as checkboxes - lives in
-            <code>specs/S04-ROADMAP.md</code>, regenerated from the documentation sources so it
-            cannot drift.</em></p>
+            <p class="muted">History and evidence: <code>CHANGELOG.md</code> carries each movement
+            with its test counts; the assault suite is the ledger's proof.</p>
         </section>
     </main>
+
     <footer>
-        <p>simple_widgets - part of the
-        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem - MIT License</p>
+        <p>simple_widgets &middot; part of the <a href="https://github.com/simple-eiffel">simple-eiffel</a> ecosystem &middot; MIT</p>
     </footer>
 </body>
 </html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SCREEN - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SCREEN</h1>
+        <p class="tagline">The desktop as a picture - a virtual-screen region arrives as a CAIRO_SURFACE.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SCREEN marries <code>SHELL_DESKTOP</code>'s raw desktop grab (simple_shell) to cairo:
+            <code>grab (x, y, w, h)</code> BitBlts any virtual-screen region into a fresh ARGB32
+            <code>CAIRO_SURFACE</code> - ready for <code>write_png</code>, an <code>SW_IMAGE</code>,
+            or any painter. It is the pure-route <code>EV_SCREEN</code>, completed: no Vision2, no
+            separate capture library. Virtual-screen metrics (<code>virtual_x/y/width/height</code>),
+            the QPC clock (<code>now_ms</code>) and <code>open_externally</code> ride along from the
+            platform shell.</p>
+            <p class="muted"><em>Source: <code>src/sw_screen.e</code> &middot; born in THE CARVE
+            (2026-08-23), the dividend of moving all Win32 C into
+            <a href="https://github.com/simple-eiffel/simple_shell">simple_shell</a>.
+            Assaulted every suite run: six real desktop pixels, grabbed and sized.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Grab and keep</h2>
+<pre><code><span class="keyword">local</span>
+    screen: <span class="type">SW_SCREEN</span>
+<span class="keyword">do</span>
+    <span class="keyword">create</span> screen
+    <span class="keyword">if</span> <span class="keyword">attached</span> screen.grab (screen.virtual_x, screen.virtual_y, 800, 600) <span class="keyword">as</span> shot <span class="keyword">then</span>
+        shot.write_png ("capture.png").do_nothing
+        shot.destroy
+    <span class="keyword">end</span>
+<span class="keyword">end</span></code></pre>
+            <p>The grab answers <code>Void</code> - never crashes - when the desktop cannot be read
+            (locked session, secure screen).</p>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Alpha is forced opaque by design: the desktop has no meaningful alpha, and
+                    downstream cairo compositing expects solid ground.</li>
+                <li>One region per call; a multi-monitor mosaic is one grab spanning the virtual
+                    desktop (negative origins included), not per-monitor calls.</li>
+                <li>Protected content (DRM surfaces) arrives black - the OS's law, not ours.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>The returned surface is yours: <code>destroy</code> it when done, as with any
+                    CAIRO_SURFACE you create.</li>
+                <li>Coordinates are virtual-desktop absolute - a monitor left of primary makes
+                    <code>virtual_x</code> negative; pass metrics through, never assume 0.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Future</h2>
+            <ul>
+                <li>A region-picker flow over SHELL_OVERLAY (the frozen-desktop drag), returning a
+                    grab of the chosen rectangle - simple_ocr_capture's pattern, generalized.</li>
+                <li>Timed capture series for screen-recording experiments.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the <a href="https://github.com/simple-eiffel">simple-eiffel</a> ecosystem &middot; MIT</p>
+    </footer>
+</body>
+</html>

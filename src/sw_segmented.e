@@ -28,6 +28,13 @@ feature -- Access
 
 	segments: ARRAYED_LIST [STRING_32]
 
+	segment_glyphs: ARRAYED_LIST [INTEGER]
+			-- Parallel to `segments': a drawn glyph per segment
+			-- (0 = text segment).
+		attribute
+			create Result.make (4)
+		end
+
 	selected_index: INTEGER
 			-- 1-based; 0 only while empty.
 
@@ -50,12 +57,41 @@ feature -- Element change
 		do
 			create s.make_from_string_general (a_text)
 			segments.extend (s)
+			segment_glyphs.extend (0)
 			if selected_index = 0 then
 				selected_index := 1
 			end
 		ensure
 			grew: segments.count = old segments.count + 1
 			something_chosen: selected_index >= 1
+		end
+
+	add_icon_segment (a_glyph: INTEGER)
+			-- A drawn-glyph segment (no text).
+		require
+			glyph_known: a_glyph >= 1 and a_glyph <= {SW_PAINTER}.Glyph_error
+		local
+			s: STRING_32
+		do
+			create s.make_empty
+			segments.extend (s)
+			segment_glyphs.extend (a_glyph)
+			if selected_index = 0 then
+				selected_index := 1
+			end
+		ensure
+			grew: segments.count = old segments.count + 1
+			parallel: segment_glyphs.count = segments.count
+		end
+
+	with_icon_segment (a_glyph: INTEGER): like Current
+		require
+			glyph_known: a_glyph >= 1 and a_glyph <= {SW_PAINTER}.Glyph_error
+		do
+			add_icon_segment (a_glyph)
+			Result := Current
+		ensure
+			chained: Result = Current
 		end
 
 	with_segment (a_text: READABLE_STRING_GENERAL): like Current
@@ -99,9 +135,23 @@ feature -- Layout
 			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
 			Result := 4.0
 			across
-				segments as s
+				1 |..| segments.count as k
 			loop
-				Result := Result + a_p.advance (s) + 26.0
+				Result := Result + seg_w (a_p, k)
+			end
+		end
+
+	seg_w (a_p: SW_PAINTER; a_i: INTEGER): REAL_64
+			-- One segment's width - THE shared measure: layout, draw
+			-- and click zones all ask here, so they can never drift
+			-- (this class's own gotcha law).
+		require
+			in_range: a_i >= 1 and a_i <= segments.count
+		do
+			if segment_glyphs.i_th (a_i) > 0 then
+				Result := 34.0
+			else
+				Result := a_p.advance (segments.i_th (a_i)) + 26.0
 			end
 		end
 
@@ -129,7 +179,7 @@ feature -- Drawing
 			until
 				i > segments.count
 			loop
-				tw := a_p.advance (segments.i_th (i)) + 26.0
+				tw := seg_w (a_p, i)
 				if i = selected_index then
 					a_p.set_color (t.accent)
 					a_p.rrect_fill (tx, y + 3.0, tw, height - 6.0, (height - 6.0) / 2.0)
@@ -141,7 +191,11 @@ feature -- Drawing
 				else
 					a_p.set_color (t.ink_muted)
 				end
-				a_p.text (tx + 13.0, y + height / 2.0 + t.size_label / 2.0 - 2.0, segments.i_th (i))
+				if segment_glyphs.i_th (i) > 0 then
+					a_p.glyph (segment_glyphs.i_th (i), tx + tw / 2.0, y + height / 2.0, 14.0)
+				else
+					a_p.text (tx + 13.0, y + height / 2.0 + t.size_label / 2.0 - 2.0, segments.i_th (i))
+				end
 				tx := tx + tw
 				i := i + 1
 			end
@@ -162,7 +216,7 @@ feature -- Input
 				until
 					i > segments.count
 				loop
-					tw := p.advance (segments.i_th (i)) + 26.0
+					tw := seg_w (p, i)
 					if a_px >= tx and a_px < tx + tw then
 						select_segment (i)
 					end

@@ -29,7 +29,7 @@ Toolkit-wide near-term items (from the same read):
 - [x] Focus traversal (Tab order) - unlocks default buttons, keyboard
       activation, list keyboard selection. — TRAVERSAL DONE 2026-08-23 (Tab/Shift+Tab ring, wants_tab guard); default buttons + list keyboard selection ride it next (sweep 3+)
 - [ ] Dirty-rect rendering + batched text runs - erases resize lag.
-- [ ] Drawn-glyph set - unlocks icon buttons, toolbar icons, segment icons.
+- [x] Drawn-glyph set - unlocks icon buttons, toolbar icons, segment icons. — DONE 2026-08-23 (deepening sweep 3; pixel-proven)
 - [x] Cursor API (I-beam, resize arrows). — DONE 2026-08-23 (deepening sweep 2; assaulted)
 - [ ] DEPENDENCY AUDIT (Larry, 2026-08-22): sweep every ECF and source
       file for ISE/Gobo touchpoints (DIRECTORY, PATH, DATE, INTERNAL...),
@@ -230,7 +230,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Icon + text faces from a drawn-glyph library (R7-pure, no font-glyph gambling).
+- [x] Icon + text faces from a drawn-glyph library (R7-pure, no font-glyph gambling). — DONE 2026-08-23 (deepening sweep 3; pixel-proven)
 - [ ] Split buttons (action + chevron menu) and toggle buttons.
 - [ ] Keyboard activation once focus traversal lands.
 
@@ -241,7 +241,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Text-only faces; icon buttons arrive with the drawn-glyph set (see Future).
+- [x] Text-only faces; icon buttons arrive with the drawn-glyph set (see Future). — DONE 2026-08-23 (deepening sweep 3; pixel-proven)
 - [ ] No default-button / Enter-to-activate wiring (needs focus traversal first).
 - [ ] No repeat-fire on hold (spinners implement their own).
 
@@ -582,7 +582,7 @@ Limits to push:
 
 - [ ] No submenus yet (flyout nesting is queued).
 - [ ] Hints are display-only - the shortcut text does not register accelerators.
-- [ ] No icons or check marks on items yet.
+- [ ] No icons or check marks on items yet. — glyph set LANDED 2026-08-23; menu-item adoption queued (sweep 4+)
 
 
 ## SW_MENU_BAR
@@ -623,7 +623,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Drawn icon glyphs (R7-pure), with labels demoted to tooltips.
+- [x] Drawn icon glyphs (R7-pure), with labels demoted to tooltips. — DONE 2026-08-23 (deepening sweep 3; pixel-proven)
 - [ ] Overflow menu; vertical orientation for tool rails.
 - [ ] Radio-style exclusive toggle groups.
 
@@ -633,7 +633,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Text labels only until the drawn-glyph set lands (icons are the toolbar's destiny).
+- [x] Text labels only until the drawn-glyph set lands (icons are the toolbar's destiny). — DONE 2026-08-23 (deepening sweep 3; pixel-proven)
 - [ ] No overflow chevron for narrow windows.
 - [ ] By-label queries assume unique labels per bar.
 
@@ -803,7 +803,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Text segments only (icons await the drawn-glyph set).
+- [x] Text segments only (icons await the drawn-glyph set). — DONE 2026-08-23 (deepening sweep 3; pixel-proven)
 - [ ] No per-segment disabling yet.
 - [ ] Fixed segment widths from label advance - no equalized widths option.
 
@@ -848,7 +848,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Wrapped multi-line messages (borrowing SW_LABEL's body wrap).
-- [ ] A small glyph set (search, error, offline) chosen by kind.
+- [x] A small glyph set (search, error, offline) chosen by kind. — DONE 2026-08-23 (deepening sweep 3; pixel-proven)
 - [ ] Secondary action slot.
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -858,7 +858,7 @@ Gotcha docket (fix where a plan exists; else design around):
 Limits to push:
 
 - [ ] One action only; the message is a single non-wrapping line for now.
-- [ ] The glyph is fixed (the tray) - no glyph choices yet.
+- [x] The glyph is fixed (the tray) - no glyph choices yet. — DONE 2026-08-23 (deepening sweep 3; pixel-proven)
 
 
 ## SW_STATISTIC
@@ -1156,7 +1156,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] Uniform row height; labels only (icons await the drawn-glyph set).
+- [ ] Uniform row height; labels only. — glyph set LANDED 2026-08-23; node-icon adoption queued (sweep 4+)
 - [ ] Single selection; no checkboxes/tri-state yet (queued with SW_CHECK_BOX's).
 - [ ] The flatten rebuild walks open subtrees each toggle - fine at desktop scale; incremental flattening is an S04 item for huge lazy trees.
 

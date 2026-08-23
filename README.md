@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-167%2F167-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-172%2F172-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -25,7 +25,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 167 contract-assault tests passing
+- 172 contract-assault tests passing
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
   compiled out of release-shaped builds via the devkit override
@@ -142,7 +142,7 @@ back after building).
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/sw_demo/F_code/
 ./EIFGENs/sw_demo/F_code/simple_widgets.exe
 
-# the contract assault (167 tests, all assertions live)
+# the contract assault (172 tests, all assertions live)
 /d/prod/ec.sh test -config simple_widgets.ecf -target simple_widgets_tests
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 ./EIFGENs/simple_widgets_tests/F_code/simple_widgets.exe

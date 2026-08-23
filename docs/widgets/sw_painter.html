@@ -89,6 +89,21 @@ w := a_p.advance (label) + 24.0   <span class="comment">-- advance, not ink widt
                 <li>A recording painter for golden-frame regression tests.</li>
             </ul>
         </section>
+        <section id="glyphs">
+            <h2>The drawn-glyph set (2026-08-23)</h2>
+            <p><code>glyph (kind, cx, cy, size)</code> draws any of <strong>25 kinds</strong> in
+            the current colour, centred in a box - pure primitives, so every face ships on every
+            machine (R7: no font-glyph gambling). The assault proves each kind leaves ink at the
+            pixel, every run.</p>
+            <p><code>Glyph_plus &middot; minus &middot; close &middot; check &middot;
+            chevron_right/down/left/up &middot; search &middot; gear &middot; trash &middot;
+            pencil &middot; folder &middot; document &middot; refresh &middot; play &middot;
+            pause &middot; stop &middot; dots &middot; menu &middot; info &middot; warning &middot;
+            tray &middot; offline &middot; error</code></p>
+            <p>Adopters so far: SW_BUTTON (<code>with_glyph</code>), SW_TOOLBAR
+            (<code>add_icon_item</code>), SW_SEGMENTED (<code>with_icon_segment</code>),
+            SW_EMPTY_STATE (<code>set_glyph_kind</code>).</p>
+        </section>
     </main>
 
     <footer>

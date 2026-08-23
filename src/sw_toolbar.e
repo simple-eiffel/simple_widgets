@@ -27,7 +27,7 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	items: ARRAYED_LIST [TUPLE [label: STRING_32; hint: STRING_32; enabled: BOOLEAN; action: detachable PROCEDURE; gap: BOOLEAN; can_toggle: BOOLEAN; is_on: BOOLEAN]]
+	items: ARRAYED_LIST [TUPLE [label: STRING_32; hint: STRING_32; enabled: BOOLEAN; action: detachable PROCEDURE; gap: BOOLEAN; can_toggle: BOOLEAN; is_on: BOOLEAN; glyph: INTEGER]]
 
 	is_tool_on (a_label: READABLE_STRING_GENERAL): BOOLEAN
 			-- Is the toggle named `a_label' latched on?
@@ -49,7 +49,7 @@ feature -- Element change
 		do
 			create l.make_from_string_general (a_label)
 			create h.make_from_string_general (a_hint)
-			items.extend ([l, h, a_enabled, a_action, False, False, False])
+			items.extend ([l, h, a_enabled, a_action, False, False, False, 0])
 		ensure
 			grew: items.count = old items.count + 1
 		end
@@ -62,7 +62,7 @@ feature -- Element change
 		do
 			create l.make_from_string_general (a_label)
 			create h.make_from_string_general (a_hint)
-			items.extend ([l, h, True, a_action, False, True, a_on])
+			items.extend ([l, h, True, a_action, False, True, a_on, 0])
 		ensure
 			grew: items.count = old items.count + 1
 		end
@@ -72,7 +72,22 @@ feature -- Element change
 			e: STRING_32
 		do
 			create e.make_empty
-			items.extend ([e, e, False, Void, True, False, False])
+			items.extend ([e, e, False, Void, True, False, False, 0])
+		ensure
+			grew: items.count = old items.count + 1
+		end
+
+	add_icon_item (a_glyph: INTEGER; a_hint: READABLE_STRING_GENERAL; a_action: detachable PROCEDURE)
+			-- A drawn-glyph button: the icon IS the face, the label
+			-- demoted to its tooltip (the toolbar's destiny).
+		require
+			glyph_known: a_glyph >= 1 and a_glyph <= {SW_PAINTER}.Glyph_error
+		local
+			l, h: STRING_32
+		do
+			create l.make_empty
+			create h.make_from_string_general (a_hint)
+			items.extend ([l, h, True, a_action, False, False, False, a_glyph])
 		ensure
 			grew: items.count = old items.count + 1
 		end
@@ -115,7 +130,11 @@ feature -- Drawing
 					a_p.vline (tx + 5.0, y + 7.0, height - 14.0)
 					tx := tx + 13.0
 				else
-					tw := a_p.advance (it.label) + 22.0
+					if it.glyph > 0 then
+						tw := 28.0
+					else
+						tw := a_p.advance (it.label) + 22.0
+					end
 					if it.can_toggle and then it.is_on then
 						a_p.set_color (t.wash_accent)
 						a_p.rrect_fill (tx, y + 5.0, tw, height - 10.0, t.radius)
@@ -135,7 +154,11 @@ feature -- Drawing
 					else
 						a_p.set_color (t.ink)
 					end
-					a_p.text (tx + 11.0, y + height / 2.0 + t.size_label / 2.0 - 3.0, it.label)
+					if it.glyph > 0 then
+						a_p.glyph (it.glyph, tx + tw / 2.0, y + height / 2.0, 14.0)
+					else
+						a_p.text (tx + 11.0, y + height / 2.0 + t.size_label / 2.0 - 3.0, it.label)
+					end
 					tx := tx + tw + 3.0
 				end
 				i := i + 1
@@ -163,7 +186,11 @@ feature -- Input
 					if it.gap then
 						tx := tx + 13.0
 					else
-						tw := p.advance (it.label) + 22.0
+						if it.glyph > 0 then
+							tw := 28.0
+						else
+							tw := p.advance (it.label) + 22.0
+						end
 						if a_px >= tx and a_px <= tx + tw and it.enabled then
 							if it.can_toggle then
 								it.is_on := not it.is_on

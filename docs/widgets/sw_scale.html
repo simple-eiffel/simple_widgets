@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_SCALE - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_SCALE</h1>
+        <p class="tagline">The axis engine every chart shares - pure math, assaultable headless.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>SW_SCALE is a linear map from a data DOMAIN onto a pixel RANGE, its inverse (hover
+            asks "what value is under the pointer?"), and the classic 1/2/5 tick ladder - steps are
+            always 1, 2 or 5 times a power of ten, so gridlines land on numbers a human would
+            choose. Every chart in the toolkit (bars, lines, sparklines, heatmaps, gauges) shares
+            this one engine rather than reinventing axis arithmetic.</p>
+            <p>Degenerate domains answer honestly: when min = max, positions collapse to the range
+            midpoint and the ladder offers the one value - no division by zero, no NaN smuggling.</p>
+            <p class="muted"><em>Source: <code>src/sw_scale.e</code> &middot; the charts' substrate
+            since Wave 4. Pure math, no painter - which is why every claim is assaulted headless.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Domain to pixels and back</h2>
+<pre><code><span class="keyword">local</span>
+    s: <span class="type">SW_SCALE</span>
+<span class="keyword">do</span>
+    <span class="keyword">create</span> s.make (0.0, 250.0, 40.0, 640.0)
+    -- or retarget live: s.set_domain (...), s.set_range (...)
+    -- position (125.0) = 340.0 (the middle maps to the middle)
+    -- value_at (340.0) = 125.0 (the inverse agrees)
+    -- ticks (6) yields 0, 50, 100, 150, 200, 250 (the 1/2/5 ladder)
+    -- nice_domain (6) snaps min/max outward onto ladder values
+<span class="keyword">end</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Linear only - log and time scales are planned as siblings, not modes.</li>
+                <li><code>ticks (n)</code> aims NEAR n via the 1/2/5 ladder - exact counts are not guaranteed; landing on human numbers is the point.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Set the domain from your DATA and the range from your PIXELS - swapping them
+                    produces a map that "works" but draws everything at one edge.</li>
+                <li>A reversed range (right-to-left, bottom-to-top axes) is legal and useful -
+                    y-axes typically map min to the BOTTOM pixel, which is the larger number.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Future</h2>
+            <ul>
+                <li>SW_LOG_SCALE and SW_TIME_SCALE siblings sharing the same interface.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the <a href="https://github.com/simple-eiffel">simple-eiffel</a> ecosystem &middot; MIT</p>
+    </footer>
+</body>
+</html>

@@ -319,4 +319,112 @@ feature -- Batch 2: toolkit-wide reach
 			assert ("and the request is one-shot", not cal.take_sheet_close_request)
 		end
 
+feature -- Batch 3: the drawn-glyph set
+
+	test_every_glyph_draws_ink
+			-- The whole vocabulary, proven at the pixel: each kind is
+			-- drawn white on black and the surface must change.
+		local
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			mp: MANAGED_POINTER
+			k, i, inked: INTEGER
+		do
+			create th.make_dark
+			create surf.make (32, 32)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			from
+				k := {SW_PAINTER}.Glyph_plus
+			until
+				k > {SW_PAINTER}.Glyph_error
+			loop
+				p.set_color (0x000000)
+				p.fill_rect (0.0, 0.0, 32.0, 32.0)
+				p.set_color (0xFFFFFF)
+				p.glyph (k, 16.0, 16.0, 20.0)
+				surf.flush.do_nothing
+				create mp.share_from_pointer (surf.data, 32 * surf.stride)
+				inked := 0
+				from
+					i := 0
+				until
+					i >= 32 * 32 or inked > 0
+				loop
+					if mp.read_natural_32 (i * 4) /= 0xFF000000 then
+						inked := inked + 1
+					end
+					i := i + 1
+				end
+				assert ("glyph " + k.out + " leaves ink", inked > 0)
+				k := k + 1
+			end
+		end
+
+	test_icon_button_faces
+		local
+			b, ib: SW_BUTTON
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			w_plain, w_glyph: REAL_64
+		do
+			create th.make_dark
+			create surf.make (8, 8)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create b.make ("Save", Void)
+			w_plain := b.preferred_width (p)
+			b := b.with_glyph ({SW_PAINTER}.Glyph_check)
+			w_glyph := b.preferred_width (p)
+			assert ("a glyph widens the face", w_glyph > w_plain)
+			create ib.make ("", Void)
+			ib := ib.with_glyph ({SW_PAINTER}.Glyph_gear)
+			assert ("an icon-only button is compact", ib.preferred_width (p) < w_plain + 22.0)
+		end
+
+	test_toolbar_icon_items_measure_squarely
+		local
+			tb: SW_TOOLBAR
+		do
+			create tb.make
+			tb.add_icon_item ({SW_PAINTER}.Glyph_search, "Search", Void)
+			assert_integers_equal ("icon item recorded", {SW_PAINTER}.Glyph_search,
+				tb.items.first.glyph)
+			assert ("label demoted to the tooltip", tb.items.first.label.is_empty)
+			assert_strings_equal ("which carries the words", "Search", tb.items.first.hint)
+		end
+
+	test_segmented_icon_segments
+		local
+			sg: SW_SEGMENTED
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+		do
+			create th.make_dark
+			create surf.make (8, 8)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create sg.make
+			sg := sg.with_segment ("List").with_icon_segment ({SW_PAINTER}.Glyph_gear)
+			assert_integers_equal ("parallel lists", 2, sg.segment_glyphs.count)
+			assert_reals_equal ("icon segments measure squarely (the shared measure)",
+				34.0, sg.seg_w (p, 2), 0.000_1)
+		end
+
+	test_empty_state_glyph_choice
+		local
+			es: SW_EMPTY_STATE
+		do
+			create es.make ("Nothing here", "Add an item to begin")
+			assert_integers_equal ("the tray by default", 0, es.glyph_kind)
+			es.set_glyph_kind ({SW_PAINTER}.Glyph_search)
+			assert_integers_equal ("or the host's kind", {SW_PAINTER}.Glyph_search, es.glyph_kind)
+		end
+
 end
