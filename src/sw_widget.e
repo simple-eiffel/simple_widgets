@@ -202,6 +202,22 @@ feature -- Input
 			Result := False
 		end
 
+	wants_tab: BOOLEAN
+			-- Does this widget consume the Tab CHARACTER itself
+			-- (spreadsheet cell-advance)? When False, Tab traverses
+			-- window focus instead of arriving here.
+		do
+			Result := False
+		end
+
+	cursor_kind: INTEGER
+			-- The pointer shape over this widget: 0 arrow, 1 ibeam,
+			-- 2 hand, 3 size-we, 4 size-ns, 5 cross, 6 wait
+			-- (SHELL_WINDOW's cursor vocabulary).
+		do
+			Result := 0
+		end
+
 	is_focused: BOOLEAN
 			-- Does this widget hold the keyboard focus?
 			-- Maintained by the window; drawn by the widget.
@@ -454,6 +470,24 @@ feature -- Input
 			answered: Result /= Void
 		end
 
+	focusables (a_acc: ARRAYED_LIST [SW_WIDGET])
+			-- Append, in tree order, every enabled widget below (and
+			-- including) this one that accepts keyboard focus - the
+			-- window's Tab ring, collected purely so a headless
+			-- assault can hold it to account.
+		do
+			if accepts_focus and is_enabled then
+				a_acc.extend (Current)
+			end
+			across
+				sub_widgets as sw
+			loop
+				sw.focusables (a_acc)
+			end
+		ensure
+			grew_or_not: a_acc.count >= old a_acc.count
+		end
+
 	dev_note: detachable STRING_32
 			-- Creator-supplied provenance for the dev-mode inspector:
 			-- intent, wiring rationale - what reflection cannot know.
@@ -551,6 +585,28 @@ feature -- Input
 			pending_popover := Void
 		ensure
 			taken: pending_popover = Void
+		end
+
+	requests_sheet_close: BOOLEAN
+			-- Has this widget asked the window to close the overlay
+			-- it lives in (a popover picker completing its pick)?
+
+	request_sheet_close
+			-- Ask the window to close the overlay after this
+			-- interaction; consumed by `take_sheet_close_request'.
+		do
+			requests_sheet_close := True
+		ensure
+			asked: requests_sheet_close
+		end
+
+	take_sheet_close_request: BOOLEAN
+			-- One-shot: the pending close request, consumed on read.
+		do
+			Result := requests_sheet_close
+			requests_sheet_close := False
+		ensure
+			consumed: not requests_sheet_close
 		end
 
 	pending_menu: detachable SW_MENU

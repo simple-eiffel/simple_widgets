@@ -19,18 +19,18 @@ Toolkit-wide near-term items (from the same read):
       add_drawer_tab API already accepts all four edges).
 - [ ] Overlay slide/ease animation on the heartbeat (drawers expanding
       and collapsing from window edges - Larry, 2026-08-22).
-- [ ] Peek-close grace delay (a short dwell before an unpinned drawer
-      dismisses).
+- [x] Peek-close grace delay (a short dwell before an unpinned drawer
+      dismisses). — DONE 2026-08-23 (Peek_grace_ticks law, assaulted)
 - [ ] SW_SPREADSHEET (Wave 5): SW_SHEET + CELLS_ENGINE graduated
       library-grade - ranges (A0:B9), SUM/AVG/MIN/MAX/COUNT, formula
       bar, TSV block clipboard, CSV in/out, command-pattern undo
       (Larry's spreadsheet doctrine, 2026-08-22).
 - [x] Undo/redo engine for SW_TEXT_BOX - the most-missed feature. — DONE 2026-08-23 (deepening sweep 1; assaulted)
-- [ ] Focus traversal (Tab order) - unlocks default buttons, keyboard
-      activation, list keyboard selection.
+- [x] Focus traversal (Tab order) - unlocks default buttons, keyboard
+      activation, list keyboard selection. — TRAVERSAL DONE 2026-08-23 (Tab/Shift+Tab ring, wants_tab guard); default buttons + list keyboard selection ride it next (sweep 3+)
 - [ ] Dirty-rect rendering + batched text runs - erases resize lag.
 - [ ] Drawn-glyph set - unlocks icon buttons, toolbar icons, segment icons.
-- [ ] Cursor API (I-beam, resize arrows).
+- [x] Cursor API (I-beam, resize arrows). — DONE 2026-08-23 (deepening sweep 2; assaulted)
 - [ ] DEPENDENCY AUDIT (Larry, 2026-08-22): sweep every ECF and source
       file for ISE/Gobo touchpoints (DIRECTORY, PATH, DATE, INTERNAL...),
       PART DONE 2026-08-23: the C half is settled - every Win32 external
@@ -46,7 +46,7 @@ Toolkit-wide near-term items (from the same read):
       SW_TIMEZONE_PICKER riding the SHIPPED Wave 4 SW_MAP (band pick,
       offset_at assaulted). DST deliberately not computed - offsets are
       the caller's law; ICU depth remains future.
-- [ ] Overlay auto-close-on-pick hook (date picker popovers).
+- [x] Overlay auto-close-on-pick hook (date picker popovers). — DONE 2026-08-23 (deepening sweep 2; assaulted)
 - [x] WAVE 4 - COMPLETE 2026-08-22, fifteen concepts in six movements plus
       the timezone coda, every row of the roadmap table SHIPPED with
       assaults and pages: SW_SCALE (1/2/5 ladder), SW_CHART chassis
@@ -89,7 +89,7 @@ Limits to push:
 
 - [ ] One window per application for now - no secondary or child windows yet.
 - [ ] The frame echo (set_frame_echo) writes PNG lazily on the tick, not on every render - it is a debug instrument, not a video feed.
-- [ ] No cursor shaping yet: the pointer stays an arrow even over text boxes and splitters.
+- [x] No cursor shaping yet: the pointer stays an arrow even over text boxes and splitters. — DONE 2026-08-23 (deepening sweep 2; assaulted)
 - [ ] Redraws repaint the full frame; very large windows pay for it on resize drags (felt as slight grow-lag).
 
 
@@ -97,7 +97,7 @@ Limits to push:
 
 Planned extensions:
 
-- [ ] Tab-order focus traversal with a visible focus ring policy.
+- [x] Tab-order focus traversal with a visible focus ring policy. — DONE 2026-08-23 (deepening sweep 2; assaulted)
 - [x] dev_note metadata for the SW_INSPECTOR overlay (provenance, intent, wiring) - SHIPPED on the widget spine.
 - [ ] Accessibility bridge (UIA text patterns) - a research item; it must not violate R7.
 - [ ] Animation hooks (hover/press transitions driven from the tick).
@@ -111,7 +111,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] No keyboard focus traversal yet - Tab does not move focus between widgets; focus follows clicks.
+- [x] No keyboard focus traversal yet - Tab does not move focus between widgets; focus follows clicks. — DONE 2026-08-23 (deepening sweep 2; assaulted)
 - [ ] State flags are window-maintained; driving a widget headless (as the test suite does) means calling handlers directly - hover/pressed stay False unless you set them.
 - [ ] Only rectangular hit-testing (contains / widget_at).
 
@@ -562,7 +562,7 @@ Limits to push:
 
 - [ ] Two panes, vertical divider only (no horizontal split or three-pane nesting sugar - nest splitters for now).
 - [ ] No collapse-to-edge gesture.
-- [ ] No cursor change over the divider yet (windowing cursor API pending).
+- [x] No cursor change over the divider yet (windowing cursor API pending). — DONE 2026-08-23 (deepening sweep 2; assaulted)
 
 
 ## SW_MENU
@@ -972,7 +972,7 @@ Limits to push:
 - [ ] No slide animation - the drawer appears (heartbeat easing is queued).
 - [ ] One overlay at a time: a drawer displaces an open sheet or popover.
 - [ ] Tab gutters: left and right today; Edge_top/Edge_bottom are accepted by the API but precondition-blocked until their gutters land (S04).
-- [ ] Peeked drawers close on pointer-leave with no grace delay yet.
+- [x] Peeked drawers close on pointer-leave with no grace delay yet. — DONE 2026-08-23 (deepening sweep 2; assaulted)
 - [ ] One overlay at a time by law: dual pinned drawers await true docking (Wave 5).
 
 
@@ -1117,7 +1117,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] The popover needs an outside click (or Escape) to dismiss after a pick - auto-close-on-pick is queued on the overlay engine (S04).
+- [x] The popover needs an outside click (or Escape) to dismiss after a pick - auto-close-on-pick is queued on the overlay engine (S04). — DONE 2026-08-23 (deepening sweep 2; assaulted)
 - [ ] Before the first draw, a picker WITHOUT an override parses as US even under a non-US theme - it adopts the theme's culture when first painted. Set the override when typing precedes showing.
 
 

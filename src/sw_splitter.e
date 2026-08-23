@@ -11,7 +11,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			sub_widgets,
+			sub_widgets, cursor_kind,
 			arrange, widget_at, handle_click, handle_drag
 		end
 
@@ -19,6 +19,12 @@ create
 	make
 
 feature {NONE} -- Initialization
+
+	cursor_kind: INTEGER
+			-- The east-west resize arrows: the divider drags.
+		do
+			Result := 3
+		end
 
 	make (a_left, a_right: SW_WIDGET)
 		do

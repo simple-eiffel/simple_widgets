@@ -20,7 +20,7 @@ inherit
 		redefine
 			accepts_focus, handle_click, handle_double_click,
 			handle_triple_click, handle_drag, handle_char, handle_key,
-			context_menu, accepts_pebble, receive_pebble
+			context_menu, accepts_pebble, receive_pebble, cursor_kind
 		end
 
 create
@@ -576,6 +576,12 @@ feature -- Drawing
 		end
 
 feature -- Input
+
+	cursor_kind: INTEGER
+			-- The I-beam: this is a text surface.
+		do
+			Result := 1
+		end
 
 	accepts_focus: BOOLEAN
 		do

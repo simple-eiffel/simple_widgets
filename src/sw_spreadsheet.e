@@ -22,7 +22,7 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click, handle_char, handle_key, handle_wheel,
-			accepts_focus
+			accepts_focus, wants_tab
 		end
 
 create
@@ -106,6 +106,13 @@ feature -- Element change
 		end
 
 feature -- Layout
+
+	wants_tab: BOOLEAN
+			-- Tab commits right (the grid's own law) - never focus
+			-- traversal while the sheet holds focus.
+		do
+			Result := True
+		end
 
 	accepts_focus: BOOLEAN
 		do

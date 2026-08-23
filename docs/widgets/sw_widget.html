@@ -84,7 +84,7 @@ lbl := lbl.with_tooltip (<span <span class="keyword">class</span>="string">&quot
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>No keyboard focus traversal yet - Tab does not move focus between widgets; focus follows clicks.</li>
+                <li>Tab traversal SHIPPED 2026-08-23: the pure focusables ring (enabled + accepts_focus, tree order), walked by the window; Shift+Tab reverses; wants_tab lets grids keep their own Tab.</li>
                 <li>State flags are window-maintained; driving a widget headless (as the test suite does) means calling handlers directly - hover/pressed stay False unless you set them.</li>
                 <li>Only rectangular hit-testing (<code>contains</code> / <code>widget_at</code>).</li>
             </ul>

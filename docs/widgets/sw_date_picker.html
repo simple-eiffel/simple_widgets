@@ -49,7 +49,7 @@ date_iso := date_iso.with_picker_locale (<span class="keyword">create</span> {<s
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>The popover needs an outside click (or Escape) to dismiss after a pick - auto-close-on-pick is queued on the overlay engine (S04).</li>
+                <li>Auto-close-on-pick SHIPPED 2026-08-23: the calendar raises a one-shot close request the window honours; embedded calendars are unaffected (opt-in flag).</li>
                 <li>Before the first draw, a picker WITHOUT an override parses as US even under a non-US theme - it adopts the theme's culture when first painted. Set the override when typing precedes showing.</li>
             </ul>
         </section>

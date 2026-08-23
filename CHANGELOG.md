@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (DEEPENING SWEEP 2 - the window learns manners)
+- TAB FOCUS TRAVERSAL: SW_WIDGET.focusables collects the ring purely
+  (enabled + accepts_focus, tree order); the window walks it on Tab,
+  Shift+Tab reverses, both wrap; wants_tab lets the spreadsheet keep
+  its commit-right Tab. Assaulted headlessly end to end.
+- CURSOR SHAPING: widgets declare cursor_kind (I-beam over text
+  surfaces, resize arrows over the splitter divider), applied on
+  hover through simple_shell's new WM_SETCURSOR path (costs nothing
+  until the pointer moves).
+- POPOVER AUTO-CLOSE-ON-PICK: the calendar raises a one-shot close
+  request after a day pick (opt-in - embedded calendars unaffected);
+  the window honours it after the click settles. The date picker's
+  popover now closes itself the way every date field should.
+- DRAWER PEEK-CLOSE GRACE: an unpinned drawer survives one heartbeat
+  with the pointer outside (about half a second) before closing;
+  re-entry resets the clock. The law is a pure feature the assault
+  drives directly.
+- 20 stale per-control docs pages refreshed to match everything the
+  two sweeps shipped.
+- Suite 167/167.
+
 ### Changed (THE CARVE - simple_widgets is now pure Eiffel)
 - ALL Win32 C moved to the new simple_shell library (Larry's descend-
   and-use directive): SW_WINDOW now inherits deferred SHELL_WINDOW and

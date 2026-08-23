@@ -140,6 +140,7 @@ feature -- Input
 					cal.select_date (selected_year, selected_month, selected_day)
 				end
 				cal.set_on_pick (agent on_calendar_pick)
+				cal.set_closes_overlay_on_pick (True)
 				pending_popover := cal
 				pending_popover_width := 250.0
 				Result := True

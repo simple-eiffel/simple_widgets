@@ -13,7 +13,7 @@ inherit
 	SW_WIDGET
 		redefine
 			preferred_width, handle_click, handle_wheel,
-			handle_char, accepts_focus
+			handle_char, accepts_focus, cursor_kind
 		end
 
 create
@@ -44,6 +44,12 @@ feature -- Access
 	edit_buffer: STRING_32
 		attribute
 			create Result.make_empty
+		end
+
+	cursor_kind: INTEGER
+			-- The I-beam: the value area takes typing.
+		do
+			Result := 1
 		end
 
 	accepts_focus: BOOLEAN

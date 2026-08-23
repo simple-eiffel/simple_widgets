@@ -77,7 +77,7 @@ window.show_sheet (my_form, 560.0)
             <ul>
                 <li>One window per application for now - no secondary or child windows yet.</li>
                 <li>The frame echo (<code>set_frame_echo</code>) writes PNG lazily on the tick, not on every render - it is a debug instrument, not a video feed.</li>
-                <li>No cursor shaping yet: the pointer stays an arrow even over text boxes and splitters.</li>
+                <li>Cursor shaping SHIPPED 2026-08-23: widgets declare cursor_kind (I-beam over text, resize arrows over dividers), applied on hover through simple_shell's WM_SETCURSOR path.</li>
                 <li>Redraws repaint the full frame; very large windows pay for it on resize drags (felt as slight grow-lag).</li>
             </ul>
         </section>

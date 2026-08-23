@@ -161,6 +161,17 @@ feature {NONE} -- Dispatch
 					tk.call
 				end
 				age_toasts
+				if sheet /= Void and then not drawer_pinned
+					and then (sheet_mode = Mode_left or sheet_mode = Mode_right)
+				then
+					if peek_close_due (not point_in_sheet_panel (last_pointer_x, last_pointer_y)
+						and then drawer_tab_at (last_pointer_x, last_pointer_y) = 0)
+					then
+						close_sheet
+					end
+				else
+					peek_out_ticks := 0
+				end
 			elseif a_type = 16 then
 					-- Likewise the surface: a resize that arrives while a
 					-- dialog or popup is open must still reallocate.
@@ -401,6 +412,79 @@ feature -- Sheets
 			closed: sheet = Void
 		end
 
+feature -- Focus traversal
+
+	focus_next
+			-- Move keyboard focus to the next focusable widget in
+			-- tree order, cyclically - Tab's meaning.
+		do
+			shift_focus (1)
+		end
+
+	focus_previous
+			-- Tab's mirror: backwards through the same ring.
+		do
+			shift_focus (-1)
+		end
+
+feature -- Peek grace
+
+	Peek_grace_ticks: INTEGER = 2
+			-- Heartbeats an unpinned drawer survives with the pointer
+			-- outside its panel (about half a second) before it
+			-- peeks closed - grazing the edge must not slam it.
+
+	peek_out_ticks: INTEGER
+			-- Consecutive heartbeats observed with the pointer out.
+
+	peek_close_due (a_outside: BOOLEAN): BOOLEAN
+			-- Record one heartbeat's observation of the pointer
+			-- relative to a peeked panel; True when the grace is
+			-- spent. A pure law: the assault drives it directly.
+		do
+			if a_outside then
+				peek_out_ticks := peek_out_ticks + 1
+				Result := peek_out_ticks >= Peek_grace_ticks
+			else
+				peek_out_ticks := 0
+			end
+		ensure
+			counting: a_outside implies peek_out_ticks = old peek_out_ticks + 1
+			reset: not a_outside implies peek_out_ticks = 0
+		end
+
+feature {NONE} -- Focus internals
+
+	shift_focus (a_dir: INTEGER)
+			-- Walk the focus ring `a_dir' steps (1 or -1), wrapping.
+		require
+			unit_step: a_dir = 1 or a_dir = -1
+		local
+			fs: ARRAYED_LIST [SW_WIDGET]
+			i: INTEGER
+		do
+			create fs.make (8)
+			if attached active_root as r then
+				r.focusables (fs)
+			end
+			if not fs.is_empty then
+				if attached focused as f then
+					i := fs.index_of (f, 1)
+				end
+				i := i + a_dir
+				if i < 1 then
+					i := fs.count
+				elseif i > fs.count then
+					i := 1
+				end
+				if attached focused as prev then
+					prev.set_focused (False)
+				end
+				focused := fs.i_th (i)
+				fs.i_th (i).set_focused (True)
+			end
+		end
+
 feature {NONE} -- Popup lifecycle
 
 	close_popup
@@ -536,7 +620,14 @@ feature {NONE} -- Popup lifecycle
 					pending_surrogate := 0
 				else
 					pending_surrogate := 0
-					if a_x = 27 and then sheet /= Void and then focused = Void then
+					if a_x = 9 and then not (attached focused as tf and then tf.wants_tab) then
+						if shift_is_down then
+							focus_previous
+						else
+							focus_next
+						end
+						after_input
+					elseif a_x = 27 and then sheet /= Void and then focused = Void then
 						close_sheet
 						after_input
 					elseif attached focused as w then
@@ -598,17 +689,15 @@ feature {NONE} -- Popup lifecycle
 					end
 				end
 			when 13 then
+				last_pointer_x := a_x
+				last_pointer_y := a_y
 				if sheet = Void and then drawer_tab_at (a_x, a_y) > 0 then
 					open_drawer_from_tab (drawer_tab_at (a_x, a_y), False)
-				elseif sheet /= Void and then not drawer_pinned
-					and then (sheet_mode = Mode_left or sheet_mode = Mode_right)
-					and then not point_in_sheet_panel (a_x, a_y)
-					and then drawer_tab_at (a_x, a_y) = 0
-				then
-					close_sheet
 				end
 				update_hover (a_x, a_y)
 			when 14 then
+				last_pointer_x := -30000
+				last_pointer_y := -30000
 				if attached hovered as hw then
 					hw.set_hovered (False)
 					hovered := Void
@@ -748,6 +837,11 @@ feature {NONE} -- Popup lifecycle
 							(cw.y + cw.height + 2.0).truncated_to_integer)
 					end
 				end
+				if cw.take_sheet_close_request and then sheet /= Void then
+						-- a popover picker completed its pick: the
+						-- overlay's work is done (auto-close-on-pick)
+					close_sheet
+				end
 					-- popovers may be summoned by doubles too: the
 					-- mesh's double-click reveal taught this
 				if attached cw.take_pending_popover as pp then
@@ -869,6 +963,9 @@ feature {NONE} -- Popup lifecycle
 				hovered := w
 				if attached w as nw then
 					nw.set_hovered (True)
+					set_cursor_kind (nw.cursor_kind)
+				else
+					set_cursor_kind (0)
 				end
 				dwell_ticks := 0
 				tooltip_visible := False
@@ -1573,6 +1670,10 @@ feature -- Drawer tab (peek and pin)
 
 	dwell_ticks: INTEGER
 			-- Timer ticks the pointer has rested on the hovered widget.
+
+	last_pointer_x, last_pointer_y: INTEGER
+			-- Where the pointer last moved (far offscreen after it
+			-- leaves the window) - the peek-grace clock reads it.
 
 	tooltip_visible: BOOLEAN
 

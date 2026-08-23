@@ -347,6 +347,11 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_badge_kind_and_zero_policy, "badge_kind_and_zero_policy")
 			run_test (agent deepening_tests.test_theme_text_scale, "theme_text_scale")
 			run_test (agent deepening_tests.test_screen_grab_marries_cairo, "screen_grab_marries_cairo")
+			run_test (agent deepening_tests.test_focus_traversal_ring, "focus_traversal_ring")
+			run_test (agent deepening_tests.test_spreadsheet_keeps_its_tab, "spreadsheet_keeps_its_tab")
+			run_test (agent deepening_tests.test_cursor_kinds, "cursor_kinds")
+			run_test (agent deepening_tests.test_peek_grace_law, "peek_grace_law")
+			run_test (agent deepening_tests.test_calendar_close_on_pick_request, "calendar_close_on_pick_request")
 		end
 
 	deepening_tests: SW_DEEPENING_ASSAULT

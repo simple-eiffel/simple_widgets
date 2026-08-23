@@ -68,7 +68,7 @@ notes.set_text (<span <span class="keyword">class</span>="string">&quot;shorter&
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>No undo/redo yet - the most-missed feature; it is first in line (see Future).</li>
+                <li>Undo/redo SHIPPED 2026-08-23: typing and deleting runs coalesce into single steps, blocks (paste, cut, drop) stand alone, Ctrl+Z / Ctrl+Y; programmatic set_text clears history by editor law.</li>
                 <li>Single-line boxes do not scroll horizontally; text beyond the width clips until the box grows.</li>
                 <li>No IME composition window for CJK input; code points arrive via WM_CHAR only (surrogate pairs are handled - see R8 - but composition UX is absent).</li>
                 <li>Word wrap is greedy per word; no hyphenation or break-opportunity analysis.</li>

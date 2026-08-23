@@ -56,6 +56,18 @@ feature -- Access
 
 feature -- Element change
 
+	closes_overlay_on_pick: BOOLEAN
+			-- Should a day pick ask the window to close the overlay
+			-- this calendar rides in? Set by popover hosts (the date
+			-- picker); embedded calendars leave it off.
+
+	set_closes_overlay_on_pick (a_flag: BOOLEAN)
+		do
+			closes_overlay_on_pick := a_flag
+		ensure
+			set: closes_overlay_on_pick = a_flag
+		end
+
 	set_on_pick (a_action: PROCEDURE [INTEGER, INTEGER, INTEGER])
 		do
 			on_pick := a_action
@@ -281,6 +293,9 @@ feature -- Input
 						shown_month := d.month
 						if attached on_pick as pk then
 							pk.call (d.year, d.month, d.day)
+						end
+						if closes_overlay_on_pick then
+							request_sheet_close
 						end
 					end
 				end

@@ -228,4 +228,95 @@ feature -- Batch 2: toolkit-wide reach
 			end
 		end
 
+	test_focus_traversal_ring
+			-- The Tab ring: collected purely, walked cyclically,
+			-- disabled widgets skipped, inert widgets never in it.
+		local
+			w: SW_WINDOW
+			row: SW_ROW
+			b: SW_BUTTON
+			t1, t2, t3: SW_TEXT_BOX
+			th: SW_THEME
+			fs: ARRAYED_LIST [SW_WIDGET]
+		do
+			create th.make_dark
+			create w.make ("focus", 0, 0, 320, 200, th)
+			create row.make
+			create b.make ("btn", Void)
+			create t1.make_single_line ("")
+			create t2.make_single_line ("")
+			create t3.make_single_line ("")
+			t2.set_enabled (False)
+			row := row.add (b).add (t1).add (t2).add (t3)
+			w.set_root (row)
+			create fs.make (4)
+			row.focusables (fs)
+			assert_integers_equal ("disabled skipped, button inert: two in the ring", 2, fs.count)
+			w.focus_next
+			assert ("Tab lands on the first", fs.i_th (1).is_focused)
+			w.focus_next
+			assert ("then the second", fs.i_th (2).is_focused)
+			assert ("and the first let go", not fs.i_th (1).is_focused)
+			w.focus_next
+			assert ("the ring wraps", fs.i_th (1).is_focused)
+			w.focus_previous
+			assert ("Shift+Tab walks back (wrapping too)", fs.i_th (2).is_focused)
+		end
+
+	test_spreadsheet_keeps_its_tab
+		local
+			sp: SW_SPREADSHEET
+			tb: SW_TEXT_BOX
+		do
+			create sp.make
+			create tb.make_single_line ("")
+			assert ("the grid consumes Tab (commit right)", sp.wants_tab)
+			assert ("a text box surrenders it to traversal", not tb.wants_tab)
+		end
+
+	test_cursor_kinds
+		local
+			tb: SW_TEXT_BOX
+			bt: SW_BUTTON
+			sp: SW_SPLITTER
+		do
+			create tb.make_single_line ("")
+			create bt.make ("x", Void)
+			create sp.make (create {SW_LABEL}.make_ui ("a"), create {SW_LABEL}.make_ui ("b"))
+			assert_integers_equal ("text surface shows the I-beam", 1, tb.cursor_kind)
+			assert_integers_equal ("buttons keep the arrow", 0, bt.cursor_kind)
+			assert_integers_equal ("the divider shows resize arrows", 3, sp.cursor_kind)
+		end
+
+	test_peek_grace_law
+			-- An unpinned drawer survives one heartbeat outside;
+			-- the second spends the grace; re-entry resets it.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+		do
+			create th.make_dark
+			create w.make ("grace", 0, 0, 200, 100, th)
+			assert ("one tick outside is grazing, not leaving", not w.peek_close_due (True))
+			assert ("two ticks outside spends the grace", w.peek_close_due (True))
+			assert ("re-entry resets", not w.peek_close_due (False))
+			assert ("and the count starts over", not w.peek_close_due (True))
+		end
+
+	test_calendar_close_on_pick_request
+			-- The date-picker popover law: a day pick raises a
+			-- one-shot close request - only when the host opted in.
+		local
+			cal: SW_CALENDAR
+		do
+			create cal.make
+			cal.set_bounds (0.0, 0.0, 250.0, 240.0)
+			if cal.handle_click (10.0, 70.0) then end
+			assert ("embedded calendars never ask", not cal.take_sheet_close_request)
+			cal.set_closes_overlay_on_pick (True)
+			if cal.handle_click (10.0, 70.0) then end
+			assert ("popover calendars ask after a pick", cal.take_sheet_close_request)
+			assert ("and the request is one-shot", not cal.take_sheet_close_request)
+		end
+
 end

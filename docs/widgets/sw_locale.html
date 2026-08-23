@@ -59,7 +59,7 @@ print (us.format_date (2026, 12, 25))      <span class="comment">-- 12/25/2026</
             <ul>
                 <li>Names ship in English; localize via set_names (no CLDR data bundled - Windows carries ICU when depth is ever needed).</li>
                 <li>No collation yet: sorted grids compare code points, not locale rules (S04).</li>
-                <li>The decimal separator is carried but no numeric formatter consumes it yet.</li>
+                <li>format_number SHIPPED 2026-08-23: thousands grouping with the carried decimal mark, negatives and zero-decimal forms included.</li>
             </ul>
         </section>
 
