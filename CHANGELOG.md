@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (MAP ZOOM - the wheel owns the planet)
+- SW_MAP wheel zoom AT THE POINTER: the ground under the cursor
+  stays under the cursor (pinned to 4 decimals in the assault),
+  quarter-steps per notch, clamped 1..16; drag PANS keeping the
+  grabbed ground under the hand; double-click snaps the whole world
+  home. The projection quartet reads through a clamped view window
+  - at zoom 1 the old whole-world formulas fall out unchanged, so
+  every pre-zoom projection assault still passes untouched.
+- The land, band highlight and city dots clip to the plot while
+  zoomed; the band highlight width is computed through the window
+  (no more fixed plot_w/24). Band PICKING stays true while zoomed -
+  a zoomed click still names its 15-degree band (assaulted).
+- Suite 192/192.
+
 ### Added (THE POPULATED PLANET - cities with data)
 - SW_WORLD_CITIES: all 243 Natural Earth 110m populated places
   (public domain) generated into source by tools/gen_world_cities.py

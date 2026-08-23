@@ -17,7 +17,8 @@ class
 inherit
 	SW_CHART
 		redefine
-			draw
+			draw, handle_click, handle_drag, handle_wheel,
+			handle_double_click
 		end
 
 create
@@ -44,25 +45,26 @@ feature -- Access
 feature -- Projection (public, assaulted)
 
 	x_of_lon (a_lon: REAL_64): REAL_64
-			-- Equirectangular: longitude to plot x.
+			-- Equirectangular through the zoom window: longitude to
+			-- plot x. At zoom 1 this is the old whole-world formula.
 		do
-			Result := plot_x + (a_lon + 180.0) / 360.0 * plot_w
+			Result := plot_x + (a_lon - (view_cx - span_lon / 2.0)) / span_lon * plot_w
 		end
 
 	y_of_lat (a_lat: REAL_64): REAL_64
-			-- Equirectangular: latitude to plot y (north up).
+			-- Equirectangular through the zoom window (north up).
 		do
-			Result := plot_y + (90.0 - a_lat) / 180.0 * plot_h
+			Result := plot_y + ((view_cy + span_lat / 2.0) - a_lat) / span_lat * plot_h
 		end
 
 	lon_at_x (a_px: REAL_64): REAL_64
 		do
-			Result := (a_px - plot_x) / plot_w * 360.0 - 180.0
+			Result := (view_cx - span_lon / 2.0) + (a_px - plot_x) / plot_w * span_lon
 		end
 
 	lat_at_y (a_py: REAL_64): REAL_64
 		do
-			Result := 90.0 - (a_py - plot_y) / plot_h * 180.0
+			Result := (view_cy + span_lat / 2.0) - (a_py - plot_y) / plot_h * span_lat
 		end
 
 	marker_at (a_px, a_py: REAL_64): INTEGER
@@ -102,6 +104,141 @@ feature -- Projection (public, assaulted)
 					Result := land_rows [r].item (c) = '#'
 				end
 			end
+		end
+
+feature -- Zoom (the wheel at the pointer; drag pans; double-click resets)
+
+	zoom: REAL_64
+			-- 1.0 shows the whole world; larger narrows the window.
+			-- Read through `effective_zoom' so an unset attribute
+			-- still means the whole world.
+
+	view_cx: REAL_64
+			-- Centre longitude of the view window.
+
+	view_cy: REAL_64
+			-- Centre latitude of the view window.
+
+	Max_zoom: REAL_64 = 16.0
+
+	effective_zoom: REAL_64
+		do
+			if zoom < 1.0 then
+				Result := 1.0
+			else
+				Result := zoom
+			end
+		ensure
+			sane: Result >= 1.0 and Result <= Max_zoom
+		end
+
+	span_lon: REAL_64
+			-- Degrees of longitude the window shows.
+		do
+			Result := 360.0 / effective_zoom
+		end
+
+	span_lat: REAL_64
+		do
+			Result := 180.0 / effective_zoom
+		end
+
+	set_view (a_zoom, a_cx, a_cy: REAL_64)
+			-- Clamp-and-set: zoom into 1..Max_zoom, the centre so
+			-- the window never leaves the planet. At zoom 1 the
+			-- centre is forced home - the old whole-world formulas
+			-- fall out unchanged, which is why every pre-zoom
+			-- projection assault still passes.
+		do
+			zoom := a_zoom.max (1.0).min (Max_zoom)
+			view_cx := a_cx.max (-180.0 + span_lon / 2.0).min (180.0 - span_lon / 2.0)
+			view_cy := a_cy.max (-90.0 + span_lat / 2.0).min (90.0 - span_lat / 2.0)
+		ensure
+			zoom_clamped: zoom >= 1.0 and zoom <= Max_zoom
+			on_planet: view_cx >= -180.0 and view_cx <= 180.0
+		end
+
+	handle_wheel (a_delta: INTEGER): BOOLEAN
+			-- Zoom at the pointer: the place under the cursor stays
+			-- under the cursor. A quarter step per notch, 1..16.
+		local
+			anchor_x, anchor_y, l, la, f, nz: REAL_64
+			steps, k: INTEGER
+		do
+			if plot_w > 0.0 and plot_h > 0.0 then
+				anchor_x := hover_px
+				anchor_y := hover_py
+				if anchor_x < plot_x or anchor_x > plot_x + plot_w
+					or anchor_y < plot_y or anchor_y > plot_y + plot_h
+				then
+					anchor_x := plot_x + plot_w / 2.0
+					anchor_y := plot_y + plot_h / 2.0
+				end
+				l := lon_at_x (anchor_x)
+				la := lat_at_y (anchor_y)
+				steps := a_delta // 120
+				if steps = 0 and a_delta > 0 then
+					steps := 1
+				elseif steps = 0 and a_delta < 0 then
+					steps := -1
+				end
+				f := 1.0
+				from
+					k := 1
+				until
+					k > steps.abs
+				loop
+					if steps > 0 then
+						f := f * 1.25
+					else
+						f := f / 1.25
+					end
+					k := k + 1
+				end
+				nz := (effective_zoom * f).max (1.0).min (Max_zoom)
+				set_view (nz,
+					l - (anchor_x - plot_x) / plot_w * (360.0 / nz) + (360.0 / nz) / 2.0,
+					la + (anchor_y - plot_y) / plot_h * (180.0 / nz) - (180.0 / nz) / 2.0)
+				Result := True
+			end
+		end
+
+	handle_click (a_px, a_py: REAL_64): BOOLEAN
+			-- A press grabs the ground for panning (meaningful once
+			-- zoomed; at zoom 1 the clamp holds the world still).
+		do
+			begin_pan (a_px, a_py)
+			Result := True
+		end
+
+	handle_drag (a_px, a_py: REAL_64)
+			-- Keep the grabbed ground under the pointer.
+		do
+			if plot_w > 0.0 then
+				set_view (effective_zoom,
+					view_cx - (lon_at_x (a_px) - pan_lon),
+					view_cy - (lat_at_y (a_py) - pan_lat))
+			end
+		end
+
+	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
+			-- The whole world, home again.
+		do
+			set_view (1.0, 0.0, 0.0)
+			Result := True
+		ensure then
+			home: effective_zoom = 1.0
+		end
+
+feature {NONE} -- Pan grab
+
+	pan_lon, pan_lat: REAL_64
+			-- The ground under the pointer when the press landed.
+
+	begin_pan (a_px, a_py: REAL_64)
+		do
+			pan_lon := lon_at_x (a_px)
+			pan_lat := lat_at_y (a_py)
 		end
 
 feature -- World cities
@@ -231,12 +368,14 @@ feature -- Drawing
 			t := a_p.theme
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
+			a_p.push_clip (plot_x, plot_y, plot_w, plot_h)
 			a_p.set_color (t.surface_variant)
 			draw_land (a_p)
 			if has_zone then
 				zx := x_of_lon ((zone_offset * 15).to_double - 7.5)
 				a_p.set_color_alpha (t.accent, 0.18)
-				a_p.fill_rect (zx, plot_y, plot_w / 24.0, plot_h)
+				a_p.fill_rect (zx, plot_y,
+					x_of_lon ((zone_offset * 15).to_double + 7.5) - zx, plot_h)
 				a_p.set_color_alpha (t.accent, 0.6)
 				a_p.vline (x_of_lon ((zone_offset * 15).to_double), plot_y, plot_h)
 			end
@@ -256,6 +395,7 @@ feature -- Drawing
 					y_of_lat (markers.i_th (r).lat), 4.0)
 				r := r + 1
 			end
+			a_p.pop_clip
 			if hot > 0 then
 				create chip.make (32)
 				chip.append (markers.i_th (hot).label)

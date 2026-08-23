@@ -61,6 +61,7 @@ feature -- Input
 				if attached on_change as a then
 					a.call (selected_offset)
 				end
+				begin_pan (a_px, a_py)
 				Result := True
 			end
 		end

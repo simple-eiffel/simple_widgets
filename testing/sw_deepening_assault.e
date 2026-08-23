@@ -931,4 +931,100 @@ feature -- The pretty map (Natural Earth 110m, generated)
 			assert_integers_equal ("mid-Pacific is honestly empty", 0, m.cities_in_band (-10, 5).count)
 		end
 
+	test_map_zoom_laws
+			-- The wheel zooms AT the pointer (the ground under the
+			-- cursor stays put), clamps 1..16, pans keep the grab
+			-- under the hand, and double-click goes home.
+		local
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			m: SW_MAP
+			ax, ay: REAL_64
+			k: INTEGER
+		do
+			create th.make_dark
+			create surf.make (300, 160)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create m.make
+			m.set_bounds (0.0, 0.0, 300.0, 160.0)
+			m.arrange (p)
+			m.draw (p)
+				-- roundtrip law holds through any window
+			m.set_view (4.0, 30.0, 20.0)
+			assert_reals_equal ("projection inverts at zoom 4",
+				37.0, m.lon_at_x (m.x_of_lon (37.0)), 0.000_1)
+			assert_reals_equal ("latitude too",
+				12.5, m.lat_at_y (m.y_of_lat (12.5)), 0.000_1)
+				-- the anchor law: zoom in at a known place
+			m.set_view (2.0, 0.0, 0.0)
+			ax := m.x_of_lon (10.0)
+			ay := m.y_of_lat (10.0)
+			m.set_hover_point (ax, ay)
+			assert ("wheel-in answers", m.handle_wheel (120))
+			assert_reals_equal ("zoom grew a quarter step", 2.5, m.effective_zoom, 0.000_1)
+			assert_reals_equal ("the ground under the cursor stayed put",
+				10.0, m.lon_at_x (ax), 0.000_1)
+			assert_reals_equal ("in latitude as well",
+				10.0, m.lat_at_y (ay), 0.000_1)
+				-- clamps both ways
+			from
+				k := 1
+			until
+				k > 20
+			loop
+				if m.handle_wheel (-120) then
+				end
+				k := k + 1
+			end
+			assert_reals_equal ("wheel-out floors at the whole world", 1.0, m.effective_zoom, 0.000_1)
+			from
+				k := 1
+			until
+				k > 40
+			loop
+				if m.handle_wheel (120) then
+				end
+				k := k + 1
+			end
+			assert_reals_equal ("wheel-in ceils at 16", 16.0, m.effective_zoom, 0.000_1)
+				-- pan keeps the grab under the hand
+			m.set_view (4.0, 0.0, 0.0)
+			if m.handle_click (m.plot_x + m.plot_w / 2.0, m.plot_y + m.plot_h / 2.0) then
+			end
+			m.handle_drag (m.plot_x + m.plot_w / 2.0 + 40.0, m.plot_y + m.plot_h / 2.0)
+			assert ("dragging east shows the west", m.view_cx < -1.0)
+				-- and home again
+			if m.handle_double_click (10.0, 10.0) then
+			end
+			assert_reals_equal ("double-click resets", 1.0, m.effective_zoom, 0.000_1)
+			assert_reals_equal ("centred home", 0.0, m.view_cx, 0.000_1)
+		end
+
+	test_zoomed_band_pick_stays_true
+			-- The picker's 15-degree arithmetic reads through the
+			-- zoom window - a zoomed click still names its band.
+		local
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			zp: SW_TIMEZONE_PICKER
+		do
+			create th.make_dark
+			create surf.make (300, 160)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create zp.make
+			zp.set_bounds (0.0, 0.0, 300.0, 160.0)
+			zp.arrange (p)
+			zp.draw (p)
+			zp.set_view (2.0, 30.0, 10.0)
+			if zp.handle_click (zp.x_of_lon (31.0), zp.plot_y + 10.0) then
+			end
+			assert_integers_equal ("31 degrees east is band +2", 2, zp.selected_offset)
+		end
+
 end
