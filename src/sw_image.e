@@ -16,7 +16,7 @@ inherit
 		end
 
 create
-	make_from_file
+	make_from_file, make_from_surface
 
 feature {NONE} -- Initialization
 
@@ -28,11 +28,30 @@ feature {NONE} -- Initialization
 			path_kept: source_path.same_string_general (a_path)
 		end
 
+	make_from_surface (a_surface: CAIRO_SURFACE)
+			-- Show pixels already in hand (a screen grab, a thumbnail)
+			-- - no file involved.
+		do
+			create source_path.make_empty
+			picture := a_surface
+		ensure
+			kept: picture = a_surface
+		end
+
 feature -- Access
 
 	source_path: STRING_32
 
 	picture: CAIRO_SURFACE
+
+	set_surface (a_surface: CAIRO_SURFACE)
+			-- Swap the pixels shown; the old surface stays the
+			-- caller's to destroy.
+		do
+			picture := a_surface
+		ensure
+			kept: picture = a_surface
+		end
 
 	is_loaded: BOOLEAN
 			-- Did the PNG decode into pixels?

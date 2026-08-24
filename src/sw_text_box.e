@@ -18,7 +18,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			accepts_focus, handle_click, handle_double_click,
+			accepts_focus, preferred_width, handle_click, handle_double_click,
 			handle_triple_click, handle_drag, handle_char, handle_key,
 			context_menu, accepts_pebble, receive_pebble, cursor_kind
 		end
@@ -583,6 +583,14 @@ feature -- Input
 			Result := 1
 		end
 
+	preferred_width (a_p: SW_PAINTER): REAL_64
+			-- A real field's presence, not the content's length: a
+			-- long path must not blow the row apart. Growers stretch
+			-- past this; nothing shrinks below it.
+		do
+			Result := 240.0
+		end
+
 	accepts_focus: BOOLEAN
 		do
 			Result := True
@@ -755,6 +763,10 @@ feature -- Input
 				loop
 					Result.add_item (sg, "", True, agent replace_range (sr.lo, sr.hi, sg))
 				end
+				Result.add_item ({STRING_32} "Ignore %"" + word_of (sr) + {STRING_32} "%"",
+					"", True, agent ignore_misspelling (sr.lo, sr.hi))
+				Result.add_item ({STRING_32} "Add %"" + word_of (sr) + {STRING_32} "%" to dictionary",
+					"", True, agent learn_word (sr.lo, sr.hi))
 				Result.add_separator
 			end
 			Result.add_item ("Cut", "Ctrl+X", has_selection and not is_read_only and not is_masked, agent cut_selection)
@@ -1141,6 +1153,40 @@ feature {NONE} -- Engine
 					Result := r
 				end
 			end
+		end
+
+	word_of (a_range: TUPLE [lo, hi: INTEGER]): STRING_32
+			-- The flagged characters themselves.
+		do
+			Result := text.substring (a_range.lo + 1, a_range.hi)
+		end
+
+	ignore_misspelling (a_lo, a_hi: INTEGER)
+			-- Stop flagging this word for the session (the OS
+			-- checker's Ignore); the squiggle lifts on repaint.
+		require
+			sane: a_lo >= 0 and a_hi <= text.count and a_lo < a_hi
+		local
+			sp: SW_SPELLER
+		do
+			create sp
+			if sp.ignore (text.substring (a_lo + 1, a_hi)) then
+			end
+			spell_dirty := True
+		end
+
+	learn_word (a_lo, a_hi: INTEGER)
+			-- Teach the word permanently: it joins the user's
+			-- Windows dictionary, honoured system-wide.
+		require
+			sane: a_lo >= 0 and a_hi <= text.count and a_lo < a_hi
+		local
+			sp: SW_SPELLER
+		do
+			create sp
+			if sp.add_to_dictionary (text.substring (a_lo + 1, a_hi)) then
+			end
+			spell_dirty := True
 		end
 
 	replace_range (a_lo, a_hi: INTEGER; a_with: READABLE_STRING_GENERAL)

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed + Added (CONTAINERS LEARN THEIR WIDTH; the speller teaches)
+- FIXED (found by hand-testing the OCR rebuild): SW_ROW, SW_COLUMN
+  and SW_TEXT_BOX had NO preferred_width - a row nested inside a
+  row got zero width, drew its children overflowing it, and was
+  UNHITTABLE where it drew (widget_at gates on contains). Rows now
+  answer the sum of their children plus gaps, columns the widest
+  child plus padding, text boxes a real field presence (240) that
+  growers stretch past. Nesting is finally lawful.
+- SW_TEXT_BOX spell menu grows the two missing verbs: Ignore "word"
+  (session-scoped, the OS checker's own Ignore) and Add "word" to
+  dictionary (persists to the user's WINDOWS dictionary, honoured
+  by Edge and Office too) - riding simple_shell 1.5.0's
+  SHELL_SPELLER teaching, assaulted live at the shell.
+- Suite 193/193.
+
 ### Fixed (ZONES ARE NOT BANDS - civil time lands)
 - Larry's Atlanta report, root-caused: the dot was right, the band
   arithmetic was right, but solar bands are not civil zones -

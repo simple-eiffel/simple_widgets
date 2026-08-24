@@ -10,6 +10,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
+			preferred_width,
 			sub_widgets,
 			arrange, widget_at
 		end
@@ -77,6 +78,17 @@ feature -- Tooling
 		end
 
 feature -- Layout
+
+	preferred_width (a_p: SW_PAINTER): REAL_64
+			-- The widest child plus the padding walls.
+		do
+			across
+				children as c
+			loop
+				Result := Result.max (c.clamped_width (c.preferred_width (a_p)))
+			end
+			Result := Result + 2.0 * padding
+		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 		local

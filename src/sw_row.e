@@ -11,7 +11,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			sub_widgets,
+			sub_widgets, preferred_width,
 			arrange, widget_at
 		end
 
@@ -105,6 +105,22 @@ feature -- Tooling
 		end
 
 feature -- Layout
+
+	preferred_width (a_p: SW_PAINTER): REAL_64
+			-- The children's natural widths plus the gaps: rows can
+			-- finally NEST (a zero-pref inner row drew overflowing
+			-- and was unhittable - the OCR rebuild found it in an
+			-- afternoon of hand-testing).
+		do
+			across
+				children as c
+			loop
+				Result := Result + c.clamped_width (c.preferred_width (a_p))
+			end
+			if children.count > 1 then
+				Result := Result + gap * (children.count - 1)
+			end
+		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 		local
