@@ -60,37 +60,49 @@ feature -- Element change
 feature -- Geometry
 
 	measure (a_p: SW_PAINTER; a_win_w, a_win_h: REAL_64)
-			-- Wrap the message, size the card, centre it.
+			-- Wrap the message, size the card, centre it. '%N' breaks
+			-- a line and a blank line stands as a paragraph gap - it
+			-- used to survive word-splitting and draw as a missing
+			-- glyph (the 1.9.0 About tofu).
 		local
 			max_w, cx, ww: REAL_64
-			words: LIST [STRING_32]
+			paragraphs, words: LIST [STRING_32]
 			line: STRING_32
 		do
 			width := (a_win_w - 120.0).min (540.0).max (300.0)
 			max_w := width - 2.0 * Pad
 			wrapped.wipe_out
 			a_p.font ({SW_PAINTER}.Role_body, 12.5, False)
-			words := message.split (' ')
-			create line.make (80)
+			paragraphs := message.split ('%N')
 			across
-				words as w
+				paragraphs as p
 			loop
-				ww := a_p.advance (w)
-				if line.is_empty then
-					line := w.twin
-					cx := ww
-				elseif cx + Space_w + ww > max_w then
-					wrapped.extend (line)
-					line := w.twin
-					cx := ww
+				if p.is_empty then
+					wrapped.extend (create {STRING_32}.make_empty)
 				else
-					line.append_character (' ')
-					line.append (w)
-					cx := cx + Space_w + ww
+					words := p.split (' ')
+					create line.make (80)
+					across
+						words as w
+					loop
+						ww := a_p.advance (w)
+						if line.is_empty then
+							line := w.twin
+							cx := ww
+						elseif cx + Space_w + ww > max_w then
+							wrapped.extend (line)
+							line := w.twin
+							cx := ww
+						else
+							line.append_character (' ')
+							line.append (w)
+							cx := cx + Space_w + ww
+						end
+					end
+					if not line.is_empty then
+						wrapped.extend (line)
+					end
 				end
-			end
-			if not line.is_empty then
-				wrapped.extend (line)
 			end
 			height := Pad + 30.0 + wrapped.count * 22.0 + 18.0 + 34.0 + Pad
 			x := (a_win_w - width) / 2.0

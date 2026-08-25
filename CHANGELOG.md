@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (DIALOGS HONOUR NEWLINES)
+- SW_DIALOG word-wrapped its message as one run: '%N' survived
+  inside a "word" and drew as a missing glyph (the About tofu).
+  measure now splits into paragraphs on '%N' first - each newline
+  breaks a line, a blank line stands as a paragraph gap. Every
+  dialog with a %N%N message (the model-download offer, the
+  auto-stop announcement) was showing boxes; all healed.
+
 ### Fixed (MODALITY LETS SHELL EVENTS PASS; the lockup's second door)
 - dispatch_to_dialog, dispatch_to_popup and dispatch_in_pick
   swallowed every event type they did not own - including the status
