@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (MODALITY LETS SHELL EVENTS PASS; the lockup's second door)
+- dispatch_to_dialog, dispatch_to_popup and dispatch_in_pick
+  swallowed every event type they did not own - including the status
+  strip's 21..23, the fast tick 25 and the region overlay's 31..35.
+  A dialog opening while the OCR overlay was up (health alerts
+  arrive on the tick) would have trapped the user beneath it: the
+  topmost overlay eats the pointer, the dialog eats the overlay's
+  Escape. Shell events (type >= 21) now pass through modality to
+  set_on_shell_event - modality gates this window's widget tree,
+  never the app-owned windows or the application clock. Bonus: the
+  capture cycle keeps ticking behind any dialog.
+
 ### Fixed + Added (CONTAINERS LEARN THEIR WIDTH; the speller teaches)
 - FIXED (found by hand-testing the OCR rebuild): SW_ROW, SW_COLUMN
   and SW_TEXT_BOX had NO preferred_width - a row nested inside a

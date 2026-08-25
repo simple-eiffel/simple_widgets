@@ -210,6 +210,17 @@ feature {NONE} -- Dispatch
 			when 6 then
 				blit
 			else
+					-- Shell events (the strip's 21..23, the fast tick
+					-- 25, the region overlay's 31..35) belong to
+					-- app-owned windows and the application clock, not
+					-- to this window's widget tree: modality must never
+					-- swallow them. A dialog opening while the overlay
+					-- was up would otherwise trap the user beneath it -
+					-- the overlay eats every input and its Escape (34)
+					-- would die here.
+				if a_type >= 21 and then attached on_shell_event as sh then
+					sh.call (a_type, a_x, a_y)
+				end
 			end
 		end
 
@@ -265,6 +276,11 @@ feature {NONE} -- Dispatch internals
 				close_popup
 				after_input
 			else
+					-- shell events pass through modality
+					-- (see dispatch_to_dialog)
+				if a_type >= 21 and then attached on_shell_event as sh then
+					sh.call (a_type, a_x, a_y)
+				end
 			end
 		end
 
@@ -582,6 +598,11 @@ feature {NONE} -- Popup lifecycle
 			when 6 then
 				blit
 			else
+					-- shell events pass through modality
+					-- (see dispatch_to_dialog)
+				if a_type >= 21 and then attached on_shell_event as sh then
+					sh.call (a_type, a_x, a_y)
+				end
 			end
 		end
 
