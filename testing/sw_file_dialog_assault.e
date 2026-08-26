@@ -46,7 +46,8 @@ feature -- Tests
 		end
 
 	test_drive_roots_and_hop
-			-- The drives row's engine: probed roots are real, and
+			-- The drives row's engine: mask-derived roots (never
+			-- probed - probing dead letters blocks for minutes), and
 			-- hopping to one relands the listing there.
 		local
 			fd: SW_FILE_DIALOG
@@ -58,11 +59,11 @@ feature -- Tests
 				fd.available_drives as d
 			loop
 				assert ("root is X-colon-backslash", d.count = 3)
-				assert ("root exists", (create {DIRECTORY}.make (d)).exists)
 			end
-			fd.go_to_drive (fd.available_drives.first)
-			assert ("landed on the root",
-				fd.current_dir.same_string (fd.available_drives.first))
+			assert ("C root is always among them",
+				across fd.available_drives as d some d.same_string_general ("C:\") end)
+			fd.go_to_drive ({STRING_32} "C:\")
+			assert ("landed on the root", fd.current_dir.same_string_general ("C:\"))
 			assert ("listing refreshed", fd.entry_count >= 1)
 			drop_fixture
 		end

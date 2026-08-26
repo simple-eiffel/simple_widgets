@@ -106,25 +106,30 @@ feature -- Access
 		end
 
 	available_drives: ARRAYED_LIST [STRING_32]
-			-- Drive roots that exist right now ("C:\", "D:\", ...) -
-			-- probed A: through Z: with plain base DIRECTORY, so the
-			-- toolkit stays dependency-free. Empty on platforms
-			-- without drive letters (and the drives row then never
-			-- appears).
+			-- Drive roots that exist right now ("C:\", "D:\", ...),
+			-- from the shell's GetLogicalDrives mask - which answers
+			-- WITHOUT touching media. Never probe letters with
+			-- DIRECTORY.exists: a disconnected network drive or empty
+			-- card slot blocks the pump for minutes (hand-test,
+			-- 2026-08-26). Empty on platforms without drive letters
+			-- (and the drives row then never appears).
 		local
-			i: INTEGER
+			i, l_mask: INTEGER
 			l_root: STRING_32
+			l_desktop: SHELL_DESKTOP
 		do
 			create Result.make (8)
+			create l_desktop
+			l_mask := l_desktop.logical_drives_mask
 			from
 				i := 0
 			until
 				i > 25
 			loop
-				create l_root.make (3)
-				l_root.append_code ((65 + i).to_natural_32)
-				l_root.append_string_general (":\")
-				if (create {DIRECTORY}.make (l_root)).exists then
+				if l_mask.bit_and (1 |<< i) /= 0 then
+					create l_root.make (3)
+					l_root.append_code ((65 + i).to_natural_32)
+					l_root.append_string_general (":\")
 					Result.extend (l_root)
 				end
 				i := i + 1
@@ -186,8 +191,12 @@ feature -- Element change
 	go_to_drive (a_root: READABLE_STRING_GENERAL)
 			-- Jump the listing to a drive root - what a drives-row
 			-- chip does; public so hosts and the assault can too.
+			-- The precondition checks SHAPE only: probing the drive
+			-- here would block on dead network letters (the very bug
+			-- the drives row replaced); an unreadable root simply
+			-- lists empty, '..' on top.
 		require
-			drive_exists: (create {DIRECTORY}.make (a_root)).exists
+			rooted: is_absolute_path (a_root)
 		do
 			load_directory (a_root)
 		ensure
