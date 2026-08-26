@@ -59,6 +59,7 @@ feature {NONE} -- Initialization
 				{SW_PAINTER}.Role_ui, 17.0, True)
 			put (ttl)
 			put (path_label.as_muted)
+			build_drives_row
 			put (entries_list)
 			put (name_box)
 			create verbs.make
@@ -104,6 +105,34 @@ feature -- Access
 			Result := entry_is_dir.i_th (a_i)
 		end
 
+	available_drives: ARRAYED_LIST [STRING_32]
+			-- Drive roots that exist right now ("C:\", "D:\", ...) -
+			-- probed A: through Z: with plain base DIRECTORY, so the
+			-- toolkit stays dependency-free. Empty on platforms
+			-- without drive letters (and the drives row then never
+			-- appears).
+		local
+			i: INTEGER
+			l_root: STRING_32
+		do
+			create Result.make (8)
+			from
+				i := 0
+			until
+				i > 25
+			loop
+				create l_root.make (3)
+				l_root.append_code ((65 + i).to_natural_32)
+				l_root.append_string_general (":\")
+				if (create {DIRECTORY}.make (l_root)).exists then
+					Result.extend (l_root)
+				end
+				i := i + 1
+			end
+		ensure
+			roots_shaped: across Result as r all r.count = 3 end
+		end
+
 	chosen_path: STRING_32
 			-- The current directory joined with the name box's text.
 		local
@@ -117,6 +146,17 @@ feature -- Access
 		end
 
 feature -- Element change
+
+	go_to_drive (a_root: READABLE_STRING_GENERAL)
+			-- Jump the listing to a drive root - what a drives-row
+			-- chip does; public so hosts and the assault can too.
+		require
+			drive_exists: (create {DIRECTORY}.make (a_root)).exists
+		do
+			load_directory (a_root)
+		ensure
+			landed: current_dir.same_string_general (a_root)
+		end
 
 	open_entry (a_i: INTEGER)
 			-- Act on entry `a_i' as a double-click would: descend into
@@ -215,6 +255,26 @@ feature {NONE} -- Engine
 	entries_list: SW_LIST
 
 	name_box: SW_TEXT_BOX
+
+	build_drives_row
+			-- A chip per live drive root, between path and listing;
+			-- absent when the platform reports none.
+		local
+			l_row: SW_ROW
+			l_drives: ARRAYED_LIST [STRING_32]
+		do
+			l_drives := available_drives
+			if not l_drives.is_empty then
+				create l_row.make
+				l_row := l_row.with_gap (6.0)
+				across
+					l_drives as d
+				loop
+					l_row.put (create {SW_BUTTON}.make (d.substring (1, 2), agent go_to_drive (d.twin)))
+				end
+				put (l_row)
+			end
+		end
 
 	load_directory (a_dir: READABLE_STRING_GENERAL)
 			-- Read `a_dir': directories first, both halves sorted,

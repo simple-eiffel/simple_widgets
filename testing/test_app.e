@@ -388,6 +388,7 @@ feature {NONE} -- Test runners
 			run_test (agent fd_tests.test_listing_order_and_kinds, "listing_order_and_kinds")
 			run_test (agent fd_tests.test_extension_filter, "extension_filter")
 			run_test (agent fd_tests.test_navigation_down_and_up, "navigation_down_and_up")
+			run_test (agent fd_tests.test_drive_roots_and_hop, "drive_roots_and_hop")
 			run_test (agent fd_tests.test_accept_delivers_full_path, "accept_delivers_full_path")
 		end
 

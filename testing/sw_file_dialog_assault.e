@@ -45,6 +45,28 @@ feature -- Tests
 			drop_fixture
 		end
 
+	test_drive_roots_and_hop
+			-- The drives row's engine: probed roots are real, and
+			-- hopping to one relands the listing there.
+		local
+			fd: SW_FILE_DIALOG
+		do
+			build_fixture
+			create fd.make_open (fixture_root)
+			assert ("this machine has drive roots", not fd.available_drives.is_empty)
+			across
+				fd.available_drives as d
+			loop
+				assert ("root is X-colon-backslash", d.count = 3)
+				assert ("root exists", (create {DIRECTORY}.make (d)).exists)
+			end
+			fd.go_to_drive (fd.available_drives.first)
+			assert ("landed on the root",
+				fd.current_dir.same_string (fd.available_drives.first))
+			assert ("listing refreshed", fd.entry_count >= 1)
+			drop_fixture
+		end
+
 	test_navigation_down_and_up
 		local
 			fd: SW_FILE_DIALOG
