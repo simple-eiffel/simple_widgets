@@ -70,6 +70,22 @@ feature -- Element change
 			set: root = a_root
 		end
 
+	give_focus (a_w: SW_WIDGET)
+			-- Hand the keyboard focus to `a_w' - the programmatic twin of
+			-- the click-to-focus path, for hosts that swap roots and need
+			-- keys live before any pointer lands.
+		require
+			focusable: a_w.accepts_focus
+		do
+			if attached focused as prev and then prev /= a_w then
+				prev.set_focused (False)
+			end
+			focused := a_w
+			a_w.set_focused (True)
+		ensure
+			holds: focused = a_w
+		end
+
 	set_theme (a_theme: SW_THEME)
 			-- Swap the token set live; the next render wears it, and
 			-- the OS-side backdrop brush follows (it paints pixels a
