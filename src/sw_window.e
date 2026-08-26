@@ -755,6 +755,7 @@ feature {NONE} -- Popup lifecycle
 					if cw.is_pressed then
 						cw.set_pressed (False)
 					end
+					cw.handle_release (a_x, a_y)
 					capture := Void
 					after_input
 				end

@@ -638,6 +638,13 @@ feature -- Input
 		do
 		end
 
+	handle_release (a_x, a_y: INTEGER)
+			-- The pointer let go while this widget held the capture.
+			-- No-op by default; press-and-hold interactions (a brake
+			-- pedal, a scrub) redefine it.
+		do
+		end
+
 feature {NONE} -- Implementation
 
 	is_disabled: BOOLEAN
