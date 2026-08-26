@@ -67,6 +67,62 @@ feature -- Tests
 			drop_fixture
 		end
 
+	test_typed_absolute_directory_navigates
+			-- Larry's repro 2026-08-26: type "C:\" and press Open -
+			-- the dialog must hop there, not glue it onto current_dir.
+		local
+			fd: SW_FILE_DIALOG
+		do
+			build_fixture
+			create fd.make_open (fixture_root)
+			fd.type_name ({STRING_32} "C:\")
+			fd.press_accept
+			assert ("hopped to the C root", fd.current_dir.same_string_general ("C:\"))
+			assert ("listing refreshed there", fd.entry_count >= 1)
+			drop_fixture
+		end
+
+	test_typed_bare_drive_normalizes
+		local
+			fd: SW_FILE_DIALOG
+		do
+			build_fixture
+			create fd.make_open (fixture_root)
+			fd.type_name ({STRING_32} "C:")
+			fd.press_accept
+			assert ("bare drive lands on its root", fd.current_dir.same_string_general ("C:\"))
+			drop_fixture
+		end
+
+	test_typed_relative_directory_descends
+		local
+			fd: SW_FILE_DIALOG
+		do
+			build_fixture
+			create fd.make_open (fixture_root)
+			fd.type_name ({STRING_32} "beta_dir")
+			fd.press_accept
+			assert ("descended into the typed child",
+				fd.current_dir.as_lower.ends_with ({STRING_32} "beta_dir"))
+			assert ("name box cleared after navigating", fd.chosen_path.same_string (fd.current_dir))
+			drop_fixture
+		end
+
+	test_typed_absolute_file_accepts
+		local
+			fd: SW_FILE_DIALOG
+		do
+			build_fixture
+			create fd.make_open (fixture_root)
+			create accepted.make_empty
+			fd.set_on_accept (agent record_accept)
+			fd.type_name ({STRING_32} "C:\Windows\win.ini")
+			fd.press_accept
+			assert ("typed absolute file accepted verbatim",
+				accepted.same_string_general ("C:\Windows\win.ini"))
+			drop_fixture
+		end
+
 	test_navigation_down_and_up
 		local
 			fd: SW_FILE_DIALOG

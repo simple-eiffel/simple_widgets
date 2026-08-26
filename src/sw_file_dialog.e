@@ -134,18 +134,54 @@ feature -- Access
 		end
 
 	chosen_path: STRING_32
-			-- The current directory joined with the name box's text.
+			-- The name box's text joined onto the current directory -
+			-- unless the typed text is already absolute ("C:\..." or
+			-- UNC), which wins outright; a bare drive ("C:") is
+			-- normalized to its root.
 		local
 			pth: PATH
+			l_typed: STRING_32
 		do
-			create pth.make_from_string (current_dir)
-			if not name_box.text.is_empty then
-				pth := pth.extended (name_box.text)
+			l_typed := name_box.text.twin
+			l_typed.left_adjust
+			l_typed.right_adjust
+			if is_absolute_path (l_typed) then
+				if l_typed.count = 2 and then l_typed.item (2).natural_32_code = 58 then
+					l_typed.append_code (92) -- "C:" -> "C:\"
+				end
+				Result := l_typed
+			else
+				create pth.make_from_string (current_dir)
+				if not l_typed.is_empty then
+					pth := pth.extended (l_typed)
+				end
+				Result := pth.name
 			end
-			Result := pth.name
+		end
+
+	is_absolute_path (a_text: READABLE_STRING_GENERAL): BOOLEAN
+			-- Drive-rooted ("X:...") or UNC (two leading backslashes)?
+		do
+			Result := (a_text.count >= 2 and then a_text.item (2).natural_32_code = 58)
+				or else (a_text.count >= 2
+					and then a_text.item (1).natural_32_code = 92
+					and then a_text.item (2).natural_32_code = 92)
 		end
 
 feature -- Element change
+
+	type_name (a_text: READABLE_STRING_GENERAL)
+			-- Put `a_text' in the name box, as typing would - hosts
+			-- prefill with it, the assault drives with it.
+		do
+			name_box.set_text (a_text)
+		end
+
+	press_accept
+			-- The Open/Save verb, driveable by hosts and the assault.
+		do
+			do_accept
+		end
 
 	go_to_drive (a_root: READABLE_STRING_GENERAL)
 			-- Jump the listing to a drive root - what a drives-row
@@ -403,9 +439,20 @@ feature {NONE} -- Engine
 		end
 
 	do_accept
+			-- Accept the chosen path - unless it names a directory, in
+			-- which case navigate there instead: typing "C:\" then Open
+			-- hops drives, typing a child folder's name descends.
+		local
+			l_target: STRING_32
 		do
-			if not name_box.text.is_empty and then attached on_accept as a then
-				a.call (chosen_path)
+			if not name_box.text.is_empty then
+				l_target := chosen_path
+				if (create {DIRECTORY}.make (l_target)).exists then
+					name_box.set_text ("")
+					load_directory (l_target)
+				elseif attached on_accept as a then
+					a.call (l_target)
+				end
 			end
 		end
 
