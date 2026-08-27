@@ -14,7 +14,7 @@ inherit
 		redefine
 			handle_click, handle_drag, context_menu, wants_hover_point,
 			accepts_focus, handle_key, handle_char, handle_release,
-			accepts_files, receive_files
+			accepts_files, receive_files, set_hover_point
 		end
 
 create
@@ -61,6 +61,10 @@ feature -- Access
 	on_files: detachable PROCEDURE [ARRAYED_LIST [STRING_32]]
 			-- Files dropped from the shell onto this canvas.
 			-- Setting it makes the canvas a drop target.
+
+	on_hover: detachable PROCEDURE [REAL_64, REAL_64]
+			-- The resting pointer at canvas-relative (x, y) - hosts
+			-- with zoned surfaces retarget their tooltip here.
 
 feature -- Element change
 
@@ -118,6 +122,21 @@ feature -- Element change
 			on_files := a_agent
 		ensure
 			set: on_files = a_agent
+		end
+
+	set_on_hover (a_agent: PROCEDURE [REAL_64, REAL_64])
+		do
+			on_hover := a_agent
+		ensure
+			set: on_hover = a_agent
+		end
+
+	set_hover_point (a_px, a_py: REAL_64)
+		do
+			Precursor (a_px, a_py)
+			if attached on_hover as al_h then
+				al_h.call (a_px - x, a_py - y)
+			end
 		end
 
 feature -- Input
