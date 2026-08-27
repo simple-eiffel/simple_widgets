@@ -108,6 +108,27 @@ feature -- Shapes
 			context.set_line_width (a_w).do_nothing
 		end
 
+	triangle_fill (a_x1, a_y1, a_x2, a_y2, a_x3, a_y3: REAL_64)
+			-- A filled triangle - play glyphs, markers, arrowheads.
+		do
+			context.move_to (a_x1, a_y1).do_nothing
+			context.line_to (a_x2, a_y2).do_nothing
+			context.line_to (a_x3, a_y3).do_nothing
+			context.close_path.do_nothing
+			context.fill.do_nothing
+		end
+
+	arc_stroke (a_cx, a_cy, a_r, a_from, a_to: REAL_64)
+			-- A stroked arc from `a_from' to `a_to' radians - gauge
+			-- faces, brake glyphs, partial rings.
+		require
+			positive_radius: a_r > 0.0
+		do
+			context.new_path.do_nothing
+			context.arc (a_cx, a_cy, a_r, a_from, a_to).do_nothing
+			context.stroke.do_nothing
+		end
+
 	push_clip (a_x, a_y, a_w, a_h: REAL_64)
 			-- Confine drawing to the rectangle until pop_clip; nests.
 		do

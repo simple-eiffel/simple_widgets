@@ -12,7 +12,9 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			handle_click, handle_drag, context_menu, wants_hover_point
+			handle_click, handle_drag, context_menu, wants_hover_point,
+			accepts_focus, handle_key, handle_char, handle_release,
+			accepts_files, receive_files
 		end
 
 create
@@ -45,6 +47,21 @@ feature -- Access
 	menu_provider: detachable FUNCTION [REAL_64, REAL_64, detachable SW_MENU]
 			-- Builds the right-click menu for canvas-relative (x, y).
 
+	on_key: detachable PROCEDURE [INTEGER, BOOLEAN]
+			-- Virtual key (vk, shift) while this canvas holds focus.
+			-- Setting it (or on_char) makes the canvas focusable.
+
+	on_char: detachable PROCEDURE [INTEGER]
+			-- Character code while this canvas holds focus.
+
+	on_release: detachable PROCEDURE [INTEGER, INTEGER]
+			-- The pointer let go while this canvas held the capture
+			-- (window coordinates) - press-and-hold interactions.
+
+	on_files: detachable PROCEDURE [ARRAYED_LIST [STRING_32]]
+			-- Files dropped from the shell onto this canvas.
+			-- Setting it makes the canvas a drop target.
+
 feature -- Element change
 
 	set_on_paint (a_agent: PROCEDURE [SW_PAINTER, REAL_64, REAL_64, REAL_64, REAL_64])
@@ -73,6 +90,76 @@ feature -- Element change
 			menu_provider := a_agent
 		ensure
 			set: menu_provider = a_agent
+		end
+
+	set_on_key (a_agent: PROCEDURE [INTEGER, BOOLEAN])
+		do
+			on_key := a_agent
+		ensure
+			set: on_key = a_agent
+		end
+
+	set_on_char (a_agent: PROCEDURE [INTEGER])
+		do
+			on_char := a_agent
+		ensure
+			set: on_char = a_agent
+		end
+
+	set_on_release (a_agent: PROCEDURE [INTEGER, INTEGER])
+		do
+			on_release := a_agent
+		ensure
+			set: on_release = a_agent
+		end
+
+	set_on_files (a_agent: PROCEDURE [ARRAYED_LIST [STRING_32]])
+		do
+			on_files := a_agent
+		ensure
+			set: on_files = a_agent
+		end
+
+feature -- Input
+
+	accepts_focus: BOOLEAN
+			-- Focusable exactly when the host listens for keys.
+		do
+			Result := on_key /= Void or on_char /= Void
+		end
+
+	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
+		do
+			if attached on_key as al_h then
+				al_h.call (a_vk, a_shift)
+			end
+		end
+
+	handle_char (a_code: INTEGER)
+		do
+			if attached on_char as al_h then
+				al_h.call (a_code)
+			end
+		end
+
+	handle_release (a_x, a_y: INTEGER)
+		do
+			if attached on_release as al_h then
+				al_h.call (a_x, a_y)
+			end
+		end
+
+	accepts_files: BOOLEAN
+			-- A drop target exactly when the host listens for drops.
+		do
+			Result := on_files /= Void
+		end
+
+	receive_files (a_paths: ARRAYED_LIST [STRING_32]; a_px, a_py: REAL_64)
+		do
+			if attached on_files as al_h then
+				al_h.call (a_paths)
+			end
 		end
 
 feature -- Layout
