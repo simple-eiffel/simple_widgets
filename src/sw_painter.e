@@ -80,6 +80,76 @@ feature -- Type
 			Result := context.text_extents (a_s.to_string_32).x_advance
 		end
 
+feature -- Shaped text (simple_shaping)
+
+	shaping: detachable SW_SHAPING
+			-- The window's shaping kit, or Void. VOID IS THE DEFAULT AND
+			-- IT IS NOT A DEGRADED STATE: every widget that has not been
+			-- taught shaped text keeps cairo's toy path, unchanged, which
+			-- is what makes this adoption additive.
+
+	has_shaping: BOOLEAN
+			-- Is shaped text available through this painter?
+		do
+			Result := attached shaping
+		ensure
+			definition: Result = attached shaping
+		end
+
+	set_shaping (a_shaping: detachable SW_SHAPING)
+			-- Attach `a_shaping' (Void switches every widget back to the
+			-- toy path). SW_WINDOW re-attaches after every painter rebuild;
+			-- see SW_SHAPING's class note for why the kit outlives us.
+		do
+			shaping := a_shaping
+		ensure
+			set: shaping = a_shaping
+		end
+
+	is_resize_storm: BOOLEAN
+			-- Is the frame being dragged right now? R10: a shaped widget
+			-- re-lays-out at resize END, not on every tick, so this is the
+			-- flag that tells it to keep the layout it has. SW_WINDOW sets
+			-- it from its own `busy_ticks' - the toolkit's existing
+			-- two-heartbeats-of-stillness debounce.
+
+	set_resize_storm (a_flag: BOOLEAN)
+			-- Say whether a resize storm is in progress.
+		do
+			is_resize_storm := a_flag
+		ensure
+			set: is_resize_storm = a_flag
+		end
+
+	draw_shaped_layout (a_layout: SHAPED_LAYOUT; a_x, a_y: REAL_64)
+			-- Paint `a_layout' with its TOP-LEFT corner at (`a_x', `a_y')
+			-- in the CURRENT colour, through the kit's own cairo bridge.
+			--
+			-- (a_x, a_y) is a top-left, NOT a baseline - unlike `text'.
+			-- The layout already knows its lines' ascents, so the caller
+			-- never computes one.
+			--
+			-- ANTIALIAS: the bridge sets an explicit font-antialias mode
+			-- before drawing a glyph, and it must - without it cairo's
+			-- win32 backend renders same-pixel-size glyphs at about 1/32
+			-- scale and reports no error. Nothing in this painter sets a
+			-- font antialias mode, so there is no fight; the toy path's
+			-- `show_text' is unaffected in every measured respect but
+			-- sub-pixel smoothing, which is what a screen wants anyway.
+			--
+			-- Painting DEGRADES, never raises: a run whose font never
+			-- realized is counted in `shaping.bridge.skipped_runs' with a
+			-- reason in `last_skip_note'.
+		require
+			shaping_available: has_shaping
+		do
+			if attached shaping as al_shaping then
+				al_shaping.bridge.draw_layout (context, a_layout, a_x, a_y)
+			end
+		ensure
+			context_survives: context.is_valid
+		end
+
 feature -- Shapes
 
 	fill_rect (a_x, a_y, a_w, a_h: REAL_64)

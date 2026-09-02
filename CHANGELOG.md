@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (SHAPED TEXT — simple_shaping adopted; the 0.3.0 minor bump)
+- The toolkit can hand its text to `simple_shaping` instead of to cairo's
+  toy API: bidi (Hebrew reads right-to-left inside a left-to-right pane),
+  script itemization, glyph shaping, deterministic font fallback, and
+  emoji as the same shipped Noto picture on every screen. Opt-in, one
+  call: `SW_WINDOW.enable_shaped_text`.
+- NEW CLASS `SW_SHAPING` — the ownership object: ONE `SIMPLE_SHAPING`
+  facade plus ONE `SHAPING_CAIRO_BRIDGE`, held by the WINDOW and handed to
+  each painter it builds. It is not a painter attribute because SW_WINDOW
+  rebuilds its painter on a theme swap and on an offscreen re-allocation,
+  and a facade living there would take the layout cache and every decoded
+  emoji surface with it. `set_theme_faces` prepends the theme's UI face
+  for the LATIN class only — a theme face is Latin-only by design, and
+  asking Archivo to carry niqqud is how tofu reaches the screen (Q1).
+- `SW_PAINTER`: `shaping`, `has_shaping`, `set_shaping`, `is_resize_storm`,
+  `set_resize_storm`, and `draw_shaped_layout (a_layout, a_x, a_y)` —
+  where (a_x, a_y) is a TOP-LEFT, not a baseline, because a SHAPED_LAYOUT
+  already knows each line's ascent. Void `shaping` is the default and is
+  NOT a degraded state: every widget that has not been taught shaped text
+  keeps the toy path, unchanged.
+- `SW_WINDOW`: `shaping`, `set_shaping`, `enable_shaped_text`. The kit is
+  re-attached after every painter rebuild, and the window now publishes
+  its own `busy_ticks` debounce to the painter as `is_resize_storm`.
+- `SW_CHAT_THREAD` lays its bubbles out through the shaping facade when a
+  kit is present: bubble height is `layout.total_height` and never a line
+  count times a constant (a line carrying an emoji box is taller than one
+  that does not), and the greedy word wrap is skipped. New public
+  `shaped_layouts`, `laid_out_width`, `laid_out_size`, `revision`,
+  `laid_out_revision`. Every existing contract and behaviour is kept:
+  `add_message`, `append_to_last`, sticky-bottom, `content_h`,
+  `handle_wheel` are untouched, and without a kit the widget is
+  pixel-for-pixel what it was.
+- R10, re-layout at resize END: a WIDTH change waits for the resize storm
+  to clear, so a drag costs zero shaping calls; a CONTENT change never
+  waits, because a message arriving mid-drag still has to appear.
+- ECF: `simple_shaping` added to the `simple_widgets` PARENT target ONLY.
+  Extending targets inherit it; listing a library in both a parent and an
+  extending target makes ec resolve NO classes from it at all (the same
+  lesson simple_shaping recorded for simple_cairo).
+- `tools/stage_runnable.sh` stages a runnable folder: `cairo.dll`,
+  `LICENSE-ASSETS.md` and `assets/noto-emoji/png/128/` beside the exe.
+  Assets are resolved against the RUNNING EXECUTABLE's directory, never
+  the working directory.
+- Tests: `SW_SHAPING_ASSAULT`, five headless paint tests including the
+  D-015 acceptance line end to end (laid out by the production facade,
+  painted through SW_PAINTER, ink counted in three x-regions with the
+  same-N tripwire) writing `evidence/shaped-d015.png`.
+
+### Observed upstream (simple_shaping; reported, not worked around)
+- `SIMPLE_SHAPING`'s glyph-run assembly copies the shaper's `y_offsets`
+  straight into `GLYPH_RUN.y_positions`, while simple_shaping's own Task 13
+  evidence states the rule as `y_positions [i] = -shaped.y_offsets [i]` -
+  DirectWrite's `ascenderOffset` is positive UPWARD and cairo's user space
+  is y-down, so the sign is the assembler's to get right. The toolkit does
+  NOT compensate: the bridge's layering is correct and a consumer working
+  around it would be papering over the seam. It is also, so far,
+  UNOBSERVABLE: `test_niqqud_offsets_are_reported_not_swallowed` lays out
+  pointed Hebrew (shin + shin-dot + qamats ... holam) at 24 px and finds
+  ZERO glyphs with a non-zero `y_position`, as does the D-015 line at
+  16 px. Both numbers are printed by the suite so the library's owner has
+  measurements rather than a reading of the source.
+
+### Known limits (shaped text)
+- `SW_LABEL` and the rest of the chrome still draw through
+  `SW_PAINTER.text`. Their `preferred_width` / `preferred_height` are
+  cairo toy advances and the whole toolkit's layout is measured from them,
+  so swapping their metrics is a wider change, not a small safe one.
+
 ### Fixed (DIALOGS HONOUR NEWLINES)
 - SW_DIALOG word-wrapped its message as one run: '%N' survived
   inside a "word" and drew as a missing glyph (the About tofu).

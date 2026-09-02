@@ -68,6 +68,9 @@ feature {NONE} -- Initialization
 			print ("%N=== DEEPENING SWEEP ===%N")
 			run_deepening_tests
 
+			print ("%N=== SHAPED TEXT (simple_shaping) ===%N")
+			run_shaping_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -381,6 +384,23 @@ feature {NONE} -- Test runners
 		end
 
 	deepening_tests: SW_DEEPENING_ASSAULT
+
+	shaping_tests: SW_SHAPING_ASSAULT
+
+	run_shaping_tests
+			-- The shaped-text battery. Every one of these needs the Noto
+			-- png/128 artwork and a working DirectWrite; on a machine that
+			-- has neither they fail loudly rather than skipping quietly,
+			-- because "shaped text works" is the claim under test.
+		do
+			create shaping_tests
+			run_test (agent shaping_tests.test_d015_shaped_line_paints, "d015_shaped_line_paints (AC-1, end to end)")
+			run_test (agent shaping_tests.test_chat_bubbles_measure_from_their_layouts, "chat_bubbles_measure_from_their_layouts (R10)")
+			run_test (agent shaping_tests.test_chat_relayouts_when_the_pane_narrows, "chat_relayouts_when_the_pane_narrows (R10)")
+			run_test (agent shaping_tests.test_ascii_bubble_renders_on_both_paths, "ascii_bubble_renders_on_both_paths")
+			run_test (agent shaping_tests.test_kit_prepends_the_theme_face_for_latin_only, "kit_prepends_the_theme_face_for_latin_only (Q1)")
+			run_test (agent shaping_tests.test_niqqud_offsets_are_reported_not_swallowed, "niqqud_offsets_are_reported_not_swallowed (diagnostic)")
+		end
 
 	run_file_dialog_tests
 		do

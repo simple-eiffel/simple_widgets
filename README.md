@@ -110,6 +110,93 @@ Add to your ECF:
 Ship `cairo.dll` beside your executable (every finalize wipes F_code — copy it
 back after building).
 
+## Shaped text (simple_shaping)
+
+Cairo's "toy" text API has no bidi, no shaping, no font fallback and no colour
+emoji: Hebrew comes out left-to-right and unjoined, a mixed Hebrew/Latin line is
+scrambled, and every emoji is a tofu box. The toolkit can now hand its
+text to [simple_shaping](https://github.com/simple-eiffel/simple_shaping)
+instead — bidi, script itemization, glyph shaping, deterministic font fallback,
+and emoji as the same Noto picture on every screen.
+
+**It is opt-in, and the toy path is still the default.** Turn it on once, on the
+window:
+
+```eiffel
+window.enable_shaped_text
+```
+
+That builds one `SW_SHAPING` kit — one `SIMPLE_SHAPING` facade plus one
+`SHAPING_CAIRO_BRIDGE` — for the whole window, prepends the theme's UI face for
+Latin only (a theme face is Latin-only by design; Hebrew and Greek keep
+simple_shaping's own scholar-grade order), and hands it to the painter. The kit
+survives theme swaps and offscreen re-allocations, so the layout cache and the
+decoded emoji surfaces are built once.
+
+`SW_CHAT_THREAD` uses it the moment it is there: bubbles are laid out by
+`SIMPLE_SHAPING.layout`, bubble height is `layout.total_height` (never a line
+count times a constant — a line carrying an emoji box is taller than one that
+does not), and the old greedy word wrap is skipped. Everything else about the
+widget is unchanged: `add_message`, `append_to_last`, sticky-bottom, wheel
+scrolling and `content_h` behave exactly as before, on either path.
+
+Custom widgets reach it the same way:
+
+```eiffel
+if a_p.has_shaping and then attached a_p.shaping as al_kit then
+    l_layout := al_kit.layout_for (my_text, inner_width_px, pixel_size)
+    a_p.draw_shaped_layout (l_layout, l_x, l_y)   -- (l_x, l_y) is a TOP-LEFT
+end
+```
+
+`SW_LABEL` and the rest of the chrome deliberately stay on the toy path for now
+— see "Known limits" below.
+
+**Re-layout at resize END, not per tick (R10).** `SW_WINDOW` publishes its own
+`busy_ticks` debounce to the painter as `SW_PAINTER.is_resize_storm`; a shaped
+widget keeps the layouts it has while the frame is being dragged and re-lays-out
+once the drag settles. A *content* change never waits — a message arriving
+mid-drag still appears.
+
+### The runnable folder
+
+Shaped text adds freight beside the executable. A shipped app's folder is:
+
+```
+myapp.exe
+cairo.dll                        <- from $SIMPLE_EIFFEL/simple_cairo/
+LICENSE-ASSETS.md                <- from $SIMPLE_EIFFEL/simple_shaping/
+assets/noto-emoji/png/128/...    <- from $SIMPLE_EIFFEL/simple_shaping/assets/
+```
+
+`SW_SHAPING.make` resolves the artwork against the directory of the **running
+executable**, never the working directory (a shortcut, a service, an Explorer
+double-click and a debugger all differ). `tools/stage_runnable.sh` stages all
+three:
+
+```bash
+tools/stage_runnable.sh EIFGENs/sw_demo/F_code
+```
+
+Missing artwork is not a crash — simple_shaping degrades to a note and a box —
+but the robot will not be a robot.
+
+**This library's own test target does not stage the assets.** Copying 3,768
+files (about 20 MiB) into `F_code` on every build is a poor trade for a suite
+that reads four of them, so the shaped-text tests look for the artwork beside
+the exe FIRST (so a staged folder is exercised when there is one) and fall back
+to `$SIMPLE_EIFFEL/simple_shaping/assets/noto-emoji/png/128`. Applications get
+no such fallback: stage the folder.
+
+### Known limits
+
+- `SW_LABEL`, `SW_BUTTON` and the rest of the chrome still draw through
+  `SW_PAINTER.text`. Their `preferred_width` / `preferred_height` are cairo toy
+  advances, and every layout in the toolkit is measured from them, so swapping
+  their metrics is a separate, wider change — not a small safe one.
+- One kit per window, per SCOOP processor. A background processor that wants to
+  measure text creates its own.
+
 ## The rules (spec S01)
 
 | # | Rule |
@@ -142,7 +229,7 @@ back after building).
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/sw_demo/F_code/
 ./EIFGENs/sw_demo/F_code/simple_widgets.exe
 
-# the contract assault (193 tests, all assertions live)
+# the contract assault (all assertions live)
 /d/prod/ec.sh test -config simple_widgets.ecf -target simple_widgets_tests
 cp $SIMPLE_EIFFEL/simple_cairo/cairo.dll EIFGENs/simple_widgets_tests/F_code/
 ./EIFGENs/simple_widgets_tests/F_code/simple_widgets.exe
