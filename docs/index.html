@@ -107,6 +107,11 @@
                 <li>Add to your ECF:
 <pre><code>&lt;library name="simple_widgets" location="$SIMPLE_EIFFEL/simple_widgets/simple_widgets.ecf"/&gt;</code></pre></li>
                 <li>Ship <code>cairo.dll</code> beside your executable (every finalize wipes F_code - copy it back).</li>
+                <li>For shaped text (bidi, script fallback, colour emoji) also stage
+                <code>LICENSE-ASSETS.md</code> and <code>assets/noto-emoji/png/128/</code> beside the
+                exe - <code>tools/stage_runnable.sh &lt;folder&gt;</code> does all three - and call
+                <code>window.enable_shaped_text</code>. See
+                <a href="widgets/sw_painter.html#shaped-text">SW_PAINTER</a>.</li>
             </ol>
             <h3>A whole application</h3>
 <pre><code><span class="keyword">local</span>
@@ -155,7 +160,7 @@
                 </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_painter.html">SW_PAINTER</a></h3>
-                    <p>The only class allowed to touch cairo.</p>
+                    <p>The only class allowed to touch cairo - and, since the simple_shaping adoption, the only one allowed to paint a SHAPED_LAYOUT.</p>
                 </div>
             </div>
             <h3 class="gallery-group">Text & input</h3>

@@ -44,10 +44,44 @@ th.append_to_last (<span <span class="keyword">class</span>="string">&quot;wor&q
 th.append_to_last (<span <span class="keyword">class</span>="string">&quot;ld&quot;</span>)</code></pre>
         </section>
 
+        <section id="shaped">
+            <h2>Shaped bubbles (simple_shaping)</h2>
+            <p>Give the window a shaping kit and this widget uses it without another line of
+            application code:</p>
+<pre><code>window.enable_shaped_text</code></pre>
+            <p>Bubbles are then laid out by <code>SIMPLE_SHAPING.layout</code>: Hebrew reads
+            right-to-left inside a left-to-right pane, Greek keeps its accents, and an emoji is the
+            same shipped Noto picture on every member's screen. Bubble height comes from
+            <code>layout.total_height</code> - never a line count times a constant - and the greedy
+            word wrap is skipped entirely.</p>
+            <ul>
+                <li><code>shaped_layouts</code> - one SHAPED_LAYOUT per message, in
+                <code>messages</code> order, once a shaped frame has been drawn. Empty on the toy
+                path and before the first frame.</li>
+                <li><code>laid_out_width</code>, <code>laid_out_size</code> - the bubble inner width
+                (pixels) and type size the current layouts were built for.</li>
+                <li><code>revision</code> / <code>laid_out_revision</code> - the content clock. They
+                differ exactly when the layouts are stale.</li>
+            </ul>
+            <p><strong>R10, re-layout at resize END.</strong> A width change waits for
+            <code>SW_PAINTER.is_resize_storm</code> to clear, so dragging the frame costs zero
+            shaping calls. A content change never waits: a message that arrives mid-drag still
+            appears.</p>
+            <p>Nothing in the public model changes on either path - <code>add_message</code>,
+            <code>append_to_last</code>, stickiness, <code>content_h</code> and
+            <code>handle_wheel</code> behave exactly as they always have.</p>
+        </section>
+
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
                 <li>Plain text bubbles - links, code spans and images await the rich-text substrate.</li>
+                <li>Shaped bubbles are left-aligned inside the bubble whatever the paragraph
+                direction; an RTL paragraph is not yet right-aligned to the bubble's inner edge.</li>
+                <li>The shaping kit needs its runnable folder: <code>cairo.dll</code>,
+                <code>LICENSE-ASSETS.md</code> and <code>assets/noto-emoji/png/128/</code> beside the
+                executable. Use <code>tools/stage_runnable.sh</code>. Missing artwork degrades to a
+                note and a box, never a crash.</li>
             </ul>
         </section>
 

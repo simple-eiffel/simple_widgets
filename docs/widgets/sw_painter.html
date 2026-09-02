@@ -61,10 +61,36 @@ w := a_p.advance (label) + 24.0   <span class="comment">-- advance, not ink widt
 <span class="comment">                                  -- trailing spaces count, layout stays true</span></code></pre>
         </section>
 
+        <section id="shaped-text">
+            <h2>Shaped text (simple_shaping)</h2>
+            <p>The toy path above cannot do bidi, shaping, font fallback or colour emoji. When the
+            window has been given a shaping kit - one call, <code>window.enable_shaped_text</code> -
+            the painter can paint a finished <code>SHAPED_LAYOUT</code> instead.</p>
+<pre><code><span class="keyword">if</span> a_p.has_shaping <span class="keyword">and then attached</span> a_p.shaping <span class="keyword">as</span> al_kit <span class="keyword">then</span>
+    l_layout := al_kit.layout_for (my_text, inner_width_px, pixel_size)
+    a_p.draw_shaped_layout (l_layout, l_x, l_y)   <span class="comment">-- (l_x, l_y) is a TOP-LEFT</span>
+<span class="keyword">end</span></code></pre>
+            <ul>
+                <li><code>shaping: detachable SW_SHAPING</code> - the window's kit, or Void.
+                <strong>Void is the default and it is not a degraded state</strong>: a widget that
+                has not been taught shaped text keeps the toy path, unchanged.</li>
+                <li><code>has_shaping</code>, <code>set_shaping (a_kit)</code> - SW_WINDOW
+                re-attaches the kit after every painter rebuild.</li>
+                <li><code>draw_shaped_layout (a_layout, a_x, a_y)</code> - <strong>(a_x, a_y) is a
+                TOP-LEFT, not a baseline</strong>, unlike <code>text</code>. The layout already
+                knows each line's ascent, so a caller never computes one.</li>
+                <li><code>is_resize_storm</code> / <code>set_resize_storm</code> - SW_WINDOW
+                publishes its own <code>busy_ticks</code> debounce here, and a shaped widget keeps
+                the layout it has while the frame is being dragged (R10).</li>
+            </ul>
+            <p>Sizing comes from <code>layout.total_height</code>, always - never a line count times
+            a constant, because a line carrying an emoji box is taller than one that does not.</p>
+        </section>
+
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>Cairo toy text API: one face per call, no shaping, no bidi, no glyph fallback - a code point missing from the face renders as .notdef.</li>
+                <li>Cairo toy text API: one face per call, no shaping, no bidi, no glyph fallback - a code point missing from the face renders as .notdef. <strong>Cured, opt-in, by <code>draw_shaped_layout</code></strong> - see above; the toy path remains the default and the fallback.</li>
                 <li>No gradients, dashes or transforms in the public vocabulary yet (the escape hatch can, but that trades away R2).</li>
                 <li><code>draw_image</code> scales the whole source; no sub-rect (sprite) blits yet.</li>
             </ul>
@@ -73,6 +99,7 @@ w := a_p.advance (label) + 24.0   <span class="comment">-- advance, not ink widt
         <section id="gotchas">
             <h2>Bugs &amp; gotchas</h2>
             <ul>
+                <li><strong>The shaping bridge sets an explicit font antialias mode</strong> (subpixel) before it draws a glyph, and it must: without one, cairo's win32 backend renders same-pixel-size glyphs at about 1/32 scale and reports no error at all. Nothing in this painter sets a font antialias mode, so there is no conflict - but if you ever add one, read <code>SHAPING_CAIRO_BRIDGE</code>'s class note first.</li>
                 <li><strong>Never call <code>context.arc</code> directly</strong> - the connector-line bug. Use <code>circle_stroke/circle_fill</code>; they reset the path first.</li>
                 <li>Use <code>advance</code> for layout, never ink extents - ink excludes trailing whitespace and your caret math will drift.</li>
                 <li><code>set_line_width</code> is stateful: set it back (the fleet convention is width 1.0 at rest) or the next widget strokes fat.</li>

@@ -61,6 +61,14 @@ feature -- Access
 	painter: SW_PAINTER
 			-- The drawing kit, exposed for measurement before `run'.
 
+	shaping: detachable SW_SHAPING
+			-- The window's ONE text-shaping kit (a simple_shaping facade
+			-- plus its cairo paint bridge), or Void for the cairo toy
+			-- path. Held HERE and not on the painter because the painter
+			-- is rebuilt on a theme swap and on an offscreen
+			-- re-allocation, and throwing the layout cache away with it
+			-- would re-shape every visible bubble; see SW_SHAPING.
+
 feature -- Element change
 
 	set_root (a_root: SW_WIDGET)
@@ -86,6 +94,34 @@ feature -- Element change
 			holds: focused = a_w
 		end
 
+	set_shaping (a_shaping: detachable SW_SHAPING)
+			-- Turn shaped text on for every widget that knows how to use
+			-- it - Hebrew right-to-left, Greek intact, emoji as pictures -
+			-- or off (Void), which restores cairo's toy path everywhere.
+			-- The kit is kept across painter rebuilds.
+		do
+			shaping := a_shaping
+			painter.set_shaping (a_shaping)
+		ensure
+			kept: shaping = a_shaping
+			painter_told: painter.shaping = a_shaping
+		end
+
+	enable_shaped_text
+			-- `set_shaping' with a kit built over the AC-9 runnable
+			-- folder - the emoji artwork under assets/noto-emoji/png/128
+			-- beside the running executable - and with this
+			-- window's theme face prepended for LATIN only.
+		local
+			l_kit: SW_SHAPING
+		do
+			create l_kit.make
+			l_kit.set_theme_faces (theme)
+			set_shaping (l_kit)
+		ensure
+			on: attached shaping
+		end
+
 	set_theme (a_theme: SW_THEME)
 			-- Swap the token set live; the next render wears it, and
 			-- the OS-side backdrop brush follows (it paints pixels a
@@ -93,6 +129,7 @@ feature -- Element change
 		do
 			theme := a_theme
 			create painter.make (ctx, a_theme)
+			painter.set_shaping (shaping)
 			set_backdrop_rgb (a_theme.background.to_integer_32)
 		ensure
 			swapped: theme = a_theme
@@ -956,6 +993,7 @@ feature {NONE} -- Popup lifecycle
 					offscreen := cairo.create_surface (alloc_w, alloc_h)
 					create ctx.make (offscreen)
 					create painter.make (ctx, theme)
+					painter.set_shaping (shaping)
 				end
 				if attached dialog as d then
 					d.measure (painter, win_w, win_h)
@@ -1101,6 +1139,11 @@ feature {NONE} -- Rendering
 
 	render
 		do
+				-- R10: while the frame is being dragged, shaped widgets keep
+				-- the layout they have. `busy_ticks' is the toolkit's own
+				-- two-heartbeats-of-stillness debounce, stamped by
+				-- `resize_surface' and wound down by `flush_frame_echo'.
+			painter.set_resize_storm (busy_ticks > 0)
 			painter.set_color (theme.background)
 			ctx.paint.do_nothing
 			if attached root as r then
