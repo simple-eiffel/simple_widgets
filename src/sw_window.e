@@ -175,6 +175,7 @@ feature -- Log
 				f.open_write
 			end
 			if f.is_open_write then
+				f.put_string (timestamp_prefix)
 				f.put_string (a_s.to_string_32.to_string_8)
 				f.put_new_line
 				f.close
@@ -184,6 +185,42 @@ feature -- Log
 	log_name: STRING_32
 		once
 			create Result.make_from_string_general ("sw_session.log")
+		end
+
+	timestamp_prefix: STRING_8
+			-- "YYYY-MM-DD HH:MM:SS " in local time, so a support log
+			-- pasted without its file's mtime still says WHEN.
+		local
+			now: SIMPLE_DATE_TIME
+		do
+			create now.make_now
+			create Result.make (20)
+			Result.append (now.year.out)
+			Result.append_character ('-')
+			Result.append (zero_padded (now.month))
+			Result.append_character ('-')
+			Result.append (zero_padded (now.day))
+			Result.append_character (' ')
+			Result.append (zero_padded (now.hour))
+			Result.append_character (':')
+			Result.append (zero_padded (now.minute))
+			Result.append_character (':')
+			Result.append (zero_padded (now.second))
+			Result.append_character (' ')
+		end
+
+	zero_padded (a_n: INTEGER): STRING_8
+			-- `a_n' (0..99) as exactly two digits.
+		require
+			in_range: a_n >= 0 and a_n <= 99
+		do
+			if a_n < 10 then
+				Result := "0" + a_n.out
+			else
+				Result := a_n.out
+			end
+		ensure
+			two_digits: Result.count = 2
 		end
 
 feature -- Operation
@@ -207,6 +244,8 @@ feature -- Operation
 			-- theme and note the moment.
 		do
 			set_backdrop_rgb (theme.background.to_integer_32)
+			log_line ("sw: session start scale=" + theme.text_scale.out
+				+ " size=" + win_w.out + "x" + win_h.out)
 			log_line ("sw: window up")
 		end
 
@@ -220,6 +259,24 @@ feature -- Operation
 	write_frame (a_path: READABLE_STRING_GENERAL): BOOLEAN
 		do
 			Result := offscreen.write_png (a_path.to_string_32)
+		end
+
+	simulate_wheel (a_x, a_y, a_delta: INTEGER)
+			-- Deliver a wheel turn exactly as the native queue's event 15
+			-- would: `target_at' picks the widget under the point the same
+			-- way a real WM_MOUSEWHEEL's hit-test does, `bubble_wheel'
+			-- walks the parent chain the same way, and `after_input'
+			-- renders the result - the only difference from the real path
+			-- is where the delta comes from (a parameter here, the native
+			-- queue's `event_extra' there). For an offscreen harness with
+			-- no HWND and so no native queue to draw a wheel event from:
+			-- `run' is never called, `hwnd' stays `default_pointer', and
+			-- no window is ever shown.
+		do
+			if attached target_at (a_x, a_y) as w then
+				bubble_wheel (w, a_delta)
+			end
+			after_input
 		end
 
 feature {NONE} -- Dispatch

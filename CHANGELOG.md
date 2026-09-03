@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (CHAT THREAD SCROLLING — the scroll-clamp defect; the 0.5.0 minor bump)
+- **`SW_CHAT_THREAD` could never show its own tail, and no wheel or drag
+  survived a repaint.** `draw` clamped `scroll_y` once PER BUBBLE against
+  `content_h` while it was still mid-accumulation — the first bubble always
+  saw a content height of 8.0, the loop's own starting value, so on any pane
+  taller than 8 px the clamp reset `scroll_y` to ~0 on every single frame,
+  before the true total was ever measured. Adding a message, or turning the
+  wheel, changed `scroll_y` — but the very next `draw` threw it away. `draw`
+  now runs two passes: PASS 1 measures every bubble with no drawing and no
+  dependence on `scroll_y`, so `content_h` is the real total before anything
+  is clamped against it; PASS 2 draws at the one offset the frame settled
+  on. Every scroll-changing entry point — the wheel, a scrollbar drag or
+  track click, PageUp/PageDown/Home/End — now funnels through one
+  `scroll_to (a_y)` query, so the `[0, max_scroll]` clamp and the
+  sticky-tail law apply everywhere, not just in `draw`.
+
+### Added
+- **`SW_CHAT_THREAD` draws its own vertical scrollbar** — track and thumb
+  along the right edge, sized from `SW_THEME.text_scale` (`Scrollbar_w` is
+  12 px at 1x), visible only when `max_scroll` > 0.0 and invisible/inert
+  otherwise. `max_scroll`, `scrollbar_visible`, `track_x`, `track_y`,
+  `track_h`, `thumb_height`, `thumb_top`, `scroll_to`, `is_dragging_thumb`
+  are all public and contracted (the thumb stays within its track;
+  `scroll_to` clamps to `[0, max_scroll]`). Draggable with the mouse and
+  clickable-to-page on the bare track, through the widget's existing
+  `handle_click` / `handle_drag` / `handle_release` — no new input plumbing
+  in `SW_WINDOW`. Bubble wrap width reserves the scrollbar's gutter
+  unconditionally, so crossing the overflow line never reflows a bubble
+  already on screen.
+- **`SW_CHAT_THREAD` now accepts keyboard focus** (`accepts_focus`, joining
+  the Tab ring the way `SW_LIST` does) and answers PageUp, PageDown, Home
+  and End — `SW_LIST`'s own virtual-key vocabulary (33/34/36/35) — once
+  clicked.
+- `SW_WINDOW.simulate_wheel (a_x, a_y, a_delta)` — deliver a wheel turn
+  through the SAME `target_at` + `bubble_wheel` path a real WM_MOUSEWHEEL
+  takes, for an offscreen harness with no native event queue to draw one
+  from (`run` is never called, so `hwnd` stays `default_pointer` and no
+  window, visible or hidden, is ever created).
+- `SW_WINDOW`'s session log (`sw_session.log`) now prefixes every line with
+  a local `YYYY-MM-DD HH:MM:SS` timestamp (`SW_WINDOW.timestamp_prefix`),
+  and logs a `session start` line (the theme's `text_scale` and the window
+  size) alongside the existing `window up`.
+
 ### Fixed (MARGINS AND PADDING — Vision2's outside/inside model; the 0.4.0 minor bump)
 - **Controls no longer sit on the window edge.** `SW_COLUMN.padding` defaulted
   to 0.0, so every window whose root was a column put its first control at
