@@ -114,12 +114,41 @@ feature -- Layout
 			Result := a_p.advance (text)
 		end
 
+	line_step (a_p: SW_PAINTER): REAL_64
+			-- Distance from one wrapped line to the next.
+			--
+			-- MEASURED, at the size actually painted. It used to be
+			-- `size + 9.0' - the NOMINAL size plus a constant - while the
+			-- glyphs were painted at `size * text_scale'. The two agreed
+			-- only at 1x; at simple_chat's 2x the step stayed 22 px under
+			-- 26 px text and the lines collided. Ascent + descent comes
+			-- from cairo's font extents for the selected font, so it
+			-- already carries the scale, and the theme's `padding' is the
+			-- leading, which scales too.
+		do
+			a_p.font (role, size, is_bold)
+			Result := a_p.text_extent + a_p.theme.padding
+		ensure
+			clears_the_glyphs: Result >= a_p.text_extent
+		end
+
+	baseline_offset (a_p: SW_PAINTER): REAL_64
+			-- Where the first baseline sits below the label's top edge -
+			-- the measured ascent plus half the leading, so a line of
+			-- text is centred in the step it occupies.
+		do
+			a_p.font (role, size, is_bold)
+			Result := a_p.font_ascent + a_p.theme.padding / 2.0
+		ensure
+			non_negative: Result >= 0.0
+		end
+
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 		do
 			if is_wrapping then
-				Result := wrapped_lines (a_p, a_width).count * (size + 9.0)
+				Result := wrapped_lines (a_p, a_width).count * line_step (a_p)
 			else
-				Result := size + 9.0
+				Result := line_step (a_p)
 			end
 		end
 
@@ -141,19 +170,29 @@ feature -- Layout
 				if line.is_empty then
 					line := w.twin
 					cx := ww
-				elseif cx + 4.5 + ww > a_width then
+				elseif cx + space_advance (a_p) + ww > a_width then
 					Result.extend (line)
 					line := w.twin
 					cx := ww
 				else
 					line.append_character (' ')
 					line.append (w)
-					cx := cx + 4.5 + ww
+					cx := cx + space_advance (a_p) + ww
 				end
 			end
 			Result.extend (line)
 		ensure
 			at_least_one: not Result.is_empty
+		end
+
+	space_advance (a_p: SW_PAINTER): REAL_64
+			-- Width of one blank in the CURRENT font. Measured, so
+			-- wrapping holds at any `text_scale' (it was a flat 4.5,
+			-- which under-measured every line at 2x).
+		do
+			Result := a_p.advance (" ")
+		ensure
+			non_negative: Result >= 0.0
 		end
 
 feature -- Drawing
@@ -162,7 +201,10 @@ feature -- Drawing
 		local
 			lines: ARRAYED_LIST [STRING_32]
 			i: INTEGER
+			step, base: REAL_64
 		do
+			step := line_step (a_p)
+			base := baseline_offset (a_p)
 			a_p.font (role, size, is_bold)
 			if custom_color /= 0 then
 				a_p.set_color (custom_color)
@@ -178,11 +220,11 @@ feature -- Drawing
 				until
 					i > lines.count
 				loop
-					a_p.text (x, y + (i - 1) * (size + 9.0) + size + 2.0, lines.i_th (i))
+					a_p.text (x, y + (i - 1) * step + base, lines.i_th (i))
 					i := i + 1
 				end
 			else
-				a_p.text (x, y + size + 2.0, text)
+				a_p.text (x, y + base, text)
 			end
 		end
 

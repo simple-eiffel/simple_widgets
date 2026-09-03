@@ -80,6 +80,76 @@ feature -- Type
 			Result := context.text_extents (a_s.to_string_32).x_advance
 		end
 
+feature -- Font metrics (the minimum-size law)
+
+	font_ascent: REAL_64
+			-- Ascent of the CURRENT font, from cairo's own font extents.
+			-- Call `font' first: this measures what is selected now.
+		do
+			Result := context.font_extents.ascent
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	font_descent: REAL_64
+			-- Descent of the current font.
+		do
+			Result := context.font_extents.descent
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	text_extent: REAL_64
+			-- Ascent + descent of the current font - the height of the
+			-- box a line of text actually occupies (cairo's own caret
+			-- box; see CAIRO_FONT_EXTENTS's class note). MEASURED, never
+			-- a constant, so it already carries `theme.text_scale',
+			-- which `font' folded into the selected size.
+		do
+			Result := font_ascent + font_descent
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	min_control_height: REAL_64
+			-- The smallest height a control may have and still show its
+			-- label: the measured text box plus the theme's INSIDE inset
+			-- above and below.
+			--
+			-- Vision2 states the same law as a pair of constants run
+			-- through the display scale - EV_LAYOUT_CONSTANTS.
+			-- default_button_height (contrib/ev_layout_constants.e:19)
+			-- - and applies it with `.max' against whatever minimum the
+			-- widget already carries (`set_default_size_for_button',
+			-- same file, line 68). A DRAWN toolkit can do better than a
+			-- constant: it can measure.
+		do
+			Result := text_extent + 2.0 * theme.control_inset
+		ensure
+			clears_the_insets: Result >= 2.0 * theme.control_inset
+			clears_the_text: Result >= text_extent
+		end
+
+	min_control_width (a_s: READABLE_STRING_GENERAL): REAL_64
+			-- The smallest width a control showing `a_s' may have: the
+			-- measured advance plus the inside inset left and right.
+		do
+			Result := advance (a_s) + 2.0 * theme.control_inset
+		ensure
+			clears_the_insets: Result >= 2.0 * theme.control_inset
+		end
+
+	baseline_in (a_y, a_h: REAL_64): REAL_64
+			-- The baseline that centres one line of the current font in
+			-- a band `a_h' tall starting at `a_y'.
+		require
+			positive_band: a_h >= 0.0
+		do
+			Result := a_y + (a_h - text_extent) / 2.0 + font_ascent
+		ensure
+			below_the_top: Result >= a_y
+		end
+
 feature -- Shaped text (simple_shaping)
 
 	shaping: detachable SW_SHAPING

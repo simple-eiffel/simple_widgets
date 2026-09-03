@@ -33,7 +33,6 @@ feature {NONE} -- Initialization
 	make
 		do
 			make_column
-			gap := 8.0
 			create specs.make (6)
 			create boxes.make (6)
 			create checks.make (6)

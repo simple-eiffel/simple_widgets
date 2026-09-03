@@ -13,6 +13,9 @@ class
 
 inherit
 	SW_COLUMN
+		redefine
+			default_padding, default_gap
+		end
 
 create
 	make_open, make_save
@@ -40,8 +43,6 @@ feature {NONE} -- Initialization
 			ttl: SW_LABEL
 		do
 			make
-			padding := 6.0
-			gap := 10.0
 			create current_dir.make_from_string_general (a_start_dir)
 			create extension_filter.make_empty
 			create entry_names.make (64)
@@ -68,6 +69,23 @@ feature {NONE} -- Initialization
 			verbs.put (create {SW_BUTTON}.make ("Cancel", agent do_cancel))
 			put (verbs)
 			load_directory (current_dir)
+		end
+
+
+feature -- Spacing (theme defaults; an explicit value still wins)
+
+	default_padding (a_p: SW_PAINTER): REAL_64
+			-- The dialog is its own surface and keeps a tight border: 6 px
+			-- at 1x, as before, now expressed against the theme so it scales.
+		do
+			Result := a_p.theme.padding * 0.75
+		end
+
+	default_gap (a_p: SW_PAINTER): REAL_64
+			-- Its rows sit a shade further apart than a plain box's: 10 px
+			-- at 1x, as before, now scaled.
+		do
+			Result := a_p.theme.padding * 1.25
 		end
 
 feature -- Access

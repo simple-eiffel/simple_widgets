@@ -71,6 +71,9 @@ feature {NONE} -- Initialization
 			print ("%N=== SHAPED TEXT (simple_shaping) ===%N")
 			run_shaping_tests
 
+			print ("%N=== MARGINS + PADDING ===%N")
+			run_margins_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -386,6 +389,24 @@ feature {NONE} -- Test runners
 	deepening_tests: SW_DEEPENING_ASSAULT
 
 	shaping_tests: SW_SHAPING_ASSAULT
+
+	margins_tests: SW_MARGINS_ASSAULT
+
+	run_margins_tests
+			-- The Vision2 outside/inside spacing model: border_width at the
+			-- root, padding between siblings, control_inset inside a control.
+		do
+			create margins_tests
+			run_test (agent margins_tests.test_theme_carries_border_padding_and_inset, "theme_carries_border_padding_and_inset")
+			run_test (agent margins_tests.test_column_places_children_from_the_theme, "column_places_children_from_the_theme")
+			run_test (agent margins_tests.test_nested_column_adds_no_second_border, "nested_column_adds_no_second_border")
+			run_test (agent margins_tests.test_explicit_spacing_always_wins, "explicit_spacing_always_wins")
+			run_test (agent margins_tests.test_card_and_group_carry_their_own_border, "card_and_group_carry_their_own_border")
+			run_test (agent margins_tests.test_control_minimum_comes_from_the_font, "control_minimum_comes_from_the_font")
+			run_test (agent margins_tests.test_controls_track_the_font_at_1x_and_2x, "controls_track_the_font_at_1x_and_2x")
+			run_test (agent margins_tests.test_label_line_step_equals_the_painted_line, "label_line_step_equals_the_painted_line")
+			run_test (agent margins_tests.test_margins_evidence, "margins_evidence (offscreen PNG)")
+		end
 
 	run_shaping_tests
 			-- The shaped-text battery. Every one of these needs the Noto

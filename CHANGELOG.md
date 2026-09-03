@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (MARGINS AND PADDING — Vision2's outside/inside model; the 0.4.0 minor bump)
+- **Controls no longer sit on the window edge.** `SW_COLUMN.padding` defaulted
+  to 0.0, so every window whose root was a column put its first control at
+  (0, 0). `SW_WINDOW` now insets its root by `theme.border_width` on all four
+  sides (`SW_WINDOW.content_border`), and `SW_DIALOG` does the same inside its
+  card. The border is applied **once**: plain boxes keep a 0 border of their
+  own, exactly as Vision2 defaults `EV_BOX.border_width` to 0
+  (`EV_BOX_I.Default_border_width`) and lets the dialog set it
+  (`EV_MESSAGE_DIALOG` does `vb.set_border_width (10)`), so nesting cannot
+  double it.
+- **`SW_LABEL` stepped wrapped lines by `size + 9.0` while painting at
+  `size * text_scale`.** The two agreed only at 1x; at 2x the lines collided.
+  `SW_LABEL.line_step` and `baseline_offset` are now measured from cairo's font
+  extents at the size actually painted, and `space_advance` measures the blank
+  the wrapper used to assume was 4.5 px.
+- `SW_TEXT_BOX` rows stepped by the nominal `theme.line_height` at any scale;
+  they now use `theme.scaled_line_height`, and the caret hit test agrees with
+  the paint (`laid_row_h`) instead of assuming 26 px.
+
+### Added
+- `SW_THEME.border_width`, `SW_THEME.padding`, `SW_THEME.control_inset`,
+  `SW_THEME.scaled_line_height`, `SW_THEME.control_pad`, `SW_THEME.set_spacing`
+  — the three spacing tokens (12 / 8 / 11 px at 1x), every one multiplied by
+  `text_scale`, so 2x text gets 2x margins with no layout change.
+- `SW_PAINTER.font_ascent`, `font_descent`, `text_extent`, `min_control_height`,
+  `min_control_width (s)`, `baseline_in (y, h)` — the minimum-size law, MEASURED
+  from cairo's `font_extents` for the selected font rather than declared as a
+  constant. This is the role `EV_LAYOUT_CONSTANTS.default_button_height` plays
+  in Vision2, with a measurement in place of its dialog-unit conversion.
+- `SW_COLUMN` / `SW_ROW`: `set_gap`, `set_padding` (SW_COLUMN),
+  `gap_is_explicit`, `padding_is_explicit`, `default_gap`, `default_padding`,
+  `effective_gap`, `effective_padding`. **An explicit value always wins**,
+  including an explicit 0.0, at any scale; a box that was never told follows the
+  theme.
+- `SW_LABEL.line_step`, `baseline_offset`, `space_advance`;
+  `SW_TEXT_BOX.row_height`, `row_baseline`; `SW_CHECK_BOX.box_side`;
+  `SW_DIALOG.border_width`, `button_height`.
+- 9 tests in `testing/sw_margins_assault.e` (204 → 213 passing): the theme
+  tokens and their scaling, first child at (border, border), siblings one
+  padding apart, last child clearing the bottom, a nested column adding NO
+  second border, explicit-wins at 1x and 2x, card/group borders, the
+  font-measured control minimum, controls tracking the font 1x → 2x, and the
+  label line step matching its painted glyphs. Evidence PNGs are rendered
+  OFFSCREEN onto a cairo image surface (`evidence/margins-before.png`,
+  `margins-after.png`, `margins-1x.png`, `margins-2x.png`).
+
+### Changed
+- `SW_BUTTON`, `SW_TEXT_BOX`, `SW_CHECK_BOX`, `SW_NUMBER_BOX` clamp their
+  natural height up to `min_control_height`; a larger explicit anchor still wins
+  through `clamped_height`. Measured 1x → 2x: 38 → 75, 42 → 80, 38 → 75,
+  38 → 75 px.
+- Box descendants take their spacing from the theme instead of a literal, at
+  the same 1x values as before except where noted: `SW_CARD` border
+  `control_inset` (11), `SW_FILE_DIALOG` border `padding × 0.75` (6) and gap
+  `padding × 1.25` (10), `SW_DRAWER` / `SW_KANBAN` gap `padding × 1.25` (10),
+  `SW_PROMPT_VIEW` / `SW_QUERY_BUILDER` gap `padding × 0.75` (6),
+  `SW_FORM_GENERATOR` gap `padding` (8). `SW_GROUP`'s border moves from a fixed
+  14 to `theme.border_width` (12 at 1x). `SW_DIALOG`'s card border is
+  `border_width × 1.5` (18 at 1x, unchanged) and its buttons obey
+  `min_control_height`.
+- `SW_BUTTON`, `SW_CHECK_BOX` and `SW_DIALOG` centre their labels on the
+  measured font (`SW_PAINTER.baseline_in`) instead of a constant offset from
+  the bottom edge.
+
 ### Added (SHAPED TEXT — simple_shaping adopted; the 0.3.0 minor bump)
 - The toolkit can hand its text to `simple_shaping` instead of to cairo's
   toy API: bidi (Hebrew reads right-to-left inside a left-to-right pane),

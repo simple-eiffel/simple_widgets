@@ -460,10 +460,34 @@ feature -- Element change
 
 feature -- Layout
 
+	row_height (a_p: SW_PAINTER): REAL_64
+			-- One text row at the current scale. `line_height' is a
+			-- nominal 1x token; the glyphs are painted at
+			-- `size_body * text_scale', so the row must scale with them.
+		do
+			Result := a_p.theme.scaled_line_height
+		ensure
+			positive: Result >= 0.0
+		end
+
+	row_baseline (a_p: SW_PAINTER): REAL_64
+			-- Baseline offset inside one row, from MEASURED metrics.
+		do
+			a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
+			Result := (row_height (a_p) - a_p.text_extent) / 2.0 + a_p.font_ascent
+		end
+
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- The rows it needs plus the inside inset, never less than
+			-- the minimum the font demands (ascent + descent + the
+			-- theme's `control_inset' above and below).
 		do
 			ensure_layout (a_p, a_width - 2.0 * Pad_x)
-			Result := lay_lines * a_p.theme.line_height + 2.0 * Pad_y
+			a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
+			Result := (lay_lines * row_height (a_p) + 2.0 * Pad_y)
+				.max (a_p.min_control_height)
+		ensure then
+			at_least_the_minimum: Result >= a_p.min_control_height
 		end
 
 feature -- Drawing
@@ -472,11 +496,17 @@ feature -- Drawing
 		local
 			t: SW_THEME
 			i, n, lo, hi: INTEGER
-			gx, gy, gw, cx, cy: REAL_64
+			gx, gy, gw, cx, cy, row, base, asc, ext: REAL_64
 			seln: BOOLEAN
 		do
 			t := a_p.theme
 			ensure_layout (a_p, width - 2.0 * Pad_x)
+			row := row_height (a_p)
+			base := row_baseline (a_p)
+			a_p.font ({SW_PAINTER}.Role_body, t.size_body, False)
+			asc := a_p.font_ascent
+			ext := a_p.text_extent
+			laid_row_h := row
 			if is_invalid then
 				a_p.set_color (t.wash_danger)
 			else
@@ -508,12 +538,12 @@ feature -- Drawing
 				i > n
 			loop
 				gx := x + Pad_x + lay_x.i_th (i)
-				gy := y + Pad_y + lay_line.i_th (i) * t.line_height + t.line_height - 8.0
+				gy := y + Pad_y + lay_line.i_th (i) * row + base
 				gw := lay_adv.i_th (i)
 				seln := is_focused and then has_selection and then is_char_selected (i)
 				if seln then
 					a_p.set_color (t.accent)
-					a_p.fill_rect (gx - 1.0, gy - 15.0, gw + 2.0, 21.0)
+					a_p.fill_rect (gx - 1.0, gy - asc, gw + 2.0, ext + 2.0)
 				end
 				a_p.font ({SW_PAINTER}.Role_body, t.size_body, False)
 				if seln then
@@ -534,7 +564,7 @@ feature -- Drawing
 					i > sr.hi or i > n
 				loop
 					gx := x + Pad_x + lay_x.i_th (i)
-					gy := y + Pad_y + lay_line.i_th (i) * t.line_height + t.line_height - 8.0
+					gy := y + Pad_y + lay_line.i_th (i) * row + base
 					a_p.set_color (t.danger)
 					a_p.fill_rect (gx, gy + 3.5, lay_adv.i_th (i) + 1.0, 1.6)
 					i := i + 1
@@ -542,9 +572,9 @@ feature -- Drawing
 			end
 			if is_focused then
 				cx := x + Pad_x + caret_x
-				cy := y + Pad_y + caret_line * t.line_height + t.line_height - 8.0
+				cy := y + Pad_y + caret_line * row + base
 				a_p.set_color (t.danger)
-				a_p.fill_rect (cx, cy - 16.0, 2.0, 23.0)
+				a_p.fill_rect (cx, cy - asc - 1.0, 2.0, ext + 3.0)
 			end
 			if shows_clear then
 					-- the clear X: muted at rest, danger under the pointer
@@ -836,6 +866,13 @@ feature {NONE} -- Engine
 
 	Pad_x: REAL_64 = 9.0
 	Pad_y: REAL_64 = 6.0
+			-- The field's own inside inset at 1x. (The HEIGHT minimum is
+			-- theme- and metric-driven; see `preferred_height'.)
+
+	laid_row_h: REAL_64
+			-- The row height the last paint used, so the caret hit test
+			-- agrees with what is on screen at any scale; 0 before the
+			-- first paint.
 
 	lay_x: ARRAYED_LIST [REAL_64]
 	lay_adv: ARRAYED_LIST [REAL_64]
@@ -1011,7 +1048,11 @@ feature {NONE} -- Engine
 			line: INTEGER
 			lh: REAL_64
 		do
-			lh := 26.0
+			if laid_row_h > 0.0 then
+				lh := laid_row_h
+			else
+				lh := 26.0
+			end
 			line := (((a_py - y - Pad_y) / lh).truncated_to_integer).max (0).min (lay_lines - 1)
 			Result := offset_on_line (line, a_px - x - Pad_x)
 		ensure

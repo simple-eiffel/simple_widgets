@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-193%2F193-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-213%2F213-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -25,7 +25,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 193 contract-assault tests passing
+- 213 contract-assault tests passing
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
   compiled out of release-shaped builds via the devkit override
@@ -196,6 +196,67 @@ no such fallback: stage the folder.
   their metrics is a separate, wider change — not a small safe one.
 - One kit per window, per SCOOP processor. A background processor that wants to
   measure text creates its own.
+
+## Margins and padding
+
+Controls do not sit on the window edge. The toolkit carries Vision2's spacing
+model as three theme tokens, and every one of them **scales with the text**, so
+an application drawing at 2x (`theme.set_text_scale (2.0)`) gets 2x margins
+without touching a layout.
+
+| Vision2 (`EV_BOX`, ISE 25.02) | simple_widgets | 1x | Meaning |
+|---|---|---|---|
+| `EV_BOX.border_width` | `SW_THEME.border_width` | 12 px | space between a container's edge and its content |
+| `EV_BOX.padding` / `padding_width` | `SW_THEME.padding` | 8 px | space between siblings |
+| *(no Vision2 name — a native control owns its own margins)* | `SW_THEME.control_inset` | 11 px | space between a control's edge and its label |
+| `EV_LAYOUT_CONSTANTS.default_button_height` | `SW_PAINTER.min_control_height` | measured | ascent + descent + 2 × `control_inset` |
+| `EV_LAYOUT_CONSTANTS.dialog_unit_to_pixels` | `SW_THEME.text_scale` | ×1.0 | the one knob every token is multiplied by |
+
+**The border is applied once.** `SW_WINDOW` insets its root widget by
+`theme.border_width` on all four sides (`SW_WINDOW.content_border`), and
+`SW_DIALOG` does the same inside its card. Every plain box therefore defaults
+its own `padding` to **0** — exactly as Vision2 defaults `EV_BOX.border_width`
+to 0 (`EV_BOX_I.Default_border_width`) and lets the dialog set it
+(`EV_MESSAGE_DIALOG` does `vb.set_border_width (10)`). Nest boxes as deep as you
+like: the content is inset **once**.
+
+Boxes that *are* a surface in their own right keep a border: `SW_CARD`
+(`control_inset`), `SW_GROUP` (`border_width`), `SW_FILE_DIALOG`
+(`padding × 0.75`).
+
+**An explicit value always wins.** `with_padding` / `set_padding` and
+`with_gap` / `set_gap` mark the box explicit (`padding_is_explicit`,
+`gap_is_explicit`), and an explicit value — **including 0.0** — is never
+overwritten by the theme, at any scale. Layout reads `effective_padding (p)` and
+`effective_gap (p)`; a box that was never told stays theme-driven.
+
+```eiffel
+create col.make                     -- gap = theme padding, border = 0
+create page.make
+page.put (col)                      -- nested: still no second border
+win.set_root (page)                 -- the window supplies the ONE border
+
+create tight.make
+tight := tight.with_gap (0.0)       -- explicit 0 stands, even at 2x text
+```
+
+**Controls are never smaller than their font.** `SW_PAINTER.text_extent` is
+cairo's own `font_extents` ascent + descent for the *selected* font, so it
+already carries `text_scale`; `min_control_height` adds the inside inset above
+and below, and `min_control_width (s)` does the same either side of a measured
+advance. `SW_BUTTON`, `SW_TEXT_BOX`, `SW_CHECK_BOX` and `SW_NUMBER_BOX` clamp
+their natural height up to it — a larger explicit anchor still wins through
+`clamped_height`. Measured at 1x → 2x: button 38 → 75, text box 42 → 80, check
+box 38 → 75, number box 38 → 75, label 24 → 47 px.
+
+`SW_LABEL.line_step` is measured too (`text_extent` + the theme's leading), so a
+wrapped label's line step and its painted glyphs agree at every scale; it used
+to step by the *nominal* `size + 9.0` while painting at `size × text_scale`.
+
+Evidence: `evidence/margins-before.png` (root at 0,0 — controls flush on the
+edge) against `evidence/margins-after.png`, plus `margins-1x.png` /
+`margins-2x.png` for the control-size proof. All rendered offscreen onto a cairo
+image surface; see `testing/sw_margins_assault.e`.
 
 ## The rules (spec S01)
 
