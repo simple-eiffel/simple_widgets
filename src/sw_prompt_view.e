@@ -17,6 +17,8 @@ inherit
 	SW_COLUMN
 		rename
 			make as make_column
+		redefine
+			default_gap
 		end
 
 create
@@ -27,13 +29,21 @@ feature {NONE} -- Initialization
 	make
 		do
 			make_column
-			gap := 6.0
 			create thread.make
 			create prompt_box.make_single_line ("")
 			create send_button.make ("Send", Void)
 			put (thread.growing)
 			build_input_row
 			send_button.set_on_click (agent submit_now)
+		end
+
+
+feature -- Spacing (theme defaults; an explicit value still wins)
+
+	default_gap (a_p: SW_PAINTER): REAL_64
+			-- 6 px at 1x, as before, now scaled with the text.
+		do
+			Result := a_p.theme.padding * 0.75
 		end
 
 feature -- Access

@@ -24,12 +24,20 @@ feature {NONE} -- Initialization
 		do
 			create children.make (8)
 			gap := 8.0
+		ensure
+			no_explicit_gap: not gap_is_explicit
 		end
 
 feature -- Access
 
 	children: ARRAYED_LIST [SW_WIDGET]
+
 	gap: REAL_64
+			-- Space between SIBLINGS - EV_BOX.padding. Consulted only
+			-- when `gap_is_explicit'; otherwise `default_gap'.
+
+	gap_is_explicit: BOOLEAN
+			-- Has the application set `gap' itself? Explicit always wins.
 
 	is_wrapping: BOOLEAN
 			-- Flex-wrap: children beyond the width start a new line
@@ -93,8 +101,48 @@ feature -- Element change
 		require
 			non_negative: a_gap >= 0.0
 		do
-			gap := a_gap
+			set_gap (a_gap)
 			Result := Current
+		ensure
+			explicit: gap_is_explicit and gap = a_gap
+		end
+
+	set_gap (a_gap: REAL_64)
+			-- Fix the sibling separation; the theme no longer decides.
+		require
+			non_negative: a_gap >= 0.0
+		do
+			gap := a_gap
+			gap_is_explicit := True
+		ensure
+			explicit: gap_is_explicit and gap = a_gap
+		end
+
+feature -- Spacing (theme defaults, explicit always wins)
+
+	default_gap (a_p: SW_PAINTER): REAL_64
+			-- Sibling separation when the application has not set one:
+			-- the theme's `padding' (EV_BOX.padding), which scales with
+			-- the text. A row carries no border of its own - the WINDOW
+			-- or the DIALOG owns that, once - so nesting rows adds space
+			-- between children only, never a second frame.
+		do
+			Result := a_p.theme.padding
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	effective_gap (a_p: SW_PAINTER): REAL_64
+			-- The sibling separation actually used this layout.
+		do
+			if gap_is_explicit then
+				Result := gap
+			else
+				Result := default_gap (a_p)
+			end
+		ensure
+			explicit_wins: gap_is_explicit implies Result = gap
+			non_negative: Result >= 0.0
 		end
 
 feature -- Tooling
@@ -118,7 +166,7 @@ feature -- Layout
 				Result := Result + c.clamped_width (c.preferred_width (a_p))
 			end
 			if children.count > 1 then
-				Result := Result + gap * (children.count - 1)
+				Result := Result + effective_gap (a_p) * (children.count - 1)
 			end
 		end
 
@@ -139,7 +187,7 @@ feature -- Layout
 					widths.extend (c.clamped_width (c.preferred_width (a_p)))
 					heights.extend (c.clamped_height (c.preferred_height (a_p, widths.last)))
 				end
-				starts := wrap_starts (widths, gap, a_width)
+				starts := wrap_starts (widths, effective_gap (a_p), a_width)
 				from
 					li := 1
 				until
@@ -163,7 +211,7 @@ feature -- Layout
 					end
 					Result := Result + line_h
 					if li > 1 then
-						Result := Result + gap
+						Result := Result + effective_gap (a_p)
 					end
 					li := li + 1
 				end
@@ -229,8 +277,9 @@ feature -- Layout
 			widths, heights: ARRAYED_LIST [REAL_64]
 			starts: ARRAYED_LIST [INTEGER]
 			li, i, line_end: INTEGER
-			cx, cy, line_h, ch: REAL_64
+			cx, cy, line_h, ch, gp: REAL_64
 		do
+			gp := effective_gap (a_p)
 			create widths.make (children.count)
 			create heights.make (children.count)
 			across
@@ -239,7 +288,7 @@ feature -- Layout
 				widths.extend (c.clamped_width (c.preferred_width (a_p)))
 				heights.extend (c.clamped_height (c.preferred_height (a_p, widths.last)))
 			end
-			starts := wrap_starts (widths, gap, width)
+			starts := wrap_starts (widths, gp, width)
 			cy := y
 			from
 				li := 1
@@ -278,10 +327,10 @@ feature -- Layout
 						children.i_th (i).set_bounds (cx, cy, widths.i_th (i), ch)
 					end
 					children.i_th (i).arrange (a_p)
-					cx := cx + widths.i_th (i) + gap
+					cx := cx + widths.i_th (i) + gp
 					i := i + 1
 				end
-				cy := cy + line_h + gap
+				cy := cy + line_h + gp
 				li := li + 1
 			end
 		end
@@ -290,10 +339,11 @@ feature -- Layout
 			-- Natural widths first; leftover space then splits among
 			-- growers by weight - the containership pass.
 		local
-			cx, cw, ch, natural, leftover, total_grow: REAL_64
+			cx, cw, ch, natural, leftover, total_grow, gp: REAL_64
 			widths: ARRAYED_LIST [REAL_64]
 			i: INTEGER
 		do
+			gp := effective_gap (a_p)
 			create widths.make (children.count)
 			across
 				children as c
@@ -303,7 +353,7 @@ feature -- Layout
 				total_grow := total_grow + c.grow
 			end
 			if children.count > 1 then
-				natural := natural + gap * (children.count - 1)
+				natural := natural + gp * (children.count - 1)
 			end
 			leftover := width - natural
 			cx := x
@@ -328,7 +378,7 @@ feature -- Layout
 					children.i_th (i).set_bounds (cx, y + (height - ch) / 2.0, cw, ch)
 				end
 				children.i_th (i).arrange (a_p)
-				cx := cx + cw + gap
+				cx := cx + cw + gp
 				i := i + 1
 			end
 		end

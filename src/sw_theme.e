@@ -80,6 +80,7 @@ feature {NONE} -- Initialization
 			radius := 3.0
 			gap := 8.0
 			pad := 12.0
+			control_pad := 11.0
 				-- sizes raised 2026-08-22: readability first (Larry)
 			button_height := 38.0
 			chip_height := 24.0
@@ -142,12 +143,100 @@ feature -- Metrics
 	radius: REAL_64
 	gap: REAL_64
 	pad: REAL_64
+	control_pad: REAL_64
+			-- Nominal INSIDE inset of a control at 1x - the space between
+			-- a control's own edge and its label. Vision2 has no name for
+			-- it because a native control owns its own margins; a DRAWN
+			-- toolkit must carry it as a token.
+
 	button_height: REAL_64
 	chip_height: REAL_64
 	size_body: REAL_64
 	size_label: REAL_64
 	size_chip: REAL_64
 	line_height: REAL_64
+
+feature -- Spacing (the Vision2 outside/inside model, scaled)
+
+	border_width: REAL_64
+			-- Space between a CONTAINER'S EDGE and its content, in pixels
+			-- at the current `text_scale'.
+			--
+			-- This is EV_BOX.border_width
+			-- (ISE 25.02, library/vision2/interface/widgets/containers/ev_box.e:43
+			-- "Width of border around container in pixels"). Vision2's own
+			-- default is 0 (EV_BOX_I.Default_border_width, implementation_
+			-- interface/widgets/containers/ev_box_i.e:29) and ISE's dialogs
+			-- then set it per container - EV_MESSAGE_DIALOG does
+			-- `vb.set_border_width (10)'
+			-- (interface/widgets/dialogs/ev_message_dialog.e:146). The
+			-- toolkit does the same thing once, at the window/dialog root,
+			-- so no application has to remember it and no NESTED container
+			-- doubles it.
+		do
+			Result := pad * text_scale
+		ensure
+			non_negative: Result >= 0.0
+			scales_with_text: Result = pad * text_scale
+		end
+
+	padding: REAL_64
+			-- Space between SIBLINGS inside a container, in pixels at the
+			-- current `text_scale'.
+			--
+			-- This is EV_BOX.padding / padding_width (ev_box.e:54, "Space
+			-- between children in pixels"); the toolkit's boxes have
+			-- always called it `gap', and this is the theme-level,
+			-- scale-aware default that a box adopts when the application
+			-- has not set one.
+		do
+			Result := gap * text_scale
+		ensure
+			non_negative: Result >= 0.0
+			scales_with_text: Result = gap * text_scale
+		end
+
+	control_inset: REAL_64
+			-- Space between a CONTROL'S OWN EDGE and its label, in pixels
+			-- at the current `text_scale' - Vision2's "inside" padding.
+			--
+			-- Together with the measured font this fixes a control's
+			-- MINIMUM size, the way EV_LAYOUT_CONSTANTS fixes Vision2's
+			-- (contrib/ev_layout_constants.e:11-22, whose
+			-- `default_button_height' is 23 dialog units run through
+			-- `dialog_unit_to_pixels' - i.e. a constant SCALED by the
+			-- display, exactly the role `text_scale' plays here).
+		do
+			Result := control_pad * text_scale
+		ensure
+			non_negative: Result >= 0.0
+			scales_with_text: Result = control_pad * text_scale
+		end
+
+	scaled_line_height: REAL_64
+			-- `line_height' at the current `text_scale': a text row must
+			-- grow with the glyphs standing in it.
+		do
+			Result := line_height * text_scale
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	set_spacing (a_border, a_padding, a_control_inset: REAL_64)
+			-- Retune the three spacing tokens AT 1x; `border_width',
+			-- `padding' and `control_inset' keep scaling with the text.
+		require
+			non_negative: a_border >= 0.0 and a_padding >= 0.0
+				and a_control_inset >= 0.0
+		do
+			pad := a_border
+			gap := a_padding
+			control_pad := a_control_inset
+		ensure
+			border_set: pad = a_border
+			padding_set: gap = a_padding
+			inset_set: control_pad = a_control_inset
+		end
 
 feature -- Element change
 
@@ -249,6 +338,9 @@ feature {NONE} -- Implementation
 
 invariant
 	text_scale_positive: text_scale > 0.0
+	border_nominal_non_negative: pad >= 0.0
+	padding_nominal_non_negative: gap >= 0.0
+	control_pad_non_negative: control_pad >= 0.0
 	ink_readable_on_surface: contrast_ratio (ink, surface) >= 4.5
 	muted_readable_on_surface: contrast_ratio (ink_muted, surface) >= 3.0
 

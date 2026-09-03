@@ -67,16 +67,30 @@ feature -- Element change
 feature -- Layout
 
 	Box_s: REAL_64 = 18.0
+			-- The tick box at 1x; `box_side' scales it.
+
+	box_side (a_p: SW_PAINTER): REAL_64
+			-- The tick box at the current text scale, never smaller than
+			-- the text standing beside it.
+		do
+			Result := (Box_s * a_p.theme.text_scale).max (a_p.text_extent)
+		ensure
+			positive: Result > 0.0
+		end
 
 	preferred_width (a_p: SW_PAINTER): REAL_64
 		do
 			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
-			Result := Box_s + 9.0 + a_p.advance (label)
+			Result := box_side (a_p) + 9.0 * a_p.theme.text_scale + a_p.advance (label)
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- 26 px nominal, or the font's minimum, whichever is larger.
 		do
-			Result := 26.0
+			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			Result := (26.0).max (a_p.min_control_height)
+		ensure then
+			at_least_the_minimum: Result >= a_p.min_control_height
 		end
 
 feature -- Drawing
@@ -84,28 +98,30 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			bx, by: REAL_64
+			bx, by, bs: REAL_64
 		do
 			t := a_p.theme
+			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
 			bx := x
-			by := y + (height - Box_s) / 2.0
+			bs := box_side (a_p)
+			by := y + (height - bs) / 2.0
 			if is_indeterminate and is_enabled then
 				a_p.set_color (t.accent)
-				a_p.rrect_fill (bx, by, Box_s, Box_s, t.radius)
+				a_p.rrect_fill (bx, by, bs, bs, t.radius)
 				a_p.set_color (t.surface)
-				a_p.line (bx + 4.0, by + Box_s / 2.0, bx + Box_s - 4.0, by + Box_s / 2.0, 2.4)
+				a_p.line (bx + bs / 4.5, by + bs / 2.0, bx + bs - bs / 4.5, by + bs / 2.0, 2.4)
 			elseif is_checked and is_enabled then
 				a_p.set_color (t.accent)
-				a_p.rrect_fill (bx, by, Box_s, Box_s, t.radius)
+				a_p.rrect_fill (bx, by, bs, bs, t.radius)
 			else
 				a_p.set_color (t.surface)
-				a_p.rrect_fill (bx, by, Box_s, Box_s, t.radius)
+				a_p.rrect_fill (bx, by, bs, bs, t.radius)
 				if shows_hover then
 					a_p.set_color (t.accent)
 				else
 					a_p.set_color (t.outline)
 				end
-				a_p.rrect_stroke (bx + 0.5, by + 0.5, Box_s - 1.0, Box_s - 1.0, t.radius)
+				a_p.rrect_stroke (bx + 0.5, by + 0.5, bs - 1.0, bs - 1.0, t.radius)
 			end
 			if is_checked then
 				if is_enabled then
@@ -113,8 +129,10 @@ feature -- Drawing
 				else
 					a_p.set_color (t.ink_muted)
 				end
-				a_p.line (bx + 4.0, by + 9.5, bx + 7.5, by + 13.0, 2.0)
-				a_p.line (bx + 7.5, by + 13.0, bx + 14.0, by + 5.5, 2.0)
+				a_p.line (bx + bs * 0.222, by + bs * 0.528,
+					bx + bs * 0.417, by + bs * 0.722, 2.0)
+				a_p.line (bx + bs * 0.417, by + bs * 0.722,
+					bx + bs * 0.778, by + bs * 0.306, 2.0)
 			end
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
 			if is_enabled then
@@ -122,7 +140,7 @@ feature -- Drawing
 			else
 				a_p.set_color (t.ink_muted)
 			end
-			a_p.text (x + Box_s + 9.0, y + height - 8.0, label)
+			a_p.text (x + bs + 9.0 * t.text_scale, a_p.baseline_in (y, height), label)
 		end
 
 feature -- Input

@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-193%2F193-brightgreen.svg" alt="193/193 tests">
+            <img src="https://img.shields.io/badge/tests-213%2F213-brightgreen.svg" alt="213/213 tests">
         </div>
     </header>
 
@@ -28,6 +28,7 @@
             <li><a href="#architecture">Architecture</a></li>
             <li><a href="#rules">The Rules</a></li>
             <li><a href="#quick-start">Quick Start</a></li>
+            <li><a href="#margins">Margins</a></li>
             <li><a href="#gallery">All Controls</a></li>
             <li><a href="#testing">Testing</a></li>
             <li><a href="7guis.html">7GUIs</a></li>
@@ -130,6 +131,43 @@
 <span class="keyword">end</span></code></pre>
             <p>The living cookbook is <code>demo/sw_demo.e</code> - the showroom exercising every
             control; build it with the commands under Testing.</p>
+        </section>
+
+        <section id="margins">
+            <h2>Margins and padding</h2>
+            <p>Controls do not sit on the window edge. The toolkit carries Vision2's
+            spacing model as three theme tokens, and every one of them <strong>scales
+            with the text</strong> - an application drawing at 2x
+            (<code>theme.set_text_scale (2.0)</code>) gets 2x margins without touching
+            a layout.</p>
+            <table>
+                <tr><th>Vision2 (<code>EV_BOX</code>, ISE 25.02)</th><th>simple_widgets</th><th>1x</th><th>Meaning</th></tr>
+                <tr><td><code>EV_BOX.border_width</code></td><td><code>SW_THEME.border_width</code></td><td>12 px</td><td>space between a container's edge and its content</td></tr>
+                <tr><td><code>EV_BOX.padding</code> / <code>padding_width</code></td><td><code>SW_THEME.padding</code></td><td>8 px</td><td>space between siblings</td></tr>
+                <tr><td><em>no Vision2 name - a native control owns its own margins</em></td><td><code>SW_THEME.control_inset</code></td><td>11 px</td><td>space between a control's edge and its label</td></tr>
+                <tr><td><code>EV_LAYOUT_CONSTANTS.default_button_height</code></td><td><code>SW_PAINTER.min_control_height</code></td><td>measured</td><td>ascent + descent + 2 &times; <code>control_inset</code></td></tr>
+                <tr><td><code>EV_LAYOUT_CONSTANTS.dialog_unit_to_pixels</code></td><td><code>SW_THEME.text_scale</code></td><td>&times;1.0</td><td>the one knob every token is multiplied by</td></tr>
+            </table>
+            <p><strong>The border is applied once.</strong> <code>SW_WINDOW</code> insets
+            its root by <code>theme.border_width</code> on all four sides
+            (<code>SW_WINDOW.content_border</code>), and <code>SW_DIALOG</code> does the
+            same inside its card. Plain boxes keep a 0 border of their own - exactly as
+            Vision2 defaults <code>EV_BOX.border_width</code> to 0
+            (<code>EV_BOX_I.Default_border_width</code>) and lets the dialog set it
+            (<code>EV_MESSAGE_DIALOG</code> does <code>vb.set_border_width (10)</code>) -
+            so nesting cannot double it. <code>SW_CARD</code>, <code>SW_GROUP</code> and
+            <code>SW_FILE_DIALOG</code> are surfaces in their own right and keep one.</p>
+            <p><strong>An explicit value always wins.</strong>
+            <code>with_padding</code> / <code>set_padding</code> and
+            <code>with_gap</code> / <code>set_gap</code> mark the box explicit, and an
+            explicit value - <em>including 0.0</em> - is never overwritten by the theme
+            at any scale.</p>
+            <p><strong>Controls are never smaller than their font.</strong>
+            <code>SW_PAINTER.text_extent</code> is cairo's own font ascent + descent for
+            the selected font, so it already carries the scale;
+            <code>min_control_height</code> adds the inside inset above and below.
+            Measured 1x &rarr; 2x: button 38 &rarr; 75, text box 42 &rarr; 80, check box
+            38 &rarr; 75, number box 38 &rarr; 75, label 24 &rarr; 47 px.</p>
         </section>
 
         <section id="gallery">

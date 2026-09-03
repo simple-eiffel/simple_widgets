@@ -11,7 +11,7 @@ class
 inherit
 	SW_COLUMN
 		redefine
-			draw, arrange, preferred_height
+			draw, arrange, preferred_height, default_padding
 		end
 
 create
@@ -23,8 +23,6 @@ feature {NONE} -- Initialization
 		do
 			make
 			create title.make_from_string_general (a_title)
-			padding := 14.0
-			gap := 8.0
 		ensure
 			titled: title.same_string_general (a_title)
 		end
@@ -34,6 +32,16 @@ feature -- Access
 	title: STRING_32
 
 	Top_inset: REAL_64 = 12.0
+
+
+feature -- Spacing (theme defaults; an explicit value still wins)
+
+	default_padding (a_p: SW_PAINTER): REAL_64
+			-- A titled group is a framed surface: it owns a border, the same
+			-- one the window gives its root (12 px at 1x, was a fixed 14).
+		do
+			Result := a_p.theme.border_width
+		end
 
 feature -- Layout
 

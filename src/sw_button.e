@@ -125,21 +125,37 @@ feature -- Element change
 feature -- Layout
 
 	preferred_width (a_p: SW_PAINTER): REAL_64
+			-- The label's MEASURED advance plus the theme's inside inset
+			-- either side - Vision2's `set_default_width_for_button'
+			-- law (EV_LAYOUT_CONSTANTS, contrib/ev_layout_constants.e:75),
+			-- with a measurement in place of its dialog-unit constant.
+		local
+			t: SW_THEME
 		do
-			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			t := a_p.theme
+			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
 			if label.is_empty and glyph_kind > 0 then
-				Result := 36.0
+				Result := (2.0 * t.control_inset + t.size_label * t.text_scale).max (36.0)
 			else
-				Result := a_p.advance (label) + 22.0
+				Result := a_p.min_control_width (label)
 				if glyph_kind > 0 then
-					Result := Result + 19.0
+					Result := Result + 19.0 * t.text_scale
 				end
 			end
+		ensure then
+			clears_the_insets: Result >= 2.0 * a_p.theme.control_inset
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- The theme's nominal button height, or the MINIMUM the font
+			-- demands - ascent + descent + the inside inset above and
+			-- below - whichever is larger. A larger explicit anchor still
+			-- wins through `clamped_height'; a smaller one is clamped up.
 		do
-			Result := a_p.theme.button_height
+			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			Result := a_p.theme.button_height.max (a_p.min_control_height)
+		ensure then
+			at_least_the_minimum: Result >= a_p.min_control_height
 		end
 
 feature -- Style (the rule layer: variant and state select tokens)
@@ -219,18 +235,24 @@ feature -- Drawing (structure: three parts)
 		end
 
 	draw_label (a_p: SW_PAINTER)
+		local
+			t: SW_THEME
+			inset, sc: REAL_64
 		do
-			a_p.set_color (label_color (a_p.theme))
-			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			t := a_p.theme
+			sc := t.text_scale
+			inset := t.control_inset
+			a_p.set_color (label_color (t))
+			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
 			if glyph_kind > 0 then
 				if label.is_empty then
-					a_p.glyph (glyph_kind, x + width / 2.0, y + height / 2.0, 15.0)
+					a_p.glyph (glyph_kind, x + width / 2.0, y + height / 2.0, 15.0 * sc)
 				else
-					a_p.glyph (glyph_kind, x + 18.0, y + height / 2.0, 14.0)
-					a_p.text (x + 30.0, y + height - 11.0, label)
+					a_p.glyph (glyph_kind, x + 18.0 * sc, y + height / 2.0, 14.0 * sc)
+					a_p.text (x + 30.0 * sc, a_p.baseline_in (y, height), label)
 				end
 			else
-				a_p.text (x + 11.0, y + height - 11.0, label)
+				a_p.text (x + inset, a_p.baseline_in (y, height), label)
 			end
 		end
 

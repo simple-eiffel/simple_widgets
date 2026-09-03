@@ -10,7 +10,7 @@ class
 inherit
 	SW_COLUMN
 		redefine
-			draw, arrange
+			draw, arrange, default_padding
 		end
 
 create
@@ -22,8 +22,6 @@ feature {NONE} -- Initialization
 		do
 			make
 			stripe := a_stripe
-			padding := 11.0
-			gap := 8.0
 		ensure
 			striped: stripe = a_stripe
 		end
@@ -40,6 +38,18 @@ feature -- Element change
 			stripe := a_rgb
 		ensure
 			set: stripe = a_rgb
+		end
+
+
+feature -- Spacing (theme defaults; an explicit value still wins)
+
+	default_padding (a_p: SW_PAINTER): REAL_64
+			-- A card IS a surface in its own right, so unlike a bare box
+			-- it carries its own border - the theme's `control_inset'.
+			-- 11 px at 1x, exactly what `make_striped' used to nail down,
+			-- but it now scales with the text.
+		do
+			Result := a_p.theme.control_inset
 		end
 
 feature -- Layout

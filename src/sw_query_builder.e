@@ -18,6 +18,8 @@ inherit
 	SW_COLUMN
 		rename
 			make as make_column
+		redefine
+			default_gap
 		end
 
 create
@@ -28,7 +30,6 @@ feature {NONE} -- Initialization
 	make (a_fields: ITERABLE [READABLE_STRING_GENERAL])
 		do
 			make_column
-			gap := 6.0
 			create fields.make (4)
 			across
 				a_fields as f
@@ -39,6 +40,15 @@ feature {NONE} -- Initialization
 			create row_organs.make (4)
 			join_all := True
 			rebuild_rows
+		end
+
+
+feature -- Spacing (theme defaults; an explicit value still wins)
+
+	default_gap (a_p: SW_PAINTER): REAL_64
+			-- 6 px at 1x, as before, now scaled with the text.
+		do
+			Result := a_p.theme.padding * 0.75
 		end
 
 feature -- Access

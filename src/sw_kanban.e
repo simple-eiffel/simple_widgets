@@ -19,6 +19,8 @@ inherit
 	SW_ROW
 		rename
 			make as make_row
+		redefine
+			default_gap
 		end
 
 create
@@ -29,9 +31,17 @@ feature {NONE} -- Initialization
 	make
 		do
 			make_row
-			gap := 10.0
 			create cards.make (16)
 			create lane_titles.make (4)
+		end
+
+
+feature -- Spacing (theme defaults; an explicit value still wins)
+
+	default_gap (a_p: SW_PAINTER): REAL_64
+			-- 10 px at 1x, as before, now scaled with the text.
+		do
+			Result := a_p.theme.padding * 1.25
 		end
 
 feature -- Access

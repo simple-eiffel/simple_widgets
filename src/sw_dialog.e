@@ -65,12 +65,13 @@ feature -- Geometry
 			-- used to survive word-splitting and draw as a missing
 			-- glyph (the 1.9.0 About tofu).
 		local
-			max_w, cx, ww: REAL_64
+			max_w, cx, ww, pad, btn_h: REAL_64
 			paragraphs, words: LIST [STRING_32]
 			line: STRING_32
 		do
+			pad := border_width (a_p)
 			width := (a_win_w - 120.0).min (540.0).max (300.0)
-			max_w := width - 2.0 * Pad
+			max_w := width - 2.0 * pad
 			wrapped.wipe_out
 			a_p.font ({SW_PAINTER}.Role_body, 12.5, False)
 			paragraphs := message.split ('%N')
@@ -104,7 +105,9 @@ feature -- Geometry
 					end
 				end
 			end
-			height := Pad + 30.0 + wrapped.count * 22.0 + 18.0 + 34.0 + Pad
+			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			btn_h := button_height (a_p)
+			height := pad + 30.0 + wrapped.count * 22.0 + 18.0 + btn_h + 2.0 + pad
 			x := (a_win_w - width) / 2.0
 			y := ((a_win_h - height) / 2.0).max (24.0)
 		ensure
@@ -117,7 +120,7 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			by, bx, bw: REAL_64
+			by, bx, bw, bh, pad, inset: REAL_64
 			i: INTEGER
 			b: TUPLE [label: STRING_32; is_primary: BOOLEAN; action: detachable PROCEDURE]
 			stripe: NATURAL_32
@@ -140,9 +143,10 @@ feature -- Drawing
 			a_p.set_color (stripe)
 			a_p.fill_rect (x, y + 4.0, 4.0, height - 8.0)
 
+			pad := border_width (a_p)
 			a_p.font ({SW_PAINTER}.Role_ui, 14.5, True)
 			a_p.set_color (t.ink)
-			a_p.text (x + Pad, y + Pad + 14.0, title)
+			a_p.text (x + pad, y + pad + 14.0, title)
 
 			a_p.font ({SW_PAINTER}.Role_body, 12.5, False)
 			a_p.set_color (t.ink)
@@ -151,13 +155,16 @@ feature -- Drawing
 			until
 				i > wrapped.count
 			loop
-				a_p.text (x + Pad, y + Pad + 30.0 + i * 22.0 - 6.0, wrapped.i_th (i))
+				a_p.text (x + pad, y + pad + 30.0 + i * 22.0 - 6.0, wrapped.i_th (i))
 				i := i + 1
 			end
 
 			zones.wipe_out
-			by := y + height - Pad - 32.0
-			bx := x + width - Pad
+			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+			bh := button_height (a_p)
+			inset := t.control_inset
+			by := y + height - pad - bh
+			bx := x + width - pad
 			from
 				i := buttons.count
 			until
@@ -165,24 +172,24 @@ feature -- Drawing
 			loop
 				b := buttons.i_th (i)
 				a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
-				bw := a_p.advance (b.label) + 24.0
+				bw := a_p.min_control_width (b.label) + 2.0
 				bx := bx - bw
 				a_p.set_color (t.surface)
-				a_p.rrect_fill (bx, by, bw, 32.0, t.radius)
+				a_p.rrect_fill (bx, by, bw, bh, t.radius)
 				if b.is_primary then
 					a_p.set_color (stripe)
 				else
 					a_p.set_color (t.outline)
 				end
-				a_p.rrect_stroke (bx + 0.5, by + 0.5, bw - 1.0, 31.0, t.radius)
+				a_p.rrect_stroke (bx + 0.5, by + 0.5, bw - 1.0, bh - 1.0, t.radius)
 				if b.is_primary then
 					a_p.set_color (stripe)
 				else
 					a_p.set_color (t.ink)
 				end
-				a_p.text (bx + 12.0, by + 21.0, b.label)
-				zones.extend ([bx, by, bw, 32.0, i])
-				bx := bx - 8.0
+				a_p.text (bx + inset + 1.0, a_p.baseline_in (by, bh), b.label)
+				zones.extend ([bx, by, bw, bh, i])
+				bx := bx - t.padding
 				i := i - 1
 			end
 		end
@@ -211,9 +218,32 @@ feature -- Interaction
 				and then a_py >= y and then a_py <= y + height
 		end
 
+feature -- Spacing (the dialog card's own border and button minimums)
+
+	border_width (a_p: SW_PAINTER): REAL_64
+			-- The space between the card's edge and everything in it -
+			-- Vision2's EV_BOX.border_width, applied once, here, the way
+			-- EV_MESSAGE_DIALOG sets it on its own top box
+			-- (ev_message_dialog.e:146). Was a fixed 18; now the theme's,
+			-- so a dialog at 2x text gets a 2x border.
+		do
+			Result := a_p.theme.border_width * 1.5
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	button_height (a_p: SW_PAINTER): REAL_64
+			-- The dialog's own buttons obey the same minimum as
+			-- SW_BUTTON: measured ascent + descent plus the inside inset
+			-- top and bottom, never less. Call with the UI font selected.
+		do
+			Result := (32.0).max (a_p.min_control_height)
+		ensure
+			at_least_the_minimum: Result >= a_p.min_control_height
+		end
+
 feature {NONE} -- Implementation
 
-	Pad: REAL_64 = 18.0
 	Space_w: REAL_64 = 4.5
 
 	wrapped: ARRAYED_LIST [STRING_32]

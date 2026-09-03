@@ -61,6 +61,26 @@ feature -- Access
 	painter: SW_PAINTER
 			-- The drawing kit, exposed for measurement before `run'.
 
+	content_border: REAL_64
+			-- The window's own border: the space between the client edge
+			-- (inside any drawer gutter) and the root widget, on all four
+			-- sides. THE ROOT NEVER TOUCHES THE WINDOW EDGE.
+			--
+			-- This is Vision2's EV_BOX.border_width applied ONCE, the way
+			-- ISE applies it once per dialog - EV_MESSAGE_DIALOG does
+			-- `vb.set_border_width (10)' on its top box and leaves every
+			-- box below it at the Vision2 default of 0
+			-- (library/vision2/interface/widgets/dialogs/ev_message_dialog.e:146;
+			-- EV_BOX_I.Default_border_width = 0). Because the toolkit's
+			-- boxes default their own `padding' to 0 as well, a tree
+			-- nested any number deep is inset EXACTLY ONCE.
+		do
+			Result := theme.border_width
+		ensure
+			non_negative: Result >= 0.0
+			from_the_theme: Result = theme.border_width
+		end
+
 	shaping: detachable SW_SHAPING
 			-- The window's ONE text-shaping kit (a simple_shaping facade
 			-- plus its cairo paint bridge), or Void for the cairo toy
@@ -1147,9 +1167,9 @@ feature {NONE} -- Rendering
 			painter.set_color (theme.background)
 			ctx.paint.do_nothing
 			if attached root as r then
-				r.set_bounds (gutter_left, gutter_top,
-					win_w - gutter_left - gutter_right,
-					win_h - gutter_top - gutter_bottom)
+				r.set_bounds (gutter_left + content_border, gutter_top + content_border,
+					(win_w - gutter_left - gutter_right - 2.0 * content_border).max (0.0),
+					(win_h - gutter_top - gutter_bottom - 2.0 * content_border).max (0.0))
 				r.arrange (painter)
 				r.draw (painter)
 			end

@@ -131,16 +131,22 @@ feature -- Element change
 feature -- Layout
 
 	Btn_w: REAL_64 = 30.0
+			-- The stepper button at 1x.
 
 	preferred_width (a_p: SW_PAINTER): REAL_64
 		do
 			a_p.font ({SW_PAINTER}.Role_mono, a_p.theme.size_label, False)
-			Result := 2.0 * Btn_w + a_p.advance (max_value.out) + 26.0
+			Result := 2.0 * Btn_w * a_p.theme.text_scale
+				+ a_p.min_control_width (max_value.out) + 4.0
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- The theme's button height, or the font's minimum.
 		do
-			Result := a_p.theme.button_height
+			a_p.font ({SW_PAINTER}.Role_mono, a_p.theme.size_label, False)
+			Result := a_p.theme.button_height.max (a_p.min_control_height)
+		ensure then
+			at_least_the_minimum: Result >= a_p.min_control_height
 		end
 
 feature -- Drawing
