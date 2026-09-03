@@ -71,13 +71,10 @@ feature -- Reproduction (Larry's own numbers, through the window)
 				+ ", is_sticky " + th.is_sticky.out
 				+ ", max_scroll " + th.max_scroll.out + "%N")
 
-			assert_true ("the pane really overflows thirty messages at 2x text",
-				th.max_scroll > 0.0)
-			assert_true ("(a) the LAST message is visible: parked at the tail",
-				th.scroll_y >= th.max_scroll - 2.0)
-			assert_true ("and the thread knows it is sticky", th.is_sticky)
-			assert_true ("a scrollbar is now drawable", th.scrollbar_visible)
-
+				-- Evidence is captured BEFORE the assertions below, on
+				-- purpose: the artifact must exist whether the claim
+				-- holds or not (this is exactly how the red-state
+				-- before.png - scroll stuck at the top - got made).
 			evidence := evidence_path ("thread-scroll-before.png")
 			if not evidence.is_empty then
 				wrote := w.write_frame (evidence)
@@ -85,6 +82,13 @@ feature -- Reproduction (Larry's own numbers, through the window)
 				print (evidence)
 				print (" " + wrote.out + "%N")
 			end
+
+			assert_true ("the pane really overflows thirty messages at 2x text",
+				th.max_scroll > 0.0)
+			assert_true ("(a) the LAST message is visible: parked at the tail",
+				th.scroll_y >= th.max_scroll - 2.0)
+			assert_true ("and the thread knows it is sticky", th.is_sticky)
+			assert_true ("a scrollbar is now drawable", th.scrollbar_visible)
 
 				-- (b) a wheel delivered THROUGH THE WINDOW - target_at's
 				-- own hit-test, then bubble_wheel's own parent walk -
