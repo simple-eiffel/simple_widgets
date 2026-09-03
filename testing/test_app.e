@@ -74,6 +74,9 @@ feature {NONE} -- Initialization
 			print ("%N=== MARGINS + PADDING ===%N")
 			run_margins_tests
 
+			print ("%N=== CHAT THREAD SCROLL + SCROLLBAR ===%N")
+			run_chat_scroll_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -406,6 +409,26 @@ feature {NONE} -- Test runners
 			run_test (agent margins_tests.test_controls_track_the_font_at_1x_and_2x, "controls_track_the_font_at_1x_and_2x")
 			run_test (agent margins_tests.test_label_line_step_equals_the_painted_line, "label_line_step_equals_the_painted_line")
 			run_test (agent margins_tests.test_margins_evidence, "margins_evidence (offscreen PNG)")
+		end
+
+	chat_scroll_tests: SW_CHAT_SCROLL_ASSAULT
+
+	run_chat_scroll_tests
+			-- The scroll-clamp defect (0.5.0) and its fix, and the new
+			-- scrollbar: offscreen only, no window is ever shown.
+		do
+			create chat_scroll_tests
+			run_test (agent chat_scroll_tests.test_reproduction_at_larrys_scale, "reproduction_at_larrys_scale (2x, 1071x836, through the window)")
+			run_test (agent chat_scroll_tests.test_scroll_to_clamps_and_updates_stickiness, "scroll_to_clamps_and_updates_stickiness")
+			run_test (agent chat_scroll_tests.test_clamp_survives_content_shrink, "clamp_survives_content_shrink")
+			run_test (agent chat_scroll_tests.test_sticky_transitions, "sticky_transitions")
+			run_test (agent chat_scroll_tests.test_thumb_height_and_position, "thumb_height_and_position")
+			run_test (agent chat_scroll_tests.test_scrollbar_visible_only_on_overflow, "scrollbar_visible_only_on_overflow")
+			run_test (agent chat_scroll_tests.test_drag_thumb_scrolls, "drag_thumb_scrolls")
+			run_test (agent chat_scroll_tests.test_track_click_pages, "track_click_pages")
+			run_test (agent chat_scroll_tests.test_keyboard_paging, "keyboard_paging")
+			run_test (agent chat_scroll_tests.test_log_line_is_timestamped, "log_line_is_timestamped")
+			run_test (agent chat_scroll_tests.test_scroll_evidence, "scroll_evidence (offscreen PNGs)")
 		end
 
 	run_shaping_tests

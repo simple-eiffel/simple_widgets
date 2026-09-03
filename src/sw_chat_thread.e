@@ -33,6 +33,40 @@ note
 		from its own `busy_ticks' debounce) and the bubbles keep the
 		layouts they have while the frame moves. A CONTENT change never
 		waits: a message that arrives mid-drag still has to appear.
+
+		THE SCROLL-CLAMP DEFECT (0.5.0) AND THE FIX. `draw' used to clamp
+		`scroll_y' once PER BUBBLE, against `content_h' while it was still
+		mid-accumulation (`content_h' starts the frame at 8.0 and only
+		reaches its true total at the LAST bubble). Bubble 1's clamp saw a
+		content height of 8.0 - far short of the real total - so on any
+		pane taller than 8 pixels it collapsed `scroll_y' to 0 EVERY
+		FRAME, before a single pixel had been measured honestly. The tail
+		could never scroll into view, and no wheel delta or drag survived
+		the next repaint: the thread looked permanently pinned to its
+		top. `draw' now runs two passes - PASS 1 measures every bubble's
+		height with no drawing and no dependence on `scroll_y' at all, so
+		`content_h' is the true total before anything is clamped; PASS 2
+		draws at the one scroll offset the frame settled on. Every
+		scroll-changing entry point (`handle_wheel', a scrollbar drag or
+		track click, PageUp/PageDown/Home/End) funnels through `scroll_to',
+		so the same [0, max_scroll] law applies everywhere, not just here.
+
+		THE SCROLLBAR (0.5.0). A vertical track along the right edge,
+		visible only when `max_scroll' > 0.0 (`scrollbar_visible'), sized
+		from SW_THEME's `text_scale' the way every other themed dimension
+		in this toolkit scales. The thumb's height and position come from
+		the same `thumb_height' / `thumb_top' queries `draw' paints with
+		and `handle_click' / `handle_drag' hit-test with - one geometry,
+		never two formulas that can drift apart. Dragging the thumb,
+		clicking the bare track to page, the wheel, and (once the pane
+		holds focus - it accepts it) PageUp/PageDown/Home/End all funnel
+		through `scroll_to', which is where the follow-the-tail law now
+		lives: sticky while within 2 px of the bottom, broken by scrolling
+		up, restored by scrolling or dragging back down. Bubble wrap width
+		reserves the scrollbar's gutter UNCONDITIONALLY (whether or not it
+		is drawn this frame), matching SW_SCROLL_AREA's own convention -
+		so text never reflows the instant the thread crosses the overflow
+		line.
 	]"
 
 class
@@ -41,7 +75,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			handle_wheel
+			handle_wheel, handle_click, handle_drag, handle_release,
+			handle_key, accepts_focus
 		end
 
 create
@@ -60,6 +95,8 @@ feature {NONE} -- Initialization
 			create messages.make (16)
 			create shaped_layouts.make (16)
 			is_sticky := True
+			scrollbar_width := Scrollbar_w
+			last_text_scale := 1.0
 		ensure
 			nothing_laid_out: shaped_layouts.is_empty
 		end
@@ -150,6 +187,103 @@ feature -- Layout
 			Result := 260.0
 		end
 
+feature -- Scrollbar
+
+	Scrollbar_w: REAL_64 = 12.0
+			-- Track width at 1x text.
+
+	scrollbar_width: REAL_64
+			-- `Scrollbar_w' times the theme's `text_scale' as of the most
+			-- recent `draw' - cached because hit-testing (`handle_click',
+			-- `handle_drag') has no painter/theme of its own to read
+			-- `text_scale' from. `Scrollbar_w' (1x), set by `make', before
+			-- the first frame - REAL_64 is expanded, so (unlike a
+			-- reference attribute) an `attribute...end' body here would
+			-- never run; `make' is where the honest default lives.
+
+	last_text_scale: REAL_64
+			-- The theme's `text_scale' as of the most recent `draw'; 1.0,
+			-- set by `make', before the first frame.
+
+	max_scroll: REAL_64
+			-- How far `scroll_y' can go before the tail is showing.
+		do
+			Result := (content_h - height).max (0.0)
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	scrollbar_visible: BOOLEAN
+			-- Drawn - and hit-testable - only when the thread overflows
+			-- its own pane.
+		do
+			Result := max_scroll > 0.0
+		end
+
+	track_x: REAL_64
+		do
+			Result := x + width - scrollbar_width
+		end
+
+	track_y: REAL_64
+		do
+			Result := y + 2.0
+		end
+
+	track_h: REAL_64
+		do
+			Result := (height - 4.0).max (1.0)
+		end
+
+	Min_thumb_h: REAL_64 = 24.0
+			-- Smallest the thumb ever draws at 1x, so it stays
+			-- grabbable over a very long thread.
+
+	thumb_height: REAL_64
+			-- The thumb's height: the pane's share of the content,
+			-- never smaller than `Min_thumb_h' (scaled) nor larger than
+			-- the track itself.
+		do
+			if content_h > 0.0 then
+				Result := height / content_h * track_h
+			end
+			Result := Result.max (Min_thumb_h * last_text_scale).min (track_h)
+		ensure
+			fits_track: Result > 0.0 and Result <= track_h
+		end
+
+	thumb_top: REAL_64
+			-- The thumb's Y, from `scroll_y''s fraction of `max_scroll'.
+		do
+			if max_scroll > 0.0 then
+				Result := track_y + (scroll_y / max_scroll) * (track_h - thumb_height)
+			else
+				Result := track_y
+			end
+		ensure
+			within_track: Result >= track_y - 0.001
+				and Result <= track_y + (track_h - thumb_height) + 0.001
+		end
+
+	is_dragging_thumb: BOOLEAN
+			-- Is the pointer holding the thumb down right now? Drives
+			-- the thumb's drag colour and gates `handle_drag'.
+
+	scroll_to (a_y: REAL_64)
+			-- The one door every scroll-changing entry point uses -
+			-- `handle_wheel', a scrollbar drag or track click,
+			-- PageUp/PageDown/Home/End, and `draw''s own once-per-frame
+			-- clamp: land at `a_y', clamped to [0, `max_scroll'], and
+			-- update `is_sticky' the same way everywhere.
+		do
+			scroll_y := a_y.max (0.0).min (max_scroll)
+			is_sticky := scroll_y >= max_scroll - 2.0
+		ensure
+			clamped_low: scroll_y >= 0.0
+			clamped_high: scroll_y <= max_scroll
+			sticky_law: is_sticky = (scroll_y >= max_scroll - 2.0)
+		end
+
 feature -- Drawing
 
 	Bubble_pad: REAL_64 = 10.0
@@ -163,20 +297,25 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			i: INTEGER
-			by, bw, bx, bh, max_w, inner_w: REAL_64
+			i, j, px: INTEGER
+			by, bw, bx, bh, max_w, inner_w, usable_w, sb_gutter, total_h: REAL_64
 			lines: detachable ARRAYED_LIST [STRING_32]
-			j, px: INTEGER
+			all_lines: ARRAYED_LIST [detachable ARRAYED_LIST [STRING_32]]
+			heights, widths: ARRAYED_LIST [REAL_64]
 			is_shaped: BOOLEAN
 		do
 			t := a_p.theme
+			scrollbar_width := Scrollbar_w * t.text_scale
+			last_text_scale := t.text_scale
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
-				-- measure pass piggybacks on the draw pass: bubbles
-				-- stack, content height falls out, scroll clamps
-			max_w := (width * 0.72).max (60.0)
+				-- the gutter is reserved whether or not the bar draws
+				-- this frame, so crossing the overflow line never
+				-- reflows a bubble that was already on screen
+			sb_gutter := scrollbar_width + 4.0
+			usable_w := (width - sb_gutter).max (40.0)
+			max_w := (usable_w * 0.72).max (60.0)
 			inner_w := (max_w - 2.0 * Bubble_pad).max (16.0)
-			content_h := 8.0
 			a_p.push_clip (x + 1.0, y + 1.0, width - 2.0, height - 2.0)
 			a_p.font ({SW_PAINTER}.Role_ui, Text_size, False)
 			px := (Text_size * t.text_scale).rounded.max (1)
@@ -187,15 +326,21 @@ feature -- Drawing
 				refresh_layouts (al_kit, inner_w, px, a_p.is_resize_storm)
 				is_shaped := shaped_layouts.count = messages.count
 			end
+
+				-- PASS 1: measure every bubble - no drawing, no scroll
+				-- dependence - so `content_h' is the real total BEFORE
+				-- anything gets clamped against it. See the class note.
+			create heights.make (messages.count)
+			create widths.make (messages.count)
+			create all_lines.make (messages.count)
+			total_h := 8.0
 			from
 				i := 1
 			until
 				i > messages.count
 			loop
+				lines := Void
 				if is_shaped then
-						-- R10: the bubble is as tall as the layout says, and
-						-- never a line count times a constant - a line that
-						-- carries an emoji box is taller than one that does not.
 					bh := shaped_layouts [i].total_height + 2.0 * Bubble_pad
 					bw := (shaped_layouts [i].total_width + 2.0 * Bubble_pad).min (max_w)
 				else
@@ -205,15 +350,35 @@ feature -- Drawing
 						bw := widest (a_p, al_measured) + 2.0 * Bubble_pad
 					end
 				end
+				heights.extend (bh)
+				widths.extend (bw)
+				all_lines.extend (lines)
+				total_h := total_h + bh + 8.0
+				i := i + 1
+			end
+			content_h := total_h
+
+				-- THE FIX: one clamp for the whole frame, against the
+				-- true total - not one per bubble against a running sum.
+			scroll_to (scroll_y)
+
+				-- PASS 2: draw, at the now-stable offset.
+			from
+				i := 1
+				by := y + 8.0 - scroll_y
+			until
+				i > messages.count
+			loop
+				bh := heights [i]
+				bw := widths [i]
 				inspect messages.i_th (i).role
 				when Role_mine then
-					bx := x + width - bw - 10.0
+					bx := x + usable_w - bw - 10.0
 				when Role_theirs then
 					bx := x + 10.0
 				else
-					bx := x + (width - bw) / 2.0
+					bx := x + (usable_w - bw) / 2.0
 				end
-				by := y + content_h - scroll_clamped (a_p)
 				if by + bh > y and then by < y + height then
 					inspect messages.i_th (i).role
 					when Role_mine then
@@ -234,7 +399,7 @@ feature -- Drawing
 							-- layout already knows each line's ascent.
 						a_p.draw_shaped_layout (shaped_layouts [i],
 							bx + Bubble_pad, by + Bubble_pad)
-					elseif attached lines as al_lines then
+					elseif attached all_lines [i] as al_lines then
 						from
 							j := 1
 						until
@@ -246,12 +411,24 @@ feature -- Drawing
 						end
 					end
 				end
-				content_h := content_h + bh + 8.0
+				by := by + bh + 8.0
 				i := i + 1
 			end
 			a_p.pop_clip
 			a_p.set_color (t.outline)
 			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
+
+			if scrollbar_visible then
+				a_p.set_color (t.surface_variant)
+				a_p.rrect_fill (track_x, track_y, scrollbar_width - 2.0, track_h, 4.0 * last_text_scale)
+				if is_dragging_thumb then
+					a_p.set_color (t.accent)
+				else
+					a_p.set_color (t.outline)
+				end
+				a_p.rrect_fill (track_x + 1.5, thumb_top, scrollbar_width - 5.0, thumb_height,
+					3.0 * last_text_scale)
+			end
 		end
 
 	refresh_layouts (a_kit: SW_SHAPING; a_inner_width: REAL_64; a_pixel_size: INTEGER;
@@ -301,20 +478,78 @@ feature -- Drawing
 
 feature -- Input
 
-	handle_wheel (a_delta: INTEGER): BOOLEAN
+	accepts_focus: BOOLEAN
+			-- Yes: once the pane has been clicked, PageUp/PageDown/
+			-- Home/End move it, the same ring SW_LIST joins.
 		do
-			scroll_y := (scroll_y - a_delta / 120.0 * 48.0).max (0.0)
-			is_sticky := scroll_y >= (content_h - height).max (0.0) - 2.0
 			Result := True
 		end
 
-feature {NONE} -- Text machinery
-
-	scroll_clamped (a_p: SW_PAINTER): REAL_64
+	handle_wheel (a_delta: INTEGER): BOOLEAN
 		do
-			Result := scroll_y.min ((content_h - height).max (0.0))
-			scroll_y := Result
+			scroll_to (scroll_y - a_delta / 120.0 * 48.0)
+			Result := True
 		end
+
+	handle_click (a_px, a_py: REAL_64): BOOLEAN
+			-- The scrollbar only. Press the thumb to start a drag; press
+			-- the bare track to page toward the click. A bubble click is
+			-- not consumed here - this widget has never made bubbles
+			-- clickable - so it bubbles up per the base default.
+		do
+			if scrollbar_visible and then a_px >= track_x then
+				if a_py >= thumb_top and a_py <= thumb_top + thumb_height then
+					is_dragging_thumb := True
+					drag_grab_offset := a_py - thumb_top
+				elseif a_py < thumb_top then
+					scroll_to (scroll_y - height)
+				else
+					scroll_to (scroll_y + height)
+				end
+				Result := True
+			end
+		end
+
+	handle_drag (a_px, a_py: REAL_64)
+		local
+			span: REAL_64
+		do
+			if is_dragging_thumb then
+				span := (track_h - thumb_height).max (1.0)
+				scroll_to (((a_py - drag_grab_offset - track_y) / span) * max_scroll)
+			end
+		end
+
+	handle_release (a_x, a_y: INTEGER)
+		do
+			is_dragging_thumb := False
+		end
+
+	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
+			-- PageDown 34, PageUp 33, Home 36, End 35 - SW_LIST's own
+			-- virtual-key vocabulary (Win32 VK_NEXT/VK_PRIOR/VK_HOME/VK_END).
+		do
+			inspect a_vk
+			when 34 then
+				scroll_to (scroll_y + height)
+			when 33 then
+				scroll_to (scroll_y - height)
+			when 36 then
+				scroll_to (0.0)
+			when 35 then
+				scroll_to (max_scroll)
+			else
+			end
+		end
+
+feature {NONE} -- Drag state
+
+	drag_grab_offset: REAL_64
+			-- Where inside the thumb the press landed, so a drag keeps
+			-- the pointer over the same spot on the thumb instead of
+			-- snapping its top to the cursor.
+
+feature {NONE} -- Text machinery
 
 	wrapped (a_p: SW_PAINTER; a_text: STRING_32; a_width: REAL_64): ARRAYED_LIST [STRING_32]
 			-- Greedy word wrap in the current font.
@@ -363,5 +598,7 @@ invariant
 	layouts_match_when_present: not shaped_layouts.is_empty implies
 		shaped_layouts.count = messages.count
 	revision_non_negative: revision >= 0 and laid_out_revision >= 0
+	scrollbar_width_positive: scrollbar_width > 0.0
+	text_scale_recorded_positive: last_text_scale > 0.0
 
 end

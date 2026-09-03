@@ -158,6 +158,50 @@ widget keeps the layouts it has while the frame is being dragged and re-lays-out
 once the drag settles. A *content* change never waits — a message arriving
 mid-drag still appears.
 
+### The chat thread's scrollbar (0.5.0)
+
+`SW_CHAT_THREAD` draws a vertical scrollbar along its own right edge —
+track and thumb, sized from `SW_THEME`'s `text_scale` the way every other
+themed dimension in this toolkit scales (`Scrollbar_w` is 12 px at 1x) —
+whenever its content overflows the pane (`scrollbar_visible`, driven by
+`max_scroll > 0.0`). It is invisible, and inert, the rest of the time.
+
+**Follow-the-tail.** The thread starts, and stays, sticky at the bottom:
+a new message auto-scrolls the view with it. Scrolling up — the wheel,
+dragging the thumb, clicking the track, PageUp, Home — breaks stickiness;
+scrolling back down to within 2 px of the bottom — the wheel, a drag,
+clicking the track, PageDown, End — restores it. Every one of those
+entry points funnels through the one `scroll_to (a_y)` query, so the
+`[0, max_scroll]` clamp and the sticky law are enforced in exactly one
+place.
+
+**Mouse.** Press the thumb and drag it; click the bare track above or
+below the thumb to page toward the click. Both go through the widget's
+existing `handle_click` / `handle_drag` / `handle_release` — no new input
+plumbing in `SW_WINDOW`.
+
+**Keyboard.** The thread now accepts keyboard focus (`accepts_focus` is
+`True`, joining the Tab ring the way `SW_LIST` does) — click it once, then
+PageUp, PageDown, Home and End move it, the same virtual-key vocabulary
+`SW_LIST` already uses.
+
+```eiffel
+thread.scroll_to (0.0)                 -- jump to the top, programmatically
+thread.scroll_to (thread.max_scroll)   -- jump to the tail
+thread.is_sticky                       -- following the conversation right now?
+```
+
+**The fix underneath it.** Before 0.5.0, `draw` clamped `scroll_y` once
+*per bubble*, against `content_h` while it was still being accumulated —
+the very first bubble always saw a content height of 8.0 (the loop's own
+starting value), so on any pane taller than 8 px the clamp reset
+`scroll_y` to ~0 on every single frame, before the true total was ever
+known. The tail could never scroll into view and no wheel delta survived
+the next repaint. `draw` now runs two passes: PASS 1 measures every
+bubble with no drawing and no dependence on `scroll_y`, so `content_h` is
+the real total *before* anything is clamped against it; PASS 2 draws at
+the one offset the frame settled on.
+
 ### The runnable folder
 
 Shaped text adds freight beside the executable. A shipped app's folder is:
