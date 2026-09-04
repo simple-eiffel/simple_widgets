@@ -473,6 +473,175 @@ feature -- Evidence (offscreen only - no window is ever shown)
 			end
 		end
 
+feature -- The right-click door: a popup that is really PRESENTED
+
+	test_a_context_click_opens_the_widgets_own_menu
+			-- `simulate_context_click' is the pointer half of what
+			-- `simulate_key_down' is for the keyboard, and it exists for one
+			-- reason: `show_popup' is `feature {NONE}' and only the window's
+			-- own event-11 dispatch calls it, so before this a host could
+			-- BUILD a context menu in a test and read every item off it, but
+			-- could never make the window PRESENT one. What could not be
+			-- proven was everything between the click and the menu - that
+			-- `target_at' finds the widget, that `bubble_context' walks to
+			-- the first ancestor offering a menu, that the widget takes the
+			-- focus a right-click gives it, and that the menu is placed.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			c: SW_CHAT_THREAD
+			pt: TUPLE [x, y: INTEGER]
+		do
+			create th.make_dark
+			create w.make ("ctx-click", 0, 0, 520, 360, th)
+			create c.make
+			c.set_grow (1.0)
+			c.add_message ({SW_CHAT_THREAD}.Role_theirs, {STRING_32} "who is bringing the ladders?")
+			c.add_message ({SW_CHAT_THREAD}.Role_mine, {STRING_32} "Dave is")
+			w.set_root (c)
+			w.request_render
+			assert_true ("nothing is up before the click", w.open_popup = Void)
+
+			pt := point_on_bubble (c, 1)
+			assert_true ("the pane knows where its first bubble is", pt.y > 0)
+			w.simulate_context_click (pt.x, pt.y)
+			assert_true ("THE MENU IS PRESENTED, not merely built", w.open_popup /= Void)
+			assert_true ("and it is the thread's own",
+				attached w.open_popup as m and then not m.items.is_empty)
+			assert_true ("a right-click gives its target the focus, as every editor does",
+				c.is_focused)
+		end
+
+	test_a_second_context_click_closes_the_open_one
+			-- Free, and only because the door routes through `dispatch':
+			-- modality is asked FIRST, so a click arriving while a popup is
+			-- up reaches `dispatch_to_popup' and closes it. A door that had
+			-- reasoned its own way to `bubble_context' would have opened a
+			-- second menu over the first and looked perfectly correct doing
+			-- it - which is the arrow-key defect, in the other direction.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			c: SW_CHAT_THREAD
+			pt: TUPLE [x, y: INTEGER]
+		do
+			create th.make_dark
+			create w.make ("ctx-twice", 0, 0, 520, 360, th)
+			create c.make
+			c.set_grow (1.0)
+			c.add_message ({SW_CHAT_THREAD}.Role_theirs, {STRING_32} "the roof job starts Monday")
+			w.set_root (c)
+			w.request_render
+			pt := point_on_bubble (c, 1)
+			w.simulate_context_click (pt.x, pt.y)
+			assert_true ("one menu is up", w.open_popup /= Void)
+			w.simulate_context_click (pt.x, pt.y)
+			assert_true ("AND THE SECOND CLICK CLOSED IT rather than stacking a second",
+				w.open_popup = Void)
+		end
+
+	test_a_context_click_on_nothing_offers_nothing
+			-- The honest answer over a widget with no menu to give. A door
+			-- that opened an empty popup here would put a grey rectangle on
+			-- the screen for every stray right-click in the application.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			l: SW_LABEL
+		do
+			create th.make_dark
+			create w.make ("ctx-bare", 0, 0, 320, 200, th)
+			create l.make_ui ("a label offers no context menu")
+			l.set_grow (1.0)
+			w.set_root (l)
+			w.request_render
+			w.simulate_context_click (40, 40)
+			assert_true ("nothing came up", w.open_popup = Void)
+		end
+
+	test_the_open_menu_is_painted_and_answers_the_keyboard
+			-- The evidence the arrow-key episode taught us to demand: not
+			-- that a menu OBJECT exists, but that a frame was painted with
+			-- the menu ON it - and that the keyboard reaches the thing in
+			-- the picture. Both doors in one itinerary: the pointer opens
+			-- it, `simulate_key_down' walks it, and the frame is written
+			-- from that state.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			c: SW_CHAT_THREAD
+			pt: TUPLE [x, y: INTEGER]
+			evidence: STRING_32
+			wrote: BOOLEAN
+			hovered_before: INTEGER
+		do
+			create th.make_dark
+			th.set_text_scale (2.0)
+			create w.make ("ctx-evidence", 0, 0, 720, 420, th)
+			create c.make
+			c.set_grow (1.0)
+			c.add_message ({SW_CHAT_THREAD}.Role_theirs, {STRING_32} "who is bringing the ladders?")
+			c.add_message ({SW_CHAT_THREAD}.Role_mine, {STRING_32} "Dave is")
+			w.set_root (c)
+			w.request_render
+
+			pt := point_on_bubble (c, 1)
+			assert_true ("a bubble was found at 2x too", pt.y > 0)
+			w.simulate_context_click (pt.x, pt.y)
+			assert_true ("the menu is up", w.open_popup /= Void)
+			if attached w.open_popup as m then
+				hovered_before := m.hover_index
+				w.simulate_key_down (40, False, False, False)
+				assert_true ("DOWN moved the highlight in the menu the click opened",
+					m.hover_index /= hovered_before and m.hover_index > 0)
+				assert_true ("onto something selectable", m.is_selectable (m.hover_index))
+			end
+			w.request_render
+			evidence := evidence_path ("menu-context-open-2x.png")
+			if not evidence.is_empty then
+				wrote := w.write_frame (evidence)
+				print ("    written ")
+				print (evidence)
+				print (" " + wrote.out + "%N")
+				assert_true ("the painted frame is on disk", wrote)
+			end
+			w.simulate_key_down (27, False, False, False)
+			assert_true ("and Escape closes what the pointer opened", w.open_popup = Void)
+		end
+
+feature {NONE} -- The right-click fixtures
+
+	point_on_bubble (a_thread: SW_CHAT_THREAD; a_index: INTEGER): TUPLE [x, y: INTEGER]
+			-- A point the thread's OWN hit-testing says is on bubble
+			-- `a_index', found by scanning: `bubble_boxes' is
+			-- `feature {NONE}', as it should be, so an assault asks the
+			-- same question a right-click asks. Zeroes when the bubble is
+			-- nowhere, which fails the assertion that reads them.
+		local
+			lx, ly: INTEGER
+			l_found: BOOLEAN
+		do
+			Result := [0, 0]
+			from
+				ly := a_thread.y.rounded + 1
+			until
+				ly >= (a_thread.y + a_thread.height).rounded or l_found
+			loop
+				from
+					lx := a_thread.x.rounded + 1
+				until
+					lx >= (a_thread.x + a_thread.width).rounded or l_found
+				loop
+					if a_thread.message_at (lx, ly) = a_index then
+						Result := [lx, ly]
+						l_found := True
+					end
+					lx := lx + 3
+				end
+				ly := ly + 3
+			end
+		end
+
 feature {NONE} -- Fixtures
 
 	flag: BOOLEAN

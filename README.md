@@ -473,6 +473,26 @@ the modifier state as parameters instead of a live `GetKeyState`. It is how the
 assault proves this offscreen without pressing Alt on anybody's desktop, and
 it is the wheel door's (`simulate_wheel`) twin.
 
+`SW_WINDOW.simulate_context_click (a_x, a_y)` completes the family. It is one
+line — `dispatch (11, a_x, a_y)` — and that is deliberate: it delivers a
+right-click through the **shipped** dispatch, so modality is asked first, the
+dev lens gets its turn, `target_at` picks the widget and `bubble_context` walks
+its ancestors for the first `context_menu` on offer, focusing the target the way
+every editor does, and `show_popup` presents it. `open_popup` then answers with
+what came up.
+
+This is the only way a test can make a window **present** a menu: `show_popup`
+is `feature {NONE}`, so before it a host could build a context menu and read its
+items but never paint one — everything between the click and the menu was
+unprovable. A second context click **closes** the open menu rather than stacking
+one over it, and that falls out of routing through `dispatch` rather than being
+written twice.
+
+> A test door that reasons about anything is a test door that can be right while
+> the product is wrong. `simulate_key_down` was once four lines that skipped the
+> popup branch, and an arrow-key assault passed with the fix deleted. These doors
+> stay one line each.
+
 ## Margins and padding
 
 Controls do not sit on the window edge. The toolkit carries Vision2's spacing
