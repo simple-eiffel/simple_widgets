@@ -7,6 +7,105 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.7.0 — THE PER-MESSAGE MENU: edit, react, delete, reply)
+
+- **`SW_CHAT_THREAD` bubbles can be CHANGED after they are drawn.** Larry, through
+  the chat agent: *a per-message menu — reply, react, edit, delete.* The public
+  model was `add_message` and `append_to_last` and nothing else, so a bubble
+  could be born and grown and never touched again. A chat server does not work
+  that way: it folds *edit*, *delete* and *reaction* events over the message
+  they name, and a *reply* is a message carrying a parent's id. The class's own
+  note already said mutation was architecturally supported — every content
+  change bumps `revision` and `refresh_layouts` rebuilds — it was simply never
+  exposed.
+
+  - `set_message (i, role, text)` — replace the words, and the speaker when the
+    role is not `Role_keep` (a new constant, and NOT a role: it is what an edit
+    passes when the author has not changed, which is what a server's edit event
+    carries). Drops a selection that lived in that bubble, because selection
+    offsets are offsets into text and one that outlives its text hands the
+    clipboard somebody else's words.
+  - `mark_edited (i)` / `is_edited (i)` — a small muted marker band.
+  - `tombstone (i)` / `is_tombstone (i)` — see below.
+  - `set_reactions (i, list)` / `reactions_of (i)` — a compact row of emoji +
+    tally chips, the reader's own OUTLINED in the accent so "I reacted" is
+    legible without asking anyone to tell two washes apart. The row is
+    REPLACED wholesale (the server has already deduped per person per emoji; a
+    widget that merged would be keeping a second, worse tally) and COPIED in
+    and out, so neither side can rewrite a drawn frame through a borrowed list.
+    The tuple field is `tally` and not `count` for one reason: `TUPLE` already
+    has a `count` and a labelled field cannot shadow it.
+  - `set_reply_quote (i, author, text)` / `has_reply_quote` / `reply_quote` /
+    `quote_line` / `drawn_quote` — a ONE-LINE quoted header, elided at the
+    bubble's inner width. One line always: a quote allowed to wrap stops being
+    a header and becomes a second message.
+  - `message_at (x, y)` and `reaction_at (x, y)` — the two questions a host's
+    right-click has to answer before it can offer a menu, both from the frame
+    geometry `hit_test` has used since 0.6.0, so a menu and a selection can
+    never disagree about which message was meant.
+  - `bubble_height (i)` — what the last frame measured a bubble at, published
+    for the same reason `content_h` is.
+  - `elided` / `with_ellipsis` — cut-to-width in the selected font, found by
+    HALVING rather than walking (a quoted line can be a paragraph, and one
+    `advance` per character is a measurement bill nobody asked for on a frame
+    that is also shaping bubbles).
+
+- **THE INVARIANT NEEDED NOTHING NEW, and that is the point.** Every one of the
+  five commands is a content change, and a content change has meant "bump
+  `revision`" since 0.5.0. So `laid_out_revision` lags,
+  `spans_match_when_current` goes quiet for exactly one frame,
+  `refresh_layouts` rebuilds and records — the same door `add_message` has gone
+  through since 0.6.1 wrote that guard for a defect found in a live client.
+  None of them can re-shape: a span indexes layouts only
+  `SW_SHAPING.layout_for` can make, at an inner width and a pixel size the
+  widget does not learn until `draw`. The new invariant clauses mirror the old
+  ones exactly — the decoration STORE is content, so it is one entry per
+  message unconditionally; the decoration LAYOUTS are shaped artefacts, so
+  `decor_revision = revision` guards them the way `laid_out_revision` guards
+  the spans.
+
+- **A DELETE IS A TOMBSTONE, NEVER A GAP.** `tombstone` keeps the bubble where
+  it is, at reduced height, muted, reading *message deleted* — because the
+  ORDER of a thread is part of its record and a vanished bubble silently
+  rewrites who answered whom. It DOES really destroy the text
+  (`messages.i_th (i).text` is emptied, not hidden), so no selection can reach
+  it and `copy_selection` has nothing to take. Hiding the words behind a flag
+  would have left them one query away from anyone with a debugger, which is not
+  what "deleted" means. Every decoration goes with it. It is terminal and
+  idempotent: the other four commands `require` a live message.
+
+  A tombstone is guaranteed SHORTER than the bubble it replaced, at every text
+  scale and on both text paths — not by hoping the placeholder is small, but by
+  construction: its band is capped at one body line and its padding is half
+  `Bubble_pad`. It is dimmed and outlined rather than italic, because
+  `SW_PAINTER.font` takes a weight and no slant and there is no honest way to
+  fake one.
+
+- **Four bands, all MEASURED.** A bubble is now up to four stacked bands inside
+  its own padding — reply quote, text, "edited" marker, reaction row — and each
+  changes the bubble's height, therefore `content_h`, therefore the scrollbar
+  thumb. Stickiness survives all of it exactly as `add_message` preserves it:
+  a thread parked at the tail is re-parked, a reader who has scrolled up is not
+  yanked. The reaction row WRAPS at the bubble's inner width rather than run
+  off its own edge.
+
+  Both text paths are served. The quote and each chip's emoji go through the
+  shaping kit when there is one — so a Hebrew quote reads right-to-left and a
+  reaction carries the same Noto picture the bubbles use — and fall back to
+  cairo's toy metrics when there is not. The decoration layouts are kept OUT of
+  `shaped_layouts` deliberately: `layout_spans` tiles that list exactly
+  (`spans_tile_the_layouts`), and a quote laid into it would make the tiling a
+  lie and every paragraph offset wrong by one.
+
+- **`SW_CHAT_MUTATION_ASSAULT`** — 15 new tests, offscreen only, at 1x and 2x
+  and on both paths: the invariant survives all five mutators between frames;
+  a tombstone is shorter, keeps its place, and holds nothing a selection can
+  reach; a reaction row moves the bubble, `content_h` and the thumb, and eight
+  chips wrap to a second row; `message_at` names every bubble and answers 0 in
+  the gaps; `reaction_at` finds the clicked chip by a grid sweep and nothing
+  off it; a quote is one line with the ellipsis the elision promises. Evidence:
+  `evidence/thread-mutation-2x.png`. **255 → 270 tests, 0 failed.**
+
 ### Added (0.6.2 — THE ARROW KEYS, the half of the menu gesture 0.6.1 left out)
 
 - **An open menu now walks under the arrow keys.** 0.6.1 closed the Alt door:
