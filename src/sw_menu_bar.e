@@ -37,6 +37,7 @@ feature {NONE} -- Initialization
 			create raw_labels.make (4)
 			create builders.make (4)
 			create conditions.make (4)
+			create shaped.make
 		end
 
 feature -- Access
@@ -57,6 +58,12 @@ feature -- Access
 			-- Per-pad enabling condition; Void = always enabled.
 			-- Queried at draw and click time, so pads grey and
 			-- deafen the instant state turns against them.
+
+	shaped: SW_SHAPED_TEXT
+			-- The bar's one-line layout cache. A menu bar is long-lived
+			-- and repainted on every frame of the application, so this
+			-- is where the caching actually earns its keep: a dozen pad
+			-- titles are shaped once and then only looked up.
 
 	pad_enabled (i: INTEGER): BOOLEAN
 			-- Is pad `i' enabled right now?
@@ -193,6 +200,67 @@ feature -- Mnemonics
 			remembered: last_opened_pad = i
 		end
 
+feature -- Shaped titles
+
+	title_pixel_size (a_p: SW_PAINTER): INTEGER
+			-- The size a pad title is SHAPED at - the theme's label size
+			-- through `text_scale', the same number `SW_PAINTER.font'
+			-- hands cairo on the toy path.
+		do
+			Result := (a_p.theme.size_label * a_p.theme.text_scale).rounded.max (1)
+		ensure
+			positive: Result >= 1
+		end
+
+	title_width (a_p: SW_PAINTER; a_text: READABLE_STRING_32): REAL_64
+			-- How wide `a_text' PAINTS as a pad title - shaped when the
+			-- painter carries a kit, cairo's advance when it does not.
+			-- `pad_bounds' is built on this, so a title of any script is
+			-- as wide as it draws and the hit rectangle follows.
+		do
+			if attached a_p.shaping as al_kit then
+				Result := shaped.width_of (al_kit, a_text, title_pixel_size (a_p))
+			else
+				a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+				Result := a_p.advance (a_text)
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	pad_underline_bounds (a_p: SW_PAINTER; i: INTEGER): TUPLE [left, width: REAL_64]
+			-- Where pad `i''s mnemonic underline goes, measured from the
+			-- LEFT EDGE OF ITS TITLE; zero width when it declares none.
+			--
+			-- On the shaped path this reads the layout's CLUSTER
+			-- POSITIONS. That is not a refinement: for an RTL title the
+			-- first character paints RIGHTMOST, so the old prefix
+			-- advance - the width of the text before the letter - named
+			-- the opposite end of the word.
+		require
+			in_range: i >= 1 and i <= labels.count
+		local
+			ul: INTEGER
+			lb: STRING_32
+		do
+			Result := [0.0, 0.0]
+			ul := pad_underline_index (i)
+			if ul > 0 then
+				lb := labels.i_th (i)
+				if attached a_p.shaping as al_kit then
+					Result := shaped.character_span (
+						shaped.layout_of (al_kit, lb, title_pixel_size (a_p)), ul)
+				else
+					a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+					Result := [a_p.advance (lb.substring (1, ul - 1)),
+						a_p.advance (lb.substring (ul, ul))]
+				end
+			end
+		ensure
+			nothing_to_underline: pad_underline_index (i) = 0 implies Result.width = 0.0
+			non_negative: Result.width >= 0.0
+		end
+
 feature -- Geometry
 
 	pad_bounds (a_p: SW_PAINTER; i: INTEGER): TUPLE [left, width: REAL_64]
@@ -206,17 +274,16 @@ feature -- Geometry
 			tx, tw: REAL_64
 			k: INTEGER
 		do
-			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
 			tx := x + 6.0
 			from
 				k := 1
 			until
 				k >= i
 			loop
-				tx := tx + a_p.advance (labels.i_th (k)) + 24.0 + 2.0
+				tx := tx + title_width (a_p, labels.i_th (k)) + 24.0 + 2.0
 				k := k + 1
 			end
-			tw := a_p.advance (labels.i_th (i)) + 24.0
+			tw := title_width (a_p, labels.i_th (i)) + 24.0
 			Result := [tx, tw]
 		ensure
 			positive_width: Result.width > 0.0
@@ -241,7 +308,8 @@ feature -- Drawing
 			t: SW_THEME
 			tx, tw, base: REAL_64
 			i, ul: INTEGER
-			b: TUPLE [left, width: REAL_64]
+			b, ub: TUPLE [left, width: REAL_64]
+			lay: SHAPED_LAYOUT
 		do
 			probe_painter := a_p
 			t := a_p.theme
@@ -267,8 +335,16 @@ feature -- Drawing
 					a_p.set_color (t.ink_muted)
 				end
 				base := y + height / 2.0 + t.size_label / 2.0 - 2.0
-				a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
-				a_p.text (tx + 12.0, base, labels.i_th (i))
+					-- Shaped when the painter carries a kit: a pad titled
+					-- in Hebrew, Greek or emoji is chrome too, and the toy
+					-- path draws none of them.
+				if attached a_p.shaping as al_kit then
+					lay := shaped.layout_of (al_kit, labels.i_th (i), title_pixel_size (a_p))
+					a_p.draw_shaped_layout (lay, tx + 12.0, shaped.top_for_baseline (lay, base))
+				else
+					a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+					a_p.text (tx + 12.0, base, labels.i_th (i))
+				end
 				ul := pad_underline_index (i)
 				if ul > 0 then
 						-- The underline is drawn in the pad's OWN INK with
@@ -276,11 +352,12 @@ feature -- Drawing
 						-- theme-OUTLINE hairline (it sets that colour
 						-- itself), which on a dark theme is all but
 						-- invisible under a label. It scales with the
-						-- theme the way the type does.
-					a_p.fill_rect (tx + 12.0 + a_p.advance (labels.i_th (i).substring (1, ul - 1)),
-						base + 2.0 * t.text_scale,
-						a_p.advance (labels.i_th (i).substring (ul, ul)),
-						(1.0 * t.text_scale).max (1.0))
+						-- theme the way the type does, and it lands where
+						-- the character PAINTED rather than where a prefix
+						-- advance guessed it would.
+					ub := pad_underline_bounds (a_p, i)
+					a_p.fill_rect (tx + 12.0 + ub.left, base + 2.0 * t.text_scale,
+						ub.width, (1.0 * t.text_scale).max (1.0))
 				end
 				i := i + 1
 			end
@@ -320,5 +397,6 @@ feature {NONE} -- Measurement support
 invariant
 	parallel: labels.count = builders.count
 	raw_parallel: raw_labels.count = labels.count
+	shaped_attached: shaped /= Void
 
 end

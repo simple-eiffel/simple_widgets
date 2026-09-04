@@ -86,6 +86,9 @@ feature {NONE} -- Initialization
 			print ("%N=== ACCELERATORS + MNEMONICS ===%N")
 			run_keyboard_tests
 
+			print ("%N=== SHAPED MENUS (emoji + RTL mnemonics) ===%N")
+			run_menu_shaping_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -526,6 +529,17 @@ feature {NONE} -- Test runners
 			run_test (agent keyboard_tests.test_a_second_context_click_closes_the_open_one, "a_second_context_click_closes_the_open_one")
 			run_test (agent keyboard_tests.test_a_context_click_on_nothing_offers_nothing, "a_context_click_on_nothing_offers_nothing")
 			run_test (agent keyboard_tests.test_the_open_menu_is_painted_and_answers_the_keyboard, "the_open_menu_is_painted_and_answers_the_keyboard (offscreen PNG)")
+		end
+
+	menu_shaping_tests: SW_MENU_SHAPING_ASSAULT
+
+	run_menu_shaping_tests
+		do
+			create menu_shaping_tests
+			run_test (agent menu_shaping_tests.test_an_emoji_menu_item_paints_artwork_and_not_a_box, "an_emoji_menu_item_paints_artwork_and_not_a_box (2x, offscreen PNG)")
+			run_test (agent menu_shaping_tests.test_a_hebrew_pad_underlines_the_glyph_it_names, "a_hebrew_pad_underlines_the_glyph_it_names (2x)")
+			run_test (agent menu_shaping_tests.test_the_menu_measures_what_it_paints, "the_menu_measures_what_it_paints (2x)")
+			run_test (agent menu_shaping_tests.test_an_item_with_no_mnemonic_underlines_nothing, "an_item_with_no_mnemonic_underlines_nothing")
 		end
 
 	run_file_dialog_tests
