@@ -72,6 +72,42 @@ window.show_sheet (my_form, 560.0)
 <span class="comment">-- later: window.close_sheet</span></code></pre>
         </section>
 
+        <section id="accelerators">
+            <h2>Accelerators and mnemonics (0.6.0)</h2>
+            <p>Until 0.6.0 a key reached exactly one place: the FOCUSED widget. An application
+            that wanted Ctrl+N to mean <em>New</em> wherever the caret happened to be had nowhere
+            to say so.</p>
+<pre><code>window.register_accelerator (78, True, False, False, agent new_document)
+        <span class="comment">-- Ctrl+N, anywhere in this window, whoever holds focus</span>
+window.register_accelerator (83, True, False, True,  agent save_as)
+        <span class="comment">-- Ctrl+Shift+S is a DIFFERENT key: the modifiers must match exactly</span></code></pre>
+            <p><code>accelerators</code>, <code>accelerator_for</code> (0 = unclaimed),
+            <code>fire_accelerator</code> and <code>clear_accelerators</code> are the whole model.
+            A modifier is REQUIRED - an unmodified accelerator would take the letter out of every
+            text box in the window. An UNCLAIMED Ctrl+A / C / V / X / Z / Y still reaches the
+            focused <code>SW_TEXT_BOX</code> exactly as it always did. No existing signature
+            changed: <code>SW_WIDGET.handle_key (a_vk, a_shift)</code> is untouched.</p>
+            <p><strong>Both key doors are tried.</strong> simple_shell's WM_KEYDOWN filter forwards
+            only the stepping keys (arrows, Home/End, Page keys, Delete, OEM plus/minus) as event
+            4, so a letter never arrives that way; Ctrl+C arrives as event 3, the WM_CHAR control
+            code 3. The table is consulted on both, and a hit on the key-down door swallows the
+            WM_CHAR that trails it.</p>
+            <p><strong>Menu mnemonics.</strong> <code>window.set_menu_bar (bar)</code> gives a bar
+            the Alt key; <code>activate_mnemonic ('F')</code> opens the pad that declares
+            <code>&amp;File</code>, dropped under the pad itself (<code>SW_MENU_BAR.pad_bounds</code>
+            - the same geometry a click hit-tests with). <code>open_popup</code> is the read-only
+            view of what is up. While a menu is open a BARE letter picks the item that underlines
+            it.</p>
+            <p><strong>THE ALT GAP, NAMED.</strong> Alt STATE is exposed
+            (<code>SW_KEYS.alt_down</code>), so an Alt accelerator matches. Alt+letter DELIVERY is
+            not: simple_shell answers WM_SYSKEYDOWN only for the OEM plus/minus pair and lets every
+            other syskey fall through to DefWindowProc. Until simple_shell forwards
+            WM_SYSKEYDOWN/WM_SYSCHAR for letters, Alt+F reaches the system menu and not this
+            window. <code>activate_mnemonic</code> is implemented, contracted and tested, and a
+            host can drive it from a Ctrl accelerator or a click today. Ctrl accelerators work end
+            to end NOW.</p>
+        </section>
+
         <section id="limits">
             <h2>Known limits</h2>
             <ul>

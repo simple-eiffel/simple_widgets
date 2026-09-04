@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-213%2F213-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-247%2F247-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -25,7 +25,8 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 213 contract-assault tests passing
+- 247 contract-assault tests passing (`screen_grab_marries_cairo` reads the
+  real desktop and fails in a locked session — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
   compiled out of release-shaped builds via the devkit override
@@ -202,6 +203,62 @@ bubble with no drawing and no dependence on `scroll_y`, so `content_h` is
 the real total *before* anything is clamped against it; PASS 2 draws at
 the one offset the frame settled on.
 
+### Line breaks in a bubble (0.6.0)
+
+A chat message is not one paragraph. `SW_CHAT_THREAD` cuts every message at
+its explicit line breaks before either path lays anything out:
+
+| in the message      | what happens                                    |
+|---------------------|-------------------------------------------------|
+| `LF`                | ends the line; never drawn                      |
+| `CRLF`              | ONE break, not two                              |
+| a lone `CR`         | ends the line; never drawn                      |
+| `TAB`               | becomes a space (there are no tab stops here)   |
+| two or more breaks  | at most ONE empty line — a bounded blank        |
+| a trailing break    | dropped: a message ending in a newline has no empty last line |
+
+Wrapping then applies WITHIN a paragraph, and a bubble's height is its real
+line count.
+
+```eiffel
+thread.paragraphs_of (some_text)   -- the cut, as a public contracted query
+thread.display_text (i)            -- message i as the bubble SHOWS it
+```
+
+On the shaped path this means **one `SHAPED_LAYOUT` per paragraph**, because
+simple_shaping lays out a paragraph and treats an LF as a mere break
+*opportunity* — it still shapes and paints the character, which is where the
+square boxes came from. `shaped_layouts` is a flat list in message order and
+`layout_spans` says which layouts belong to which message
+(`shaped_layouts [base .. base + span - 1]`). A message with no line breaks
+is still exactly one layout.
+
+### Selecting and copying from a bubble (0.6.0)
+
+Bubbles are selectable text. Press and drag inside one to select; double-click
+takes the word; Escape clears; Ctrl+C — or the right-click menu (Copy, Select
+Message, Select None) — copies through `SW_CLIPBOARD`, the same door
+`SW_TEXT_BOX` uses.
+
+```eiffel
+thread.has_selection      -- is there a range?
+thread.selected_text      -- exactly what copy_selection would hand the clipboard
+thread.select_message (2) -- the whole of bubble 2
+thread.clear_selection
+```
+
+Granularity is per CHARACTER on the toy path and per GLYPH CLUSTER on the
+shaped path, walked over `GLYPH_RUN`'s own `cluster_map` and `x_positions`
+(`SHAPED_LINE` reserves `character_index_at_x` for a future simple_shaping
+cycle and does not implement it). Right-to-left runs are handled by direction:
+the boundary at a cluster's left edge is the caret AFTER that character.
+
+**Selection lives inside one bubble.** A drag that wanders out runs to the
+anchor bubble's own ends and stops — a thread is a list of utterances by
+different speakers, and a range spanning three of them has no honest text to
+hand the clipboard. Cross-bubble selection is not supported and is not
+planned.
+
 ### The runnable folder
 
 Shaped text adds freight beside the executable. A shipped app's folder is:
@@ -240,6 +297,73 @@ no such fallback: stage the folder.
   their metrics is a separate, wider change — not a small safe one.
 - One kit per window, per SCOOP processor. A background processor that wants to
   measure text creates its own.
+- **Alt+letter never reaches the window.** Mnemonics are parsed, drawn and
+  answered here, but simple_shell forwards `WM_SYSKEYDOWN` for the OEM
+  plus/minus pair only. See *The Alt gap* below. Ctrl accelerators are
+  unaffected and work end to end.
+
+## Keyboard: accelerators and mnemonics (0.6.0)
+
+A key used to reach exactly one place — the focused widget. An application
+that wanted Ctrl+N to mean *New* wherever the caret happened to be had nowhere
+to say so. Now it does:
+
+```eiffel
+window.register_accelerator (78, True, False, False, agent new_document)
+        -- Ctrl+N, anywhere in this window, whoever holds focus
+window.register_accelerator (83, True, False, True,  agent save_as)
+        -- Ctrl+Shift+S is a DIFFERENT key: the modifier state must match exactly
+```
+
+`accelerator_for` answers which entry claims a key (0 = none),
+`fire_accelerator` runs it, `clear_accelerators` empties the table. A modifier
+is required — an unmodified accelerator would take the letter out of every
+text box in the window.
+
+**An unclaimed key is still the widget's own.** Ctrl+A / C / V / X / Z / Y
+reach the focused `SW_TEXT_BOX` exactly as they always did unless an
+accelerator claims them. No existing signature changed:
+`SW_WIDGET.handle_key (a_vk, a_shift)` is untouched.
+
+**Both key doors are tried**, which is not an implementation detail you can
+ignore when reading the dispatch: simple_shell's WM_KEYDOWN filter forwards
+only the stepping keys (arrows, Home/End, Page keys, Delete, OEM plus/minus)
+as event 4, so a letter never arrives that way. Ctrl+C arrives as event 3 —
+the WM_CHAR control code 3 — which is how `SW_TEXT_BOX` has always read it.
+The table is consulted on both, and a hit on the key-down door swallows the
+WM_CHAR that trails it.
+
+### Menu mnemonics
+
+An `&` in a menu title or item underlines the letter after it:
+
+```eiffel
+bar.add_menu ("&File", agent build_file_menu)     -- draws "File", F underlined
+menu.add_item ("Select &All", "Ctrl+A", True, agent select_all)
+menu.add_item ("R&&D", "", True, agent open_rd)   -- literal "R&D", no mnemonic
+window.set_menu_bar (bar)                          -- give this bar the Alt key
+```
+
+`labels` and `items.label` keep the PLAIN reading, so every existing reader
+sees the text it always saw; the declaration survives in `raw_labels`, where
+`menu_for_mnemonic` and `item_for_mnemonic` find it. While a menu is open a
+BARE letter picks the item that underlines it — the second half of the
+*Alt+F, then N* gesture — and that half works today.
+
+### The Alt gap — named, not hidden
+
+Alt **state** is exposed: `SW_KEYS.alt_down` reads `GetKeyState(VK_MENU)` the
+way `shift_down` reads VK_SHIFT, so an Alt accelerator can be registered and
+will match. Alt+letter **delivery** is the gap. simple_shell answers
+`WM_SYSKEYDOWN` only for the OEM plus/minus pair and lets every other syskey
+fall through to `DefWindowProc`; it swallows `WM_SYSCHAR` for those same keys
+alone. **Until simple_shell forwards WM_SYSKEYDOWN/WM_SYSCHAR for letters,
+Alt+F reaches the system menu and not this window.**
+
+`SW_WINDOW.activate_mnemonic (a_letter)` is implemented, contracted and
+tested, and a host can drive it from a Ctrl accelerator or a click today —
+but no Alt keystroke will call it. **Ctrl accelerators work end to end now.**
+The missing half lives in `simple_shell/Clib/simple_shell.h`, not here.
 
 ## Margins and padding
 

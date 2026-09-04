@@ -53,6 +53,28 @@ file_menu: <span class="type">SW_MENU</span>
     <span class="keyword">end</span></code></pre>
         </section>
 
+        <section id="mnemonics">
+            <h2>Mnemonics (0.6.0)</h2>
+            <p>An <code>&amp;</code> underlines the letter after it and names the key that picks
+            the entry. <code>SW_MNEMONIC</code> is the one parser: <code>&quot;&amp;File&quot;</code>
+            draws as <code>File</code> with the F underlined; <code>&quot;Select &amp;All&quot;</code>
+            underlines the A; <code>&quot;R&amp;&amp;D&quot;</code> is the literal
+            <code>R&amp;D</code> with no mnemonic; a trailing <code>&amp;</code> marks nothing.</p>
+            <p>The ampersand NEVER reaches the drawn text: the plain reading is what is stored and
+            painted, so every existing reader sees the text it always saw. The declaration
+            survives in <code>raw_labels</code>.</p>
+            <p>Pad queries: <code>raw_labels</code> (the declaration),
+            <code>pad_underline_index</code>, <code>menu_for_mnemonic (a_letter)</code> (0 when no
+            ENABLED pad answers) and <code>open_menu (a_painter, i)</code>, which offers the built
+            menu through the SAME pending-menu handshake a click uses.
+            <code>pad_bounds (a_painter, i)</code> is the ONE geometry: <code>draw</code> paints
+            with it, <code>handle_click</code> hit-tests with it, and SW_WINDOW drops an
+            Alt-opened menu under it.</p>
+            <p>The underline is drawn in the label's OWN ink with <code>fill_rect</code>, scaled by
+            <code>theme.text_scale</code> - not with <code>SW_PAINTER.hline</code>, which sets the
+            theme OUTLINE colour itself and reads as nothing under a label on a dark theme.</p>
+        </section>
+
         <section id="limits">
             <h2>Known limits</h2>
             <ul>

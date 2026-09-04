@@ -10,6 +10,39 @@ note
 		runtime allocates a console on the first console write in a
 		GUI-subsystem program. `log_line' writes to the session log
 		instead.
+
+		ACCELERATORS (0.6.0). Until now a key reached exactly one place:
+		the FOCUSED widget. An application that wanted Ctrl+N to mean New
+		wherever the caret happened to be had nowhere to say so.
+		`register_accelerator' is that place - a window-level table
+		consulted BEFORE focused-widget routing, matched on the virtual
+		key AND the exact modifier state (`SW_KEYS', the same service
+		SW_TEXT_BOX already asks for Shift). An unclaimed Ctrl+C still
+		reaches the focused text box exactly as it always did; a claimed
+		one never does.
+
+		WHERE A Ctrl KEY REALLY ARRIVES. simple_shell's WM_KEYDOWN filter
+		forwards only the stepping keys (arrows, Home/End, Page keys,
+		Delete, the OEM plus/minus pair) as event 4; a letter key never
+		arrives that way. Ctrl+C arrives instead as event 3 - the WM_CHAR
+		CONTROL CODE 3 - which is precisely how SW_TEXT_BOX has always
+		read it. So `dispatch_plain' tries the table on BOTH doors: event
+		4 by virtual key, and event 3 by control code folded back to its
+		letter (code + 64). A hit on the key-down door also swallows the
+		WM_CHAR that follows it, so one gesture never fires twice.
+
+		THE ALT GAP, NAMED. Modifier STATE is fully exposed -
+		`SW_KEYS.alt_down' reads GetKeyState(VK_MENU) the same way
+		`shift_down' reads VK_SHIFT - so an Alt accelerator can be
+		registered and will match. Alt+letter DELIVERY is the gap:
+		simple_shell answers WM_SYSKEYDOWN only for the OEM plus/minus
+		pair and lets every other syskey fall through to DefWindowProc,
+		and it swallows WM_SYSCHAR for those same keys alone. Until
+		simple_shell forwards WM_SYSKEYDOWN/WM_SYSCHAR for letters, Alt+F
+		reaches the system menu, not this window: `activate_mnemonic' is
+		implemented, contracted and tested, and an application can drive
+		it from a Ctrl accelerator or a click today, but no Alt keystroke
+		will call it. Ctrl accelerators work end to end NOW.
 	]"
 
 class
@@ -41,6 +74,7 @@ feature {NONE} -- Initialization
 			create drawer_tabs.make (2)
 			create lens
 			create tab_rects.make (2)
+			create accelerators.make (8)
 			alloc_w := win_w
 			alloc_h := win_h
 			offscreen := cairo.create_surface (alloc_w, alloc_h)
@@ -399,6 +433,19 @@ feature {NONE} -- Dispatch internals
 				if a_x = 27 then
 					close_popup
 					after_input
+				elseif a_x > 32 then
+						-- an open menu owns the alphabet: a bare letter
+						-- picks the item that underlines it, which is the
+						-- second half of the Alt+F, then N gesture
+					idx := a_m.item_for_mnemonic (a_x.to_character_32)
+					if idx > 0 then
+						act := a_m.items.i_th (idx).action
+						close_popup
+						if attached act as a then
+							a.call
+						end
+						after_input
+					end
 				end
 			when 6 then
 				blit
@@ -617,6 +664,202 @@ feature -- Focus traversal
 			shift_focus (-1)
 		end
 
+feature -- Accelerators
+
+	accelerators: ARRAYED_LIST [TUPLE [vk: INTEGER; ctrl, alt, shift: BOOLEAN; action: PROCEDURE]]
+			-- Window-wide keys, consulted BEFORE the focused widget.
+			-- Order is registration order and the FIRST exact match
+			-- wins, so a later duplicate registration is inert rather
+			-- than silently overriding the earlier one.
+
+	register_accelerator (a_vk: INTEGER; a_ctrl, a_alt, a_shift: BOOLEAN; a_action: PROCEDURE)
+			-- Make `a_action' the meaning of `a_vk' under exactly the
+			-- modifier state `a_ctrl' / `a_alt' / `a_shift', anywhere in
+			-- this window - regardless of which widget holds focus.
+			--
+			-- A modifier is REQUIRED. An unmodified accelerator would
+			-- take the letter out of every text box in the window, which
+			-- is not an accelerator but a bug; a widget's own bare keys
+			-- stay the widget's.
+		require
+			key_named: a_vk > 0
+			modified: a_ctrl or a_alt
+		do
+			accelerators.extend ([a_vk, a_ctrl, a_alt, a_shift, a_action])
+		ensure
+			grew: accelerators.count = old accelerators.count + 1
+		end
+
+	clear_accelerators
+			-- Forget every registered accelerator - for a host that
+			-- swaps roots and rebuilds its key map with them.
+		do
+			accelerators.wipe_out
+		ensure
+			empty: accelerators.is_empty
+		end
+
+	accelerator_for (a_vk: INTEGER; a_ctrl, a_alt, a_shift: BOOLEAN): INTEGER
+			-- 1-based index of the first accelerator that claims this
+			-- exact key-plus-modifier state; 0 when none does - which is
+			-- the answer that lets the focused widget keep the key.
+		local
+			i: INTEGER
+		do
+			if a_vk > 0 then
+				from
+					i := 1
+				until
+					i > accelerators.count or Result /= 0
+				loop
+					if accelerators.i_th (i).vk = a_vk
+						and then accelerators.i_th (i).ctrl = a_ctrl
+						and then accelerators.i_th (i).alt = a_alt
+						and then accelerators.i_th (i).shift = a_shift
+					then
+						Result := i
+					end
+					i := i + 1
+				end
+			end
+		ensure
+			valid: Result >= 0 and Result <= accelerators.count
+			unmatched_when_unnamed: a_vk <= 0 implies Result = 0
+		end
+
+	fire_accelerator (a_vk: INTEGER; a_ctrl, a_alt, a_shift: BOOLEAN): BOOLEAN
+			-- Run the accelerator that claims this key, if one does;
+			-- True when the key was consumed and must NOT go on to the
+			-- focused widget.
+		local
+			i: INTEGER
+		do
+			i := accelerator_for (a_vk, a_ctrl, a_alt, a_shift)
+			if i > 0 then
+				Result := True
+				accelerators.i_th (i).action.call
+			end
+		ensure
+			definition: Result = (accelerator_for (a_vk, a_ctrl, a_alt, a_shift) > 0)
+		end
+
+feature -- Menu bar and mnemonics
+
+	menu_bar: detachable SW_MENU_BAR
+			-- The bar Alt+letter opens, when the application declared
+			-- one. Told, not discovered: a window may hold several bars
+			-- (a dock's own chrome), and only the application knows
+			-- which one owns the Alt key.
+
+	set_menu_bar (a_bar: SW_MENU_BAR)
+			-- Give `a_bar' the Alt key.
+		do
+			menu_bar := a_bar
+		ensure
+			kept: menu_bar = a_bar
+		end
+
+	open_popup: detachable SW_MENU
+			-- The popup menu presented right now, if any: the read-only
+			-- view of the window's own `popup', so a host - and a
+			-- headless assault - can ask whether a menu is up and where
+			-- it landed without reaching into the dispatch state.
+		do
+			Result := popup
+		ensure
+			same: Result = popup
+		end
+
+	activate_mnemonic (a_typed: CHARACTER_32): BOOLEAN
+			-- Alt+`a_typed': open the menu bar pad that declares that
+			-- mnemonic, dropped under the pad itself (`pad_bounds' - the
+			-- same geometry a click hit-tests with). True when a pad
+			-- answered.
+			--
+			-- Public because it is the whole gesture: SEE THE ALT GAP in
+			-- the class note - no Alt keystroke reaches this window
+			-- today, so this is also the only door a test or a host can
+			-- knock on.
+		local
+			idx: INTEGER
+			b: TUPLE [left, width: REAL_64]
+		do
+			if attached menu_bar as mb and then mb.is_enabled then
+				idx := mb.menu_for_mnemonic (a_typed)
+				if idx > 0 then
+					mb.open_menu (painter, idx)
+					if attached mb.take_pending_menu as pm then
+						b := mb.pad_bounds (painter, idx)
+						show_popup (pm, b.left.truncated_to_integer,
+							(mb.y + mb.height + 2.0).truncated_to_integer)
+						Result := True
+					end
+				end
+			end
+		ensure
+			opened_when_answered: Result implies popup /= Void
+		end
+
+feature {NONE} -- Accelerator dispatch
+
+	swallow_next_char: BOOLEAN
+			-- Did a key-down accelerator just fire? Windows sends the
+			-- WM_CHAR after the WM_KEYDOWN, so without this the same
+			-- gesture would be delivered twice: once to the accelerator
+			-- and once to the focused widget.
+
+	key_down_accelerator_fired (a_vk: INTEGER): BOOLEAN
+			-- Event 4 (a virtual key): did the table claim it?
+		local
+			keys: SW_KEYS
+		do
+			create keys
+			Result := fire_accelerator (a_vk, keys.control_down, keys.alt_down, keys.shift_down)
+			if Result then
+				swallow_next_char := True
+			end
+		end
+
+	char_accelerator_fired (a_code: INTEGER): BOOLEAN
+			-- Event 3 (a WM_CHAR): did the table - or a menu mnemonic -
+			-- claim it? Ctrl+letter reaches a Win32 window as the
+			-- CONTROL CODE 1..26 and never as a forwarded key-down, so
+			-- this is the door that actually carries Ctrl accelerators;
+			-- `+ 64' folds the control code back to its letter's own
+			-- virtual key (3 -> 67 -> 'C').
+		local
+			keys: SW_KEYS
+		do
+			create keys
+			if a_code >= 1 and a_code <= 26 and then keys.control_down then
+				Result := fire_accelerator (a_code + 64, True, keys.alt_down, keys.shift_down)
+			elseif keys.alt_down and then a_code > 32 then
+				Result := fire_accelerator (mnemonic_key_of (a_code), False, True, keys.shift_down)
+				if not Result then
+					Result := activate_mnemonic (a_code.to_character_32)
+				end
+			end
+		end
+
+	mnemonic_key_of (a_code: INTEGER): INTEGER
+			-- The virtual key a typed character stands for - 65..90 for
+			-- a letter of either case, 48..57 for a digit - or 0 for a
+			-- character that names no key.
+		local
+			c: INTEGER
+		do
+			c := a_code
+			if c >= 97 and c <= 122 then
+				c := c - 32
+			end
+			if (c >= 65 and c <= 90) or (c >= 48 and c <= 57) then
+				Result := c
+			end
+		ensure
+			letters_and_digits_only: Result = 0
+				or else ((Result >= 65 and Result <= 90) or (Result >= 48 and Result <= 57))
+		end
+
 feature -- Peek grace
 
 	Peek_grace_ticks: INTEGER = 2
@@ -812,6 +1055,15 @@ feature {NONE} -- Popup lifecycle
 						after_input
 					end
 					pending_surrogate := 0
+				elseif swallow_next_char then
+						-- the key-down half of this gesture already ran
+						-- an accelerator; the WM_CHAR that trails it is
+						-- the same keystroke, not a second one
+					pending_surrogate := 0
+					swallow_next_char := False
+				elseif char_accelerator_fired (a_x) then
+					pending_surrogate := 0
+					after_input
 				else
 					pending_surrogate := 0
 					if a_x = 9 and then not (attached focused as tf and then tf.wants_tab) then
@@ -830,7 +1082,9 @@ feature {NONE} -- Popup lifecycle
 					end
 				end
 			when 4 then
-				if attached focused as w then
+				if key_down_accelerator_fired (a_x) then
+					after_input
+				elseif attached focused as w then
 					w.handle_key (a_x, shift_is_down)
 					after_input
 				end

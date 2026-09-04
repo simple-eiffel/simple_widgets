@@ -77,6 +77,12 @@ feature {NONE} -- Initialization
 			print ("%N=== CHAT THREAD SCROLL + SCROLLBAR ===%N")
 			run_chat_scroll_tests
 
+			print ("%N=== CHAT LINE BREAKS + SELECTION ===%N")
+			run_chat_text_tests
+
+			print ("%N=== ACCELERATORS + MNEMONICS ===%N")
+			run_keyboard_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -444,6 +450,43 @@ feature {NONE} -- Test runners
 			run_test (agent shaping_tests.test_ascii_bubble_renders_on_both_paths, "ascii_bubble_renders_on_both_paths")
 			run_test (agent shaping_tests.test_kit_prepends_the_theme_face_for_latin_only, "kit_prepends_the_theme_face_for_latin_only (Q1)")
 			run_test (agent shaping_tests.test_niqqud_offsets_are_reported_not_swallowed, "niqqud_offsets_are_reported_not_swallowed (diagnostic)")
+		end
+
+	chat_text_tests: SW_CHAT_TEXT_ASSAULT
+
+	run_chat_text_tests
+		do
+			create chat_text_tests
+			run_test (agent chat_text_tests.test_paragraphs_split_at_every_explicit_break, "paragraphs_split_at_every_explicit_break")
+			run_test (agent chat_text_tests.test_blank_runs_are_bounded_and_trailing_blanks_dropped, "blank_runs_are_bounded_and_trailing_blanks_dropped")
+			run_test (agent chat_text_tests.test_no_break_character_survives_into_a_drawn_line, "no_break_character_survives_into_a_drawn_line (the box)")
+			run_test (agent chat_text_tests.test_three_line_message_occupies_three_lines, "three_line_message_occupies_three_lines")
+			run_test (agent chat_text_tests.test_a_numbered_list_stays_a_list, "a_numbered_list_stays_a_list")
+			run_test (agent chat_text_tests.test_shaped_message_gets_one_layout_per_paragraph, "shaped_message_gets_one_layout_per_paragraph")
+			run_test (agent chat_text_tests.test_hebrew_line_then_greek_line, "hebrew_line_then_greek_line (shaped, bidi)")
+			run_test (agent chat_text_tests.test_drag_selects_the_characters_it_crosses, "drag_selects_the_characters_it_crosses")
+			run_test (agent chat_text_tests.test_double_click_takes_the_word, "double_click_takes_the_word")
+			run_test (agent chat_text_tests.test_a_selection_never_leaves_its_bubble, "a_selection_never_leaves_its_bubble")
+			run_test (agent chat_text_tests.test_selection_offsets_run_over_the_displayed_text, "selection_offsets_run_over_the_displayed_text")
+			run_test (agent chat_text_tests.test_context_menu_offers_copy_only_when_there_is_something_to_copy, "context_menu_offers_copy")
+			run_test (agent chat_text_tests.test_line_and_selection_evidence, "line_and_selection_evidence (offscreen PNGs)")
+		end
+
+	keyboard_tests: SW_KEYBOARD_ASSAULT
+
+	run_keyboard_tests
+		do
+			create keyboard_tests
+			run_test (agent keyboard_tests.test_mnemonic_parsing, "mnemonic_parsing")
+			run_test (agent keyboard_tests.test_an_accelerator_fires_regardless_of_focus, "an_accelerator_fires_regardless_of_focus")
+			run_test (agent keyboard_tests.test_the_modifier_state_must_match_exactly, "the_modifier_state_must_match_exactly")
+			run_test (agent keyboard_tests.test_an_unclaimed_ctrl_key_is_still_the_focused_box_s_own, "unclaimed_ctrl_key_is_still_the_box_s_own")
+			run_test (agent keyboard_tests.test_first_registration_wins_and_clear_empties, "first_registration_wins_and_clear_empties")
+			run_test (agent keyboard_tests.test_menu_bar_reads_and_answers_its_ampersands, "menu_bar_reads_and_answers_its_ampersands")
+			run_test (agent keyboard_tests.test_a_disabled_pad_does_not_answer_alt, "a_disabled_pad_does_not_answer_alt")
+			run_test (agent keyboard_tests.test_an_open_menu_answers_a_bare_letter, "an_open_menu_answers_a_bare_letter")
+			run_test (agent keyboard_tests.test_the_window_opens_the_pad_the_mnemonic_names, "the_window_opens_the_pad_the_mnemonic_names")
+			run_test (agent keyboard_tests.test_mnemonic_evidence, "mnemonic_evidence (offscreen PNGs)")
 		end
 
 	run_file_dialog_tests
