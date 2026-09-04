@@ -522,6 +522,10 @@ feature {NONE} -- Test runners
 			run_test (agent keyboard_tests.test_a_host_accelerator_still_wins_the_alt_key, "a_host_accelerator_still_wins_the_alt_key")
 			run_test (agent keyboard_tests.test_alt_needs_a_menu_bar_before_it_opens_anything, "alt_needs_a_menu_bar_before_it_opens_anything")
 			run_test (agent keyboard_tests.test_mnemonic_evidence, "mnemonic_evidence (offscreen PNGs)")
+			run_test (agent keyboard_tests.test_a_context_click_opens_the_widgets_own_menu, "a_context_click_opens_the_widgets_own_menu")
+			run_test (agent keyboard_tests.test_a_second_context_click_closes_the_open_one, "a_second_context_click_closes_the_open_one")
+			run_test (agent keyboard_tests.test_a_context_click_on_nothing_offers_nothing, "a_context_click_on_nothing_offers_nothing")
+			run_test (agent keyboard_tests.test_the_open_menu_is_painted_and_answers_the_keyboard, "the_open_menu_is_painted_and_answers_the_keyboard (offscreen PNG)")
 		end
 
 	run_file_dialog_tests

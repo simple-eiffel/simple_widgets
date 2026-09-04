@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.7.1 — THE RIGHT-CLICK DOOR)
+
+- **`SW_WINDOW.simulate_context_click (a_x, a_y)`** — the pointer half of what
+  `simulate_key_down` is for the keyboard, and the last gap in driving a window
+  headless. `show_popup` is `feature {NONE}` and only the window's own event-11
+  dispatch calls it, so until now a host could BUILD a context menu in a test and
+  read every item off it, but could never make the window **present** one. Nothing
+  between the click and the painted menu was provable: that `target_at` finds the
+  widget, that `bubble_context` walks to the first ancestor offering a menu, that
+  the widget takes the focus a right-click gives it, that the menu is placed.
+
+  **The door is one line — `dispatch (11, a_x, a_y)` — on purpose.**
+  `simulate_key_down` was once four lines that called `route_key_down`
+  unconditionally, and an arrow-key assault passed *with the fix deleted*, because
+  the door was a SECOND path that never saw the popup branch at all. A test door
+  that reasons about anything is a test door that can be right while the product is
+  wrong. Routing through `dispatch` means modality is asked first, exactly as the
+  native queue asks it — which is why a second context click **closes** the open
+  menu rather than stacking a second one over it, and why that behaviour is now
+  under test without a line of code written for it.
+
+  Four assaults, 270 → **274**: a click presents the widget's own menu and focuses
+  it; a second click closes it; a click over a widget with no menu opens nothing —
+  the honest answer, since a door that opened an empty popup would put a grey
+  rectangle on screen for every stray right-click in the application; and one
+  itinerary that opens the menu **with the pointer**, walks it **with the
+  keyboard**, paints the frame and closes it with Escape.
+  Evidence: `evidence/menu-context-open-2x.png` — a real context menu, painted.
+
+  Found while writing it, and worth the next reader's time: `SW_MENU` names its
+  highlight `hover_index`, not `hovered`.
+
 ### Added (0.7.0 — THE PER-MESSAGE MENU: edit, react, delete, reply)
 
 - **`SW_CHAT_THREAD` bubbles can be CHANGED after they are drawn.** Larry, through

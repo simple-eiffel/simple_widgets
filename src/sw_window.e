@@ -348,6 +348,32 @@ feature -- Operation
 			end
 		end
 
+	simulate_context_click (a_x, a_y: INTEGER)
+			-- Deliver a right-click exactly as the native queue's event 11
+			-- would: through `dispatch' itself, so the itinerary is the
+			-- SHIPPED one - modality first (an open popup takes the click
+			-- and closes, a dialog swallows it), then the dev lens, then
+			-- `target_at' and `bubble_context' walking the parent chain for
+			-- the first widget that offers a `context_menu', focusing it
+			-- the way every editor does, and presenting the menu through
+			-- `show_popup'. `open_popup' then answers with what came up.
+			--
+			-- THIS DOOR IS DELIBERATELY ONE LINE. `simulate_key_down' was
+			-- once four lines that called `route_key_down' unconditionally,
+			-- and an arrow-key assault passed with the fix deleted because
+			-- the door was a SECOND path that never saw the popup branch at
+			-- all. A test door that reasons about anything is a test door
+			-- that can be right while the product is wrong.
+			--
+			-- For an offscreen harness with no HWND and so no native queue
+			-- to draw a mouse event from: `run' is never called, `hwnd'
+			-- stays `default_pointer', and no window is ever shown. Without
+			-- it a context menu could be BUILT and read in a test but never
+			-- painted, because `show_popup' is this class's own.
+		do
+			dispatch (11, a_x, a_y)
+		end
+
 feature {NONE} -- Dispatch
 
 	dispatch (a_type, a_x, a_y: INTEGER)
