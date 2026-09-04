@@ -114,6 +114,141 @@ feature -- Mnemonics
 			enabled_only: Result > 0 implies items.i_th (Result).enabled
 		end
 
+feature -- Keyboard navigation
+
+	is_selectable (i: INTEGER): BOOLEAN
+			-- Can the highlight land on item `i'? A separator cannot be
+			-- chosen and neither can a disabled item, which is why the arrow
+			-- keys must STEP OVER both rather than stopping on them - the
+			-- behaviour every Windows menu has.
+		do
+			Result := i >= 1 and then i <= items.count
+				and then not items.i_th (i).separator and then items.i_th (i).enabled
+		end
+
+	has_selectable: BOOLEAN
+			-- Is there anything the highlight can land on at all?
+		do
+			Result := across 1 |..| items.count as i some is_selectable (i) end
+		end
+
+	hovered_action: detachable PROCEDURE
+			-- What Enter would run; Void when nothing is highlighted.
+		do
+			if is_selectable (hover_index) then
+				Result := items.i_th (hover_index).action
+			end
+		end
+
+feature -- Keyboard navigation: moving the highlight
+
+	hover_first
+			-- The first item the highlight can land on; nothing when there is none.
+		do
+			hover_index := next_selectable_from (1, 1)
+		ensure
+			landed_or_none: hover_index = 0 or else is_selectable (hover_index)
+			found_when_any: has_selectable implies hover_index > 0
+		end
+
+	hover_last
+		do
+			hover_index := next_selectable_from (items.count, -1)
+		ensure
+			landed_or_none: hover_index = 0 or else is_selectable (hover_index)
+			found_when_any: has_selectable implies hover_index > 0
+		end
+
+	hover_next
+			-- Down: the next selectable item, WRAPPING to the top - and from
+			-- nothing at all it lands on the first, which is what Down does
+			-- to a menu just opened by Alt.
+		do
+			if hover_index = 0 then
+				hover_first
+			else
+				hover_index := wrapped_selectable (hover_index, 1)
+			end
+		ensure
+			landed_or_none: hover_index = 0 or else is_selectable (hover_index)
+			found_when_any: has_selectable implies hover_index > 0
+		end
+
+	hover_previous
+			-- Up: the previous selectable item, wrapping to the BOTTOM - and
+			-- from nothing it lands on the last, so Up on a freshly opened
+			-- menu reaches Exit in one keystroke.
+		do
+			if hover_index = 0 then
+				hover_last
+			else
+				hover_index := wrapped_selectable (hover_index, -1)
+			end
+		ensure
+			landed_or_none: hover_index = 0 or else is_selectable (hover_index)
+			found_when_any: has_selectable implies hover_index > 0
+		end
+
+	clear_hover
+		do
+			hover_index := 0
+		ensure
+			nothing_highlighted: hover_index = 0
+		end
+
+feature {NONE} -- Keyboard navigation: implementation
+
+	next_selectable_from (a_start, a_step: INTEGER): INTEGER
+			-- Walking from `a_start' by `a_step' WITHOUT wrapping, the first
+			-- selectable index; 0 when the walk runs off the end.
+		require
+			stepping: a_step = 1 or a_step = -1
+		local
+			i: INTEGER
+		do
+			from i := a_start until Result /= 0 or i < 1 or i > items.count loop
+				if is_selectable (i) then
+					Result := i
+				end
+				i := i + a_step
+			end
+		ensure
+			selectable_or_none: Result = 0 or else is_selectable (Result)
+		end
+
+	wrapped_selectable (a_from, a_step: INTEGER): INTEGER
+			-- The next selectable index from `a_from' by `a_step', wrapping
+			-- once round; `a_from' itself when it is the only one, and 0
+			-- when nothing at all can be chosen. Bounded by `items.count'
+			-- steps, so a menu of nothing but separators cannot spin here.
+		require
+			stepping: a_step = 1 or a_step = -1
+		local
+			i, n, tried: INTEGER
+		do
+			n := items.count
+			if n > 0 then
+				from
+					i := a_from
+				until
+					Result /= 0 or tried >= n
+				loop
+					i := i + a_step
+					if i > n then
+						i := 1
+					elseif i < 1 then
+						i := n
+					end
+					if is_selectable (i) then
+						Result := i
+					end
+					tried := tried + 1
+				end
+			end
+		ensure
+			selectable_or_none: Result = 0 or else is_selectable (Result)
+		end
+
 feature -- Geometry
 
 	Item_h: REAL_64 = 30.0

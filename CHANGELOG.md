@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.6.2 — THE ARROW KEYS, the half of the menu gesture 0.6.1 left out)
+
+- **An open menu now walks under the arrow keys.** 0.6.1 closed the Alt door:
+  `Alt+F` opens the File menu. What it did not do was let you *move* once you were
+  in — and Larry found that within minutes of adopting it: *"Once open, the
+  arrow-keys need to navigate just like all Windows programs do."*
+
+  The cause was written down in the source, in `SW_WINDOW.dispatch_to_popup`'s own
+  comment: *"While a popup is up it owns the pointer and Escape; everything else is
+  swallowed until it closes."* It handled the click, the hover, Escape and the bare
+  letter that picks an item by mnemonic. It had **no branch for the virtual-key**
+  **event** — and every arrow, plus Home, End and Enter, arrives as one. They
+  reached the window and were discarded.
+
+  - `SW_MENU` — `hover_next`, `hover_previous`, `hover_first`, `hover_last`,
+    `clear_hover`, `is_selectable`, `has_selectable`, `hovered_action`. The
+    highlight **steps over separators and disabled items**, which is what every
+    Windows menu does and what a naive `index++` gets wrong. Wrapping is bounded by
+    the item count, so a menu of nothing but separators terminates instead of
+    spinning.
+  - `SW_MENU_BAR` — `last_opened_pad`, recorded on **both** doors (a pointer click
+    and `open_menu`), and `neighbour_pad` to walk the bar with wrap. A menu opened
+    by mouse therefore answers Left/Right exactly as one opened by Alt: the two
+    paths cannot drift.
+  - `SW_WINDOW` — `navigate_open_menu`: Down/Up move, Home/End jump, Enter runs the
+    highlighted item and closes, Escape closes running nothing, Left/Right open the
+    neighbouring pad. Public for the reason `activate_mnemonic` is public: it is the
+    whole gesture. `dispatch_to_popup` gained the `when 4` branch that reaches it.
+
+- **`SW_WINDOW.deliver_key`** — a public door onto the window's own `dispatch`, so
+  an assault can deliver a key **the way the message pump does** rather than calling
+  the gesture directly.
+
+  This exists because of a mistake worth recording. The first four assaults for the
+  arrow keys called `navigate_open_menu` themselves — and **passed with the routing
+  deleted**, because they never went through the branch that was missing. A test
+  that skips the branch it is meant to guard is worth nothing. Re-pointed through
+  `deliver_key`, the suite is **255 / 0** with the fix and **253 / 2** without it.
+
 ### Fixed (0.6.1 — TWO SEAMS 0.6.0 LEFT, both found by the first host to adopt it)
 
 - **`SW_CHAT_THREAD` could not be given a message after it had drawn a shaped

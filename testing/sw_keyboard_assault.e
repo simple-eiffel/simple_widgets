@@ -508,6 +508,143 @@ feature {NONE} -- Fixtures
 			five: Result.items.count = 5
 		end
 
+feature -- Arrow keys walk an open menu
+
+	test_the_highlight_steps_over_separators_and_disabled_items
+			-- The fixture is deliberately awkward: New, Open, a SEPARATOR,
+			-- Exit, and a DISABLED Save. Neither the separator nor the
+			-- disabled item may ever hold the highlight, which is what every
+			-- Windows menu does and what a naive index++ gets wrong.
+		local
+			m: SW_MENU
+		do
+			m := built_menu
+			assert_integers_equal ("nothing is highlighted to begin with", 0, m.hover_index)
+			assert_true ("New is selectable", m.is_selectable (1))
+			assert_false ("the separator is not", m.is_selectable (3))
+			assert_false ("the disabled Save is not", m.is_selectable (5))
+
+			m.hover_next
+			assert_integers_equal ("Down from nothing lands on New", 1, m.hover_index)
+			m.hover_next
+			assert_integers_equal ("then Open", 2, m.hover_index)
+			m.hover_next
+			assert_integers_equal ("then Exit - the separator is STEPPED OVER", 4, m.hover_index)
+			m.hover_next
+			assert_integers_equal ("then round to New - the disabled Save is skipped", 1, m.hover_index)
+
+			m.hover_previous
+			assert_integers_equal ("Up from New wraps to Exit, not to Save", 4, m.hover_index)
+			m.hover_previous
+			assert_integers_equal ("Up again steps over the separator to Open", 2, m.hover_index)
+
+			m.clear_hover
+			m.hover_previous
+			assert_integers_equal ("Up from nothing lands on the LAST selectable", 4, m.hover_index)
+
+			m.hover_first
+			assert_integers_equal ("Home", 1, m.hover_index)
+			m.hover_last
+			assert_integers_equal ("End is Exit, never the disabled Save", 4, m.hover_index)
+		end
+
+	test_a_menu_with_nothing_to_choose_cannot_spin
+			-- A menu of separators alone has no landing place. The walk must
+			-- terminate and highlight nothing, not loop looking for one.
+		local
+			m: SW_MENU
+		do
+			create m.make
+			m.add_separator
+			m.add_separator
+			assert_false ("nothing is selectable", m.has_selectable)
+			m.hover_next
+			assert_integers_equal ("Down highlights nothing", 0, m.hover_index)
+			m.hover_previous
+			assert_integers_equal ("Up highlights nothing", 0, m.hover_index)
+			assert_void ("and Enter would run nothing", m.hovered_action)
+		end
+
+	test_the_open_menu_answers_the_arrow_keys_and_enter
+			-- THE BUG LARRY FOUND. Alt+F opened the menu and then the arrows
+			-- did nothing: the virtual-key event reached the window, fell
+			-- through `dispatch_to_popup' and was discarded, because that
+			-- routine owned the pointer, Escape and the alphabet - and no
+			-- arrow. Down, Down, Enter must open File and run Open.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			bar: SW_MENU_BAR
+			root: SW_COLUMN
+		do
+			create th.make_light
+			create w.make ("arrows", 0, 0, 500, 300, th)
+			create bar.make
+			bar.add_menu ("&File", agent built_menu)
+			bar.add_menu ("&Edit", agent built_menu)
+			create root.make
+			root.put (bar)
+			w.set_root (root)
+			w.set_menu_bar (bar)
+			w.request_render
+			clear_flag
+
+			w.simulate_key_down (40, False, False, False)
+			assert_void ("an arrow with nothing open opens nothing", w.open_popup)
+			assert_true ("Alt+F opens File", w.activate_mnemonic ('F'))
+			assert_integers_equal ("the bar remembers which pad", 1, bar.last_opened_pad)
+
+			w.simulate_key_down (40, False, False, False)
+			if attached w.open_popup as m1 then
+				assert_integers_equal ("...and lands on New", 1, m1.hover_index)
+			end
+			w.simulate_key_down (40, False, False, False)
+			if attached w.open_popup as m2 then
+				assert_integers_equal ("...Open", 2, m2.hover_index)
+			end
+
+			assert_false ("the action has not run yet", flag)
+			w.simulate_key_down (13, False, False, False)
+			assert_true ("...and runs what was highlighted", flag)
+			assert_void ("...and the menu closes behind it", w.open_popup)
+		end
+
+	test_escape_closes_and_left_right_walk_the_bar
+			-- Right and Left step to the neighbouring pad and open ITS menu,
+			-- wrapping at both ends; Escape closes without running anything.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			bar: SW_MENU_BAR
+			root: SW_COLUMN
+		do
+			create th.make_light
+			create w.make ("walk", 0, 0, 500, 300, th)
+			create bar.make
+			bar.add_menu ("&File", agent built_menu)
+			bar.add_menu ("&Edit", agent built_menu)
+			create root.make
+			root.put (bar)
+			w.set_root (root)
+			w.set_menu_bar (bar)
+			w.request_render
+			clear_flag
+
+			assert_true ("open File", w.activate_mnemonic ('F'))
+			w.simulate_key_down (39, False, False, False)
+			assert_integers_equal ("...and Edit is now the open pad", 2, bar.last_opened_pad)
+			assert_attached ("...with a menu under it", w.open_popup)
+
+			w.simulate_key_down (39, False, False, False)
+			assert_integers_equal ("...back to File", 1, bar.last_opened_pad)
+			w.simulate_key_down (37, False, False, False)
+			assert_integers_equal ("...to Edit", 2, bar.last_opened_pad)
+
+			w.simulate_key_down (27, False, False, False)
+			assert_void ("...and the menu closes", w.open_popup)
+			assert_false ("...having run nothing", flag)
+		end
+
 feature {NONE} -- Evidence location (mirrors SW_CHAT_SCROLL_ASSAULT)
 
 	evidence_path (a_name: STRING): STRING_32

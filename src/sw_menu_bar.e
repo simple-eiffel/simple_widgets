@@ -112,6 +112,50 @@ feature -- Mnemonics
 			in_label: Result >= 0 and Result <= labels.i_th (i).count
 		end
 
+	last_opened_pad: INTEGER
+			-- The 1-based pad whose menu was opened last, by pointer or by
+			-- Alt; 0 before any. Left and Right walk from here, so a menu
+			-- opened by a CLICK answers the arrow keys exactly as one
+			-- opened by a mnemonic - the two doors stay one behaviour.
+
+	neighbour_pad (a_from, a_step: INTEGER): INTEGER
+			-- The next ENABLED pad from `a_from' by `a_step', wrapping once
+			-- round; `a_from' when it is the only enabled one, and 0 when
+			-- none is. Bounded by `labels.count' steps, so a bar of
+			-- disabled pads cannot spin here.
+		require
+			stepping: a_step = 1 or a_step = -1
+		local
+			i, n, tried: INTEGER
+		do
+			n := labels.count
+			if n > 0 then
+				if a_from >= 1 and a_from <= n then
+					i := a_from
+				else
+					i := 1
+				end
+				if pad_enabled (i) and then a_from < 1 then
+					Result := i
+				end
+				from until Result /= 0 or tried >= n loop
+					i := i + a_step
+					if i > n then
+						i := 1
+					elseif i < 1 then
+						i := n
+					end
+					if pad_enabled (i) then
+						Result := i
+					end
+					tried := tried + 1
+				end
+			end
+		ensure
+			enabled_or_none: Result = 0 or else pad_enabled (Result)
+			in_range: Result >= 0 and Result <= labels.count
+		end
+
 	menu_for_mnemonic (a_typed: CHARACTER_32): INTEGER
 			-- The 1-based pad Alt+`a_typed' opens (case folded); 0 when
 			-- no ENABLED pad answers to that letter.
@@ -143,8 +187,10 @@ feature -- Mnemonics
 		do
 			probe_painter := a_p
 			pending_menu := builders.i_th (i).item ([])
+			last_opened_pad := i
 		ensure
 			offered: pending_menu /= Void
+			remembered: last_opened_pad = i
 		end
 
 feature -- Geometry
@@ -257,6 +303,7 @@ feature -- Input
 					if a_px >= b.left and a_px <= b.left + b.width then
 						if pad_enabled (i) then
 							pending_menu := builders.i_th (i).item ([])
+							last_opened_pad := i
 						end
 						Result := True
 					end
