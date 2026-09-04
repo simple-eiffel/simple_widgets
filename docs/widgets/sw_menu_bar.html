@@ -78,7 +78,9 @@ file_menu: <span class="type">SW_MENU</span>
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>No keyboard menu access (Alt+F mnemonics) yet.</li>
+                <li>Alt+F opens a pad (0.6.1) once the window is told which bar owns the Alt key
+                (<code>SW_WINDOW.set_menu_bar</code>); a bar the window was never told about is
+                mouse-only.</li>
                 <li>No overflow handling for very many titles.</li>
             </ul>
         </section>

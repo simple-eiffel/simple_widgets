@@ -464,6 +464,7 @@ feature {NONE} -- Test runners
 			run_test (agent chat_text_tests.test_a_numbered_list_stays_a_list, "a_numbered_list_stays_a_list")
 			run_test (agent chat_text_tests.test_shaped_message_gets_one_layout_per_paragraph, "shaped_message_gets_one_layout_per_paragraph")
 			run_test (agent chat_text_tests.test_hebrew_line_then_greek_line, "hebrew_line_then_greek_line (shaped, bidi)")
+			run_test (agent chat_text_tests.test_a_message_may_arrive_after_a_shaped_frame, "a_message_may_arrive_after_a_shaped_frame (the invariant)")
 			run_test (agent chat_text_tests.test_drag_selects_the_characters_it_crosses, "drag_selects_the_characters_it_crosses")
 			run_test (agent chat_text_tests.test_double_click_takes_the_word, "double_click_takes_the_word")
 			run_test (agent chat_text_tests.test_a_selection_never_leaves_its_bubble, "a_selection_never_leaves_its_bubble")
@@ -486,6 +487,9 @@ feature {NONE} -- Test runners
 			run_test (agent keyboard_tests.test_a_disabled_pad_does_not_answer_alt, "a_disabled_pad_does_not_answer_alt")
 			run_test (agent keyboard_tests.test_an_open_menu_answers_a_bare_letter, "an_open_menu_answers_a_bare_letter")
 			run_test (agent keyboard_tests.test_the_window_opens_the_pad_the_mnemonic_names, "the_window_opens_the_pad_the_mnemonic_names")
+			run_test (agent keyboard_tests.test_alt_letter_on_the_key_down_door_opens_the_menu, "alt_letter_on_the_key_down_door (the Alt door)")
+			run_test (agent keyboard_tests.test_a_host_accelerator_still_wins_the_alt_key, "a_host_accelerator_still_wins_the_alt_key")
+			run_test (agent keyboard_tests.test_alt_needs_a_menu_bar_before_it_opens_anything, "alt_needs_a_menu_bar_before_it_opens_anything")
 			run_test (agent keyboard_tests.test_mnemonic_evidence, "mnemonic_evidence (offscreen PNGs)")
 		end
 

@@ -46,6 +46,24 @@ note
 		is why `shaped_layouts' is now one layout PER PARAGRAPH (see
 		`layout_spans') and not one per message.
 
+		BETWEEN TWO FRAMES. A layout can be made only by
+		`SW_SHAPING.layout_for', and only at an inner width and a pixel
+		size the widget does not learn until the painter hands them over
+		inside `draw'. So `add_message' CANNOT keep `layout_spans' in
+		step with `messages': to do it, a content command would have to
+		shape - which means inventing a width, or demanding a painter
+		from a caller who has one only while it is painting.
+
+		The counts are therefore equal exactly when the layouts are
+		CURRENT, and `laid_out_revision = revision' is the widget's own
+		answer to that. Every content change bumps `revision';
+		`refresh_layouts' rebuilds and then, and only then, records it.
+		The equality is a POSTCONDITION of that rebuild, and the
+		invariant states it under that guard - not unconditionally, which
+		made `add_message' after a first shaped frame fail its own class
+		invariant in any build that checks one. A live chat client does
+		exactly that on every event after its first frame.
+
 		SELECTION AND COPY (0.6.0). A bubble is now selectable text, not
 		a picture of text: press inside one and drag to select,
 		double-click to take the word, Ctrl+C or the right-click menu to
@@ -175,9 +193,14 @@ feature -- Access
 			-- to which message when it is not.
 
 	layout_spans: ARRAYED_LIST [TUPLE [base, span: INTEGER]]
-			-- One entry per message once a shaped frame has been drawn:
-			-- the message's paragraph layouts are
+			-- One entry per message OF THE LAST LAID-OUT FRAME: that
+			-- message's paragraph layouts are
 			-- `shaped_layouts [base .. base + span - 1]'.
+			--
+			-- BETWEEN FRAMES IT LAGS, and that is not a defect - see
+			-- BETWEEN TWO FRAMES in the class note. `laid_out_revision =
+			-- revision' is the question "are these current?", and the
+			-- invariant asks it before demanding one span per message.
 
 	laid_out_width: INTEGER
 			-- Bubble INNER width, in pixels, the current `shaped_layouts'
@@ -1671,10 +1694,13 @@ invariant
 	displays_attached: displays /= Void
 	line_cache_attached: line_cache /= Void
 	bubble_boxes_attached: bubble_boxes /= Void
-	spans_match_when_present: not shaped_layouts.is_empty implies
+	spans_never_outrun_messages: layout_spans.count <= messages.count
+	spans_match_when_current: laid_out_revision = revision implies
 		layout_spans.count = messages.count
-	a_layout_per_paragraph: not shaped_layouts.is_empty implies
-		shaped_layouts.count >= messages.count
+	spans_and_layouts_arrive_together: shaped_layouts.is_empty = layout_spans.is_empty
+	spans_tile_the_layouts: layout_spans.is_empty or else
+		layout_spans.last.base + layout_spans.last.span - 1 = shaped_layouts.count
+	a_layout_per_paragraph: shaped_layouts.count >= layout_spans.count
 	revision_non_negative: revision >= 0 and laid_out_revision >= 0
 	scrollbar_width_positive: scrollbar_width > 0.0
 	text_scale_recorded_positive: last_text_scale > 0.0

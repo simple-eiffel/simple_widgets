@@ -233,6 +233,18 @@ square boxes came from. `shaped_layouts` is a flat list in message order and
 (`shaped_layouts [base .. base + span - 1]`). A message with no line breaks
 is still exactly one layout.
 
+**Add a message whenever you like (0.6.1).** A layout can only be made by
+`SW_SHAPING.layout_for`, at an inner width and a pixel size the widget does not
+learn until the painter hands them over inside `draw` — so `add_message` cannot
+keep `layout_spans` in step with `messages`, and between two frames the spans
+describe the frame that was drawn. That is normal, and the widget says so:
+`laid_out_revision = revision` is its own answer to *are these current?*. In
+0.6.0 the class invariant demanded one span per message unconditionally, so
+`add_message` after a first shaped frame failed **its own invariant** in any
+build that checks one — which is every workbench and `ec.sh test` build, and
+precisely what a live chat client does on every event after its first frame. It
+never bit a shipped client only because finalized code checks no invariants.
+
 ### Selecting and copying from a bubble (0.6.0)
 
 Bubbles are selectable text. Press and drag inside one to select; double-click
@@ -297,10 +309,9 @@ no such fallback: stage the folder.
   their metrics is a separate, wider change — not a small safe one.
 - One kit per window, per SCOOP processor. A background processor that wants to
   measure text creates its own.
-- **Alt+letter never reaches the window.** Mnemonics are parsed, drawn and
-  answered here, but simple_shell forwards `WM_SYSKEYDOWN` for the OEM
-  plus/minus pair only. See *The Alt gap* below. Ctrl accelerators are
-  unaffected and work end to end.
+- Every mnemonic is a MENU BAR mnemonic. Alt+letter opens a pad; it does not
+  move focus to a labelled control, because no widget declares an `&` label
+  yet. See *The Alt door* below.
 
 ## Keyboard: accelerators and mnemonics (0.6.0)
 
@@ -350,20 +361,37 @@ sees the text it always saw; the declaration survives in `raw_labels`, where
 BARE letter picks the item that underlines it — the second half of the
 *Alt+F, then N* gesture — and that half works today.
 
-### The Alt gap — named, not hidden
+### The Alt door — the gap 0.6.0 named, closed (0.6.1)
 
-Alt **state** is exposed: `SW_KEYS.alt_down` reads `GetKeyState(VK_MENU)` the
-way `shift_down` reads VK_SHIFT, so an Alt accelerator can be registered and
-will match. Alt+letter **delivery** is the gap. simple_shell answers
-`WM_SYSKEYDOWN` only for the OEM plus/minus pair and lets every other syskey
-fall through to `DefWindowProc`; it swallows `WM_SYSCHAR` for those same keys
-alone. **Until simple_shell forwards WM_SYSKEYDOWN/WM_SYSCHAR for letters,
-Alt+F reaches the system menu and not this window.**
+0.6.0 shipped the mnemonics with a hole named in this README: Alt+letter never
+reached the window at all, because simple_shell answered `WM_SYSKEYDOWN` for
+the OEM plus/minus pair alone. **simple_shell 1.9.3 closed its half** —
+Alt+A..Z and Alt+0..9 now arrive as the ordinary key-down event 4 by virtual
+key, with the `WM_SYSCHAR` behind them swallowed so `DefWindowProc` cannot
+open the system menu behind the application's back.
 
-`SW_WINDOW.activate_mnemonic (a_letter)` is implemented, contracted and
-tested, and a host can drive it from a Ctrl accelerator or a click today —
-but no Alt keystroke will call it. **Ctrl accelerators work end to end now.**
-The missing half lives in `simple_shell/Clib/simple_shell.h`, not here.
+That swallow is why the toolkit still saw nothing: `activate_mnemonic` sat on
+the WM_CHAR door, which the shell now never knocks on for an Alt combination,
+so the gesture reached the accelerator table and died there unless the host
+had registered Alt+F/E/R/H by hand. **It no longer has to.** With Alt held and
+no accelerator claiming the key, the window tries its own `menu_bar`:
+
+```eiffel
+window.set_menu_bar (bar)   -- this, and nothing else, is what Alt+F needs
+```
+
+Order is the contract: the accelerator table is asked **first**, so a host that
+really wants Alt+F for itself still keeps it; the menu bar is asked **second**;
+the focused widget is asked **last**, so Alt+letter no longer disappears.
+`activate_mnemonic` stays public — a button or a Ctrl accelerator may still
+drive it — and the WM_CHAR path is untouched for shells that deliver Alt that
+way. **Ctrl accelerators are unaffected.**
+
+`SW_WINDOW.simulate_key_down (a_vk, a_ctrl, a_alt, a_shift)` delivers a
+key-down through the **same** `route_key_down` the native event 4 runs, with
+the modifier state as parameters instead of a live `GetKeyState`. It is how the
+assault proves this offscreen without pressing Alt on anybody's desktop, and
+it is the wheel door's (`simulate_wheel`) twin.
 
 ## Margins and padding
 
