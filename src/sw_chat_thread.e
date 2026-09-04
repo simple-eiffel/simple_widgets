@@ -128,6 +128,52 @@ note
 		is drawn this frame), matching SW_SCROLL_AREA's own convention -
 		so text never reflows the instant the thread crosses the overflow
 		line.
+
+		MUTATION (0.7.0). A bubble can now be CHANGED after it is drawn -
+		`set_message', `mark_edited', `tombstone', `set_reactions',
+		`set_reply_quote' - because a chat server folds edit, delete and
+		reaction events over the message they name, and until this cycle
+		the only public model here was `add_message' and
+		`append_to_last'. Nothing new had to be invented to make that
+		safe: every one of them is a CONTENT CHANGE, and a content change
+		has meant "bump `revision'" since 0.5.0. `laid_out_revision' then
+		lags, `spans_match_when_current' goes quiet for exactly one
+		frame, `refresh_layouts' rebuilds and records - the same door
+		`add_message' has always gone through. That is the whole of why
+		these commands cannot break the invariant 0.6.1 wrote.
+
+		A DELETE IS A TOMBSTONE, NEVER A GAP. `tombstone' does not remove
+		the message: the bubble stays where it is, at reduced height, in
+		a muted "message deleted" placeholder, because the ORDER of a
+		thread is part of its record and a vanished bubble silently
+		rewrites who answered whom. It does, however, really destroy the
+		text - `messages.i_th (i).text' is emptied, not hidden - so there
+		is nothing left for a selection to reach and nothing for
+		`copy_selection' to hand the clipboard. Hiding it behind a flag
+		would leave the words one query away from anyone with a debugger,
+		which is not what "deleted" means.
+
+		THE DECORATION BANDS. A bubble is now up to four stacked bands
+		inside its own padding: a one-line REPLY QUOTE (elided at the
+		bubble's inner width - a quote that wrapped would be a second
+		message), the TEXT, an "edited" MARKER, and a REACTION ROW of
+		emoji-and-count chips (the reader's own outlined). Each band is
+		MEASURED, never assumed: the quote and the chips' emoji go
+		through the shaping kit when there is one, so a Hebrew quote
+		reads right-to-left and a reaction carries the same Noto picture
+		as the bubbles do; without a kit both fall back to cairo's toy
+		metrics, which is the same two-path rule the rest of this class
+		obeys. The bands change the bubble's height, so they change
+		`content_h' - and stickiness is preserved the way `add_message'
+		preserves it: a thread parked at the tail is re-parked, a reader
+		who has scrolled up is not yanked.
+
+		THE MENU'S TWO QUESTIONS. A host that puts a per-message menu on
+		a right-click has to know WHICH bubble the click landed on
+		(`message_at') and, if it landed on a reaction chip, WHICH emoji
+		(`reaction_at'). Both are answered from the geometry the last
+		`draw' recorded - the same frame cache `hit_test' has used since
+		0.6.0 - so neither needs a painter of its own.
 	]"
 
 class
@@ -150,6 +196,12 @@ feature -- Roles
 	Role_theirs: INTEGER = 2
 	Role_system: INTEGER = 3
 
+	Role_keep: INTEGER = 0
+			-- Not a role: what `set_message' is passed when the edit
+			-- changes the words and must leave the speaker alone. A
+			-- server's edit event carries new text and no new author, so
+			-- the common call has nothing honest to put in the role slot.
+
 feature {NONE} -- Initialization
 
 	make
@@ -160,13 +212,24 @@ feature {NONE} -- Initialization
 			create displays.make (16)
 			create line_cache.make (16)
 			create bubble_boxes.make (16)
+			create decor.make (16)
+			create chip_sets.make (16)
+			create quote_layouts.make (16)
+			create chip_layouts.make (16)
+			create head_bands.make (16)
+			create body_bands.make (16)
+			create edit_bands.make (16)
+			create chip_boxes.make (16)
+			create drawn_quotes.make (16)
 			is_sticky := True
 			scrollbar_width := Scrollbar_w
 			last_text_scale := 1.0
 			displayed_revision := -1
+			decor_revision := -1
 		ensure
 			nothing_laid_out: shaped_layouts.is_empty
 			nothing_selected: not has_selection
+			nothing_decorated: decor.is_empty and chip_sets.is_empty
 		end
 
 feature -- Access
@@ -238,6 +301,8 @@ feature -- Element change
 		do
 			create s.make_from_string_general (a_text)
 			messages.extend ([a_role, s])
+			decor.extend ([False, False, {STRING_32} "", {STRING_32} ""])
+			chip_sets.extend (create {ARRAYED_LIST [TUPLE [emoji: STRING_32; tally: INTEGER; mine: BOOLEAN]]}.make (2))
 			revision := revision + 1
 			if is_sticky then
 				scroll_y := {REAL_64}.max_value / 4.0
@@ -245,17 +310,307 @@ feature -- Element change
 			end
 		ensure
 			grew: count = old count + 1
+			undecorated: not is_edited (count) and not is_tombstone (count)
+				and reactions_of (count).is_empty and not has_reply_quote (count)
 		end
 
 	append_to_last (a_text: READABLE_STRING_GENERAL)
 			-- Streaming: grow the last message in place.
 		require
 			aboard: count > 0
+			alive: not is_tombstone (count)
 		do
 			messages.last.text.append_string_general (a_text)
 			revision := revision + 1
 			if is_sticky then
 				scroll_y := {REAL_64}.max_value / 4.0
+			end
+		end
+
+feature -- Element change: mutation (0.7.0)
+
+	set_message (a_message, a_role: INTEGER; a_text: READABLE_STRING_GENERAL)
+			-- Replace what bubble `a_message' says, and who said it when
+			-- `a_role' is a real role rather than `Role_keep'. THE ONLY
+			-- MECHANISM IS THE ONE 0.5.0 ALREADY HAD: `revision' is
+			-- bumped, so `laid_out_revision' lags, so the shaped spans
+			-- and the toy displays are both stale until the next frame
+			-- rebuilds them - and `spans_match_when_current' asks about
+			-- currency before it demands one span per message. There is
+			-- nothing to re-shape here and no width to invent.
+			--
+			-- The selection is dropped when it lived in this bubble: its
+			-- offsets are offsets into text that no longer exists, and a
+			-- selection that survives its own text is how a clipboard
+			-- ends up with somebody else's words.
+		require
+			in_range: a_message >= 1 and a_message <= count
+			role_known_or_kept: a_role = Role_keep
+				or (a_role >= Role_mine and a_role <= Role_system)
+			alive: not is_tombstone (a_message)
+		local
+			s: STRING_32
+			r: INTEGER
+		do
+			create s.make_from_string_general (a_text)
+			if a_role = Role_keep then
+				r := messages.i_th (a_message).role
+			else
+				r := a_role
+			end
+			messages.put_i_th ([r, s], a_message)
+			if sel_message = a_message then
+				clear_selection
+			end
+			revision := revision + 1
+			if is_sticky then
+				scroll_y := {REAL_64}.max_value / 4.0
+			end
+		ensure
+			text_replaced: messages.i_th (a_message).text.same_string_general (a_text)
+			role_set_when_given: a_role /= Role_keep implies
+				messages.i_th (a_message).role = a_role
+			role_kept_when_not: a_role = Role_keep implies
+				messages.i_th (a_message).role = old messages.i_th (a_message).role
+			place_kept: count = old count
+			bumped: revision = old revision + 1
+			no_stale_selection: sel_message /= a_message
+		end
+
+	mark_edited (a_message: INTEGER)
+			-- Say that bubble `a_message' has been edited: it grows a
+			-- small muted marker band under its text. Idempotent, and it
+			-- bumps `revision' either way, because the band is height and
+			-- height is measured in a frame this class has not drawn yet.
+		require
+			in_range: a_message >= 1 and a_message <= count
+			alive: not is_tombstone (a_message)
+		do
+			decor.put_i_th ([True, False, decor.i_th (a_message).quote_author,
+				decor.i_th (a_message).quote_text], a_message)
+			revision := revision + 1
+			if is_sticky then
+				scroll_y := {REAL_64}.max_value / 4.0
+			end
+		ensure
+			marked: is_edited (a_message)
+			still_alive: not is_tombstone (a_message)
+			bumped: revision = old revision + 1
+		end
+
+	tombstone (a_message: INTEGER)
+			-- Delete bubble `a_message' THE WAY A THREAD CAN AFFORD TO:
+			-- the bubble keeps its place and its order and becomes a
+			-- muted, reduced-height "message deleted" placeholder. The
+			-- text is really destroyed - emptied, not hidden - so no
+			-- selection can reach it and `copy_selection' has nothing to
+			-- take. Every decoration goes with it: a reaction to a
+			-- deleted message, or a quote inside one, is a claim about
+			-- words nobody can read.
+			--
+			-- Terminal and idempotent: `set_message', `mark_edited',
+			-- `set_reactions' and `set_reply_quote' all require a live
+			-- message, so a tombstone cannot be edited back into speech.
+		require
+			in_range: a_message >= 1 and a_message <= count
+		do
+			messages.put_i_th ([messages.i_th (a_message).role, {STRING_32} ""], a_message)
+			decor.put_i_th ([False, True, {STRING_32} "", {STRING_32} ""], a_message)
+			chip_sets.put_i_th (
+				create {ARRAYED_LIST [TUPLE [emoji: STRING_32; tally: INTEGER; mine: BOOLEAN]]}.make (2),
+				a_message)
+			if sel_message = a_message then
+				clear_selection
+			end
+			revision := revision + 1
+			if is_sticky then
+				scroll_y := {REAL_64}.max_value / 4.0
+			end
+		ensure
+			tombstoned: is_tombstone (a_message)
+			text_destroyed: messages.i_th (a_message).text.is_empty
+			nothing_to_copy: display_text (a_message).is_empty
+			reactions_gone: reactions_of (a_message).is_empty
+			quote_gone: not has_reply_quote (a_message)
+			marker_gone: not is_edited (a_message)
+			place_kept: count = old count
+			no_stale_selection: sel_message /= a_message
+			bumped: revision = old revision + 1
+		end
+
+	set_reactions (a_message: INTEGER;
+			a_list: LIST [TUPLE [emoji: STRING_32; tally: INTEGER; mine: BOOLEAN]])
+			-- Give bubble `a_message' the reaction row `a_list' - one
+			-- chip per emoji, carrying how many people sent it and
+			-- whether the reader is one of them. REPLACES the row
+			-- wholesale, because the server has already deduped per
+			-- person per emoji and a widget that tried to merge would be
+			-- keeping a second, worse tally.
+			--
+			-- The chips are COPIED in: a caller that reuses its list for
+			-- the next event must not be able to rewrite a drawn frame.
+			--
+			-- The label is `tally' and not `count' for one reason:
+			-- TUPLE already has a `count', and a labelled field cannot
+			-- shadow it.
+		require
+			in_range: a_message >= 1 and a_message <= count
+			alive: not is_tombstone (a_message)
+			list_attached: a_list /= Void
+			tallies_positive: across a_list as r all r.tally >= 1 end
+			emoji_present: across a_list as r all not r.emoji.is_empty end
+		local
+			l: ARRAYED_LIST [TUPLE [emoji: STRING_32; tally: INTEGER; mine: BOOLEAN]]
+		do
+			create l.make (a_list.count)
+			across
+				a_list as r
+			loop
+				l.extend ([r.emoji.twin, r.tally, r.mine])
+			end
+			chip_sets.put_i_th (l, a_message)
+			revision := revision + 1
+			if is_sticky then
+				scroll_y := {REAL_64}.max_value / 4.0
+			end
+		ensure
+			one_chip_each: reactions_of (a_message).count = a_list.count
+			bumped: revision = old revision + 1
+		end
+
+	set_reply_quote (a_message: INTEGER; a_author, a_text: READABLE_STRING_GENERAL)
+			-- Make bubble `a_message' a REPLY: it grows a one-line quoted
+			-- header naming `a_author' and showing `a_text', elided at the
+			-- bubble's inner width. One line, always - a quote allowed to
+			-- wrap stops being a header and becomes a second message.
+			-- Line breaks inside `a_text' are flattened to spaces for the
+			-- same reason.
+			--
+			-- Two empty strings clear the quote, which is how an event
+			-- that un-parents a message is applied.
+		require
+			in_range: a_message >= 1 and a_message <= count
+			alive: not is_tombstone (a_message)
+		local
+			au, tx: STRING_32
+		do
+			create au.make_from_string_general (a_author)
+			create tx.make_from_string_general (a_text)
+			decor.put_i_th ([decor.i_th (a_message).edited, False, au, tx], a_message)
+			revision := revision + 1
+			if is_sticky then
+				scroll_y := {REAL_64}.max_value / 4.0
+			end
+		ensure
+			quoted: has_reply_quote (a_message) =
+				(not a_author.is_empty or not a_text.is_empty)
+			bumped: revision = old revision + 1
+		end
+
+feature -- Per-message decoration
+
+	is_edited (a_message: INTEGER): BOOLEAN
+			-- Does bubble `a_message' carry the "edited" marker?
+		require
+			in_range: a_message >= 1 and a_message <= count
+		do
+			Result := decor.i_th (a_message).edited
+		end
+
+	is_tombstone (a_message: INTEGER): BOOLEAN
+			-- Has bubble `a_message' been deleted - drawn as a muted
+			-- placeholder that keeps its place in the thread?
+		require
+			in_range: a_message >= 1 and a_message <= count
+		do
+			Result := decor.i_th (a_message).tomb
+		end
+
+	reactions_of (a_message: INTEGER): ARRAYED_LIST [TUPLE [emoji: STRING_32; tally: INTEGER; mine: BOOLEAN]]
+			-- The reaction chips of bubble `a_message', in the order the
+			-- host gave them; empty when there are none. A COPY - the
+			-- caller cannot reach into a drawn frame through it.
+		require
+			in_range: a_message >= 1 and a_message <= count
+		do
+			create Result.make (chip_sets.i_th (a_message).count)
+			across
+				chip_sets.i_th (a_message) as r
+			loop
+				Result.extend ([r.emoji.twin, r.tally, r.mine])
+			end
+		ensure
+			same_size: Result.count = chip_sets.i_th (a_message).count
+		end
+
+	has_reply_quote (a_message: INTEGER): BOOLEAN
+			-- Is bubble `a_message' a reply, with a quoted header to draw?
+		require
+			in_range: a_message >= 1 and a_message <= count
+		do
+			Result := not decor.i_th (a_message).quote_author.is_empty
+				or else not decor.i_th (a_message).quote_text.is_empty
+		end
+
+	reply_quote (a_message: INTEGER): TUPLE [author, text: STRING_32]
+			-- What bubble `a_message' is quoting; two empty strings when
+			-- it is not a reply.
+		require
+			in_range: a_message >= 1 and a_message <= count
+		do
+			Result := [decor.i_th (a_message).quote_author.twin,
+				decor.i_th (a_message).quote_text.twin]
+		end
+
+	quote_line (a_message: INTEGER): STRING_32
+			-- The reply header of bubble `a_message' AS ONE LINE: the
+			-- quoted author, then the quoted text with every break
+			-- flattened to a space. Empty when it is not a reply. This is
+			-- the string the elision then cuts.
+		require
+			in_range: a_message >= 1 and a_message <= count
+		local
+			au, tx: STRING_32
+			i: INTEGER
+			c: NATURAL_32
+		do
+			au := decor.i_th (a_message).quote_author
+			tx := decor.i_th (a_message).quote_text
+			create Result.make (au.count + tx.count + 2)
+			if not au.is_empty then
+				Result.append (au)
+				if not tx.is_empty then
+					Result.append ({STRING_32} ": ")
+				end
+			end
+			from
+				i := 1
+			until
+				i > tx.count
+			loop
+				c := tx.code (i)
+				if c = 10 or c = 13 or c = 9 then
+					Result.append_character (' ')
+				else
+					Result.append_code (c)
+				end
+				i := i + 1
+			end
+		ensure
+			empty_without_a_quote: not has_reply_quote (a_message) implies Result.is_empty
+		end
+
+	drawn_quote (a_message: INTEGER): STRING_32
+			-- The quote line the LAST frame actually painted for bubble
+			-- `a_message', elided to that bubble's inner width; empty
+			-- before the first frame and for a message with no quote.
+		require
+			in_range: a_message >= 1 and a_message <= count
+		do
+			if a_message <= drawn_quotes.count then
+				Result := drawn_quotes.i_th (a_message).twin
+			else
+				create Result.make_empty
 			end
 		end
 
@@ -638,6 +993,50 @@ feature -- Drawing
 	Sel_alpha: REAL_64 = 0.32
 			-- How solid the selection wash draws over the bubble.
 
+	Band_gap: REAL_64 = 4.0
+			-- The space between two of a bubble's stacked bands - quote,
+			-- text, "edited" marker, reaction row - at 1x. Scaled by the
+			-- theme's `text_scale' wherever it is used, because these
+			-- bands sit against MEASURED type, which already carries it.
+
+	Quote_bar_w: REAL_64 = 2.0
+			-- The accent rule down the left of a reply header.
+
+	Quote_bar_gap: REAL_64 = 5.0
+			-- Between that rule and the quoted line.
+
+	Chip_pad_h: REAL_64 = 6.0
+	Chip_pad_v: REAL_64 = 2.0
+			-- Inside a reaction chip.
+
+	Chip_gap: REAL_64 = 4.0
+			-- Between two chips, and between two wrapped chip rows.
+
+	Chip_inner_gap: REAL_64 = 3.0
+			-- Between a chip's picture and its tally.
+
+	Chip_radius: REAL_64 = 7.0
+
+	Tomb_pad: REAL_64 = 5.0
+			-- HALF `Bubble_pad', and - like `Bubble_pad' - deliberately
+			-- NOT theme-scaled. That is what makes "a tombstone is
+			-- shorter than the bubble it replaced" true at every text
+			-- scale and on both text paths: the placeholder's band is
+			-- capped at one body line (`tomb_band_h') and its padding is
+			-- half, so the whole thing fits strictly inside even a
+			-- one-line live bubble.
+
+	Meta_size_ratio: REAL_64 = 0.78
+			-- The "edited" marker and the tombstone placeholder, as a
+			-- fraction of `Text_size'.
+
+	Chip_size_ratio: REAL_64 = 0.85
+			-- A reaction chip's picture and tally, likewise.
+
+	Edited_marker: STRING = "edited"
+
+	Deleted_marker: STRING = "message deleted"
+
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
@@ -647,7 +1046,9 @@ feature -- Drawing
 			rec: TUPLE [lo, hi: INTEGER; top, h: REAL_64; pidx, lidx: INTEGER]
 			heights, widths: ARRAYED_LIST [REAL_64]
 			is_shaped: BOOLEAN
-			d: STRING_32
+			d, q: STRING_32
+			body_h, body_w, hh, eh: REAL_64
+			rel: ARRAYED_LIST [TUPLE [cx, cy, cw, ch: REAL_64; emoji: STRING_32]]
 		do
 			t := a_p.theme
 			probe_painter := a_p
@@ -672,6 +1073,13 @@ feature -- Drawing
 					-- nothing, so this is cheap on a still frame.
 				refresh_layouts (al_kit, inner_w, px, a_p.is_resize_storm)
 				is_shaped := layout_spans.count = messages.count
+					-- the decorations follow the body onto the same width
+					-- `refresh_layouts' just settled on, storm and all, so
+					-- a quote and the bubble under it can never be shaped
+					-- for two different panes
+				refresh_decor_layouts (al_kit, laid_out_width, px)
+			else
+				drop_decor_layouts
 			end
 			last_frame_shaped := is_shaped
 
@@ -682,6 +1090,11 @@ feature -- Drawing
 			create widths.make (messages.count)
 			line_cache.wipe_out
 			bubble_boxes.wipe_out
+			head_bands.wipe_out
+			body_bands.wipe_out
+			edit_bands.wipe_out
+			chip_boxes.wipe_out
+			drawn_quotes.wipe_out
 			total_h := 8.0
 			from
 				i := 1
@@ -690,14 +1103,42 @@ feature -- Drawing
 			loop
 				if is_shaped then
 					recs := shaped_lines_of (i)
-					bh := lines_height (recs) + 2.0 * Bubble_pad
-					bw := (widest_layout (i) + 2.0 * Bubble_pad).min (max_w)
+					body_h := lines_height (recs)
+					body_w := widest_layout (i)
 				else
 					recs := toy_lines_of (a_p, i, inner_w)
-					bh := recs.count * Line_h + 2.0 * Bubble_pad - 4.0
-					bw := widest_toy_line (a_p, i, recs) + 2.0 * Bubble_pad
+					body_h := recs.count * Line_h - 4.0
+					body_w := widest_toy_line (a_p, i, recs)
 				end
 				line_cache.extend (recs)
+				if is_tombstone (i) then
+						-- the placeholder replaces the text ENTIRELY: no
+						-- quote, no marker, no chips, half the padding
+					create q.make_empty
+					create rel.make (0)
+					hh := 0.0
+					eh := 0.0
+					bh := tomb_band_h (a_p, body_h.max (1.0)) + 2.0 * Tomb_pad
+					bw := tomb_text_width (a_p) + 2.0 * Tomb_pad
+					body_h := 0.0
+				else
+					q := quote_band_text (a_p, i, is_shaped, inner_w)
+					hh := quote_band_h (a_p, i, is_shaped)
+					eh := edited_band_h (a_p, i)
+					rel := chip_geometry (a_p, i, is_shaped, inner_w)
+					bh := hh + body_h + eh + band_height_of (rel) + 2.0 * Bubble_pad
+					bw := body_w.max (quote_band_w (a_p, i, is_shaped, q))
+						.max (edited_band_w (a_p, i)).max (band_width_of (rel))
+						+ 2.0 * Bubble_pad
+					if is_shaped then
+						bw := bw.min (max_w)
+					end
+				end
+				drawn_quotes.extend (q)
+				head_bands.extend (hh)
+				body_bands.extend (body_h)
+				edit_bands.extend (eh)
+				chip_boxes.extend (rel)
 				heights.extend (bh)
 				widths.extend (bw)
 				bubble_boxes.extend ([0.0, 0.0, 0.0, 0.0])
@@ -728,7 +1169,16 @@ feature -- Drawing
 					bx := x + (usable_w - bw) / 2.0
 				end
 				bubble_boxes.put_i_th ([bx, by, bw, bh], i)
+					-- the chips' RELATIVE boxes become window boxes here and
+					-- only here, so `reaction_at' hit-tests the rectangles
+					-- `draw_chips' paints and never a second formula
+				place_chips (i, bx + Bubble_pad,
+					by + Bubble_pad + head_bands [i] + body_bands [i] + edit_bands [i]
+						+ Band_gap * t.text_scale)
 				if by + bh > y and then by < y + height then
+					if is_tombstone (i) then
+						draw_tombstone (a_p, bx, by, bw, bh)
+					else
 					inspect messages.i_th (i).role
 					when Role_mine then
 						a_p.set_color (t.wash_accent)
@@ -738,8 +1188,11 @@ feature -- Drawing
 						a_p.set_color_alpha (t.surface_variant, 0.5)
 					end
 					a_p.rrect_fill (bx, by, bw, bh, 7.0)
+					if has_reply_quote (i) then
+						draw_quote_band (a_p, i, is_shaped, bx + Bubble_pad, by + Bubble_pad)
+					end
 					if has_selection and then sel_message = i then
-						draw_selection (a_p, i, bx + Bubble_pad, by + Bubble_pad)
+						draw_selection (a_p, i, bx + Bubble_pad, by + Bubble_pad + head_bands [i])
 					end
 					if messages.i_th (i).role = Role_system then
 						a_p.set_color (t.ink_muted)
@@ -756,7 +1209,8 @@ feature -- Drawing
 						loop
 							a_p.draw_shaped_layout (
 								shaped_layouts.i_th (layout_spans.i_th (i).base + j - 1),
-								bx + Bubble_pad, by + Bubble_pad + paragraph_top (i, j))
+								bx + Bubble_pad,
+								by + Bubble_pad + head_bands [i] + paragraph_top (i, j))
 							j := j + 1
 						end
 					else
@@ -768,10 +1222,19 @@ feature -- Drawing
 							j > line_cache.i_th (i).count
 						loop
 							rec := line_cache.i_th (i).i_th (j)
-							a_p.text (bx + Bubble_pad, by + Bubble_pad + rec.top + 9.0,
+							a_p.text (bx + Bubble_pad,
+								by + Bubble_pad + head_bands [i] + rec.top + 9.0,
 								line_text (d, rec))
 							j := j + 1
 						end
+					end
+					if is_edited (i) then
+						draw_edited_marker (a_p, bx + Bubble_pad,
+							by + Bubble_pad + head_bands [i] + body_bands [i])
+					end
+					if not chip_boxes [i].is_empty then
+						draw_chips (a_p, i, is_shaped)
+					end
 					end
 				end
 				by := by + bh + 8.0
@@ -853,6 +1316,118 @@ feature -- Drawing
 			at_least_one_layout_each: shaped_layouts.count >= messages.count
 			width_recorded: laid_out_width > 0
 			content_current: laid_out_revision = revision
+		end
+
+	refresh_decor_layouts (a_kit: SW_SHAPING; a_inner_width, a_pixel_size: INTEGER)
+			-- Bring the DECORATION layouts - one reply quote per message,
+			-- one picture per reaction chip - in step with `messages' at
+			-- the width and size `refresh_layouts' just settled on.
+			--
+			-- They are kept OUT of `shaped_layouts' on purpose:
+			-- `layout_spans' tiles that list exactly (see
+			-- `spans_tile_the_layouts'), and a quote laid into it would
+			-- make the tiling a lie and every paragraph offset wrong by
+			-- one. Same lag rule though - every mutator bumps `revision',
+			-- so `decor_revision /= revision' is what "these are stale"
+			-- means, and the invariant asks that question before
+			-- demanding one entry per message.
+		require
+			width_positive: a_inner_width > 0
+			size_positive: a_pixel_size > 0
+		local
+			i, k, cpx: INTEGER
+			cl: ARRAYED_LIST [SHAPED_LAYOUT]
+		do
+			cpx := (a_pixel_size * Chip_size_ratio).rounded.max (1)
+			if a_inner_width /= decor_width or a_pixel_size /= decor_size
+				or revision /= decor_revision
+				or quote_layouts.count /= messages.count
+				or chip_layouts.count /= messages.count
+			then
+				quote_layouts.wipe_out
+				chip_layouts.wipe_out
+				from
+					i := 1
+				until
+					i > messages.count
+				loop
+					if has_reply_quote (i) then
+						quote_layouts.extend (
+							one_line_layout (a_kit, quote_line (i),
+								(a_inner_width - quote_indent.ceiling).max (16), a_pixel_size))
+					else
+						quote_layouts.extend (Void)
+					end
+					create cl.make (chip_sets.i_th (i).count)
+					from
+						k := 1
+					until
+						k > chip_sets.i_th (i).count
+					loop
+						cl.extend (a_kit.layout_for (chip_sets.i_th (i).i_th (k).emoji,
+							a_inner_width, cpx))
+						k := k + 1
+					end
+					chip_layouts.extend (cl)
+					i := i + 1
+				end
+				decor_width := a_inner_width
+				decor_size := a_pixel_size
+				decor_revision := revision
+			end
+		ensure
+			one_quote_slot_per_message: quote_layouts.count = messages.count
+			one_chip_list_per_message: chip_layouts.count = messages.count
+			content_current: decor_revision = revision
+		end
+
+	drop_decor_layouts
+			-- No shaping kit this frame: nothing may hold a decoration
+			-- layout the toy path would then measure against. `-1' is a
+			-- revision no content change can produce, so the guarded
+			-- invariant clause goes quiet rather than lying.
+		do
+			quote_layouts.wipe_out
+			chip_layouts.wipe_out
+			decor_revision := -1
+			decor_width := 0
+			decor_size := 0
+		ensure
+			gone: quote_layouts.is_empty and chip_layouts.is_empty
+			not_current: decor_revision /= revision
+		end
+
+	one_line_layout (a_kit: SW_SHAPING; a_text: READABLE_STRING_32;
+			a_width, a_size: INTEGER): SHAPED_LAYOUT
+			-- `a_text' shaped to ONE line at `a_width' - the layout as it
+			-- came when it already fits, else the prefix its first line
+			-- covers, one character shorter, with an ellipsis, RE-SHAPED,
+			-- because an ellipsis is a character the shaper has to
+			-- measure too and a cut made on a toy advance would be a
+			-- guess about a bidi line.
+			--
+			-- Bounded: each pass strictly shortens the text, so the loop
+			-- cannot spin; six passes is a ceiling, not an expectation.
+		require
+			width_positive: a_width > 0
+			size_positive: a_size > 0
+		local
+			n, tries: INTEGER
+			s: STRING_32
+		do
+			Result := a_kit.layout_for (a_text, a_width, a_size)
+			n := a_text.count
+			from
+			until
+				Result.lines.count <= 1 or tries >= 6 or n <= 1
+			loop
+				n := (Result.lines.i_th (1).source_count - 1).min (n - 1).max (1)
+				create s.make (n + 1)
+				s.append (a_text.substring (1, n))
+				s.append_code (0x2026)
+				Result := a_kit.layout_for (s, a_width, a_size)
+				tries := tries + 1
+			end
 		end
 
 feature {NONE} -- Drawing internals
@@ -1043,6 +1618,77 @@ feature -- Input
 
 feature -- Hit testing
 
+	message_at (a_px, a_py: REAL_64): INTEGER
+			-- WHICH BUBBLE the point lands on, 0 for none - the one
+			-- question a host's right-click has to answer before it can
+			-- offer a per-message menu. Built on the same frame geometry
+			-- `hit_test' has hit-tested since 0.6.0, so a menu and a
+			-- selection can never disagree about which message was meant.
+			-- A tombstone answers with its own index: a deleted message
+			-- is still a message, and a host may well want to offer
+			-- something on it.
+		do
+			Result := hit_test (a_px, a_py).message
+		ensure
+			named: Result >= 0 and Result <= count
+			nothing_before_a_frame: bubble_boxes.is_empty implies Result = 0
+		end
+
+	reaction_at (a_px, a_py: REAL_64): TUPLE [message: INTEGER; emoji: STRING_32]
+			-- The reaction chip under the point: which bubble it belongs
+			-- to and WHICH EMOJI it carries, so a click can toggle that
+			-- one reaction. Message 0 and an empty string when the point
+			-- is on no chip - which is most of the pane, and is not an
+			-- error.
+		local
+			i, k: INTEGER
+			b: TUPLE [cx, cy, cw, ch: REAL_64; emoji: STRING_32]
+			none: STRING_32
+		do
+			create none.make_empty
+			Result := [0, none]
+			from
+				i := 1
+			until
+				i > chip_boxes.count or Result.message /= 0
+			loop
+				from
+					k := 1
+				until
+					k > chip_boxes.i_th (i).count or Result.message /= 0
+				loop
+					b := chip_boxes.i_th (i).i_th (k)
+					if b.cw > 0.0 and then a_px >= b.cx and then a_px <= b.cx + b.cw
+						and then a_py >= b.cy and then a_py <= b.cy + b.ch
+					then
+						Result := [i, b.emoji.twin]
+					end
+					k := k + 1
+				end
+				i := i + 1
+			end
+		ensure
+			named: Result.message >= 0 and Result.message <= count
+			nothing_has_no_emoji: Result.message = 0 implies Result.emoji.is_empty
+			something_has_an_emoji: Result.message > 0 implies not Result.emoji.is_empty
+		end
+
+	bubble_height (a_message: INTEGER): REAL_64
+			-- The height the LAST frame drew bubble `a_message' at; 0
+			-- before the first frame. The widget's own measurement of
+			-- itself, published for the same reason `content_h' is: a
+			-- host (and a test) can ask what a tombstone or a reaction
+			-- row did to a bubble without re-deriving the layout.
+		require
+			in_range: a_message >= 1 and a_message <= count
+		do
+			if a_message <= bubble_boxes.count then
+				Result := bubble_boxes.i_th (a_message).bh
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
 	hit_test (a_px, a_py: REAL_64): TUPLE [message, offset: INTEGER]
 			-- Which message, and which caret offset inside it, the point
 			-- names; message 0 when the point is on no bubble. Answered
@@ -1086,13 +1732,19 @@ feature -- Hit testing
 			found: BOOLEAN
 		do
 			Result := [a_message, 0]
-			if a_message <= bubble_boxes.count and then a_message <= line_cache.count
+			if is_tombstone (a_message) then
+					-- a deleted message has no text to name an offset in:
+					-- `tombstone' destroyed it rather than hiding it
+			elseif a_message <= bubble_boxes.count and then a_message <= line_cache.count
 				and then a_message <= displays.count
 			then
 				b := bubble_boxes.i_th (a_message)
 				recs := line_cache.i_th (a_message)
 				if not recs.is_empty then
-					ly := a_py - (b.by + Bubble_pad)
+						-- the text starts under the reply-quote band, when
+						-- there is one; `head_of' is 0 when there is not,
+						-- which is every bubble that predates 0.7.0
+					ly := a_py - (b.by + Bubble_pad + head_of (a_message))
 					ix := a_px - (b.bx + Bubble_pad)
 					rec := recs.i_th (recs.count)
 					from
@@ -1354,6 +2006,386 @@ feature {NONE} -- Hit testing: the shaped path
 			end
 		end
 
+feature {NONE} -- Decoration measurement
+
+	head_of (a_message: INTEGER): REAL_64
+			-- How far down its own inner box message `a_message''s TEXT
+			-- began in the last frame: the reply-quote band, or 0. Read
+			-- by hit-testing, which has no painter and must not measure.
+		do
+			if a_message >= 1 and then a_message <= head_bands.count then
+				Result := head_bands.i_th (a_message)
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	meta_font (a_p: SW_PAINTER)
+			-- Select the small muted face the "edited" marker and the
+			-- tombstone placeholder share - in ONE place, so a
+			-- measurement and the paint that follows it cannot drift.
+		do
+			a_p.font ({SW_PAINTER}.Role_ui, Text_size * Meta_size_ratio, False)
+		end
+
+	chip_font (a_p: SW_PAINTER)
+			-- Likewise for a reaction chip's tally, and for its picture
+			-- on the toy fallback.
+		do
+			a_p.font ({SW_PAINTER}.Role_ui, Text_size * Chip_size_ratio, False)
+		end
+
+	quote_indent: REAL_64
+			-- The accent rule plus its gap: how far a quoted line is
+			-- inset from the bubble's own inner edge.
+		do
+			Result := (Quote_bar_w + Quote_bar_gap) * last_text_scale
+		ensure
+			positive: Result > 0.0
+		end
+
+	quote_band_text (a_p: SW_PAINTER; a_message: INTEGER; a_shaped: BOOLEAN;
+			a_inner_w: REAL_64): STRING_32
+			-- The reply header message `a_message' will ACTUALLY paint
+			-- this frame - the shaped path's own elided layout text when
+			-- there is a kit, cairo's toy elision otherwise. Empty when
+			-- the message is not a reply.
+		do
+			create Result.make_empty
+			if has_reply_quote (a_message) then
+				if a_shaped and then a_message <= quote_layouts.count
+					and then attached quote_layouts.i_th (a_message) as al_q
+				then
+					create Result.make_from_string_general (al_q.source_text)
+				else
+					a_p.font ({SW_PAINTER}.Role_ui, Text_size, False)
+					Result := elided (a_p, quote_line (a_message),
+						(a_inner_w - quote_indent).max (8.0))
+				end
+			end
+		ensure
+			empty_without_a_quote: not has_reply_quote (a_message) implies Result.is_empty
+		end
+
+	quote_band_h (a_p: SW_PAINTER; a_message: INTEGER; a_shaped: BOOLEAN): REAL_64
+			-- What the reply header adds to bubble `a_message''s height,
+			-- INCLUDING the gap under it; 0 when it is not a reply.
+		do
+			if has_reply_quote (a_message) then
+				if a_shaped and then a_message <= quote_layouts.count
+					and then attached quote_layouts.i_th (a_message) as al_q
+				then
+					Result := al_q.total_height
+				else
+					a_p.font ({SW_PAINTER}.Role_ui, Text_size, False)
+					Result := a_p.text_extent
+				end
+				Result := Result + Band_gap * last_text_scale
+			end
+		ensure
+			non_negative: Result >= 0.0
+			nothing_without_a_quote: not has_reply_quote (a_message) implies Result = 0.0
+		end
+
+	quote_band_w (a_p: SW_PAINTER; a_message: INTEGER; a_shaped: BOOLEAN;
+			a_drawn: STRING_32): REAL_64
+			-- What the reply header needs across, INCLUDING its indent.
+		do
+			if has_reply_quote (a_message) then
+				if a_shaped and then a_message <= quote_layouts.count
+					and then attached quote_layouts.i_th (a_message) as al_q
+				then
+					Result := al_q.total_width
+				else
+					a_p.font ({SW_PAINTER}.Role_ui, Text_size, False)
+					Result := a_p.advance (a_drawn)
+				end
+				Result := Result + quote_indent
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	edited_band_h (a_p: SW_PAINTER; a_message: INTEGER): REAL_64
+			-- What the "edited" marker adds to bubble `a_message''s
+			-- height, INCLUDING the gap above it; 0 when unmarked.
+		do
+			if is_edited (a_message) then
+				meta_font (a_p)
+				Result := a_p.text_extent + Band_gap * last_text_scale
+			end
+		ensure
+			non_negative: Result >= 0.0
+			nothing_without_the_marker: not is_edited (a_message) implies Result = 0.0
+		end
+
+	edited_band_w (a_p: SW_PAINTER; a_message: INTEGER): REAL_64
+			-- What it needs across; 0 when unmarked.
+		do
+			if is_edited (a_message) then
+				meta_font (a_p)
+				Result := a_p.advance (Edited_marker)
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	tomb_text_width (a_p: SW_PAINTER): REAL_64
+			-- The placeholder's own advance, in its own face.
+		do
+			meta_font (a_p)
+			Result := a_p.advance (Deleted_marker)
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	tomb_band_h (a_p: SW_PAINTER; a_line_h: REAL_64): REAL_64
+			-- The placeholder's measured line, CAPPED at one body line.
+			-- The cap plus `Tomb_pad' being half `Bubble_pad' is the
+			-- whole proof that a tombstone is shorter than the bubble it
+			-- replaced - at every text scale, on both text paths, and
+			-- even against a live bubble of one single line.
+		require
+			line_positive: a_line_h > 0.0
+		do
+			meta_font (a_p)
+			Result := a_p.text_extent.min (a_line_h).max (1.0)
+		ensure
+			positive: Result > 0.0
+		end
+
+	chip_geometry (a_p: SW_PAINTER; a_message: INTEGER; a_shaped: BOOLEAN;
+			a_inner_w: REAL_64): ARRAYED_LIST [TUPLE [cx, cy, cw, ch: REAL_64; emoji: STRING_32]]
+			-- The reaction chips of message `a_message', laid left to
+			-- right and wrapped at `a_inner_w', as boxes RELATIVE to the
+			-- bubble's inner top-left. PASS 2 turns these into window
+			-- boxes once it knows where the bubble landed.
+			--
+			-- The emoji's OWN artwork sizes the chip on the shaped path -
+			-- simple_shaping makes an image run square at the line height,
+			-- so a picture is proportional to the type and a chip cannot
+			-- run away with the row. Without a kit the chip is measured
+			-- in cairo's toy face instead, which is the text fallback and
+			-- is what a machine with no Noto assets gets.
+		require
+			in_range: a_message >= 1 and a_message <= count
+			width_positive: a_inner_w > 0.0
+		local
+			k: INTEGER
+			ew, eh, tw, th, w, h, cx, cy, row_h, s, padh, padv, gap, inner: REAL_64
+		do
+			s := last_text_scale
+			padh := Chip_pad_h * s
+			padv := Chip_pad_v * s
+			gap := Chip_gap * s
+			inner := Chip_inner_gap * s
+			create Result.make (chip_sets.i_th (a_message).count)
+			from
+				k := 1
+			until
+				k > chip_sets.i_th (a_message).count
+			loop
+				if a_shaped and then a_message <= chip_layouts.count
+					and then k <= chip_layouts.i_th (a_message).count
+				then
+					ew := chip_layouts.i_th (a_message).i_th (k).total_width
+					eh := chip_layouts.i_th (a_message).i_th (k).total_height
+				else
+					chip_font (a_p)
+					ew := a_p.advance (chip_sets.i_th (a_message).i_th (k).emoji)
+					eh := a_p.text_extent
+				end
+				chip_font (a_p)
+				tw := a_p.advance (chip_sets.i_th (a_message).i_th (k).tally.out)
+				th := a_p.text_extent
+				w := padh * 2.0 + ew + inner + tw
+				h := padv * 2.0 + eh.max (th)
+				if k > 1 and then cx + w > a_inner_w then
+						-- one row is not a law: a bubble with a dozen
+						-- reactions wraps them instead of drawing off its
+						-- own edge
+					cx := 0.0
+					cy := cy + row_h + gap
+					row_h := 0.0
+				end
+				Result.extend ([cx, cy, w, h, chip_sets.i_th (a_message).i_th (k).emoji])
+				cx := cx + w + gap
+				row_h := row_h.max (h)
+				k := k + 1
+			end
+		ensure
+			one_box_per_chip: Result.count = reactions_of (a_message).count
+		end
+
+	band_height_of (a_boxes: ARRAYED_LIST [TUPLE [cx, cy, cw, ch: REAL_64; emoji: STRING_32]]): REAL_64
+			-- What a reaction row adds to a bubble's height, INCLUDING
+			-- the gap above it; 0 for no chips.
+		do
+			across
+				a_boxes as b
+			loop
+				Result := Result.max (b.cy + b.ch)
+			end
+			if not a_boxes.is_empty then
+				Result := Result + Band_gap * last_text_scale
+			end
+		ensure
+			non_negative: Result >= 0.0
+			nothing_without_chips: a_boxes.is_empty implies Result = 0.0
+		end
+
+	band_width_of (a_boxes: ARRAYED_LIST [TUPLE [cx, cy, cw, ch: REAL_64; emoji: STRING_32]]): REAL_64
+			-- What it needs across; 0 for no chips.
+		do
+			across
+				a_boxes as b
+			loop
+				Result := Result.max (b.cx + b.cw)
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	place_chips (a_message: INTEGER; a_ox, a_oy: REAL_64)
+			-- Turn message `a_message''s relative chip boxes into WINDOW
+			-- boxes, now that PASS 2 knows where the bubble landed.
+		require
+			in_range: a_message >= 1 and a_message <= chip_boxes.count
+		local
+			k: INTEGER
+			b: TUPLE [cx, cy, cw, ch: REAL_64; emoji: STRING_32]
+		do
+			from
+				k := 1
+			until
+				k > chip_boxes.i_th (a_message).count
+			loop
+				b := chip_boxes.i_th (a_message).i_th (k)
+				chip_boxes.i_th (a_message).put_i_th (
+					[a_ox + b.cx, a_oy + b.cy, b.cw, b.ch, b.emoji], k)
+				k := k + 1
+			end
+		ensure
+			same_count: chip_boxes.i_th (a_message).count = old chip_boxes.i_th (a_message).count
+		end
+
+feature {NONE} -- Decoration drawing
+
+	draw_quote_band (a_p: SW_PAINTER; a_message: INTEGER; a_shaped: BOOLEAN;
+			a_ix, a_iy: REAL_64)
+			-- The reply header: an accent rule down its left edge, then
+			-- the one elided line beside it, muted.
+		require
+			quoted: has_reply_quote (a_message)
+		local
+			t: SW_THEME
+			band: REAL_64
+		do
+			t := a_p.theme
+			band := (quote_band_h (a_p, a_message, a_shaped)
+				- Band_gap * last_text_scale).max (1.0)
+			a_p.set_color_alpha (t.accent, 0.85)
+			a_p.rrect_fill (a_ix, a_iy, Quote_bar_w * last_text_scale, band, 1.0)
+			a_p.set_color (t.ink_muted)
+			if a_shaped and then a_message <= quote_layouts.count
+				and then attached quote_layouts.i_th (a_message) as al_q
+			then
+				a_p.draw_shaped_layout (al_q, a_ix + quote_indent, a_iy)
+			else
+				a_p.font ({SW_PAINTER}.Role_ui, Text_size, False)
+				a_p.text (a_ix + quote_indent, a_iy + a_p.font_ascent,
+					drawn_quote (a_message))
+			end
+		end
+
+	draw_edited_marker (a_p: SW_PAINTER; a_ix, a_iy: REAL_64)
+			-- The small muted "edited" line under a bubble's text.
+		do
+			meta_font (a_p)
+			a_p.set_color (a_p.theme.ink_muted)
+			a_p.text (a_ix, a_iy + Band_gap * last_text_scale + a_p.font_ascent,
+				Edited_marker)
+		end
+
+	draw_tombstone (a_p: SW_PAINTER; a_bx, a_by, a_bw, a_bh: REAL_64)
+			-- A deleted message: a dimmed, outlined placeholder that keeps
+			-- its place in the thread. DIMMED rather than italic -
+			-- SW_PAINTER's `font' takes a weight and no slant, and there
+			-- is no honest way to fake one; muted plus an outline says
+			-- "this is not speech" just as plainly, and says it in a theme
+			-- that may already be dark.
+		local
+			t: SW_THEME
+		do
+			t := a_p.theme
+			a_p.set_color_alpha (t.surface_variant, 0.35)
+			a_p.rrect_fill (a_bx, a_by, a_bw, a_bh, 7.0)
+			a_p.set_color_alpha (t.outline, 0.6)
+			a_p.rrect_stroke (a_bx + 0.5, a_by + 0.5, a_bw - 1.0, a_bh - 1.0, 7.0)
+			meta_font (a_p)
+			a_p.set_color (t.ink_muted)
+			a_p.text (a_bx + Tomb_pad,
+				a_by + a_bh / 2.0 + (a_p.font_ascent - a_p.font_descent) / 2.0,
+				Deleted_marker)
+		end
+
+	draw_chips (a_p: SW_PAINTER; a_message: INTEGER; a_shaped: BOOLEAN)
+			-- The reaction row: one rounded chip per emoji, the reader's
+			-- OWN outlined in the accent - so "I reacted" is legible
+			-- without asking anyone to tell two washes apart.
+		require
+			in_range: a_message >= 1 and a_message <= chip_boxes.count
+		local
+			t: SW_THEME
+			k: INTEGER
+			b: TUPLE [cx, cy, cw, ch: REAL_64; emoji: STRING_32]
+			ew, ex, r: REAL_64
+		do
+			t := a_p.theme
+			r := Chip_radius * last_text_scale
+			from
+				k := 1
+			until
+				k > chip_boxes.i_th (a_message).count
+			loop
+				b := chip_boxes.i_th (a_message).i_th (k)
+				if k <= chip_sets.i_th (a_message).count
+					and then chip_sets.i_th (a_message).i_th (k).mine
+				then
+					a_p.set_color_alpha (t.accent, 0.18)
+					a_p.rrect_fill (b.cx, b.cy, b.cw, b.ch, r)
+					a_p.set_color (t.accent)
+				else
+					a_p.set_color_alpha (t.surface, 0.85)
+					a_p.rrect_fill (b.cx, b.cy, b.cw, b.ch, r)
+					a_p.set_color_alpha (t.outline, 0.7)
+				end
+				a_p.rrect_stroke (b.cx + 0.5, b.cy + 0.5, b.cw - 1.0, b.ch - 1.0, r)
+				ex := b.cx + Chip_pad_h * last_text_scale
+				a_p.set_color (t.ink)
+				if a_shaped and then a_message <= chip_layouts.count
+					and then k <= chip_layouts.i_th (a_message).count
+				then
+					ew := chip_layouts.i_th (a_message).i_th (k).total_width
+					a_p.draw_shaped_layout (chip_layouts.i_th (a_message).i_th (k),
+						ex, b.cy + Chip_pad_v * last_text_scale)
+				else
+					chip_font (a_p)
+					ew := a_p.advance (b.emoji)
+					a_p.text (ex, b.cy + Chip_pad_v * last_text_scale + a_p.font_ascent,
+						b.emoji)
+				end
+				chip_font (a_p)
+				a_p.set_color (t.ink_muted)
+				if k <= chip_sets.i_th (a_message).count then
+					a_p.text (ex + ew + Chip_inner_gap * last_text_scale,
+						b.cy + Chip_pad_v * last_text_scale + a_p.font_ascent,
+						chip_sets.i_th (a_message).i_th (k).tally.out)
+				end
+				k := k + 1
+			end
+		end
+
 feature {NONE} -- Drag state
 
 	drag_grab_offset: REAL_64
@@ -1390,6 +2422,64 @@ feature {NONE} -- Frame cache
 			-- Per message, the bubble rectangle the last frame drew, in
 			-- WINDOW coordinates - so a click can find it without
 			-- re-deriving the layout.
+
+	head_bands: ARRAYED_LIST [REAL_64]
+			-- Per message, how far down its inner box the TEXT begins:
+			-- the reply-quote band and the gap under it, or 0. Hit-testing
+			-- and the selection wash both read it, which is why it is a
+			-- frame cache and not a measurement.
+
+	body_bands: ARRAYED_LIST [REAL_64]
+			-- Per message, the height of the text itself - what the
+			-- "edited" marker and the reaction row are stacked below.
+
+	edit_bands: ARRAYED_LIST [REAL_64]
+			-- Per message, the "edited" marker band, or 0.
+
+	chip_boxes: ARRAYED_LIST [ARRAYED_LIST [TUPLE [cx, cy, cw, ch: REAL_64; emoji: STRING_32]]]
+			-- Per message, its reaction chips. RELATIVE to the bubble's
+			-- inner top-left while PASS 1 is measuring, WINDOW boxes once
+			-- PASS 2 has called `place_chips' - which it does for every
+			-- message, drawn or scrolled out, so `reaction_at' never
+			-- answers from a stale frame.
+
+	drawn_quotes: ARRAYED_LIST [STRING_32]
+			-- Per message, the quote line the frame actually painted -
+			-- elided. Published through `drawn_quote'.
+
+feature {NONE} -- Decoration store
+
+	decor: ARRAYED_LIST [TUPLE [edited, tomb: BOOLEAN; quote_author, quote_text: STRING_32]]
+			-- One entry per message, ALWAYS - `add_message' extends it in
+			-- the same breath it extends `messages', and nothing else
+			-- grows either list. Kept beside `messages' rather than
+			-- inside its tuple because `messages' is public and widening
+			-- its type would break every host that reads a role.
+
+	chip_sets: ARRAYED_LIST [ARRAYED_LIST [TUPLE [emoji: STRING_32; tally: INTEGER; mine: BOOLEAN]]]
+			-- One reaction list per message, likewise always.
+
+	quote_layouts: ARRAYED_LIST [detachable SHAPED_LAYOUT]
+			-- The shaped, ONE-LINE reply header per message; Void for a
+			-- message with no quote, and the whole list empty on the toy
+			-- path and before the first shaped frame. Deliberately NOT in
+			-- `shaped_layouts': `layout_spans' tiles that list exactly.
+
+	chip_layouts: ARRAYED_LIST [ARRAYED_LIST [SHAPED_LAYOUT]]
+			-- The shaped picture per reaction chip per message - the same
+			-- Noto artwork the bubbles use, at the chip's own pixel size.
+
+	decor_revision: INTEGER
+			-- `revision' as of the last `refresh_decor_layouts'; -1 when
+			-- the decoration layouts have been dropped, which is a value
+			-- no content change can produce.
+
+	decor_width: INTEGER
+			-- The inner width they were built for.
+
+	decor_size: INTEGER
+			-- The body pixel size they were built at; a chip's own size
+			-- is derived from it by `Chip_size_ratio'.
 
 	refresh_displays
 			-- Bring `displays' in step with `messages'.
@@ -1654,6 +2744,64 @@ feature {NONE} -- Frame cache
 
 feature -- Text machinery
 
+	elided (a_p: SW_PAINTER; a_text: READABLE_STRING_32; a_width: REAL_64): STRING_32
+			-- `a_text' cut to `a_width' IN THE FONT ALREADY SELECTED,
+			-- with a single ellipsis standing for what was dropped;
+			-- `a_text' itself when it already fits. The caller selects the
+			-- font first - this measures what is selected NOW, exactly the
+			-- way `advance' does.
+			--
+			-- Found by halving, not by walking. A quoted line can be a
+			-- whole paragraph long, and one `advance' per character is a
+			-- measurement bill nobody asked for on a frame that is also
+			-- shaping bubbles.
+		require
+			width_positive: a_width > 0.0
+		local
+			lo, hi, mid: INTEGER
+		do
+			if a_p.advance (a_text) <= a_width then
+				create Result.make_from_string_general (a_text)
+			else
+				from
+					lo := 0
+					hi := a_text.count - 1
+				until
+					lo >= hi
+				loop
+					mid := (lo + hi + 1) // 2
+					if a_p.advance (with_ellipsis (a_text, mid)) <= a_width then
+						lo := mid
+					else
+						hi := mid - 1
+					end
+				end
+				Result := with_ellipsis (a_text, lo)
+			end
+		ensure
+			kept_whole_when_it_fits: a_p.advance (a_text) <= a_width implies
+				Result.same_string_general (a_text)
+			marked_when_cut: a_p.advance (a_text) > a_width implies
+				(Result.count >= 1 and then Result.item (Result.count).natural_32_code = 0x2026)
+			never_longer: Result.count <= a_text.count.max (1)
+		end
+
+	with_ellipsis (a_text: READABLE_STRING_32; a_n: INTEGER): STRING_32
+			-- The first `a_n' characters of `a_text', then U+2026 - the
+			-- ONE place the ellipsis is spelled, so a measurement and the
+			-- string that gets drawn cannot be two different strings.
+		require
+			in_range: a_n >= 0 and a_n <= a_text.count
+		do
+			create Result.make (a_n + 1)
+			if a_n > 0 then
+				Result.append (a_text.substring (1, a_n))
+			end
+			Result.append_code (0x2026)
+		ensure
+			exactly_one_longer: Result.count = a_n + 1
+		end
+
 	wrapped (a_p: SW_PAINTER; a_text: STRING_32; a_width: REAL_64): ARRAYED_LIST [STRING_32]
 			-- Greedy word wrap in the current font, line breaks honoured:
 			-- the 0.5.0 query, kept because it is how the toy path's
@@ -1708,5 +2856,26 @@ invariant
 	selection_offsets_non_negative: sel_anchor >= 0 and sel_caret >= 0
 	no_selection_without_a_message: sel_message = 0 implies
 		(sel_anchor = 0 and sel_caret = 0)
+
+		-- 0.7.0, mutation. The decoration STORE is content, so it is one
+		-- entry per message unconditionally - `add_message' is the only
+		-- thing that grows either list and it grows both. The decoration
+		-- LAYOUTS are shaped artefacts, so they lag between frames for
+		-- exactly the reason `layout_spans' does (see BETWEEN TWO FRAMES),
+		-- and `decor_revision = revision' is the same question asked
+		-- again: are these current?
+	decor_attached: decor /= Void and chip_sets /= Void
+	decor_layouts_attached: quote_layouts /= Void and chip_layouts /= Void
+	bands_attached: head_bands /= Void and body_bands /= Void
+		and edit_bands /= Void and chip_boxes /= Void and drawn_quotes /= Void
+	one_decoration_per_message: decor.count = messages.count
+	one_chip_set_per_message: chip_sets.count = messages.count
+	decor_layouts_never_outrun_messages: quote_layouts.count <= messages.count
+		and chip_layouts.count <= messages.count
+	decor_matches_when_current: decor_revision = revision implies
+		(quote_layouts.count = messages.count and chip_layouts.count = messages.count)
+	bands_never_outrun_messages: head_bands.count <= messages.count
+		and body_bands.count <= messages.count and edit_bands.count <= messages.count
+		and chip_boxes.count <= messages.count and drawn_quotes.count <= messages.count
 
 end

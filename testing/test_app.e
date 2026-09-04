@@ -80,6 +80,9 @@ feature {NONE} -- Initialization
 			print ("%N=== CHAT LINE BREAKS + SELECTION ===%N")
 			run_chat_text_tests
 
+			print ("%N=== CHAT PER-MESSAGE MUTATION ===%N")
+			run_chat_mutation_tests
+
 			print ("%N=== ACCELERATORS + MNEMONICS ===%N")
 			run_keyboard_tests
 
@@ -471,6 +474,30 @@ feature {NONE} -- Test runners
 			run_test (agent chat_text_tests.test_selection_offsets_run_over_the_displayed_text, "selection_offsets_run_over_the_displayed_text")
 			run_test (agent chat_text_tests.test_context_menu_offers_copy_only_when_there_is_something_to_copy, "context_menu_offers_copy")
 			run_test (agent chat_text_tests.test_line_and_selection_evidence, "line_and_selection_evidence (offscreen PNGs)")
+		end
+
+	chat_mutation_tests: SW_CHAT_MUTATION_ASSAULT
+
+	run_chat_mutation_tests
+			-- The per-message menu (0.7.0): edit, react, delete, reply -
+			-- offscreen only, no window is ever shown.
+		do
+			create chat_mutation_tests
+			run_test (agent chat_mutation_tests.test_set_message_replaces_the_words_and_the_speaker, "set_message_replaces_the_words_and_the_speaker")
+			run_test (agent chat_mutation_tests.test_an_edit_drops_a_selection_that_lived_in_it, "an_edit_drops_a_selection_that_lived_in_it")
+			run_test (agent chat_mutation_tests.test_set_message_after_a_shaped_frame_keeps_the_invariant, "set_message_after_a_shaped_frame_keeps_the_invariant")
+			run_test (agent chat_mutation_tests.test_a_tombstone_is_shorter_and_holds_nothing, "a_tombstone_is_shorter_and_holds_nothing (1x and 2x)")
+			run_test (agent chat_mutation_tests.test_a_tombstone_sheds_its_decorations, "a_tombstone_sheds_its_decorations")
+			run_test (agent chat_mutation_tests.test_reactions_change_the_bubble_the_content_and_the_thumb, "reactions_change_the_bubble_the_content_and_the_thumb")
+			run_test (agent chat_mutation_tests.test_the_chip_list_is_copied_in_not_borrowed, "the_chip_list_is_copied_in_not_borrowed")
+			run_test (agent chat_mutation_tests.test_message_at_names_every_bubble_and_the_gaps, "message_at_names_every_bubble_and_the_gaps")
+			run_test (agent chat_mutation_tests.test_reaction_at_finds_the_chip_that_was_clicked, "reaction_at_finds_the_chip_that_was_clicked")
+			run_test (agent chat_mutation_tests.test_a_reply_quote_is_one_line_and_elided, "a_reply_quote_is_one_line_and_elided")
+			run_test (agent chat_mutation_tests.test_elision_keeps_what_fits_and_marks_what_it_cut, "elision_keeps_what_fits_and_marks_what_it_cut")
+			run_test (agent chat_mutation_tests.test_the_edited_marker_grows_a_band_and_survives_a_re_edit, "the_edited_marker_grows_a_band_and_survives_a_re_edit")
+			run_test (agent chat_mutation_tests.test_every_band_scales_with_the_theme, "every_band_scales_with_the_theme (1x and 2x)")
+			run_test (agent chat_mutation_tests.test_the_shaped_path_draws_the_decorations_too, "the_shaped_path_draws_the_decorations_too (2x, shaped)")
+			run_test (agent chat_mutation_tests.test_mutation_evidence, "mutation_evidence (offscreen PNG)")
 		end
 
 	keyboard_tests: SW_KEYBOARD_ASSAULT

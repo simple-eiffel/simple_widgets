@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-247%2F247-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-270%2F270-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -25,7 +25,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 247 contract-assault tests passing (`screen_grab_marries_cairo` reads the
+- 270 contract-assault tests passing (`screen_grab_marries_cairo` reads the
   real desktop and fails in a locked session — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
@@ -270,6 +270,86 @@ anchor bubble's own ends and stops — a thread is a list of utterances by
 different speakers, and a range spanning three of them has no honest text to
 hand the clipboard. Cross-bubble selection is not supported and is not
 planned.
+
+### The per-message menu — edit, react, delete, reply (0.7.0)
+
+A bubble used to be write-once. `add_message` put one on the thread and
+`append_to_last` grew it while a token stream ran, and after that nothing could
+change it — which is not what a chat server does. A server folds *edit*,
+*delete* and *reaction* events over the message they name, and a *reply* is a
+message carrying a parent's id. The thread now has a door for each.
+
+```eiffel
+thread.set_message (2, {SW_CHAT_THREAD}.Role_keep, "the corrected text")
+thread.mark_edited (2)                       -- a small muted "edited" marker
+thread.tombstone (3)                         -- a visible placeholder, never a gap
+thread.set_reactions (4, row)                -- emoji + tally chips, mine outlined
+thread.set_reply_quote (5, "Ada", "the parent message")
+
+thread.is_edited (2)        thread.is_tombstone (3)
+thread.reactions_of (4)     thread.has_reply_quote (5)
+thread.reply_quote (5)      thread.quote_line (5)     thread.drawn_quote (5)
+thread.bubble_height (4)    -- what the last frame measured it at
+```
+
+`Role_keep` is not a role: it is what an edit passes when the words change and
+the speaker does not, which is the common case (a server's edit event carries
+no new author).
+
+**Every one of these is a CONTENT CHANGE, and that is the whole safety story.**
+A content change has meant *bump `revision`* since 0.5.0. `laid_out_revision`
+then lags, the invariant's `spans_match_when_current` guard goes quiet for
+exactly one frame, `refresh_layouts` rebuilds and records — the same door
+`add_message` has always gone through, and the reason 0.6.1's fix generalizes to
+mutations it never saw. Nothing here re-shapes: a span indexes layouts only
+`SW_SHAPING.layout_for` can make, at an inner width and a pixel size the widget
+does not learn until `draw`.
+
+**A delete is a tombstone, never a gap.** `tombstone` keeps the bubble where it
+is, at reduced height, muted, saying *message deleted* — because the ORDER of a
+thread is part of its record and a vanished bubble silently rewrites who
+answered whom. It does really destroy the text (`messages.i_th (i).text` is
+emptied, not hidden), so no selection can reach it and `copy_selection` has
+nothing to take; hiding the words behind a flag would leave them one query away
+from anyone with a debugger, which is not what *deleted* means. Every
+decoration goes with it: a reaction to a deleted message is a claim about words
+nobody can read. `tombstone` is terminal and idempotent — the other four
+commands require a live message.
+
+**The four bands.** A bubble is now up to four stacked bands inside its own
+padding: a one-line reply quote (elided at the inner width — a quote that
+wrapped would be a second message), the text, the "edited" marker, and a
+reaction row that wraps rather than run off the bubble's edge. Each band is
+MEASURED, never assumed, and each therefore changes `content_h` and the
+scrollbar thumb. Stickiness survives all of it exactly the way `add_message`
+preserves it: a thread parked at the tail is re-parked; a reader who has
+scrolled up is not yanked.
+
+**Both text paths.** The quote and each chip's emoji go through the shaping kit
+when there is one — so a Hebrew quote reads right-to-left and a reaction carries
+the same Noto picture as the bubbles do — and fall back to cairo's toy metrics
+when there is not. The decoration layouts are kept OUT of `shaped_layouts` on
+purpose: `layout_spans` tiles that list exactly, and a quote laid into it would
+make the tiling a lie.
+
+**The two questions a host's right-click asks:**
+
+```eiffel
+thread.message_at (px, py)    -- which bubble, 0 for none
+thread.reaction_at (px, py)   -- [message, emoji], or [0, ""] off every chip
+```
+
+Both are answered from the geometry the last `draw` recorded — the same frame
+cache `hit_test` has used since 0.6.0 — so neither needs a painter, and a menu
+and a selection can never disagree about which message was meant. A tombstone
+answers `message_at` with its own index: a deleted message is still a message a
+menu may want to offer something on.
+
+![Per-message mutation at 2x](evidence/thread-mutation-2x.png)
+
+*Left to right down the thread: an untouched bubble, an edited one with its
+marker, a tombstone, a bubble carrying three reaction chips with the reader's
+own outlined, and a reply with its elided quote — 2x text, shaped path.*
 
 ### The runnable folder
 

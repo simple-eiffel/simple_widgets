@@ -22,6 +22,7 @@
             <li><a href="#example">Example</a></li>
             <li><a href="#linebreaks">Line breaks</a></li>
             <li><a href="#selection">Selection</a></li>
+            <li><a href="#mutation">Mutation</a></li>
             <li><a href="#limits">Known limits</a></li>
             <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
             <li><a href="#future">Future</a></li>
@@ -131,12 +132,69 @@ thread.clear_selection</code></pre>
             clears the selection and still bubbles up, as before.</p>
         </section>
 
+        <section id="mutation">
+            <h2>The per-message menu (0.7.0)</h2>
+            <p>A bubble used to be write-once: <code>add_message</code> put one on the thread and
+            <code>append_to_last</code> grew it while a stream ran, and after that nothing could
+            change it. A chat server does not work that way - it folds <em>edit</em>,
+            <em>delete</em> and <em>reaction</em> events over the message they name, and a
+            <em>reply</em> is a message carrying a parent's id. There is now a door for each.</p>
+<pre><code>thread.set_message (2, {SW_CHAT_THREAD}.Role_keep, "the corrected text")
+thread.mark_edited (2)                       <span class="comment">-- a small muted "edited" marker</span>
+thread.tombstone (3)                         <span class="comment">-- a placeholder, never a gap</span>
+thread.set_reactions (4, row)                <span class="comment">-- emoji + tally chips, mine outlined</span>
+thread.set_reply_quote (5, "Ada", "the parent message")
+
+thread.is_edited (2)        thread.is_tombstone (3)
+thread.reactions_of (4)     thread.has_reply_quote (5)
+thread.reply_quote (5)      thread.quote_line (5)     thread.drawn_quote (5)
+thread.bubble_height (4)    <span class="comment">-- what the last frame measured it at</span>
+
+thread.message_at (px, py)  <span class="comment">-- which bubble, 0 for none</span>
+thread.reaction_at (px, py) <span class="comment">-- [message, emoji], or [0, ""] off every chip</span></code></pre>
+            <p><code>Role_keep</code> is not a role: it is what an edit passes when the words
+            change and the speaker does not, which is what a server's edit event actually
+            carries.</p>
+            <p><strong>Every one of these is a CONTENT CHANGE, and that is the whole safety
+            story.</strong> A content change has meant "bump <code>revision</code>" since 0.5.0, so
+            <code>laid_out_revision</code> lags, <code>spans_match_when_current</code> goes quiet
+            for exactly one frame, and <code>refresh_layouts</code> rebuilds and records - the same
+            door <code>add_message</code> has gone through since 0.6.1. None of them re-shapes: a
+            span indexes layouts only <code>SW_SHAPING.layout_for</code> can make, at a width and a
+            pixel size the widget does not learn until <code>draw</code>.</p>
+            <p><strong>A delete is a tombstone, never a gap.</strong> The bubble keeps its place at
+            reduced height, muted, reading <em>message deleted</em> - the ORDER of a thread is part
+            of its record, and a vanished bubble silently rewrites who answered whom. The text is
+            really destroyed (emptied, not hidden), so no selection can reach it and
+            <code>copy_selection</code> has nothing to take. Every decoration goes with it, and the
+            tombstone is terminal: the other four commands require a live message.</p>
+            <p><strong>Four bands, all measured.</strong> Reply quote (one line, elided at the
+            inner width), text, "edited" marker, reaction row (wraps rather than run off the
+            bubble's edge). Each changes the bubble's height, therefore <code>content_h</code>,
+            therefore the thumb - and stickiness survives all of it the way
+            <code>add_message</code> preserves it. The quote and each chip's emoji go through the
+            shaping kit when there is one and fall back to cairo's toy metrics when there is not.
+            The decoration layouts are kept OUT of <code>shaped_layouts</code>: it is tiled exactly
+            by <code>layout_spans</code>.</p>
+            <p><img src="../images/thread-mutation-2x.png" alt="Per-message mutation at 2x"
+            style="max-width:100%"></p>
+        </section>
+
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
                 <li>Plain text bubbles - links, code spans and images await the rich-text substrate.</li>
                 <li>Selection is within ONE bubble. Cross-bubble selection is deliberately not
                 supported.</li>
+                <li>A tombstone is terminal: <code>set_message</code>, <code>mark_edited</code>,
+                <code>set_reactions</code> and <code>set_reply_quote</code> all require a live
+                message, so a deleted bubble cannot be edited back into speech.</li>
+                <li>The "edited" marker and the tombstone placeholder are drawn on the TOY path in
+                both modes - they are fixed ASCII, and mixing a shaped layout into a two-word
+                marker buys nothing. The quote and the reaction pictures ARE shaped when a kit is
+                there.</li>
+                <li>A reaction chip is emoji + tally. There is no hover card naming who reacted:
+                the widget is never told, and the server has already deduped per person.</li>
                 <li>A run of blank lines collapses to one empty line, and a trailing blank line is
                 dropped. Deliberate: a bubble must not be inflatable by padding.</li>
                 <li>Shaped bubbles are left-aligned inside the bubble whatever the paragraph
@@ -162,6 +220,10 @@ thread.clear_selection</code></pre>
             <h2>Extension plans &amp; possibilities</h2>
             <ul>
                 <li>Timestamps; avatars via SW_AVATAR; per-range styling when the substrate lands.</li>
+                <li>A built-in context menu for the mutation gestures. It is deliberately the
+                host's for now: only the host knows which of reply/react/edit/delete this reader
+                is allowed on this message, and a menu that offers Delete on somebody else's
+                words is worse than no menu.</li>
             </ul>
         </section>
     </main>
