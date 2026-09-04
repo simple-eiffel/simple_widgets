@@ -24,6 +24,8 @@ feature {NONE} -- Initialization
 		do
 			create items.make (8)
 			create raw_labels.make (8)
+			create item_heights.make (8)
+			create shaped.make
 			hover_index := 0
 		end
 
@@ -41,6 +43,14 @@ feature -- Access
 	hover_index: INTEGER
 			-- 1-based item under the pointer; 0 = none.
 
+	shaped: SW_SHAPED_TEXT
+			-- This menu's own one-line layout cache. Per MENU, not per
+			-- application: a menu is built fresh on every open (so item
+			-- enablement reflects live state), which makes the cache's
+			-- life exactly the life of one presentation - and a
+			-- presentation is repainted on every frame it is up, which
+			-- is what there is to save.
+
 	x: REAL_64
 	y: REAL_64
 	width: REAL_64
@@ -56,6 +66,7 @@ feature -- Element change
 			create h.make_from_string_general (a_hint)
 			raw_labels.extend (l.twin)
 			items.extend ([mnemonics.plain (l), h, a_enabled, a_action, False])
+			item_heights.wipe_out
 		ensure
 			grew: items.count = old items.count + 1
 			parallel: raw_labels.count = items.count
@@ -65,6 +76,7 @@ feature -- Element change
 		do
 			raw_labels.extend ({STRING_32} "")
 			items.extend ([{STRING_32} "", {STRING_32} "", False, Void, True])
+			item_heights.wipe_out
 		ensure
 			grew: items.count = old items.count + 1
 			parallel: raw_labels.count = items.count
@@ -249,46 +261,184 @@ feature {NONE} -- Keyboard navigation: implementation
 			selectable_or_none: Result = 0 or else is_selectable (Result)
 		end
 
+feature -- Shaped labels
+
+	label_pixel_size (a_p: SW_PAINTER): INTEGER
+			-- The size an item label is SHAPED at: the theme's label
+			-- size run through `text_scale', which is exactly what
+			-- `SW_PAINTER.font' hands cairo on the toy path. One number,
+			-- so a measure and a paint cannot disagree.
+		do
+			Result := (a_p.theme.size_label * a_p.theme.text_scale).rounded.max (1)
+		ensure
+			positive: Result >= 1
+		end
+
+	hint_pixel_size (a_p: SW_PAINTER): INTEGER
+			-- The size a shortcut hint is shaped at.
+		do
+			Result := (a_p.theme.size_chip * a_p.theme.text_scale).rounded.max (1)
+		ensure
+			positive: Result >= 1
+		end
+
+	label_width (a_p: SW_PAINTER; a_text: READABLE_STRING_32): REAL_64
+			-- How wide `a_text' PAINTS as an item label - the shaped
+			-- measure when the painter carries a kit, cairo's advance
+			-- when it does not.
+			--
+			-- The two must be the same query, because `measure' sizes
+			-- the menu with it and `draw' places the type with it. When
+			-- `measure' asked cairo and `draw' asked the shaper, an
+			-- emoji-only item measured NOTHING and painted a 128-pixel
+			-- picture over its neighbour.
+		do
+			if attached a_p.shaping as al_kit then
+				Result := shaped.width_of (al_kit, a_text, label_pixel_size (a_p))
+			else
+				a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+				Result := a_p.advance (a_text)
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	hint_width (a_p: SW_PAINTER; a_text: READABLE_STRING_32): REAL_64
+			-- How wide `a_text' paints in the shortcut column.
+		do
+			if attached a_p.shaping as al_kit then
+				Result := shaped.width_of (al_kit, a_text, hint_pixel_size (a_p))
+			else
+				a_p.font ({SW_PAINTER}.Role_mono, a_p.theme.size_chip, False)
+				Result := a_p.advance (a_text)
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	item_underline_bounds (a_p: SW_PAINTER; i: INTEGER): TUPLE [left, width: REAL_64]
+			-- Where item `i''s mnemonic underline goes, measured from
+			-- the LEFT EDGE OF ITS LABEL; a zero width when the item
+			-- declares no mnemonic.
+			--
+			-- THE one formula: `draw' paints with it, and a test can ask
+			-- it without reading pixels. On the shaped path it comes from
+			-- the layout's CLUSTER POSITIONS, which is the only way it
+			-- can be right for a script whose source order and paint
+			-- order differ - a prefix advance underlines the wrong end
+			-- of a Hebrew label every time.
+		require
+			in_range: i >= 1 and i <= items.count
+		local
+			ul: INTEGER
+			lb: STRING_32
+		do
+			Result := [0.0, 0.0]
+			ul := item_underline_index (i)
+			if ul > 0 then
+				lb := items.i_th (i).label
+				if attached a_p.shaping as al_kit then
+					Result := shaped.character_span (
+						shaped.layout_of (al_kit, lb, label_pixel_size (a_p)), ul)
+				else
+					a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+					Result := [a_p.advance (lb.substring (1, ul - 1)),
+						a_p.advance (lb.substring (ul, ul))]
+				end
+			end
+		ensure
+			nothing_to_underline: item_underline_index (i) = 0 implies Result.width = 0.0
+			non_negative: Result.width >= 0.0
+		end
+
 feature -- Geometry
 
 	Item_h: REAL_64 = 30.0
+			-- The FLOOR an item row occupies, not the whole answer: see
+			-- `row_height'.
+
 	Sep_h: REAL_64 = 9.0
 	Pad: REAL_64 = 5.0
+
+	item_heights: ARRAYED_LIST [REAL_64]
+			-- One row height per item, as `measure' last computed them;
+			-- empty before the first measure.
+			--
+			-- CACHED AND NOT RE-ASKED, because `item_at' has no painter
+			-- and must not grow one: SW_WINDOW hit-tests a popup on the
+			-- pointer path, where there is a menu and a point and nothing
+			-- else. `show_popup' measures before it places, so by the
+			-- time anything can be hit these are current.
+
+	row_height (i: INTEGER): REAL_64
+			-- How tall row `i' is: what `measure' worked out, or the flat
+			-- constants before anything has been measured.
+		require
+			in_range: i >= 1 and i <= items.count
+		do
+			if i <= item_heights.count then
+				Result := item_heights.i_th (i)
+			elseif items.i_th (i).separator then
+				Result := Sep_h
+			else
+				Result := Item_h
+			end
+		ensure
+			positive: Result > 0.0
+		end
 
 	measure (a_p: SW_PAINTER)
 			-- Compute width/height from the items.
 		local
-			w, lw: REAL_64
+			w, lw, rh: REAL_64
 		do
 			w := 160.0
+			item_heights.wipe_out
 			across
 				items as it
 			loop
-				if not it.separator then
-					a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
-					lw := a_p.advance (it.label) + 24.0
+				if it.separator then
+					item_heights.extend (Sep_h)
+				else
+					lw := label_width (a_p, it.label) + 24.0
 					if not it.hint.is_empty then
-						a_p.font ({SW_PAINTER}.Role_mono, a_p.theme.size_chip, False)
-						lw := lw + a_p.advance (it.hint) + 28.0
+						lw := lw + hint_width (a_p, it.hint) + 28.0
 					end
 					if lw > w then
 						w := lw
 					end
+						-- THE ROW IS AS TALL AS WHAT IT PAINTS - on the
+						-- shaped path, and ONLY there. `Item_h' is a flat
+						-- 30 that never scaled with the theme, which stays
+						-- invisible while every label is one line of type:
+						-- cairo's toy glyphs at 2x are cramped in it and
+						-- always were, and growing the row for them would
+						-- move every menu that has ever shipped. A colour
+						-- emoji is a different matter - a Noto picture laid
+						-- out at the label's pixel size is taller than the
+						-- type, and on a flat row it drew over the item
+						-- below and out through the menu's own top border.
+						-- So the row grows for what the SHAPER measured and
+						-- for nothing else; the toy path keeps the constant
+						-- it always had, to the pixel.
+					rh := Item_h
+					if attached a_p.shaping as al_kit then
+						rh := rh.max (
+							shaped.layout_of (al_kit, it.label, label_pixel_size (a_p)).total_height + 6.0)
+					end
+					item_heights.extend (rh)
 				end
 			end
 			width := w + 2.0 * Pad
 			height := 2.0 * Pad
 			across
-				items as it
+				item_heights as h
 			loop
-				if it.separator then
-					height := height + Sep_h
-				else
-					height := height + Item_h
-				end
+				height := height + h
 			end
 		ensure
 			sized: width > 0.0 and height > 0.0
+			one_height_per_item: item_heights.count = items.count
 		end
 
 	place (a_x, a_y, a_win_w, a_win_h: REAL_64)
@@ -319,16 +469,13 @@ feature -- Geometry
 				until
 					i > items.count or Result /= 0
 				loop
-					if items.i_th (i).separator then
-						cy := cy + Sep_h
-					else
-						if a_py >= cy and then a_py < cy + Item_h
-							and then items.i_th (i).enabled
-						then
-							Result := i
-						end
-						cy := cy + Item_h
+					if not items.i_th (i).separator
+						and then a_py >= cy and then a_py < cy + row_height (i)
+						and then items.i_th (i).enabled
+					then
+						Result := i
 					end
+					cy := cy + row_height (i)
 					i := i + 1
 				end
 			end
@@ -347,9 +494,12 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			cy: REAL_64
+			cy, base, lx, hw, hx, hbase: REAL_64
 			i, ul: INTEGER
 			it: TUPLE [label: STRING_32; hint: STRING_32; enabled: BOOLEAN; action: detachable PROCEDURE; separator: BOOLEAN]
+			ub: TUPLE [left, width: REAL_64]
+			lay: SHAPED_LAYOUT
+			rh, top: REAL_64
 		do
 			t := a_p.theme
 			a_p.set_color (t.surface)
@@ -363,39 +513,70 @@ feature -- Drawing
 				i > items.count
 			loop
 				it := items.i_th (i)
+				rh := row_height (i)
 				if it.separator then
-					a_p.hline (x + Pad + 4.0, cy + Sep_h / 2.0, width - 2.0 * Pad - 8.0)
-					cy := cy + Sep_h
+					a_p.hline (x + Pad + 4.0, cy + rh / 2.0, width - 2.0 * Pad - 8.0)
+					cy := cy + rh
 				else
 					if i = hover_index then
 						a_p.set_color (t.surface_variant)
-						a_p.rrect_fill (x + Pad, cy, width - 2.0 * Pad, Item_h, t.radius)
+						a_p.rrect_fill (x + Pad, cy, width - 2.0 * Pad, rh, t.radius)
 					end
-					a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
 					if it.enabled then
 						a_p.set_color (t.ink)
 					else
 						a_p.set_color (t.ink_muted)
 					end
-					a_p.text (x + Pad + 10.0, cy + Item_h - 10.0, it.label)
+					base := cy + rh - 10.0
+					lx := x + Pad + 10.0
+						-- THE SHAPED PATH WHEN THERE IS ONE. `text' is
+						-- cairo's toy `show_text': it resolves no colour
+						-- emoji artwork and shapes no complex script, so a
+						-- menu item labelled with an emoji drew an empty
+						-- box in every consumer that had shaped text on -
+						-- while the very same string in a chat bubble two
+						-- inches away drew the picture.
+						--
+						-- CENTRED IN ITS ROW, not hung off a baseline
+						-- measured from the bottom: `measure' already grew
+						-- the row to hold this layout, and a picture that
+						-- is taller than the type has to sit INSIDE the
+						-- row it made. The baseline then comes back OUT of
+						-- the placement, because the underline needs it.
+					if attached a_p.shaping as al_kit then
+						lay := shaped.layout_of (al_kit, it.label, label_pixel_size (a_p))
+						top := cy + ((rh - lay.total_height) / 2.0).max (0.0)
+						a_p.draw_shaped_layout (lay, lx, top)
+						base := shaped.baseline_for_top (lay, top)
+					else
+						a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+						a_p.text (lx, base, it.label)
+					end
 					ul := item_underline_index (i)
 					if ul > 0 then
-							-- Under exactly the one character, measured in
-							-- the SAME font the label just drew in, and in
-							-- the item's OWN INK - `hline' would draw the
-							-- theme's outline colour instead, which under a
-							-- label reads as nothing at all.
-						a_p.fill_rect (x + Pad + 10.0 + a_p.advance (it.label.substring (1, ul - 1)),
-							cy + Item_h - 8.0,
-							a_p.advance (it.label.substring (ul, ul)),
+							-- Under exactly the one character, where that
+							-- character actually PAINTED, and in the item's
+							-- OWN INK - `hline' would draw the theme's
+							-- outline colour instead, which under a label
+							-- reads as nothing at all.
+						ub := item_underline_bounds (a_p, i)
+						a_p.fill_rect (lx + ub.left, base + 2.0, ub.width,
 							(1.0 * t.text_scale).max (1.0))
 					end
 					if not it.hint.is_empty then
-						a_p.font ({SW_PAINTER}.Role_mono, t.size_chip, False)
 						a_p.set_color (t.ink_muted)
-						a_p.text (x + width - Pad - 10.0 - a_p.advance (it.hint), cy + Item_h - 11.0, it.hint)
+						hw := hint_width (a_p, it.hint)
+						hx := x + width - Pad - 10.0 - hw
+						hbase := base - 1.0
+						if attached a_p.shaping as al_hint_kit then
+							lay := shaped.layout_of (al_hint_kit, it.hint, hint_pixel_size (a_p))
+							a_p.draw_shaped_layout (lay, hx, shaped.top_for_baseline (lay, hbase))
+						else
+							a_p.font ({SW_PAINTER}.Role_mono, t.size_chip, False)
+							a_p.text (hx, hbase, it.hint)
+						end
 					end
-					cy := cy + Item_h
+					cy := cy + rh
 				end
 				i := i + 1
 			end
@@ -404,6 +585,8 @@ feature -- Drawing
 invariant
 	items_attached: items /= Void
 	raw_labels_attached: raw_labels /= Void
+	shaped_attached: shaped /= Void
+	item_heights_attached: item_heights /= Void
 	parallel: raw_labels.count = items.count
 	hover_in_range: hover_index >= 0 and hover_index <= items.count
 

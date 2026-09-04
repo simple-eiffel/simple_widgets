@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.7.2 — THE MENU JOINS THE SHAPED PATH)
+
+- **A menu item labelled with an emoji drew an empty box.** `SW_MENU.draw`
+  painted its labels with `SW_PAINTER.text` — cairo's toy `show_text` — while
+  `SW_CHAT_THREAD` had painted with `draw_shaped_layout` since 0.4.0 whenever the
+  painter carried a kit. Only the shaping kit resolves the Noto colour-emoji
+  artwork (the PNGs beside the running exe) and shapes Hebrew, Greek and every
+  other complex script. So in any consumer with shaped text on, the very same
+  character drew as a **picture** in a chat bubble and as a **square** in a menu
+  two inches away. simple_chat's eight-emoji reaction picker found it: eight
+  identical boxes, all labelled `react`.
+
+  `SW_MENU` and `SW_MENU_BAR` now take the shaped path whenever
+  `SW_PAINTER.has_shaping` — item labels, pad titles and the popup's shortcut
+  column — and fall back to the toy path, unchanged, when there is no kit. **The
+  toy path is byte-identical to what it was**; every existing menu assault and
+  every mnemonic evidence PNG is untouched.
+
+- **New: `SW_SHAPED_TEXT`** — the chrome's own one-line layout cache and the
+  cluster arithmetic that goes with it. `SW_CHAT_THREAD` shapes *paragraphs* at a
+  wrap width and keeps them in a frame cache tied to a revision counter; a menu
+  item is one short string, never wrapped, repainted every frame the menu is up,
+  on an object built fresh at every open. Keyed by **text + pixel size**, and the
+  pixel size is where `theme.text_scale` already lives — `(size * text_scale)
+  .rounded` is the number the glyphs are shaped at, so a scale change is a
+  different key by construction. A kit swap empties it; a cap of 64 bounds it.
+  `SW_MENU` owns one per menu, `SW_MENU_BAR` one per bar (which is where the
+  caching earns its keep — a bar is repainted on every frame of the application).
+
+- **The mnemonic underline now comes from the layout's cluster positions.** It
+  used to be placed at `advance (label.substring (1, ul - 1))` — the width of the
+  text *before* the letter. That is a claim that source order and paint order are
+  the same thing, and in an RTL title they are opposite: the first character
+  paints **rightmost**, so the prefix advance underlined the other end of the
+  word. `SW_SHAPED_TEXT.character_span` walks the line's runs in visual order and
+  asks `GLYPH_RUN`'s own `cluster_map` and `x_positions` where the character
+  actually landed — an `IMAGE_RUN` answering its whole box, which is what an
+  emoji underlines as. Exposed as `SW_MENU.item_underline_bounds` and
+  `SW_MENU_BAR.pad_underline_bounds`: **the** one formula, so `draw` paints with
+  it and a test can read it without counting pixels.
+
+- **The menu measures what it paints, in both directions.** `measure` sizes items
+  from `label_width` / `hint_width` — the same queries `draw` places with — so an
+  emoji-only item is as wide as its picture instead of measuring nothing and
+  painting 128 pixels over its neighbour. Row height follows too: `Item_h` was a
+  flat 30 that never scaled with the theme, which stayed invisible while every
+  label was one line of type, and is not survivable for a Noto picture at 2x — it
+  drew over the item below and out through the menu's own top border.
+  `row_height` is now `Item_h.max (shaped label height + 6)`, computed by
+  `measure` and cached in `item_heights`, because `item_at` hit-tests on the
+  pointer path where there is a menu and a point and no painter. On the toy path
+  it is exactly `Item_h`, so nothing that shipped moves.
+
+  Four assaults, 274 → **278**: eight emoji items opened through
+  `simulate_context_click` and painted, with the ink counted as **saturation** —
+  the dark theme's widest channel spread is `0x0F`, Noto's thumbs-up is over
+  `0xC0`, so artwork separates from chrome without pinning a pixel, and a
+  `.notdef` box drawn in ink cannot pass it (shaped **4,775** saturated pixels,
+  toy **0**, **6,345** pixels differing between the two renderings of the *same*
+  menu); a Hebrew pad whose underline lands in the right half of its title while
+  the prefix advance names the left edge, with an LTR control so the RTL answer
+  cannot be a constant; the shaped measure covering what the widest item paints;
+  and the total answer for a label that declares no ampersand.
+  Evidence: `evidence/menu-emoji-2x.png` — eight pictures, each inside its row.
+
+  Disabled items still draw in `ink_muted`, and the separator, the hover wash and
+  the placement clamp are unchanged.
+
 ### Added (0.7.1 — THE RIGHT-CLICK DOOR)
 
 - **`SW_WINDOW.simulate_context_click (a_x, a_y)`** — the pointer half of what

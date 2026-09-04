@@ -150,6 +150,8 @@ if a_p.has_shaping and then attached a_p.shaping as al_kit then
 end
 ```
 
+**Menus take it too, since 0.7.2** — `SW_MENU` item labels, `SW_MENU_BAR` pad
+titles and the popup's shortcut column. See *Menus on the shaped path* below.
 `SW_LABEL` and the rest of the chrome deliberately stay on the toy path for now
 — see "Known limits" below.
 
@@ -381,6 +383,52 @@ the exe FIRST (so a staged folder is exercised when there is one) and fall back
 to `$SIMPLE_EIFFEL/simple_shaping/assets/noto-emoji/png/128`. Applications get
 no such fallback: stage the folder.
 
+### Menus on the shaped path (0.7.2)
+
+A menu item labelled with an emoji used to draw an **empty box**. `SW_MENU.draw`
+painted with `SW_PAINTER.text` while `SW_CHAT_THREAD` painted with
+`draw_shaped_layout`, and only the kit resolves the Noto artwork or shapes a
+complex script — so the same character was a picture in a bubble and a square in
+a menu two inches away. `SW_MENU` and `SW_MENU_BAR` now take the shaped path
+whenever `SW_PAINTER.has_shaping`, and the toy path, unchanged, when it does not.
+
+```eiffel
+window.enable_shaped_text          -- the menu follows; nothing else to say
+```
+
+**The cache.** `SW_SHAPED_TEXT` holds one-line layouts keyed by **text + pixel
+size** — and the pixel size is `(theme.size_label * theme.text_scale).rounded`,
+the number the glyphs are shaped at, so a scale change is a different key by
+construction and there is nothing extra to remember. A kit swap empties it; 64
+entries cap it. `SW_MENU` owns one per menu (a menu is built fresh at every open,
+so the cache's life is one presentation — which is repainted every frame it is
+up); `SW_MENU_BAR` owns one per bar, which is where it earns its keep.
+
+**The underline.** A mnemonic used to be placed at `advance (label.substring (1,
+ul - 1))` — the width of the text *before* the letter, which asserts that source
+order and paint order are the same thing. In an RTL title they are opposite: the
+first character paints **rightmost**. `SW_SHAPED_TEXT.character_span` walks the
+line's runs in visual order and reads `GLYPH_RUN.cluster_map` and `x_positions`
+for where the character actually landed (an `IMAGE_RUN` answers its whole box —
+what an emoji underlines as). Ask for it directly rather than re-deriving it:
+
+```eiffel
+l_bounds := a_menu.item_underline_bounds (a_p, i)   -- left, width, from the label origin
+l_bounds := a_bar.pad_underline_bounds (a_p, i)
+```
+
+**The measure is the shaped measure, in both directions.** `measure` sizes items
+with the same `label_width` / `hint_width` that `draw` places with, so an
+emoji-only item is as wide as its picture. Row height follows: `Item_h` is a
+floor, not the answer — a 128px Noto picture laid out at 2x is taller than the
+type and drew over the row below and out through the menu's own border. Rows are
+`Item_h.max (shaped label height + 6)`, computed by `measure` and cached in
+`item_heights`, because `item_at` hit-tests where there is a menu, a point, and
+no painter. On the toy path a row is exactly `Item_h`, so nothing that shipped
+moves.
+
+Evidence: `evidence/menu-emoji-2x.png`.
+
 ### Known limits
 
 - `SW_LABEL`, `SW_BUTTON` and the rest of the chrome still draw through
@@ -392,6 +440,8 @@ no such fallback: stage the folder.
 - Every mnemonic is a MENU BAR mnemonic. Alt+letter opens a pad; it does not
   move focus to a labelled control, because no widget declares an `&` label
   yet. See *The Alt door* below.
+- A menu's minimum width is still a flat 160, so a menu of nothing but emoji is
+  wider than the pictures need. The floor, not the measure, decides there.
 
 ## Keyboard: accelerators and mnemonics (0.6.0)
 
