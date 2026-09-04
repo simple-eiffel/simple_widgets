@@ -241,6 +241,89 @@ feature -- The shaped path: one layout per paragraph
 			end
 		end
 
+	test_a_message_may_arrive_after_a_shaped_frame
+			-- THE LIVE-CLIENT CASE, and the reason simple_chat could not
+			-- adopt 0.6.0 in a workbench build. A chat client paints a
+			-- frame, a reply arrives, it paints again. Between those two
+			-- frames `layout_spans' still describes the messages of the
+			-- LAST frame - and the invariant used to demand
+			-- `layout_spans.count = messages.count' the moment
+			-- `shaped_layouts' was non-empty, so `add_message' itself
+			-- failed ON EXIT. Finalized code checks no invariant, which
+			-- is the only reason it never bit the shipped client.
+			--
+			-- The counts CANNOT be equal here: a span indexes layouts
+			-- that only `SW_SHAPING.layout_for' can make, and it needs an
+			-- inner width and a pixel size the widget does not learn
+			-- until the painter hands them over at draw time. So the
+			-- equality was never a property of the class; it is a
+			-- property of a laid-out frame, and it is now stated where it
+			-- becomes true - `refresh_layouts''s postcondition - and
+			-- guarded in the invariant by `laid_out_revision = revision',
+			-- the flag that says whether the layouts are current at all.
+		local
+			c: SW_CHAT_THREAD
+			kit: SW_SHAPING
+			p: SW_PAINTER
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			assets: STRING_32
+		do
+			assets := shaping_assets
+			if not assets.is_empty then
+				create kit.make_with_assets (assets)
+				create th.make_dark
+				kit.set_theme_faces (th)
+				create surf.make (500, 500)
+				create ctx.make (surf)
+				create p.make (ctx, th)
+				p.set_shaping (kit)
+
+				create c.make
+				c.set_bounds (0.0, 0.0, 500.0, 500.0)
+				c.add_message ({SW_CHAT_THREAD}.Role_theirs, {STRING_32} "one%Ntwo")
+				c.draw (p)
+				assert_false ("a shaped frame really was drawn", c.shaped_layouts.is_empty)
+				assert_integers_equal ("...and the spans describe it", 1, c.layout_spans.count)
+				assert_integers_equal ("...at the revision it was drawn for",
+					c.revision, c.laid_out_revision)
+
+					-- THE ASSAULT: the reply arrives. THIS is the call
+					-- that used to raise on exit.
+				c.add_message ({SW_CHAT_THREAD}.Role_mine, {STRING_32} "and a reply")
+				assert_integers_equal ("the message is aboard", 2, c.count)
+				assert_integers_equal ("...while the spans still describe the frame drawn",
+					1, c.layout_spans.count)
+				assert_true ("...which the revision counter says out loud",
+					c.laid_out_revision /= c.revision)
+
+					-- streaming does the same thing, over and over
+				c.append_to_last ({STRING_32} " - continued")
+				assert_integers_equal ("a streamed token leaves the spans alone",
+					1, c.layout_spans.count)
+
+					-- and the next frame catches up, on its own
+				c.draw (p)
+				assert_integers_equal ("the next frame lays out both messages",
+					2, c.layout_spans.count)
+				assert_integers_equal ("...and the revision is current again",
+					c.revision, c.laid_out_revision)
+				assert_integers_equal ("...with a layout per paragraph, in message order",
+					c.layout_spans.i_th (2).base + c.layout_spans.i_th (2).span - 1,
+					c.shaped_layouts.count)
+				print ("    live client: " + c.count.out + " messages, "
+					+ c.shaped_layouts.count.out + " layouts, revision "
+					+ c.revision.out + "%N")
+
+				kit.dispose_surfaces
+				ctx.destroy
+				surf.destroy
+			else
+				print ("    (no Noto assets underfoot - live-client test skipped)%N")
+			end
+		end
+
 	test_hebrew_line_then_greek_line
 			-- Larry's own mixed-script case, with the break between them:
 			-- two paragraphs, two layouts, two BASE DIRECTIONS - which is

@@ -61,8 +61,14 @@ th.append_to_last (<span <span class="keyword">class</span>="string">&quot;ld&qu
                 <code>messages</code> order, once a shaped frame has been drawn. Empty on the toy
                 path and before the first frame. A message with no line breaks is one paragraph,
                 so single-paragraph traffic is still one layout per message.</li>
-                <li><code>layout_spans</code> - one entry per message: its paragraph layouts are
-                <code>shaped_layouts [base .. base + span - 1]</code>.</li>
+                <li><code>layout_spans</code> - one entry per message OF THE LAST LAID-OUT FRAME:
+                that message's paragraph layouts are
+                <code>shaped_layouts [base .. base + span - 1]</code>. Between two frames it lags,
+                because only <code>SW_SHAPING.layout_for</code> can make a layout and only at a
+                width the widget learns from the painter inside <code>draw</code>. The invariant
+                asks <code>laid_out_revision = revision</code> before demanding one span per
+                message; in 0.6.0 it demanded it unconditionally, and
+                <code>add_message</code> after a first shaped frame broke it (0.6.1).</li>
                 <li><code>laid_out_width</code>, <code>laid_out_size</code> - the bubble inner width
                 (pixels) and type size the current layouts were built for.</li>
                 <li><code>revision</code> / <code>laid_out_revision</code> - the content clock. They

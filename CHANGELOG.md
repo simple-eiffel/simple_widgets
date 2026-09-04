@@ -7,6 +7,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.6.1 — TWO SEAMS 0.6.0 LEFT, both found by the first host to adopt it)
+
+- **`SW_CHAT_THREAD` could not be given a message after it had drawn a shaped
+  frame.** Its invariant demanded `layout_spans.count = messages.count` the
+  moment `shaped_layouts` was non-empty, but `layout_spans` is rebuilt only by
+  `draw` — so between `add_message` (n+1 messages) and the next frame (n spans)
+  the class **failed its own invariant, on exit from `add_message`**. That is
+  precisely what a live chat client does on every event after its first frame.
+  It never bit Larry because the shipped client is finalized and finalized code
+  checks no invariants; it bit every workbench and `ec.sh test` build, and it
+  bit simple_chat's adoption branch, which had to fill a pane before painting it
+  rather than painting and then filling.
+
+  **The weakening was the honest fix, and it made the invariant stronger, not
+  vaguer.** The other branch — keeping the spans in step inside `add_message` —
+  cannot be done: a span indexes `SHAPED_LAYOUT`s that only
+  `SW_SHAPING.layout_for` can make, at an inner width and a pixel size the
+  widget does not learn until the painter hands them over inside `draw`. To
+  rebuild there, a content command would have to invent a width or demand a
+  painter from a caller who has one only while painting — turning "a message
+  arrived" into "draw a frame". The equality was therefore never a property of
+  the class. It is a property of a CURRENT layout, and the class already carries
+  the flag that says so:
+
+  ```eiffel
+  spans_never_outrun_messages: layout_spans.count <= messages.count
+  spans_match_when_current: laid_out_revision = revision implies
+      layout_spans.count = messages.count
+  spans_and_layouts_arrive_together: shaped_layouts.is_empty = layout_spans.is_empty
+  spans_tile_the_layouts: layout_spans.is_empty or else
+      layout_spans.last.base + layout_spans.last.span - 1 = shaped_layouts.count
+  a_layout_per_paragraph: shaped_layouts.count >= layout_spans.count
+  ```
+
+  Every content change bumps `revision`; `refresh_layouts` rebuilds and only
+  then records it, and **already carried the equality as its own postcondition**
+  (`one_span_per_message`), so nothing was lost by moving it there. What was
+  gained: `spans_tile_the_layouts` says the spans partition `shaped_layouts`
+  exactly — a structural truth that holds BETWEEN frames and that the old
+  invariant never asserted at all — and `spans_match_when_current` now also
+  catches a caller who mutates the public `messages` list behind the widget's
+  back without bumping `revision`, which the old clause let through.
+
+  **The sibling clauses were checked for the same hole and have none.**
+  `displays`, `line_cache` and `bubble_boxes` are asserted only as attached;
+  no clause couples their counts to `messages`, and every reader of those
+  frame caches (`hit_test`, `hit_in_message`, `draw_selection`) already guards
+  on the cache's own count, so a click that lands on a bubble not yet drawn
+  simply misses instead of raising. `a_layout_per_paragraph` had the identical
+  hole in its `implies` and is fixed with it.
+
+- **Alt+letter reached the accelerator table and died there.** simple_shell
+  1.9.3 closed the shell half of *the Alt gap* this library named in 0.6.0:
+  Alt+A..Z and Alt+0..9 now arrive as the ORDINARY key-down event 4 by virtual
+  key, with the `WM_SYSCHAR` behind them swallowed so `DefWindowProc` cannot
+  open the system menu behind the application's back. **That swallow is exactly
+  why the toolkit still saw nothing:** `activate_mnemonic` sat on the WM_CHAR
+  door (event 3), which the shell now never knocks on for an Alt combination.
+  The gesture was consumed by the accelerator table or handed to the focused
+  widget, and Alt+F opened nothing unless the host registered Alt+F/E/R/H by
+  hand — which simple_chat's adoption branch had to do.
+
+  `route_key_down` is now the one itinerary for event 4, in order: the
+  **accelerator table** (so a host that really wants Alt+F still keeps it),
+  then — with `alt_down` and the key unclaimed — the window's own `menu_bar`
+  via `key_down_mnemonic_fired`, then the **focused widget**. `set_menu_bar`
+  is all a host needs; nothing else changed and no signature moved. The WM_CHAR
+  path is untouched, for shells that still deliver Alt that way.
+
+  `key_down_mnemonic_fired` deliberately does **not** arm `swallow_next_char`:
+  the shell that forwards this event swallows the WM_SYSCHAR itself, so there
+  is nothing trailing to eat and arming the flag would eat the reader's next
+  real keystroke; and were a shell to deliver both, the popup just opened owns
+  every following event (`dispatch_to_popup`), so it could not fire twice
+  either.
+
+### Added (0.6.1)
+
+- **`SW_WINDOW.simulate_key_down (a_vk, a_ctrl, a_alt, a_shift)`** — the wheel
+  door's twin (`simulate_wheel`). It runs the SAME `route_key_down` the native
+  event 4 runs, with the modifier state passed as parameters instead of read
+  from a live `GetKeyState`, because `SW_KEYS` asks the real keyboard and an
+  offscreen harness must never press Alt on anybody's desktop. The Alt door is
+  therefore proven through the shipped path and not a copy of it.
+
+- **Four tests** (251 total, from 247). `a_message_may_arrive_after_a_shaped_frame`
+  paints a shaped frame, adds a message, streams a token and paints again —
+  RED before the invariant fix, on the exit of `add_message` itself.
+  `alt_letter_on_the_key_down_door_opens_the_menu` drives Alt+F through
+  `simulate_key_down` with no accelerator registered — RED before the mnemonic
+  arm. `a_host_accelerator_still_wins_the_alt_key` pins the order, and
+  `alt_needs_a_menu_bar_before_it_opens_anything` pins the bar-less window.
+
 ### Fixed (THE SQUARE BOXES — line breaks in a chat bubble; the 0.6.0 minor bump)
 - **`SW_CHAT_THREAD` drew a box wherever a message had a newline.** Neither
   path had ever heard of a line break. The toy wrap split on the SPACE

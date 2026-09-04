@@ -31,18 +31,25 @@ note
 		letter (code + 64). A hit on the key-down door also swallows the
 		WM_CHAR that follows it, so one gesture never fires twice.
 
-		THE ALT GAP, NAMED. Modifier STATE is fully exposed -
-		`SW_KEYS.alt_down' reads GetKeyState(VK_MENU) the same way
-		`shift_down' reads VK_SHIFT - so an Alt accelerator can be
-		registered and will match. Alt+letter DELIVERY is the gap:
-		simple_shell answers WM_SYSKEYDOWN only for the OEM plus/minus
-		pair and lets every other syskey fall through to DefWindowProc,
-		and it swallows WM_SYSCHAR for those same keys alone. Until
-		simple_shell forwards WM_SYSKEYDOWN/WM_SYSCHAR for letters, Alt+F
-		reaches the system menu, not this window: `activate_mnemonic' is
-		implemented, contracted and tested, and an application can drive
-		it from a Ctrl accelerator or a click today, but no Alt keystroke
-		will call it. Ctrl accelerators work end to end NOW.
+		THE ALT GAP, CLOSED (0.6.1). It was named here in 0.6.0 and it
+		was half a shell problem: modifier STATE was exposed
+		(`SW_KEYS.alt_down' reads GetKeyState(VK_MENU) the way
+		`shift_down' reads VK_SHIFT), but Alt+letter DELIVERY was not, so
+		`activate_mnemonic' was implemented, contracted, tested - and
+		unreachable. simple_shell 1.9.3 delivers the other half: Alt+A..Z
+		and Alt+0..9 now arrive as the ORDINARY key-down event 4 by
+		virtual key, with the WM_SYSCHAR behind them swallowed so
+		DefWindowProc cannot open the system menu instead.
+
+		That swallow is exactly why the toolkit still saw nothing:
+		`activate_mnemonic' sat on the WM_CHAR door (event 3), which the
+		shell now never knocks on for an Alt combination, so the gesture
+		reached the accelerator table and died there unless the host had
+		registered Alt+F/E/R/H by hand. `route_key_down' - the one
+		itinerary event 4 and `simulate_key_down' share - now tries the
+		menu bar's mnemonics itself, AFTER the accelerator table and
+		BEFORE the focused widget. The WM_CHAR path is untouched, for
+		shells that still deliver Alt that way.
 	]"
 
 class
@@ -311,6 +318,21 @@ feature -- Operation
 				bubble_wheel (w, a_delta)
 			end
 			after_input
+		end
+
+	simulate_key_down (a_vk: INTEGER; a_ctrl, a_alt, a_shift: BOOLEAN)
+			-- Deliver a key-down exactly as the native queue's event 4
+			-- would, with the modifier state GIVEN rather than read from
+			-- the keyboard. `route_key_down' is the one itinerary: this
+			-- door and `dispatch_plain''s event-4 arm run the SAME
+			-- routine, so a test proves the shipped path and not a copy
+			-- of it. The modifiers are parameters because `SW_KEYS' asks
+			-- the live keyboard: an offscreen harness cannot hold Alt
+			-- down, and must never try (no keystroke is posted to any
+			-- desktop here). For a harness with no HWND and so no native
+			-- queue to draw a key event from.
+		do
+			route_key_down (a_vk, a_ctrl, a_alt, a_shift)
 		end
 
 feature {NONE} -- Dispatch
@@ -776,10 +798,11 @@ feature -- Menu bar and mnemonics
 			-- same geometry a click hit-tests with). True when a pad
 			-- answered.
 			--
-			-- Public because it is the whole gesture: SEE THE ALT GAP in
-			-- the class note - no Alt keystroke reaches this window
-			-- today, so this is also the only door a test or a host can
-			-- knock on.
+			-- Public because it is the whole gesture, and a host may
+			-- want it from a button or a Ctrl accelerator too. The Alt
+			-- KEYSTROKE now arrives on its own (`key_down_mnemonic_fired'
+			-- - see THE ALT GAP, CLOSED in the class note); this stayed
+			-- public because it was never only the Alt key's door.
 		local
 			idx: INTEGER
 			b: TUPLE [left, width: REAL_64]
@@ -808,13 +831,55 @@ feature {NONE} -- Accelerator dispatch
 			-- gesture would be delivered twice: once to the accelerator
 			-- and once to the focused widget.
 
-	key_down_accelerator_fired (a_vk: INTEGER): BOOLEAN
-			-- Event 4 (a virtual key): did the table claim it?
-		local
-			keys: SW_KEYS
+	route_key_down (a_vk: INTEGER; a_ctrl, a_alt, a_shift: BOOLEAN)
+			-- Event 4's whole itinerary, in order: the accelerator table
+			-- first, then - with Alt held and nothing having claimed the
+			-- key - the menu bar's own mnemonics, and only then the
+			-- focused widget. A host that registers Alt+F for itself
+			-- still wins it; a host that registers nothing gets Alt+F
+			-- for `&File' without asking, which is what every Windows
+			-- application has done since 1985.
 		do
-			create keys
-			Result := fire_accelerator (a_vk, keys.control_down, keys.alt_down, keys.shift_down)
+			if key_down_accelerator_fired (a_vk, a_ctrl, a_alt, a_shift) then
+				after_input
+			elseif a_alt and then key_down_mnemonic_fired (a_vk) then
+				after_input
+			elseif attached focused as w then
+				w.handle_key (a_vk, a_shift)
+				after_input
+			end
+		end
+
+	key_down_mnemonic_fired (a_vk: INTEGER): BOOLEAN
+			-- Event 4 with Alt held and no accelerator claiming it: does
+			-- the menu bar declare `a_vk' as a mnemonic? A virtual key IS
+			-- its letter's upper-case code point (65..90) or its digit's
+			-- (48..57), which is precisely what `activate_mnemonic'
+			-- matches, case folded.
+			--
+			-- It does NOT arm `swallow_next_char'. The WM_SYSCHAR behind
+			-- an Alt+letter is swallowed by the shell that forwards this
+			-- event (simple_shell 1.9.3) - that swallow is WHY the
+			-- WM_CHAR door never saw the gesture - so there is nothing
+			-- trailing to eat, and arming the flag would eat the reader's
+			-- NEXT real keystroke instead. Were a shell to deliver both,
+			-- the popup this just opened owns every following event
+			-- (`dispatch_to_popup'), so the char could not reach
+			-- `char_accelerator_fired' to fire it twice either.
+		do
+			if (a_vk >= 65 and a_vk <= 90) or (a_vk >= 48 and a_vk <= 57) then
+				Result := activate_mnemonic (a_vk.to_character_32)
+			end
+		ensure
+			opened_when_answered: Result implies popup /= Void
+			letters_and_digits_only: Result implies
+				((a_vk >= 65 and a_vk <= 90) or (a_vk >= 48 and a_vk <= 57))
+		end
+
+	key_down_accelerator_fired (a_vk: INTEGER; a_ctrl, a_alt, a_shift: BOOLEAN): BOOLEAN
+			-- Event 4 (a virtual key): did the table claim it?
+		do
+			Result := fire_accelerator (a_vk, a_ctrl, a_alt, a_shift)
 			if Result then
 				swallow_next_char := True
 			end
@@ -998,6 +1063,8 @@ feature {NONE} -- Popup lifecycle
 		end
 
 	dispatch_plain (a_type, a_x, a_y: INTEGER)
+		local
+			l_keys: SW_KEYS
 		do
 			inspect a_type
 			when 2 then
@@ -1082,12 +1149,9 @@ feature {NONE} -- Popup lifecycle
 					end
 				end
 			when 4 then
-				if key_down_accelerator_fired (a_x) then
-					after_input
-				elseif attached focused as w then
-					w.handle_key (a_x, shift_is_down)
-					after_input
-				end
+				create l_keys
+				route_key_down (a_x, l_keys.control_down, l_keys.alt_down,
+					l_keys.shift_down)
 			when 6 then
 				blit
 			when 8 then

@@ -98,14 +98,22 @@ window.register_accelerator (83, True, False, True,  agent save_as)
             - the same geometry a click hit-tests with). <code>open_popup</code> is the read-only
             view of what is up. While a menu is open a BARE letter picks the item that underlines
             it.</p>
-            <p><strong>THE ALT GAP, NAMED.</strong> Alt STATE is exposed
-            (<code>SW_KEYS.alt_down</code>), so an Alt accelerator matches. Alt+letter DELIVERY is
-            not: simple_shell answers WM_SYSKEYDOWN only for the OEM plus/minus pair and lets every
-            other syskey fall through to DefWindowProc. Until simple_shell forwards
-            WM_SYSKEYDOWN/WM_SYSCHAR for letters, Alt+F reaches the system menu and not this
-            window. <code>activate_mnemonic</code> is implemented, contracted and tested, and a
-            host can drive it from a Ctrl accelerator or a click today. Ctrl accelerators work end
-            to end NOW.</p>
+            <p><strong>THE ALT GAP, CLOSED (0.6.1).</strong> 0.6.0 named a hole rather than
+            hiding it: Alt STATE was exposed (<code>SW_KEYS.alt_down</code>) but Alt+letter
+            DELIVERY was not, so <code>activate_mnemonic</code> was implemented, contracted, tested
+            - and unreachable. simple_shell 1.9.3 delivers the other half: Alt+A..Z and Alt+0..9
+            now arrive as the ordinary key-down event 4 by virtual key, with the WM_SYSCHAR behind
+            them swallowed so DefWindowProc cannot open the system menu. That swallow is why the
+            toolkit still saw nothing - <code>activate_mnemonic</code> sat on the WM_CHAR door the
+            shell no longer knocks on for Alt. <code>route_key_down</code> now tries the window's
+            own <code>menu_bar</code> itself: accelerator table FIRST, menu bar SECOND, focused
+            widget LAST. A host that registers Alt+F keeps it; a host that registers nothing gets
+            Alt+F for <code>&amp;File</code> from <code>set_menu_bar</code> alone. The WM_CHAR path
+            is untouched for shells that still deliver Alt that way.</p>
+            <p><strong><code>simulate_key_down (a_vk, a_ctrl, a_alt, a_shift)</code></strong> -
+            the wheel door's twin. It runs the SAME <code>route_key_down</code> the native event 4
+            runs, with the modifier state as parameters instead of a live GetKeyState, so an
+            offscreen assault can prove the Alt door without pressing Alt on any desktop.</p>
         </section>
 
         <section id="limits">

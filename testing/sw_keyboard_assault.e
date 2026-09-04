@@ -6,9 +6,12 @@ note
 		creates a native HWND) is never called, so `hwnd' stays
 		`default_pointer' and no window, visible or hidden, ever exists.
 		No synthetic keystroke is ever posted to this desktop: the
-		accelerator table is driven through `fire_accelerator' and the
-		mnemonic path through `activate_mnemonic', which are the same
-		doors `dispatch_plain' knocks on.
+		accelerator table is driven through `fire_accelerator', the
+		mnemonic path through `activate_mnemonic', and the Alt door
+		through `simulate_key_down' - which runs the very
+		`route_key_down' the native event 4 runs, with the modifier state
+		passed as parameters rather than read from a keyboard nobody may
+		touch here.
 
 		THE REPORT. Larry: "Alt / Alt+F" does nothing, and there are "no
 		mnemonic underlines". Both were true. A key reached exactly one
@@ -24,18 +27,18 @@ note
 		"&File", "Select &All", "R&&D", a trailing "&", the empty label.
 		(4) A menu bar underlines its mnemonic and answers Alt+F; an open
 		menu answers a bare letter. (5) A window opens the right pad's
-		menu under the right pad.
+		menu under the right pad. (6) An Alt+letter arriving on the
+		KEY-DOWN door opens that pad with no host accelerator registered.
 
-		THE ALT GAP, AND WHY IT IS NOT A TEST FAILURE. Alt STATE is
-		exposed (`SW_KEYS.alt_down'), so an Alt accelerator matches. Alt
-		DELIVERY is not: simple_shell answers WM_SYSKEYDOWN only for the
-		OEM plus/minus pair and lets every other syskey fall through to
-		DefWindowProc. Until the shell forwards WM_SYSKEYDOWN/WM_SYSCHAR
-		for letters, no Alt keystroke reaches SW_WINDOW at all, and
-		`activate_mnemonic' is reachable only from a host, a Ctrl
-		accelerator, or a test. That is a shell gap, named in
-		SW_WINDOW's own class note and in the README; the toolkit half
-		is finished and proven here.
+		THE ALT GAP, CLOSED (0.6.1). It was a shell gap when this file
+		was written, named rather than hidden: no Alt keystroke reached
+		SW_WINDOW at all. simple_shell 1.9.3 now delivers Alt+letter as
+		event 4 - and SWALLOWS the WM_SYSCHAR behind it, which is why the
+		toolkit still saw nothing: `activate_mnemonic' sat on the WM_CHAR
+		door. (6) is that door moved: with Alt held and no accelerator
+		claiming the key, the window tries its own menu bar, so a host no
+		longer registers Alt+F/E/R/H by hand - and one that WANTS Alt+F
+		still keeps it, because the table is asked first.
 	]"
 	author: "Larry Rix"
 
@@ -305,6 +308,119 @@ feature -- Menus: mnemonics
 			end
 			print ("    pads: File at " + bar.pad_bounds (w.painter, 1).left.out
 				+ ", Edit at " + b.left.out + "%N")
+		end
+
+	test_alt_letter_on_the_key_down_door_opens_the_menu
+			-- THE ALT DOOR, CLOSED. simple_shell 1.9.3 delivers Alt+F as
+			-- the ORDINARY key-down event (type 4, virtual key 70) with
+			-- `alt_down' true, and swallows the WM_SYSCHAR behind it so
+			-- DefWindowProc cannot open the system menu on the
+			-- application's back. So the WM_CHAR door - the only door
+			-- that ever called `activate_mnemonic' - is never knocked on
+			-- for that gesture, and the oldest keystroke on the platform
+			-- died in the accelerator table unless the host registered
+			-- Alt+F/E/R/H by hand. The window now tries the bar itself.
+			--
+			-- Driven through `simulate_key_down', which runs the SAME
+			-- `route_key_down' the native event 4 runs; the modifiers are
+			-- parameters, so no Alt key is ever pressed on this desktop.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			bar: SW_MENU_BAR
+			root: SW_COLUMN
+			box: SW_TEXT_BOX
+		do
+			create th.make_light
+			create w.make ("alt-door", 0, 0, 500, 320, th)
+			create bar.make
+			bar.add_menu ("&File", agent built_menu)
+			bar.add_menu ("&Edit", agent built_menu)
+			create box.make_single_line ("untouched")
+			create root.make
+			root.put (bar)
+			root.put (box)
+			w.set_root (root)
+			w.set_menu_bar (bar)
+			w.request_render
+			w.give_focus (box)
+
+			assert_void ("nothing is open yet", w.open_popup)
+			assert_integers_equal ("and no host accelerator claims Alt+F",
+				0, w.accelerator_for (70, False, True, False))
+
+				-- The same key WITHOUT Alt is still the widget's, and a
+				-- letter no pad declares opens nothing. Both are checked
+				-- BEFORE the gesture that opens a menu, because an open
+				-- popup owns every later key.
+			w.simulate_key_down (70, False, False, False)
+			assert_void ("a bare F opens no menu", w.open_popup)
+			w.simulate_key_down (90, False, True, False)
+			assert_void ("Alt+Z names no pad", w.open_popup)
+			assert_strings_equal_diff ("...and neither key edited the focused box",
+				{STRING_32} "untouched", box.text)
+
+				-- THE GESTURE: Alt+F on the key-down door.
+			w.simulate_key_down (70, False, True, False)
+			assert_attached ("Alt+F opened the File menu THROUGH the key-down door",
+				w.open_popup)
+			if attached w.open_popup as pm then
+				assert_true ("...dropped below the bar", pm.y >= bar.y + bar.height)
+			end
+			assert_strings_equal_diff ("...and the focused box never saw the key",
+				{STRING_32} "untouched", box.text)
+		end
+
+	test_a_host_accelerator_still_wins_the_alt_key
+			-- Order matters: the table is consulted BEFORE the menu bar,
+			-- so a host that really wants Alt+F for itself keeps it, and
+			-- the hosts that registered Alt accelerators to work around
+			-- the closed door lose nothing by this change.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			bar: SW_MENU_BAR
+			root: SW_COLUMN
+		do
+			create th.make_light
+			create w.make ("alt-order", 0, 0, 500, 320, th)
+			create bar.make
+			bar.add_menu ("&File", agent built_menu)
+			create root.make
+			root.put (bar)
+			w.set_root (root)
+			w.set_menu_bar (bar)
+			w.request_render
+			w.register_accelerator (70, False, True, False, agent set_flag)
+
+			flag := False
+			w.simulate_key_down (70, False, True, False)
+			assert_true ("the registered Alt+F ran", flag)
+			assert_void ("...and the menu bar never saw it", w.open_popup)
+		end
+
+	test_alt_needs_a_menu_bar_before_it_opens_anything
+			-- A window with no bar must not raise, and must hand the key
+			-- on to the focused widget exactly as it always did.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			root: SW_COLUMN
+			box: SW_TEXT_BOX
+		do
+			create th.make_light
+			create w.make ("alt-bare", 0, 0, 400, 300, th)
+			create box.make_single_line ("bare")
+			create root.make
+			root.put (box)
+			w.set_root (root)
+			w.request_render
+			w.give_focus (box)
+
+			w.simulate_key_down (70, False, True, False)
+			assert_void ("no bar, no popup", w.open_popup)
+			assert_true ("...and the window is still usable", box.is_focused)
+			assert_strings_equal_diff ("...its text untouched", {STRING_32} "bare", box.text)
 		end
 
 feature -- Evidence (offscreen only - no window is ever shown)
