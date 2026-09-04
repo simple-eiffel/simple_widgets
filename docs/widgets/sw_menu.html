@@ -53,6 +53,26 @@
     <span class="keyword">end</span></code></pre>
         </section>
 
+        <section id="mnemonics">
+            <h2>Mnemonics (0.6.0)</h2>
+            <p>An <code>&amp;</code> underlines the letter after it and names the key that picks
+            the entry. <code>SW_MNEMONIC</code> is the one parser: <code>&quot;&amp;File&quot;</code>
+            draws as <code>File</code> with the F underlined; <code>&quot;Select &amp;All&quot;</code>
+            underlines the A; <code>&quot;R&amp;&amp;D&quot;</code> is the literal
+            <code>R&amp;D</code> with no mnemonic; a trailing <code>&amp;</code> marks nothing.</p>
+            <p>The ampersand NEVER reaches the drawn text: the plain reading is what is stored and
+            painted, so every existing reader sees the text it always saw. The declaration
+            survives in <code>raw_labels</code>.</p>
+            <p>Item queries: <code>raw_labels</code> (the declaration),
+            <code>item_underline_index</code> (which character of the drawn label is underlined)
+            and <code>item_for_mnemonic (a_letter)</code> - the first ENABLED, non-separator item
+            that answers to that letter, which is what a bare keystroke picks while the menu is
+            open.</p>
+            <p>The underline is drawn in the label's OWN ink with <code>fill_rect</code>, scaled by
+            <code>theme.text_scale</code> - not with <code>SW_PAINTER.hline</code>, which sets the
+            theme OUTLINE colour itself and reads as nothing under a label on a dark theme.</p>
+        </section>
+
         <section id="limits">
             <h2>Known limits</h2>
             <ul>

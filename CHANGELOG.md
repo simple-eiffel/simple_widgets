@@ -7,6 +7,115 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (THE SQUARE BOXES — line breaks in a chat bubble; the 0.6.0 minor bump)
+- **`SW_CHAT_THREAD` drew a box wherever a message had a newline.** Neither
+  path had ever heard of a line break. The toy wrap split on the SPACE
+  CHARACTER ALONE (`a_text.split (' ')`), so an LF was simply another
+  character inside a "word" and cairo drew it as `.notdef` — the box Larry
+  saw in every numbered list the assistant sent. The shaped path failed more
+  quietly: simple_shaping counts LF among the characters a line MAY break at
+  (`is_breaking_space_code`), so the text wrapped somewhere near the break,
+  but the LF itself was still shaped, still measured and still painted.
+  Both paths now cut a message into PARAGRAPHS first — `paragraphs_of`, a
+  public, contracted query: LF, CRLF (ONE break, not two) and a lone CR all
+  end a paragraph and are never drawn; a TAB becomes a space; a RUN of
+  breaks yields at most ONE empty line, so a message padded with blank lines
+  cannot inflate a bubble without bound; trailing blank paragraphs are
+  dropped. Wrapping applies WITHIN a paragraph, and a bubble's height is the
+  real line count.
+- **The shaped path is now one `SHAPED_LAYOUT` per PARAGRAPH**, not one per
+  message, because simple_shaping lays out a paragraph and cannot be told
+  about a hard break. `shaped_layouts` is therefore a flat list in message
+  order and the new `layout_spans` says which layouts belong to which
+  message (`shaped_layouts [base .. base + span - 1]`). A message with no
+  line breaks is still exactly one layout, so single-paragraph traffic sees
+  no change at all.
+- **Menu underlines draw in the label's own ink.** `SW_PAINTER.hline` sets
+  the THEME OUTLINE colour itself, which under a label on a dark theme reads
+  as nothing; the mnemonic underline uses `fill_rect` in the ink the label
+  just drew in, and scales its thickness with `theme.text_scale`.
+
+### Added (KEYBOARD — window-wide accelerators and menu mnemonics)
+- **`SW_WINDOW.register_accelerator (a_vk, a_ctrl, a_alt, a_shift, a_action)`** —
+  a window-level key table consulted BEFORE focused-widget routing, matched
+  on the virtual key AND the exact modifier state (read from `SW_KEYS`, the
+  same service `SW_TEXT_BOX` already asks for Shift). With
+  `accelerators`, `accelerator_for`, `fire_accelerator` and
+  `clear_accelerators`. A modifier is REQUIRED (`require modified: a_ctrl or
+  a_alt`): an unmodified accelerator would take the letter out of every text
+  box in the window. An UNCLAIMED Ctrl+A / C / V / X / Z / Y still reaches
+  the focused text box exactly as it always did; a claimed one never does.
+  **No existing signature changed** — `SW_WIDGET.handle_key (a_vk, a_shift)`
+  is untouched.
+- **Both key doors are tried.** simple_shell's WM_KEYDOWN filter forwards
+  only the stepping keys (arrows, Home/End, Page keys, Delete, the OEM
+  plus/minus pair) as event 4, so a letter key never arrives that way.
+  Ctrl+C arrives instead as event 3 — the WM_CHAR CONTROL CODE 3, which is
+  exactly how `SW_TEXT_BOX` has always read it. `dispatch_plain` therefore
+  tries the table on event 4 by virtual key and on event 3 by control code
+  folded back to its letter (code + 64). A hit on the key-down door swallows
+  the WM_CHAR that trails it, so one gesture never fires twice.
+- **Menu mnemonics.** `SW_MNEMONIC` is the one ampersand parser (`plain`,
+  `underline_index`, `mnemonic_letter`, `has_mnemonic`, `matches`,
+  `virtual_key`): `"&File"` draws as `File` with the F underlined,
+  `"Select &All"` underlines the A, `"R&&D"` is the literal `R&D` with no
+  mnemonic, a trailing `"&"` marks nothing. `SW_MENU_BAR` gains
+  `raw_labels`, `pad_underline_index`, `menu_for_mnemonic`, `open_menu` and
+  `pad_bounds` (ONE geometry: `draw`, `handle_click` and a keyboard open all
+  ask it). `SW_MENU` gains `raw_labels`, `item_underline_index` and
+  `item_for_mnemonic`. `labels` / `items.label` keep the PLAIN reading, so
+  every existing reader sees the text it always saw.
+- **`SW_WINDOW.set_menu_bar` / `activate_mnemonic` / `open_popup`.**
+  Alt+letter opens that pad's menu, dropped under the pad itself; while a
+  menu is open a BARE letter picks the item that underlines it (the second
+  half of the Alt+F, then N gesture) — that half works today, since a menu
+  swallows WM_CHAR already.
+- **THE ALT GAP, NAMED.** Alt *state* is exposed — `SW_KEYS.alt_down` reads
+  `GetKeyState(VK_MENU)` the way `shift_down` reads VK_SHIFT — so an Alt
+  accelerator can be registered and WILL match. Alt+letter *delivery* is the
+  gap: simple_shell answers WM_SYSKEYDOWN only for the OEM plus/minus pair
+  and lets every other syskey fall through to `DefWindowProc`, swallowing
+  WM_SYSCHAR for those same keys alone. Until simple_shell forwards
+  WM_SYSKEYDOWN/WM_SYSCHAR for letters, Alt+F reaches the system menu and
+  not this window; `activate_mnemonic` is implemented, contracted and tested
+  and a host can drive it from a Ctrl accelerator or a click today.
+  **Ctrl accelerators work end to end NOW.** simple_widgets was not able to
+  close this half; it lives in `simple_shell/Clib/simple_shell.h`.
+
+### Added (SELECTION AND COPY in `SW_CHAT_THREAD`)
+- **A bubble is selectable text, not a picture of text.** Press and drag to
+  select, double-click to take the word, Escape to clear, Ctrl+C or the new
+  right-click menu (Copy / Select Message / Select None) to copy through
+  `SW_CLIPBOARD` — the same door `SW_TEXT_BOX` uses. Public model:
+  `sel_message`, `sel_anchor`, `sel_caret`, `sel_low`, `sel_high`,
+  `has_selection`, `is_selecting`, `selected_text`, `clear_selection`,
+  `select_range`, `select_word_at`, `select_message`, `copy_selection`, plus
+  the hit-testers `hit_test` and `hit_in_message` and the reading the
+  clipboard actually receives, `display_text`.
+- **Character granularity on the toy path; GLYPH-CLUSTER granularity on the
+  shaped path.** `SHAPED_LINE` reserves `character_index_at_x` for a future
+  simple_shaping cycle and does not implement it, so the caret-boundary walk
+  lives in the widget, over what the layout does publish: `GLYPH_RUN`'s
+  `cluster_map` and `x_positions`. RTL is handled by direction, not by hope —
+  in a right-to-left run the boundary at a cluster's LEFT edge is the caret
+  AFTER that character.
+- **Selection is within ONE bubble, deliberately.** A drag that wanders out
+  runs to the anchor bubble's own ends and stops. A thread is a list of
+  utterances by different speakers; a range spanning three of them has no
+  honest text to hand the clipboard.
+- **A press inside a bubble is now CONSUMED** (the pane needs the pointer
+  capture to receive the drag) and `cursor_kind` is the I-beam. A press on
+  bare pane clears the selection and still bubbles up, as before.
+
+### Changed
+- `SW_CHAT_THREAD.wrapped` is public and honours line breaks; it is now
+  stated over `paragraphs_of` + the new `wrap_spans`, so there is ONE wrap
+  in the class. The greedy algorithm and its 4.5 px inter-word gap
+  (`Space_w`) are unchanged, so a wrap that fitted at 0.5.0 still fits.
+- `SW_CHAT_THREAD`'s invariant relaxed from "one layout per message" to "at
+  least one layout per message, one span per message".
+
+
 ### Fixed (CHAT THREAD SCROLLING — the scroll-clamp defect; the 0.5.0 minor bump)
 - **`SW_CHAT_THREAD` could never show its own tail, and no wheel or drag
   survived a repaint.** `draw` clamped `scroll_y` once PER BUBBLE against

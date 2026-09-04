@@ -3,6 +3,18 @@ note
 		A drawn menu bar: labels across the top; clicking one presents
 		its SW_MENU beneath it through the pending-menu handshake. The
 		hovered label highlights; everything is theme chrome.
+
+		MNEMONICS (0.6.0). A title given as "&File" draws as "File" with
+		the F underlined and answers to Alt+F. The ampersand never
+		reaches `labels' - `add_menu' stores the plain reading there and
+		keeps the declaration in `raw_labels' - so every existing reader
+		of `labels' sees exactly the text it always saw.
+
+		ONE GEOMETRY. `draw', `handle_click' and `open_menu' all ask
+		`pad_bounds' where a pad starts and how wide it is; there is no
+		second formula that can drift from the first. That is why
+		SW_WINDOW can drop a menu under the right pad for a key it never
+		saw a pointer land on.
 	]"
 
 class
@@ -22,6 +34,7 @@ feature {NONE} -- Initialization
 	make
 		do
 			create labels.make (4)
+			create raw_labels.make (4)
 			create builders.make (4)
 			create conditions.make (4)
 		end
@@ -29,6 +42,11 @@ feature {NONE} -- Initialization
 feature -- Access
 
 	labels: ARRAYED_LIST [STRING_32]
+			-- The pad titles as the user reads them: ampersand-free.
+
+	raw_labels: ARRAYED_LIST [STRING_32]
+			-- The pad titles EXACTLY as declared, ampersands and all -
+			-- where `menu_for_mnemonic' still finds the Alt-key.
 
 	builders: ARRAYED_LIST [FUNCTION [SW_MENU]]
 			-- One menu-builder agent per label: menus are built fresh
@@ -55,11 +73,13 @@ feature -- Element change
 			l: STRING_32
 		do
 			create l.make_from_string_general (a_label)
-			labels.extend (l)
+			raw_labels.extend (l.twin)
+			labels.extend (mnemonics.plain (l))
 			builders.extend (a_builder)
 			conditions.extend (Void)
 		ensure
 			grew: labels.count = old labels.count + 1
+			parallel: raw_labels.count = labels.count
 		end
 
 	add_menu_when (a_label: READABLE_STRING_GENERAL; a_builder: FUNCTION [SW_MENU]; a_when: FUNCTION [BOOLEAN])
@@ -71,6 +91,89 @@ feature -- Element change
 		ensure
 			grew: labels.count = old labels.count + 1
 			conditioned: conditions.i_th (labels.count) = a_when
+		end
+
+feature -- Mnemonics
+
+	mnemonics: SW_MNEMONIC
+			-- The one ampersand parser; see SW_MNEMONIC.
+		once
+			create Result
+		end
+
+	pad_underline_index (i: INTEGER): INTEGER
+			-- 1-based index INTO `labels.i_th (i)' of the character pad
+			-- `i' underlines; 0 when it declares no mnemonic.
+		require
+			in_range: i >= 1 and i <= labels.count
+		do
+			Result := mnemonics.underline_index (raw_labels.i_th (i))
+		ensure
+			in_label: Result >= 0 and Result <= labels.i_th (i).count
+		end
+
+	menu_for_mnemonic (a_typed: CHARACTER_32): INTEGER
+			-- The 1-based pad Alt+`a_typed' opens (case folded); 0 when
+			-- no ENABLED pad answers to that letter.
+		local
+			i: INTEGER
+		do
+			from
+				i := 1
+			until
+				i > labels.count or Result /= 0
+			loop
+				if pad_enabled (i) and then mnemonics.matches (raw_labels.i_th (i), a_typed) then
+					Result := i
+				end
+				i := i + 1
+			end
+		ensure
+			valid: Result >= 0 and Result <= labels.count
+			enabled_only: Result > 0 implies pad_enabled (Result)
+		end
+
+	open_menu (a_p: SW_PAINTER; i: INTEGER)
+			-- Build pad `i''s menu and offer it through the SAME
+			-- pending-menu handshake a click uses, so a keyboard open
+			-- and a pointer open are one path, not two.
+		require
+			in_range: i >= 1 and i <= labels.count
+			enabled: pad_enabled (i)
+		do
+			probe_painter := a_p
+			pending_menu := builders.i_th (i).item ([])
+		ensure
+			offered: pending_menu /= Void
+		end
+
+feature -- Geometry
+
+	pad_bounds (a_p: SW_PAINTER; i: INTEGER): TUPLE [left, width: REAL_64]
+			-- Where pad `i' starts and how wide it is, in window
+			-- coordinates. THE one formula: `draw' paints with it,
+			-- `handle_click' hit-tests with it, and SW_WINDOW drops an
+			-- Alt-opened menu under it.
+		require
+			in_range: i >= 1 and i <= labels.count
+		local
+			tx, tw: REAL_64
+			k: INTEGER
+		do
+			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			tx := x + 6.0
+			from
+				k := 1
+			until
+				k >= i
+			loop
+				tx := tx + a_p.advance (labels.i_th (k)) + 24.0 + 2.0
+				k := k + 1
+			end
+			tw := a_p.advance (labels.i_th (i)) + 24.0
+			Result := [tx, tw]
+		ensure
+			positive_width: Result.width > 0.0
 		end
 
 feature -- Layout
@@ -90,22 +193,24 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			tx, tw: REAL_64
-			i: INTEGER
+			tx, tw, base: REAL_64
+			i, ul: INTEGER
+			b: TUPLE [left, width: REAL_64]
 		do
 			probe_painter := a_p
 			t := a_p.theme
 			a_p.set_color (t.surface_variant)
 			a_p.fill_rect (x, y, width, height)
 			a_p.hline (x, y + height - 1.0, width)
-			tx := x + 6.0
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
 			from
 				i := 1
 			until
 				i > labels.count
 			loop
-				tw := a_p.advance (labels.i_th (i)) + 24.0
+				b := pad_bounds (a_p, i)
+				tx := b.left
+				tw := b.width
 				if pad_enabled (i) and then shows_hover and then hover_px >= tx and then hover_px <= tx + tw then
 					a_p.set_color (t.surface)
 					a_p.rrect_fill (tx, y + 4.0, tw, height - 9.0, t.radius)
@@ -115,8 +220,22 @@ feature -- Drawing
 				else
 					a_p.set_color (t.ink_muted)
 				end
-				a_p.text (tx + 12.0, y + height / 2.0 + t.size_label / 2.0 - 2.0, labels.i_th (i))
-				tx := tx + tw + 2.0
+				base := y + height / 2.0 + t.size_label / 2.0 - 2.0
+				a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+				a_p.text (tx + 12.0, base, labels.i_th (i))
+				ul := pad_underline_index (i)
+				if ul > 0 then
+						-- The underline is drawn in the pad's OWN INK with
+						-- `fill_rect', not with `hline': `hline' is a
+						-- theme-OUTLINE hairline (it sets that colour
+						-- itself), which on a dark theme is all but
+						-- invisible under a label. It scales with the
+						-- theme the way the type does.
+					a_p.fill_rect (tx + 12.0 + a_p.advance (labels.i_th (i).substring (1, ul - 1)),
+						base + 2.0 * t.text_scale,
+						a_p.advance (labels.i_th (i).substring (ul, ul)),
+						(1.0 * t.text_scale).max (1.0))
+				end
 				i := i + 1
 			end
 		end
@@ -125,25 +244,22 @@ feature -- Input
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
 		local
-			tx, tw: REAL_64
 			i: INTEGER
+			b: TUPLE [left, width: REAL_64]
 		do
 			if is_enabled and then attached probe_painter as p then
-				tx := x + 6.0
-				p.font ({SW_PAINTER}.Role_ui, p.theme.size_label, False)
 				from
 					i := 1
 				until
 					i > labels.count or Result
 				loop
-					tw := p.advance (labels.i_th (i)) + 24.0
-					if a_px >= tx and a_px <= tx + tw then
+					b := pad_bounds (p, i)
+					if a_px >= b.left and a_px <= b.left + b.width then
 						if pad_enabled (i) then
 							pending_menu := builders.i_th (i).item ([])
 						end
 						Result := True
 					end
-					tx := tx + tw + 2.0
 					i := i + 1
 				end
 				Result := True
@@ -156,5 +272,6 @@ feature {NONE} -- Measurement support
 
 invariant
 	parallel: labels.count = builders.count
+	raw_parallel: raw_labels.count = labels.count
 
 end

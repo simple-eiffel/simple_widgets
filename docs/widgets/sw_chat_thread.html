@@ -20,6 +20,8 @@
             <li><a href="../index.html">simple_widgets home</a></li>
             <li><a href="../index.html#gallery">All controls</a></li>
             <li><a href="#example">Example</a></li>
+            <li><a href="#linebreaks">Line breaks</a></li>
+            <li><a href="#selection">Selection</a></li>
             <li><a href="#limits">Known limits</a></li>
             <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
             <li><a href="#future">Future</a></li>
@@ -55,9 +57,12 @@ th.append_to_last (<span <span class="keyword">class</span>="string">&quot;ld&qu
             <code>layout.total_height</code> - never a line count times a constant - and the greedy
             word wrap is skipped entirely.</p>
             <ul>
-                <li><code>shaped_layouts</code> - one SHAPED_LAYOUT per message, in
+                <li><code>shaped_layouts</code> - one SHAPED_LAYOUT per PARAGRAPH, in
                 <code>messages</code> order, once a shaped frame has been drawn. Empty on the toy
-                path and before the first frame.</li>
+                path and before the first frame. A message with no line breaks is one paragraph,
+                so single-paragraph traffic is still one layout per message.</li>
+                <li><code>layout_spans</code> - one entry per message: its paragraph layouts are
+                <code>shaped_layouts [base .. base + span - 1]</code>.</li>
                 <li><code>laid_out_width</code>, <code>laid_out_size</code> - the bubble inner width
                 (pixels) and type size the current layouts were built for.</li>
                 <li><code>revision</code> / <code>laid_out_revision</code> - the content clock. They
@@ -72,10 +77,62 @@ th.append_to_last (<span <span class="keyword">class</span>="string">&quot;ld&qu
             <code>handle_wheel</code> behave exactly as they always have.</p>
         </section>
 
+        <section id="linebreaks">
+            <h2>Line breaks (0.6.0)</h2>
+            <p><strong>The square boxes.</strong> Until 0.6.0 neither path had heard of a newline.
+            The toy wrap split on the SPACE CHARACTER ALONE, so an LF was another character inside
+            a "word" and cairo drew it as <code>.notdef</code> - the box. The shaped path failed
+            more quietly: simple_shaping counts LF among the characters a line MAY break at, so the
+            text wrapped near the break but the LF itself was still shaped and still painted.</p>
+            <p>A message is now cut into PARAGRAPHS before either path lays anything out:</p>
+            <table>
+                <tr><th>in the message</th><th>what happens</th></tr>
+                <tr><td>LF</td><td>ends the line; never drawn</td></tr>
+                <tr><td>CRLF</td><td>ONE break, not two</td></tr>
+                <tr><td>a lone CR</td><td>ends the line; never drawn</td></tr>
+                <tr><td>TAB</td><td>becomes a space (there are no tab stops here)</td></tr>
+                <tr><td>two or more breaks</td><td>at most ONE empty line - a bounded blank</td></tr>
+                <tr><td>a trailing break</td><td>dropped: no empty last line</td></tr>
+            </table>
+<pre><code>thread.paragraphs_of (some_text)   <span class="comment">-- the cut, public and contracted</span>
+thread.display_text (i)            <span class="comment">-- message i as the bubble SHOWS it</span></code></pre>
+            <p>Wrapping applies WITHIN a paragraph and a bubble's height is its real line count.
+            <code>wrapped</code> is public now and honours breaks.</p>
+        </section>
+
+        <section id="selection">
+            <h2>Selecting and copying (0.6.0)</h2>
+            <p>A bubble is selectable text, not a picture of text. Press and drag to select;
+            double-click takes the word; Escape clears; Ctrl+C - or the right-click menu (Copy,
+            Select Message, Select None) - copies through <code>SW_CLIPBOARD</code>, the same door
+            <code>SW_TEXT_BOX</code> uses.</p>
+<pre><code>thread.has_selection      <span class="comment">-- is there a range?</span>
+thread.selected_text      <span class="comment">-- exactly what copy_selection hands the clipboard</span>
+thread.select_message (2) <span class="comment">-- the whole of bubble 2</span>
+thread.clear_selection</code></pre>
+            <p>Granularity is per CHARACTER on the toy path and per GLYPH CLUSTER on the shaped
+            path, walked over <code>GLYPH_RUN</code>'s own <code>cluster_map</code> and
+            <code>x_positions</code> - <code>SHAPED_LINE</code> reserves
+            <code>character_index_at_x</code> for a future simple_shaping cycle and does not
+            implement it. In a right-to-left run the boundary at a cluster's LEFT edge is the caret
+            AFTER that character.</p>
+            <p><strong>Selection lives inside ONE bubble.</strong> A drag that wanders out runs to
+            the anchor bubble's own ends and stops. A thread is a list of utterances by different
+            speakers; a range spanning three of them has no honest text to hand the clipboard.
+            Cross-bubble selection is not supported and is not planned.</p>
+            <p>A press inside a bubble is CONSUMED now (the pane needs the pointer capture to
+            receive the drag) and <code>cursor_kind</code> is the I-beam. A press on bare pane
+            clears the selection and still bubbles up, as before.</p>
+        </section>
+
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
                 <li>Plain text bubbles - links, code spans and images await the rich-text substrate.</li>
+                <li>Selection is within ONE bubble. Cross-bubble selection is deliberately not
+                supported.</li>
+                <li>A run of blank lines collapses to one empty line, and a trailing blank line is
+                dropped. Deliberate: a bubble must not be inflatable by padding.</li>
                 <li>Shaped bubbles are left-aligned inside the bubble whatever the paragraph
                 direction; an RTL paragraph is not yet right-aligned to the bubble's inner edge.</li>
                 <li>The shaping kit needs its runnable folder: <code>cairo.dll</code>,
@@ -89,6 +146,9 @@ th.append_to_last (<span <span class="keyword">class</span>="string">&quot;ld&qu
             <h2>Bugs &amp; gotchas</h2>
             <ul>
                 <li>Bubble heights are measured during draw; content_h is 0 before the first frame - scroll math self-corrects at that frame.</li>
+                <li>Hit-testing answers from the geometry the LAST draw recorded. Before the first
+                frame, and for a message added since it, a press finds no bubble and simply clears
+                the selection.</li>
             </ul>
         </section>
 
