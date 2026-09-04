@@ -331,8 +331,21 @@ feature -- Operation
 			-- down, and must never try (no keystroke is posted to any
 			-- desktop here). For a harness with no HWND and so no native
 			-- queue to draw a key event from.
+			--
+			-- MODALITY COMES FIRST, exactly as `dispatch' orders it: an open
+			-- popup owns the keyboard, so the key goes through `dispatch'
+			-- itself and reaches `dispatch_to_popup' - the shipped branch,
+			-- not a copy of it. Without this the door ran `route_key_down'
+			-- unconditionally and could never see the popup path at all,
+			-- which is how an arrow-key assault came to pass with the arrow
+			-- keys unrouted. Arrows carry no modifiers, so nothing is lost
+			-- by `dispatch' not taking them.
 		do
-			route_key_down (a_vk, a_ctrl, a_alt, a_shift)
+			if popup /= Void then
+				dispatch (4, a_vk, 0)
+			else
+				route_key_down (a_vk, a_ctrl, a_alt, a_shift)
+			end
 		end
 
 feature {NONE} -- Dispatch
@@ -468,6 +481,14 @@ feature {NONE} -- Dispatch internals
 						end
 						after_input
 					end
+				end
+			when 4 then
+					-- THE ARROW GAP. Type 4 is the VIRTUAL KEY, and it used to
+					-- fall into the `else' below and be discarded: the menu
+					-- opened on Alt+F and then answered nothing but letters and
+					-- Escape. Every Windows menu walks under the arrows.
+				if navigate_open_menu (a_x) then
+					after_input
 				end
 			when 6 then
 				blit
@@ -810,6 +831,86 @@ feature -- Menu bar and mnemonics
 			if attached menu_bar as mb and then mb.is_enabled then
 				idx := mb.menu_for_mnemonic (a_typed)
 				if idx > 0 then
+					mb.open_menu (painter, idx)
+					if attached mb.take_pending_menu as pm then
+						b := mb.pad_bounds (painter, idx)
+						show_popup (pm, b.left.truncated_to_integer,
+							(mb.y + mb.height + 2.0).truncated_to_integer)
+						Result := True
+					end
+				end
+			end
+		ensure
+			opened_when_answered: Result implies popup /= Void
+		end
+
+	navigate_open_menu (a_vk: INTEGER): BOOLEAN
+			-- Walk the open menu with the keys every Windows menu answers:
+			-- Down and Up move the highlight over separators and disabled
+			-- items, Home and End jump to the ends, Enter runs what is
+			-- highlighted, Escape closes, and Left and Right step to the
+			-- neighbouring pad and open ITS menu. True when the key was
+			-- consumed, so the caller knows whether to redraw.
+			--
+			-- Public for the same reason `activate_mnemonic' is: it is the
+			-- whole gesture, it is what a test can drive without a message
+			-- pump, and a host may want it from somewhere other than the
+			-- key it arrived on.
+		local
+			act: detachable PROCEDURE
+		do
+			if attached popup as m then
+				inspect a_vk
+				when 40 then -- DOWN
+					m.hover_next
+					Result := True
+				when 38 then -- UP
+					m.hover_previous
+					Result := True
+				when 36 then -- HOME
+					m.hover_first
+					Result := True
+				when 35 then -- END
+					m.hover_last
+					Result := True
+				when 27 then -- ESCAPE
+					close_popup
+					Result := True
+				when 13 then -- ENTER
+						-- The action is read BEFORE the close, because closing
+						-- drops the menu this index belongs to; and it is called
+						-- AFTER, so an action that opens a dialog is not fighting
+						-- a popup that is still up. Same order as the click path.
+					act := m.hovered_action
+					close_popup
+					if attached act as a then
+						a.call
+					end
+					Result := True
+				when 39 then -- RIGHT
+					Result := open_neighbour_pad (1)
+				when 37 then -- LEFT
+					Result := open_neighbour_pad (-1)
+				else
+						-- anything else stays swallowed, as it always was
+				end
+			end
+		end
+
+	open_neighbour_pad (a_step: INTEGER): BOOLEAN
+			-- Close the open menu and open the one `a_step' along the bar,
+			-- wrapping. Nothing happens, and nothing closes, when there is
+			-- no bar or no other enabled pad to go to.
+		require
+			stepping: a_step = 1 or a_step = -1
+		local
+			idx: INTEGER
+			b: TUPLE [left, width: REAL_64]
+		do
+			if attached menu_bar as mb and then mb.is_enabled then
+				idx := mb.neighbour_pad (mb.last_opened_pad, a_step)
+				if idx > 0 then
+					close_popup
 					mb.open_menu (painter, idx)
 					if attached mb.take_pending_menu as pm then
 						b := mb.pad_bounds (painter, idx)
