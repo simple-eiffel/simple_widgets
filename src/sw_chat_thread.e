@@ -187,6 +187,8 @@ inherit
 			accepts_focus, cursor_kind
 		end
 
+	SW_CLUSTER_MATH
+
 create
 	make
 
@@ -1905,20 +1907,6 @@ feature {NONE} -- Hit testing: the shaped path
 			positive: Result >= 1
 		end
 
-	cluster_x (a_run: GLYPH_RUN; a_char: INTEGER): REAL_64
-			-- The x of the cluster that renders paragraph-relative
-			-- character `a_char' of `a_run' (1 .. `source_count').
-		require
-			in_range: a_char >= 1 and a_char <= a_run.source_count
-		local
-			g: INTEGER
-		do
-			g := a_run.cluster_map [a_run.cluster_map.lower + a_char - 1]
-			if g >= 1 and then g <= a_run.x_positions.count then
-				Result := a_run.x_positions [a_run.x_positions.lower + g - 1]
-			end
-		end
-
 	draw_shaped_selection_line (a_p: SW_PAINTER; a_message: INTEGER;
 			a_rec: TUPLE [lo, hi: INTEGER; top, h: REAL_64; pidx, lidx: INTEGER];
 			a_lo, a_hi: INTEGER; a_ix, a_iy: REAL_64)
@@ -1972,36 +1960,6 @@ feature {NONE} -- Hit testing: the shaped path
 					end
 					run_left := run_left + rn.advance_width
 					r := r + 1
-				end
-			end
-		end
-
-	char_left_x (a_run: SHAPED_RUN; a_char: INTEGER): REAL_64
-			-- The left pixel edge of run-relative character `a_char'.
-		require
-			in_range: a_char >= 1 and a_char <= a_run.source_count
-		do
-			if attached {GLYPH_RUN} a_run as g then
-				Result := cluster_x (g, a_char)
-			end
-		end
-
-	char_right_x (a_run: SHAPED_RUN; a_char: INTEGER): REAL_64
-			-- The right pixel edge of run-relative character `a_char':
-			-- the NEXT cluster's left edge in a left-to-right run, the
-			-- PREVIOUS one's in a right-to-left run, and the run's own
-			-- right edge at whichever end that is.
-		require
-			in_range: a_char >= 1 and a_char <= a_run.source_count
-		do
-			Result := a_run.advance_width
-			if attached {GLYPH_RUN} a_run as g then
-				if g.is_rtl then
-					if a_char > 1 then
-						Result := cluster_x (g, a_char - 1)
-					end
-				elseif a_char < g.source_count then
-					Result := cluster_x (g, a_char + 1)
 				end
 			end
 		end

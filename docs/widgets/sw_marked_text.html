@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Highlights: SW_MARKED_TEXT and its kin - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>Highlights</h1>
+        <p class="tagline">Data behind the text: spans with reasons, a legend of looks, a palette that stays readable, a painter that follows the words.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>Seven classes, four concerns kept apart:</p>
+            <ul>
+                <li><strong>SW_MARK</strong> - what a highlight <em>looks like</em>: one of twelve hues through any combination of a wash behind the text, 0-3 box rules around it, 0-2 outlines traced around the glyphs, the glyphs coloured in the hue's ink, bold, italic. A value with a short <code>code</code> that round-trips through any store.</li>
+                <li><strong>SW_MARK_PALETTE</strong> - the twelve hues as an ink and a wash per theme, <em>held by contract</em>: every wash reads under the theme's ink at 4.5:1, every ink reads on the surface at 3:1, on light and dark alike.</li>
+                <li><strong>SW_MARK_LEGEND</strong> - what a highlight <em>means</em>: the application's reasons ("pronounce", "slow", "stale"), each with a look, a label and an optional one- or two-character badge. Re-theme a reason and every span carrying it changes at the next paint.</li>
+                <li><strong>SW_MARK_SPAN</strong> and <strong>SW_MARKED_TEXT</strong> - the data behind the text: spans by id with a reason, an optional explicit look and an annotation; add, remove, restyle, re-reason, resize; and the arithmetic that keeps them honest as the text is edited (insert inside grows, at the start shifts, at the end does not grow; delete across trims; a collapsed span is dropped). A line-per-span codec for any store.</li>
+                <li><strong>SW_TEXT_GEOMETRY</strong> - where every character paints on either engine, lifted out of the text box so a highlight, a caret and a hit-test read one object.</li>
+                <li><strong>SW_MARK_PAINTER</strong> - washes under the text, then the effects and boxes over it, with a size policy: below one pixel size the glyph effects and badges are dropped, below another only the wash remains.</li>
+                <li><strong>SW_MARK_LEGEND_VIEW</strong> - the legend drawn as a key with live swatches; a click hands the reason back.</li>
+            </ul>
+            <p><a href="sw_text_box.html">SW_TEXT_BOX</a> carries a <code>marks</code> and a <code>legend</code> and tells the marks about every edit, undo and redo included; <a href="sw_paragraph_list.html">SW_PARAGRAPH_LIST</a> keeps one marked text per paragraph and hands the same object to its in-place editor.</p>
+            <p class="muted"><em>Source: <code>src/sw_mark*.e</code>, <code>src/sw_marked_text.e</code>, <code>src/sw_text_geometry.e</code> &middot; since 0.8.0 (2026-09-06), built for simple_narrate's speaking functions.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A palette of speaking functions</h2>
+<pre><code><span class="keyword">create</span> legend.make
+<span class="keyword">create</span> m.make ({SW_MARK}.Hue_red)
+legend.define (<span class="string">"pronounce"</span>, m.with_outline (1), <span class="string">"Say it this way"</span>)
+legend.set_badge (<span class="string">"pronounce"</span>, <span class="string">"P"</span>)
+<span class="keyword">create</span> m.make ({SW_MARK}.Hue_teal)
+legend.define (<span class="string">"slow"</span>, m.with_wash.italic, <span class="string">"Slow down"</span>)
+box.set_legend (legend)
+<span class="comment">-- the user selects "qodesh" and picks "pronounce" from the legend view:</span>
+id := box.marks.mark_range (box.sel_anchor.min (box.caret), box.sel_anchor.max (box.caret), <span class="string">"pronounce"</span>)
+box.marks.span (id).set_annotation (<span class="string">"koh-DESH"</span>)
+<span class="comment">-- later: box.marks.remove (id) / restyle (id, other) / rereason (id, "slow")</span>
+session.put_marks (block_id, box.marks.code)   <span class="comment">-- any store</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Text outlines, bold and italic are approximations - offset passes and a shear - because the substrate strokes no glyph paths and the shaping facade shapes regular upright only. They never change a glyph's advance, which is the point.</li>
+                <li>A span is a flat range; nested structure is the application's to model with reasons.</li>
+                <li>The size floors are pixel sizes, not points; the painter reads the theme's body size times its scale.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li><code>set_text</code> on a text box clears its marks; a host that wants them to outlive a text swap keeps its own object through <code>set_marks</code>.</li>
+                <li>A reason the legend does not know paints nothing; <code>unresolved</code> names such reasons so the application can notice.</li>
+                <li>Typing at the very end of a highlighted word does not extend the highlight; typing inside it does.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>A span-aware context menu on the text box (remove, change reason); hover tooltips reading the annotation; true glyph-path outlines if the substrate gains them.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>

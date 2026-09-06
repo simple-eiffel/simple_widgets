@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_PARAGRAPH_LIST - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_PARAGRAPH_LIST</h1>
+        <p class="tagline">Paragraphs of different heights, measured not guessed; a selection set with an anchor; one paragraph editable in place.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>The document editor's spine. Where <a href="sw_list.html">SW_LIST</a> is uniform row height by design, a paragraph is as tall as its own wrap makes it: every paragraph is measured (through the window's shaping kit when the painter carries one - Hebrew, Greek, emoji - or cairo's advances when not), cached by a per-paragraph revision so unchanged text is never re-shaped, and only the paragraphs inside the viewport are painted.</p>
+            <p>The list knows nothing about its paragraphs beyond their text. What stands in the gutter, what the bands above and below hold, and what colour washes a row are the host's, through agents - a narration studio puts a severity stripe, a voice dot and a fidelity chip there; a notes app puts a date.</p>
+            <p><strong>Editing in place.</strong> <code>begin_edit</code> lays a real <a href="sw_text_box.html">SW_TEXT_BOX</a> over the paragraph so its text origin lands exactly where the paragraph was painted. The paragraph follows every keystroke (its height reflows live), the host hears <code>on_edit_change</code>, Escape cancels and restores, and <code>end_edit (True)</code> - or a click on another paragraph - commits through <code>on_edit_commit</code>. The list forwards keys to the editor while it holds focus itself, so typing works the instant the edit begins.</p>
+            <p><strong>Selection.</strong> <code>selected_index</code> is the anchor; <code>is_selected</code> is the set. Plain click selects only, Ctrl toggles, Shift ranges from the anchor. Assigning one property to six paragraphs is one gesture.</p>
+            <p><strong>Highlights.</strong> Every paragraph has its own <a href="sw_marked_text.html">SW_MARKED_TEXT</a> (<code>marks_of</code>) painted through <code>legend</code>; the in-place editor is handed the same object, so a span follows every keystroke and a cancelled edit restores the marks with the text.</p>
+            <p class="muted"><em>Source: <code>src/sw_paragraph_list.e</code> &middot; since 0.8.0 (2026-09-05), built for simple_narrate's Studio.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>A block list with a gutter</h2>
+<pre><code><span class="keyword">create</span> blocks.make (480.0)
+blocks.set_gutter_width (36.0)
+blocks.set_gutter_renderer (<span class="keyword">agent</span> draw_stripe_and_dot)
+blocks.set_wash_of (<span class="keyword">agent</span> wash_for_state)
+blocks.set_on_activate (<span class="keyword">agent</span> blocks.begin_edit)
+blocks.set_on_edit_commit (<span class="keyword">agent</span> session.set_block_text)
+<span class="keyword">across</span> session.blocks <span class="keyword">as</span> b <span class="keyword">loop</span> blocks.add (b.text) <span class="keyword">end</span>
+blocks.set_band_above (5, 22.0)   <span class="comment">-- a plate rule above block 5</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>One editor at a time; opening a second edit commits or requires ending the first.</li>
+                <li>Every paragraph is measured for the scrollbar to be honest - fine at hundreds, worth a windowed measure at tens of thousands.</li>
+                <li>Paragraph text is plain; inline emphasis is the host's to draw in a band or the gutter, v1.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Geometry queries (<code>item_top</code>, <code>item_height</code>, <code>item_at</code>) answer only after <code>arrange</code> or <code>draw</code>; <code>is_laid_out</code> says whether they may be asked.</li>
+                <li>A click on another paragraph while editing <em>commits</em> - by design; cancel is Escape.</li>
+                <li>Ctrl and Shift are read from the live keyboard (SW_KEYS); a headless test drives the set through <code>toggle_select</code> and <code>select_range</code> instead.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>Drag-to-reorder with a drop line; a split-at-caret command surfacing the editor's offset; a windowed measure for very long documents.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>
