@@ -10,6 +10,21 @@ note
 		The change agent fires after every edit, so the host owns what
 		an edit MEANS (marking a block dirty, validating a number);
 		this widget only owns what an edit IS.
+
+		GEOMETRY (0.8.0). Where every character paints - on cairo's toy
+		path or through the window's shaping kit, bidi and all - is
+		SW_TEXT_GEOMETRY's, rebuilt when the text, the width, the size
+		or the engine changes. The caret, the selection, the squiggles
+		and the highlights all read it.
+
+		HIGHLIGHTS (0.8.0). `marks' is the data behind the text - the
+		spans a host lays over it with a REASON each (SW_MARKED_TEXT),
+		and `legend' says what a reason looks like (SW_MARK_LEGEND).
+		Every edit path here tells `marks' what moved, so a span
+		follows its words through typing, deleting, pasting, undo and
+		redo; SW_MARK_PAINTER paints washes under the text and the
+		effects and boxes over it. A host that wants the marks to
+		outlive `set_text' keeps its own reference through `set_marks'.
 	]"
 
 class
@@ -23,6 +38,8 @@ inherit
 			context_menu, accepts_pebble, receive_pebble, cursor_kind
 		end
 
+	SW_CLUSTER_MATH
+
 create
 	make, make_single_line, make_password
 
@@ -35,10 +52,9 @@ feature {NONE} -- Initialization
 			create spell_ranges.make (8)
 			is_spellcheck_enabled := True
 			spell_dirty := True
-			create lay_x.make (text.count + 8)
-			create lay_adv.make (text.count + 8)
-			create lay_line.make (text.count + 8)
-			lay_lines := 1
+			create geometry.make
+			create marks.make (text.count)
+			create mark_painter.make
 			layout_width := -1.0
 		ensure
 			text_kept: text.same_string_general (a_text)
@@ -160,6 +176,38 @@ feature -- Status
 			empty_without_selection: not has_selection implies Result.is_empty
 		end
 
+feature -- Highlights
+
+	marks: SW_MARKED_TEXT
+			-- The data behind the text: spans with reasons, following
+			-- every edit made here.
+
+	legend: detachable SW_MARK_LEGEND
+			-- What a reason looks like; Void paints only spans that
+			-- carry their own mark.
+
+	mark_painter: SW_MARK_PAINTER
+			-- Paints `marks'; set its size floors here.
+
+	set_marks (a_marks: SW_MARKED_TEXT)
+			-- Share `a_marks' (a host keeping the data behind several
+			-- boxes, or a paragraph list seating an editor); it is
+			-- clamped to the text on the spot.
+		do
+			marks := a_marks
+			marks.clamp_to (text.count)
+		ensure
+			shared: marks = a_marks
+			fits: marks.text_count = text.count
+		end
+
+	set_legend (a_legend: detachable SW_MARK_LEGEND)
+		do
+			legend := a_legend
+		ensure
+			set: legend = a_legend
+		end
+
 feature -- Undo and redo (the most-missed feature, landed)
 
 	can_undo: BOOLEAN
@@ -178,13 +226,14 @@ feature -- Undo and redo (the most-missed feature, landed)
 		require
 			something: can_undo
 		local
-			snap: TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER]
+			snap: TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER; snap_marks: STRING_32]
 		do
-			redo_stack.extend ([text.twin, caret, sel_anchor])
+			redo_stack.extend ([text.twin, caret, sel_anchor, marks.code])
 			snap := undo_stack.last
 			undo_stack.finish
 			undo_stack.remove
 			text := snap.snapshot.twin
+			marks.copy_from (create {SW_MARKED_TEXT}.make_from_code (text.count, snap.snap_marks))
 			caret := snap.snap_caret.min (text.count)
 			sel_anchor := snap.snap_anchor.min (text.count)
 			last_edit_kind := 0
@@ -197,13 +246,14 @@ feature -- Undo and redo (the most-missed feature, landed)
 		require
 			something: can_redo
 		local
-			snap: TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER]
+			snap: TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER; snap_marks: STRING_32]
 		do
-			undo_stack.extend ([text.twin, caret, sel_anchor])
+			undo_stack.extend ([text.twin, caret, sel_anchor, marks.code])
 			snap := redo_stack.last
 			redo_stack.finish
 			redo_stack.remove
 			text := snap.snapshot.twin
+			marks.copy_from (create {SW_MARKED_TEXT}.make_from_code (text.count, snap.snap_marks))
 			caret := snap.snap_caret.min (text.count)
 			sel_anchor := snap.snap_anchor.min (text.count)
 			last_edit_kind := 0
@@ -218,12 +268,12 @@ feature {NONE} -- Undo machinery
 	Kind_deleting: INTEGER = 2
 	Kind_block: INTEGER = 3
 
-	undo_stack: ARRAYED_LIST [TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER]]
+	undo_stack: ARRAYED_LIST [TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER; snap_marks: STRING_32]]
 		attribute
 			create Result.make (8)
 		end
 
-	redo_stack: ARRAYED_LIST [TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER]]
+	redo_stack: ARRAYED_LIST [TUPLE [snapshot: STRING_32; snap_caret, snap_anchor: INTEGER; snap_marks: STRING_32]]
 		attribute
 			create Result.make (4)
 		end
@@ -235,13 +285,27 @@ feature {NONE} -- Undo machinery
 			-- same kind coalesce into one step, blocks never do.
 		do
 			if a_kind = Kind_block or a_kind /= last_edit_kind then
-				undo_stack.extend ([text.twin, caret, sel_anchor])
+				undo_stack.extend ([text.twin, caret, sel_anchor, marks.code])
 				redo_stack.wipe_out
 			end
 			last_edit_kind := a_kind
 		end
 
 feature -- Clipboard and selection commands
+
+	set_caret (a_offset: INTEGER)
+			-- Put the caret at `a_offset' with nothing selected - the
+			-- host seating a fresh editor at the END of its text, say.
+		require
+			in_range: a_offset >= 0 and a_offset <= text.count
+		do
+			caret := a_offset
+			sel_anchor := a_offset
+			extra_ranges.wipe_out
+		ensure
+			placed: caret = a_offset
+			collapsed: not has_selection
+		end
 
 	select_all
 		do
@@ -345,6 +409,7 @@ feature -- Clipboard and selection commands
 						delete_selection
 					end
 					text.insert_string (s, caret + 1)
+					marks.text_inserted (caret, s.count)
 					caret := caret + s.count
 					sel_anchor := caret
 					changed
@@ -363,6 +428,8 @@ feature -- Element change
 			redo_stack.wipe_out
 			last_edit_kind := 0
 			create text.make_from_string_general (a_text)
+			marks.clear
+			marks.clamp_to (text.count)
 			caret := caret.min (text.count)
 			sel_anchor := caret
 			extra_ranges.wipe_out
@@ -483,9 +550,7 @@ feature -- Layout
 			-- theme's `control_inset' above and below).
 		do
 			ensure_layout (a_p, a_width - 2.0 * Pad_x)
-			a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
-			Result := (lay_lines * row_height (a_p) + 2.0 * Pad_y)
-				.max (a_p.min_control_height)
+			Result := (content_height + 2.0 * Pad_y).max (a_p.min_control_height)
 		ensure then
 			at_least_the_minimum: Result >= a_p.min_control_height
 		end
@@ -493,20 +558,23 @@ feature -- Layout
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
+			-- The field; the highlight washes; the text through whichever
+			-- engine laid it out; the squiggles; the highlight effects
+			-- and boxes; the caret over everything.
 		local
 			t: SW_THEME
-			i, n, lo, hi: INTEGER
-			gx, gy, gw, cx, cy, row, base, asc, ext: REAL_64
+			i, n, ln: INTEGER
+			gx, gy, gw, cx, cy, asc, ext, ox, oy, px: REAL_64
 			seln: BOOLEAN
 		do
 			t := a_p.theme
 			ensure_layout (a_p, width - 2.0 * Pad_x)
-			row := row_height (a_p)
-			base := row_baseline (a_p)
 			a_p.font ({SW_PAINTER}.Role_body, t.size_body, False)
 			asc := a_p.font_ascent
 			ext := a_p.text_extent
-			laid_row_h := row
+			ox := x + Pad_x
+			oy := y + Pad_y
+			px := t.size_body * t.text_scale
 			if is_invalid then
 				a_p.set_color (t.wash_danger)
 			else
@@ -530,29 +598,58 @@ feature -- Drawing
 				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
 			end
 			n := text.count
-			lo := sel_anchor.min (caret)
-			hi := sel_anchor.max (caret)
-			from
-				i := 1
-			until
-				i > n
-			loop
-				gx := x + Pad_x + lay_x.i_th (i)
-				gy := y + Pad_y + lay_line.i_th (i) * row + base
-				gw := lay_adv.i_th (i)
-				seln := is_focused and then has_selection and then is_char_selected (i)
-				if seln then
-					a_p.set_color (t.accent)
-					a_p.fill_rect (gx - 1.0, gy - asc, gw + 2.0, ext + 2.0)
+			if marks.text_count /= n then
+					-- a host that wrote `text' directly: never a crash
+				marks.clamp_to (n)
+			end
+			if not is_hiding then
+				mark_painter.paint_under (a_p, geometry, marks, legend, ox, oy)
+			end
+			if geometry.is_shaped then
+					-- the selection is a wash UNDER the glyphs on this path:
+					-- a shaped run paints as one stroke and cannot be
+					-- recoloured a character at a time
+				if is_focused and then has_selection then
+					a_p.set_color (t.wash_accent)
+					from
+						i := 1
+					until
+						i > n
+					loop
+						if is_char_selected (i) and then geometry.width_of (i) > 0.0 then
+							ln := geometry.line_of (i)
+							a_p.fill_rect (ox + geometry.x_of (i), oy + geometry.top_of_line (ln),
+								geometry.width_of (i), geometry.height_of_line (ln))
+						end
+						i := i + 1
+					end
 				end
-				a_p.font ({SW_PAINTER}.Role_body, t.size_body, False)
-				if seln then
-					a_p.set_color (t.surface)
-				else
-					a_p.set_color (t.ink)
+				a_p.set_color (t.ink)
+				draw_text_at (a_p, 0.0, 0.0)
+			else
+				from
+					i := 1
+				until
+					i > n
+				loop
+					ln := geometry.line_of (i)
+					gx := ox + geometry.x_of (i)
+					gy := oy + geometry.top_of_line (ln) + geometry.ascent_of_line (ln)
+					gw := geometry.width_of (i)
+					seln := is_focused and then has_selection and then is_char_selected (i)
+					if seln then
+						a_p.set_color (t.accent)
+						a_p.fill_rect (gx - 1.0, gy - asc, gw + 2.0, ext + 2.0)
+					end
+					a_p.font ({SW_PAINTER}.Role_body, t.size_body, False)
+					if seln then
+						a_p.set_color (t.surface)
+					else
+						a_p.set_color (t.ink)
+					end
+					a_p.text (gx, gy, glyph (i))
+					i := i + 1
 				end
-				a_p.text (gx, gy, glyph (i))
-				i := i + 1
 			end
 			refresh_spelling
 			across
@@ -563,18 +660,23 @@ feature -- Drawing
 				until
 					i > sr.hi or i > n
 				loop
-					gx := x + Pad_x + lay_x.i_th (i)
-					gy := y + Pad_y + lay_line.i_th (i) * row + base
+					ln := geometry.line_of (i)
+					gx := ox + geometry.x_of (i)
+					gy := oy + geometry.top_of_line (ln) + geometry.ascent_of_line (ln)
 					a_p.set_color (t.danger)
-					a_p.fill_rect (gx, gy + 3.5, lay_adv.i_th (i) + 1.0, 1.6)
+					a_p.fill_rect (gx, gy + 3.5, geometry.width_of (i) + 1.0, 1.6)
 					i := i + 1
 				end
 			end
+			if not is_hiding then
+				mark_painter.paint_over (a_p, geometry, marks, legend, ox, oy, px, agent draw_text_at)
+			end
 			if is_focused then
-				cx := x + Pad_x + caret_x
-				cy := y + Pad_y + caret_line * row + base
+				ln := geometry.line_at_offset (caret)
+				cx := ox + geometry.x_at_offset (caret)
+				cy := oy + geometry.top_of_line (ln)
 				a_p.set_color (t.danger)
-				a_p.fill_rect (cx, cy - asc - 1.0, 2.0, ext + 3.0)
+				a_p.fill_rect (cx, cy, 2.0, geometry.height_of_line (ln))
 			end
 			if shows_clear then
 					-- the clear X: muted at rest, danger under the pointer
@@ -601,6 +703,41 @@ feature -- Drawing
 				a_p.rrect_fill (cx - 2.5, cy - 2.5, 5.0, 5.0, 2.5)
 				if is_revealed then
 					a_p.line (cx - 8.0, cy + 6.0, cx + 8.0, cy - 6.0, 1.6)
+				end
+			end
+		end
+
+	draw_text_at (a_p: SW_PAINTER; a_dx, a_dy: REAL_64)
+			-- The whole text shifted by (a_dx, a_dy) from its origin, in
+			-- the painter's current colour - what the highlight painter
+			-- redraws through for its effects.
+		local
+			i, ln: INTEGER
+			ox, oy: REAL_64
+		do
+			ox := x + Pad_x + a_dx
+			oy := y + Pad_y + a_dy
+			if geometry.is_shaped then
+				from
+					i := 1
+				until
+					i > geometry.layouts.count
+				loop
+					a_p.draw_shaped_layout (geometry.layouts.i_th (i), ox, oy + geometry.para_tops.i_th (i))
+					i := i + 1
+				end
+			else
+				a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
+				from
+					i := 1
+				until
+					i > geometry.count
+				loop
+					if not geometry.is_break (i) then
+						ln := geometry.line_of (i)
+						a_p.text (ox + geometry.x_of (i), oy + geometry.top_of_line (ln) + geometry.ascent_of_line (ln), glyph (i))
+					end
+					i := i + 1
 				end
 			end
 		end
@@ -727,6 +864,7 @@ feature -- Input
 						delete_selection
 					elseif caret > 0 then
 						text.remove (caret)
+						marks.text_removed (caret - 1, caret)
 						caret := caret - 1
 						sel_anchor := caret
 					end
@@ -741,6 +879,7 @@ feature -- Input
 					else
 						text.insert_character (a_code.to_character_32, caret + 1)
 					end
+					marks.text_inserted (caret, 1)
 					caret := caret + 1
 					sel_anchor := caret
 					changed
@@ -766,6 +905,7 @@ feature -- Input
 					delete_selection
 				end
 				text.insert_string (s, caret + 1)
+				marks.text_inserted (caret, s.count)
 				caret := caret + s.count
 				sel_anchor := caret
 				changed
@@ -852,6 +992,7 @@ feature -- Input
 						changed
 					elseif caret < text.count then
 						text.remove (caret + 1)
+						marks.text_removed (caret, caret + 1)
 						changed
 					end
 				end
@@ -859,104 +1000,146 @@ feature -- Input
 			end
 		end
 
+feature -- Caret geometry
+
+	geometry: SW_TEXT_GEOMETRY
+			-- Where every character paints, for the current text, width,
+			-- size and engine (see `ensure_layout').
+
+	line_count: INTEGER
+			-- Visual lines the last layout produced; 1 before any.
+		do
+			Result := geometry.line_count
+		ensure
+			at_least_one: Result >= 1
+		end
+
+	is_shaped_layout: BOOLEAN
+			-- Did the last layout come from the shaping kit (bidi,
+			-- itemization, fallback) rather than cairo's toy path?
+		do
+			Result := geometry.is_shaped
+		end
+
+	is_laid_out: BOOLEAN
+			-- Has the current text been measured (by `preferred_height'
+			-- or `draw')? The geometry queries answer for the text on
+			-- screen only.
+		do
+			Result := geometry.count = text.count
+		ensure
+			definition: Result = (geometry.count = text.count)
+		end
+
+	is_rtl_at (a_i: INTEGER): BOOLEAN
+			-- Does character `a_i' paint in a right-to-left run?
+			-- Always False on the toy path.
+		require
+			in_text: a_i >= 1 and a_i <= text.count
+			laid_out: is_laid_out
+		do
+			Result := geometry.is_rtl (a_i)
+		end
+
+	line_at_offset (a_offset: INTEGER): INTEGER
+			-- The 0-based visual line the caret stands on at `a_offset'.
+		require
+			in_range: a_offset >= 0 and a_offset <= text.count
+		do
+			if is_laid_out then
+				Result := geometry.line_at_offset (a_offset)
+			end
+		ensure
+			in_lines: Result >= 0 and Result < line_count
+		end
+
+	x_at_offset (a_offset: INTEGER): REAL_64
+			-- Where the caret stands at `a_offset', measured from the
+			-- text's left edge: AFTER character `a_offset' in reading
+			-- order - its right edge in a left-to-right run, its LEFT
+			-- edge in a right-to-left one - and before the first
+			-- character at offset 0.
+		require
+			in_range: a_offset >= 0 and a_offset <= text.count
+		do
+			if is_laid_out then
+				Result := geometry.x_at_offset (a_offset)
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	offset_at (a_px, a_py: REAL_64): INTEGER
+			-- The caret offset nearest a window point: the line under
+			-- `a_py', then the nearest caret boundary along it.
+		do
+			if is_laid_out then
+				Result := geometry.offset_at (a_px - x - Pad_x, a_py - y - Pad_y)
+			end
+		ensure
+			in_range: Result >= 0 and Result <= text.count
+		end
+
+	content_height: REAL_64
+			-- The stacked height of every laid-out line.
+		do
+			Result := geometry.content_height
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+feature -- Metrics
+
+	Pad_x: REAL_64 = 9.0
+	Pad_y: REAL_64 = 6.0
+			-- The field's own inside inset at 1x: the text origin is
+			-- (x + Pad_x, y + Pad_y), which is what `x_at_offset' and
+			-- `offset_at' are measured against. (The HEIGHT minimum is
+			-- theme- and metric-driven; see `preferred_height'.)
+
 feature {NONE} -- Engine
 
 	Eye_zone: REAL_64 = 30.0
 			-- Right-edge click zone of a masked box: the reveal eye.
 
-	Pad_x: REAL_64 = 9.0
-	Pad_y: REAL_64 = 6.0
-			-- The field's own inside inset at 1x. (The HEIGHT minimum is
-			-- theme- and metric-driven; see `preferred_height'.)
-
-	laid_row_h: REAL_64
-			-- The row height the last paint used, so the caret hit test
-			-- agrees with what is on screen at any scale; 0 before the
-			-- first paint.
-
-	lay_x: ARRAYED_LIST [REAL_64]
-	lay_adv: ARRAYED_LIST [REAL_64]
-	lay_line: ARRAYED_LIST [INTEGER]
-	lay_lines: INTEGER
 	layout_width: REAL_64
 			-- Width the cached layout was measured at; -1 forces rebuild.
+	laid_size: INTEGER
+			-- Pixel size the cached layout was shaped at.
+	laid_shaped: BOOLEAN
+			-- Did the cached layout come from the shaping kit?
 
 	ensure_layout (a_p: SW_PAINTER; a_wrap: REAL_64)
-			-- Measure-then-place: one slot per character, greedy word
-			-- wrap, spaces never wrapping. Cached against width.
+			-- Measure-then-place, cached against width, size and engine:
+			-- the shaping kit when the painter carries one and the text
+			-- is not masked, cairo's toy advances otherwise.
 		local
-			n, i, j, k, line: INTEGER
-			cx, ww: REAL_64
+			want_shaped: BOOLEAN
+			px, wpx: INTEGER
 		do
-			if layout_width /= a_wrap or lay_x.count /= text.count then
+			want_shaped := a_p.has_shaping and not is_hiding
+			px := (a_p.theme.size_body * a_p.theme.text_scale).rounded.max (1)
+			if layout_width /= a_wrap or geometry.count /= text.count
+				or laid_shaped /= want_shaped or laid_size /= px
+			then
 				layout_width := a_wrap
-				lay_x.wipe_out
-				lay_adv.wipe_out
-				lay_line.wipe_out
-				a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
-				n := text.count
-				from
-					i := 1
-					cx := 0.0
-					line := 0
-				until
-					i > n
-				loop
-					if text.item (i) = '%N' and then not is_hiding then
-						lay_x.extend (cx)
-						lay_adv.extend (0.0)
-						lay_line.extend (line)
-						if not is_single_line then
-							line := line + 1
-							cx := 0.0
-						end
-						i := i + 1
-					elseif text.item (i) = ' ' and then not is_hiding then
-						lay_x.extend (cx)
-						lay_adv.extend (a_p.advance (" "))
-						lay_line.extend (line)
-						cx := cx + lay_adv.last
-						i := i + 1
+				laid_size := px
+				laid_shaped := want_shaped
+				if want_shaped and then attached a_p.shaping as al_kit then
+					if is_single_line then
+						wpx := 0
 					else
-						from
-							j := i
-						until
-							j >= n or else (not is_hiding and then (text.item (j + 1) = ' ' or else text.item (j + 1) = '%N'))
-						loop
-							j := j + 1
-						end
-						ww := 0.0
-						from
-							k := i
-						until
-							k > j
-						loop
-							ww := ww + a_p.advance (glyph (k))
-							k := k + 1
-						end
-						if not is_single_line and then cx > 0.0 and then cx + ww > a_wrap then
-							line := line + 1
-							cx := 0.0
-						end
-						from
-							k := i
-						until
-							k > j
-						loop
-							lay_x.extend (cx)
-							lay_adv.extend (a_p.advance (glyph (k)))
-							lay_line.extend (line)
-							cx := cx + lay_adv.last
-							k := k + 1
-						end
-						i := j + 1
+						wpx := a_wrap.floor.max (16)
 					end
+					geometry.build_shaped (al_kit, text, wpx, px, is_single_line)
+				else
+					a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
+					geometry.build_toy (a_p, text, a_wrap, is_single_line, is_hiding)
 				end
-				lay_lines := line + 1
 			end
 		ensure
-			one_slot_per_char: lay_x.count = text.count
-			at_least_one_line: lay_lines >= 1
+			laid_out: is_laid_out
+			engine_recorded: laid_shaped = (a_p.has_shaping and not is_hiding)
 		end
 
 	glyph (a_i: INTEGER): STRING_32
@@ -974,89 +1157,45 @@ feature {NONE} -- Engine
 
 	caret_line: INTEGER
 		do
-			if caret > 0 and caret <= lay_line.count then
-				Result := lay_line.i_th (caret)
-			end
+			Result := line_at_offset (caret)
 		end
 
 	caret_x: REAL_64
 		do
-			if caret > 0 and caret <= lay_x.count then
-				Result := lay_x.i_th (caret) + lay_adv.i_th (caret)
-			end
+			Result := x_at_offset (caret)
 		end
 
 	line_start (a_line: INTEGER): INTEGER
-		local
-			i: INTEGER
 		do
-			from
-				i := 1
-			until
-				i > lay_line.count or else lay_line.i_th (i) = a_line
-			loop
-				i := i + 1
+			if is_laid_out and then a_line >= 0 and then a_line < geometry.line_count then
+				Result := geometry.line_start (a_line)
 			end
-			Result := (i - 1).max (0)
+		ensure
+			in_range: Result >= 0 and Result <= text.count
 		end
 
 	line_end (a_line: INTEGER): INTEGER
-		local
-			i: INTEGER
 		do
-			Result := lay_line.count
-			from
-				i := 1
-			until
-				i > lay_line.count
-			loop
-				if lay_line.i_th (i) = a_line then
-					Result := i
-				end
-				i := i + 1
+			if is_laid_out and then a_line >= 0 and then a_line < geometry.line_count then
+				Result := geometry.line_end (a_line)
 			end
+		ensure
+			in_range: Result >= 0 and Result <= text.count
 		end
 
 	offset_on_line (a_line: INTEGER; a_px: REAL_64): INTEGER
-		local
-			i: INTEGER
-			found_any: BOOLEAN
 		do
-			Result := lay_line.count
-			from
-				i := 1
-			until
-				i > lay_line.count
-			loop
-				if lay_line.i_th (i) = a_line then
-					if not found_any and then a_px < lay_x.i_th (i) + lay_adv.i_th (i) / 2.0 then
-						Result := i - 1
-						found_any := True
-					elseif a_px >= lay_x.i_th (i) + lay_adv.i_th (i) / 2.0 then
-						Result := i
-					end
-				end
-				i := i + 1
+			if is_laid_out and then a_line >= 0 and then a_line < geometry.line_count then
+				Result := geometry.offset_on_line (a_line, a_px)
 			end
-		ensure
-			in_range: Result >= 0 and Result <= lay_line.count
-		end
-
-	offset_at (a_px, a_py: REAL_64): INTEGER
-			-- Caret position under a window point.
-		local
-			line: INTEGER
-			lh: REAL_64
-		do
-			if laid_row_h > 0.0 then
-				lh := laid_row_h
-			else
-				lh := 26.0
-			end
-			line := (((a_py - y - Pad_y) / lh).truncated_to_integer).max (0).min (lay_lines - 1)
-			Result := offset_on_line (line, a_px - x - Pad_x)
 		ensure
 			in_range: Result >= 0 and Result <= text.count
+		end
+
+	lay_lines: INTEGER
+			-- Visual lines, for the arrow keys.
+		do
+			Result := geometry.line_count
 		end
 
 	suggestion_texts (a_r: TUPLE [lo, hi: INTEGER]): ARRAYED_LIST [STRING_32]
@@ -1143,6 +1282,7 @@ feature {NONE} -- Engine
 					i < 1
 				loop
 					text.remove_substring (pieces.i_th (i).lo + 1, pieces.i_th (i).hi)
+					marks.text_removed (pieces.i_th (i).lo, pieces.i_th (i).hi)
 					i := i - 1
 				end
 				caret := first_lo
@@ -1239,7 +1379,11 @@ feature {NONE} -- Engine
 		do
 			create s.make_from_string_general (a_with)
 			text.remove_substring (a_lo + 1, a_hi)
+			marks.text_removed (a_lo, a_hi)
 			text.insert_string (s, a_lo + 1)
+			if not s.is_empty then
+				marks.text_inserted (a_lo, s.count)
+			end
 			caret := a_lo + s.count
 			sel_anchor := caret
 			changed
@@ -1247,6 +1391,8 @@ feature {NONE} -- Engine
 
 invariant
 	text_attached: text /= Void
+	geometry_attached: geometry /= Void
+	marks_attached: marks /= Void
 	caret_in_range: caret >= 0 and caret <= text.count
 	anchor_in_range: sel_anchor >= 0 and sel_anchor <= text.count
 	extras_attached: extra_ranges /= Void

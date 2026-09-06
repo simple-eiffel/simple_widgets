@@ -54,6 +54,10 @@ feature {NONE} -- Initialization
 			create accordion.make
 			create rating.make (3, 5, Void)
 			create toolbar.make
+			create studio_legend.make
+			create studio_list.make (250.0)
+			create studio_wave.make (72.0)
+			create studio_box.make ("")
 			create window.make ("simple_widgets demo", 2200, 10, 900, 1600, theme)
 				-- agents only from here down: every attached attribute is set
 			create danger_button.make ("Danger", Void)
@@ -305,6 +309,7 @@ feature {NONE} -- Initialization
 			tabs.add_page ("Dock", dock_page)
 			tabs.add_page ("Media", media_page)
 			tabs.add_page ("Chat", chat_page)
+			tabs.add_page ("Studio", studio_page)
 			tabs.set_on_change (agent on_tab_changed)
 			create Result.make_striped (a_theme.warning)
 			Result.put ((create {SW_LABEL}.make_ui ("SW_TABS %/8212/ pages swap; hover the bar")).as_muted)
@@ -1050,6 +1055,189 @@ feature {NONE} -- Behaviour
 			prompt_view.append_token ("echo: ")
 			prompt_view.append_token (a_text)
 			prompt_view.end_reply
+		end
+
+	studio_page: SW_COLUMN
+			-- 0.8.0, built for simple_narrate's Studio: a paragraph list
+			-- with a host-drawn gutter (stripe + dot) and a plate rule
+			-- band, HIGHLIGHTS from a legend of speaking functions (pick
+			-- a row while editing to apply it to the selection), a marked
+			-- shaped text box with Hebrew inside it, and a waveform fed
+			-- by a synthesized sampler with sentence markers.
+		local
+			row: SW_ROW
+			side: SW_COLUMN
+			lv: SW_MARK_LEGEND_VIEW
+			m: SW_MARK
+			t: STRING_32
+			id: INTEGER
+		do
+			create Result.make
+			Result := Result.with_padding (12.0).with_gap (10.0)
+			Result.put ((create {SW_LABEL}.make_ui ("0.8.0 Studio %/8212/ double-click a paragraph to edit it in place; select some words and click a legend row to lay that speaking function over them; Escape cancels, a click elsewhere commits")).as_muted)
+				-- the legend of speaking functions
+			create m.make ({SW_MARK}.Hue_red)
+			studio_legend.define ("pronounce", m.with_outline (1), "Say it this way")
+			studio_legend.set_badge ("pronounce", "P")
+			create m.make ({SW_MARK}.Hue_teal)
+			studio_legend.define ("slow", m.with_wash.italic, "Slow down")
+			create m.make ({SW_MARK}.Hue_violet)
+			studio_legend.define ("pause", m.with_box (2), "Hold after")
+			studio_legend.set_badge ("pause", "%/8214/")
+			create m.make ({SW_MARK}.Hue_amber)
+			studio_legend.define ("emphasis", m.colorized.bold, "Lean on it (advisory)")
+			create m.make ({SW_MARK}.Hue_blue)
+			studio_legend.define ("stale", m.with_wash.with_box (1), "Audio older than the text")
+				-- the paragraphs
+			studio_list.set_legend (studio_legend)
+			studio_list.set_gutter_width (34.0)
+			studio_list.set_gutter_renderer (agent studio_gutter)
+			studio_list.set_band_renderer (agent studio_band)
+			studio_list.set_wash_of (agent studio_wash)
+			studio_list.set_on_activate (agent studio_list.begin_edit)
+			studio_list.set_on_edit_commit (agent studio_committed)
+			studio_list.add ("Introduction: The Question Behind the Question")
+			studio_list.add ("In one-twelve CE a Roman governor sat down to write to his emperor about a problem he could not solve. The province he had been appointed to govern had a Christianity problem.")
+			create t.make_from_string ("The word ")
+			t.append_code (0x05E7)
+			t.append_code (0x05D3)
+			t.append_code (0x05E9)
+			t.append (" is read qodesh, and the round-trip gate must return it - not kodesh, not codes.")
+			studio_list.add (t)
+			studio_list.add ("Why aren%/39/t we growing the way the early church grew?")
+			studio_list.add ("The numbers behind the question are real, and the strategies being tried are not producing the reversal.")
+			studio_list.set_band_above (4, 22.0)
+			id := studio_list.marks_of (3).mark_range (9, 12, "pronounce")
+			studio_list.marks_of (3).span (id).set_annotation ("koh-DESH")
+			id := studio_list.marks_of (2).mark_range (0, 27, "slow")
+			id := studio_list.marks_of (2).mark_range (63, 70, "pause")
+			id := studio_list.marks_of (4).mark_range (10, 17, "emphasis")
+			id := studio_list.marks_of (5).mark_range (0, 33, "stale")
+			create row.make
+			row := row.with_gap (10.0)
+			row.put (studio_list.growing)
+			create side.make
+			side := side.with_gap (6.0)
+			side.put ((create {SW_LABEL}.make_ui ("speaking functions")).as_muted)
+			create lv.make (studio_legend)
+			lv.set_on_pick (agent studio_pick)
+			side.put (lv)
+			row.put (side.with_min_size (250.0, 0.0))
+			Result.put (row)
+				-- a marked shaped text box on its own
+			create t.make_from_string ("A box of its own: ")
+			t.append_code (0x05E9)
+			t.append_code (0x05DC)
+			t.append_code (0x05D5)
+			t.append_code (0x05DD)
+			t.append (" reads right-to-left inside a left-to-right line, and the caret walks it by cluster.")
+			studio_box.set_text (t)
+			studio_box.set_legend (studio_legend)
+			id := studio_box.marks.mark_range (18, 22, "pronounce")
+			id := studio_box.marks.mark_range (23, 28, "slow")
+			id := studio_box.marks.mark_range (t.count - 8, t.count - 1, "emphasis")
+			Result.put (studio_box)
+				-- the waveform
+			studio_wave.set_samples (22050 * 6, 22050, agent studio_sample)
+			studio_wave.add_marker (1.5, "1")
+			studio_wave.add_marker (3.2, "2")
+			studio_wave.add_marker (4.8, "3")
+			studio_wave.set_position (0.9)
+			studio_wave.set_on_seek (agent on_seeked)
+			Result.put (studio_wave)
+			Result.put ((create {SW_LABEL}.make_ui ("SW_WAVEFORM %/8212/ a synthesized reading with three sentence gaps; click or drag to seek, the status bar hears the second")).as_muted)
+		end
+
+	studio_list: SW_PARAGRAPH_LIST
+
+	studio_legend: SW_MARK_LEGEND
+
+	studio_wave: SW_WAVEFORM
+
+	studio_box: SW_TEXT_BOX
+
+	studio_gutter (a_p: SW_PAINTER; a_i: INTEGER; a_x, a_y, a_w, a_h: REAL_64)
+			-- A severity stripe in a state colour and a voice dot.
+		local
+			c: NATURAL_32
+		do
+			inspect a_i \\ 4
+			when 0 then
+				c := a_p.theme.success
+			when 1 then
+				c := a_p.theme.accent
+			when 2 then
+				c := a_p.theme.warning
+			else
+				c := a_p.theme.danger
+			end
+			a_p.set_color (c)
+			a_p.fill_rect (a_x + 2.0, a_y + 2.0, 4.0, a_h - 4.0)
+			a_p.set_color (a_p.theme.ink_muted)
+			a_p.circle_fill (a_x + 20.0, a_y + 14.0, 5.0)
+		end
+
+	studio_band (a_p: SW_PAINTER; a_i: INTEGER; a_above: BOOLEAN; a_x, a_y, a_w, a_h: REAL_64)
+			-- A plate rule: a hairline with the plate's name on it.
+		do
+			a_p.set_color (a_p.theme.outline)
+			a_p.hline (a_x, a_y + a_h / 2.0, a_w)
+			a_p.font ({SW_PAINTER}.Role_mono, a_p.theme.size_chip, False)
+			a_p.set_color (a_p.theme.ink_muted)
+			a_p.text (a_x + 12.0, a_p.baseline_in (a_y, a_h), "plate: ep03_library")
+		end
+
+	studio_wash (a_i: INTEGER): NATURAL_32
+			-- The stale paragraph wears the warning wash.
+		do
+			if a_i = 5 then
+				Result := window.theme.wash_warning
+			end
+		end
+
+	studio_pick (a_reason: STRING_32)
+			-- A legend row: lay the function over the editor's selection.
+		local
+			lo, hi: INTEGER
+		do
+			if studio_list.is_editing and then attached studio_list.editor as ed and then ed.has_selection then
+				lo := ed.sel_anchor.min (ed.caret)
+				hi := ed.sel_anchor.max (ed.caret)
+				if ed.marks.mark_range (lo, hi, a_reason) > 0 then
+				end
+				statusbar.set_left ({STRING_32} "applied " + a_reason + {STRING_32} " to " + (hi - lo).out + {STRING_32} " characters")
+			elseif studio_box.has_selection then
+				lo := studio_box.sel_anchor.min (studio_box.caret)
+				hi := studio_box.sel_anchor.max (studio_box.caret)
+				if studio_box.marks.mark_range (lo, hi, a_reason) > 0 then
+				end
+				statusbar.set_left ({STRING_32} "applied " + a_reason + {STRING_32} " in the box")
+			else
+				statusbar.set_left ({STRING_32} "select some words first, then pick " + a_reason)
+			end
+		end
+
+	studio_committed (a_i: INTEGER; a_text: STRING_32)
+		do
+			statusbar.set_left ({STRING_32} "paragraph " + a_i.out + {STRING_32} " committed, "
+				+ studio_list.marks_of (a_i).count.out + {STRING_32} " marks")
+		end
+
+	studio_sample (a_frame: INTEGER): REAL_64
+			-- Six seconds of a synthesized "reading": bursts of a
+			-- decaying tone with silence at 1.5, 3.2 and 4.8 seconds.
+		local
+			m: DOUBLE_MATH
+			t, env: REAL_64
+		do
+			create m
+			t := a_frame / 22050.0
+			if (t > 1.35 and t < 1.65) or (t > 3.05 and t < 3.35) or (t > 4.65 and t < 4.95) then
+				env := 0.0
+			else
+				env := 0.35 + 0.55 * m.sine (t * 7.3).abs * m.sine (t * 2.1 + 1.0).abs
+			end
+			Result := env * m.sine (2.0 * m.Pi * (180.0 + 60.0 * m.sine (t * 3.0)) * t)
 		end
 
 	space_page: SW_COLUMN

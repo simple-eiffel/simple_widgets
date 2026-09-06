@@ -7,6 +7,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.8.0 — THE STUDIO WIDGETS: shaped editing, paragraphs, waveform)
+
+Three gaps surfaced while framing simple_narrate's Studio against
+ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
+
+- **`SW_TEXT_BOX` edits SHAPED text.** When the painter carries a shaping kit
+  (and the box is not masked), the text is laid out through it - one layout per
+  LF piece, as `SW_CHAT_THREAD` does - and the box's per-character slot model
+  is filled from the runs' cluster arithmetic. The caret after a character is
+  its right edge in a left-to-right run and its LEFT edge in a right-to-left
+  one; hit-testing takes the nearest boundary in either direction. So a caret
+  walks leftward through Hebrew, a click inside it lands where the reader
+  expects, and a drag selects the letters under the pointer. Lines carry their
+  own measured top, ascent and height, so a fallback face taller than the theme
+  row no longer overdraws its neighbour. The toy path is unchanged in
+  behaviour except for one deliberate fix: **a newline's caret now stands at
+  the start of the line it opens**, not the end of the one it closes.
+  New public geometry: `x_at_offset`, `line_at_offset`, `offset_at`,
+  `line_count`, `is_rtl_at`, `is_shaped_layout`, `is_laid_out`,
+  `content_height`, `set_caret`; `Pad_x` / `Pad_y` are exported so a host can
+  address the text origin. Assaulted in both engines, ten tests.
+
+  **The bidi tie, resolved rather than guessed.** Where a left-to-right run
+  meets a right-to-left one, two offsets stand at the same pixel (after the
+  last LTR character, and after the visually leftmost RTL one). The rule: the
+  boundary belonging to a left-to-right character wins the click; the other
+  offset stays reachable by the arrow keys - the same resolution a Windows
+  edit control makes with its caret-direction flag. Written into
+  `offset_on_line`'s note and pinned by a test.
+
+- **New `SW_CLUSTER_MATH`.** `char_left_x`, `char_right_x`, `cluster_x`,
+  `caret_before_x`, `caret_after_x` - the cluster arithmetic `SW_CHAT_THREAD`
+  and `SW_SHAPED_TEXT` each carried privately, identical to the character,
+  now written once and inherited by both and by `SW_TEXT_BOX`. A caret law
+  that lives in three places drifts in one of them.
+
+- **New `SW_PARAGRAPH_LIST`.** A scrolling column of paragraphs of DIFFERENT
+  heights - measured through the kit or the toy wrap, cached by a per-item
+  revision, only the visible band painted - with a host-drawn gutter and
+  optional bands above and below (agents), a wash colour per item, a
+  selection SET with an anchor (plain / Ctrl / Shift click; `select_only`,
+  `toggle_select`, `select_range`), keyboard navigation that keeps the anchor
+  in view, and ONE paragraph editable IN PLACE through a real `SW_TEXT_BOX`
+  seated so the text does not move when editing begins: the item follows
+  every keystroke and reflows live, Escape restores, a click elsewhere
+  commits, `on_edit_change` / `on_edit_commit` tell the host. `SW_LIST` is
+  uniform row height by design and `SW_CHAT_THREAD` knows what a message is;
+  this knows only that a paragraph has text. Fourteen tests.
+
+- **New `SW_WAVEFORM`.** The amplitude envelope of a sound, one bar per pixel
+  column, from a summary of 4,096 (low, high) columns read ONCE through a
+  0-based sampler agent (`agent buffer.sample_at (?, 0)` passes verbatim) and
+  re-bucketed to any paint width - a nine-minute recording is never copied.
+  Played part in the accent, unplayed muted, playhead in the caret colour,
+  markers as warning ticks with a mono label. Click and drag seek and fire
+  `on_seek`; `position_at`, `x_of`, `column_peaks` are public and assaulted.
+  Out-of-range samples clamp to full scale rather than paint outside the box.
+  Eleven tests.
+
+- **HIGHLIGHTS — the data behind the text (2026-09-06).** Larry's ask: select
+  any part of a text and apply a "speaking function" from a palette, have the
+  text remember it, show it in a way that stays readable, and let a later
+  programmer give the marks whatever meaning their application needs. Seven
+  classes, four concerns apart:
+
+  - `SW_MARK` — the LOOK: hue 1..12 × wash / box (0..3 rules) / text outline
+    (0..2) / colorized / bold / italic; a value with a short `code`.
+  - `SW_MARK_PALETTE` — twelve hues as ink + wash per theme, **held by
+    contract**: wash under the theme's ink ≥ 4.5:1, ink on the surface ≥ 3:1,
+    light and dark; the assault walks all 48 pairs under -keep.
+  - `SW_MARK_LEGEND` — the MEANING: reason → mark + label + badge (1-2 chars).
+    Re-theme a reason and every span wearing it changes at the next paint.
+  - `SW_MARK_SPAN` / `SW_MARKED_TEXT` — the DATA BEHIND: spans by id with a
+    reason, an optional explicit look, an annotation; add / remove / restyle /
+    rereason / resize; **follows the text** through `text_inserted` /
+    `text_removed` (inside grows, at the start shifts, at the end does not
+    grow, across trims, collapsed drops); a line-per-span codec for any store.
+  - `SW_TEXT_GEOMETRY` — where every character paints, on either engine,
+    lifted out of `SW_TEXT_BOX`; `segments` merges a range into one rectangle
+    per line.
+  - `SW_MARK_PAINTER` — washes under, effects and boxes over. Outline, bold and
+    italic are honest approximations (offset passes, a packed shear matrix)
+    because cairo here strokes no glyph paths and the facade shapes regular
+    upright; none changes an advance. A **size policy**: below `min_effect_size`
+    no glyph effects or badges and one box rule at most; below `min_mark_size`
+    the wash alone.
+  - `SW_MARK_LEGEND_VIEW` — the key, drawn with live swatches; `on_pick`.
+
+  `SW_TEXT_BOX` gains `marks`, `legend`, `set_marks`, `mark_painter`; every edit
+  path reconciles, and the **undo snapshot carries the marks**. `SW_PARAGRAPH_LIST`
+  gains `marks_of (i)` and `set_legend`, hands the SAME marked text to its
+  in-place editor and restores it on cancel. `SW_TEXT_BOX` now measures through
+  `SW_TEXT_GEOMETRY` (its private slot arrays are gone).
+
+  Three lessons the compiler taught on the way, recorded in the oracle: an
+  INTEGER attribute's initialization body never runs (VWAB is an error in
+  disguise); `note` is a keyword; `prune_all` on a string list wants
+  `compare_objects`.
+
+- **The showroom gains a Studio page** (`demo/sw_demo.e`): a paragraph list
+  with a stripe-and-dot gutter and a plate-rule band, five speaking functions
+  in a legend view whose pick lays the function over the editor's selection, a
+  marked shaped text box with Hebrew inside it, and a waveform fed by a
+  synthesized reading with sentence markers. Note for the next session: the
+  test target compiles the demo cluster but SW_DEMO is dead code from
+  TEST_APP's root, so only `-target sw_demo` type-checks it.
+
+- Suite 327/327 (was 270). Downstream rebuilt and run: simple_chat 278/278
+  (from the project root, where its evidence folder lives),
+  simple_ocr_capture 75/75, simple_speed_reader 51/51.
+
 ### Fixed (0.7.2 — THE MENU JOINS THE SHAPED PATH)
 
 - **A menu item labelled with an emoji drew an empty box.** `SW_MENU.draw`

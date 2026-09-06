@@ -89,6 +89,9 @@ feature {NONE} -- Initialization
 			print ("%N=== SHAPED MENUS (emoji + RTL mnemonics) ===%N")
 			run_menu_shaping_tests
 
+			print ("%N=== STUDIO WIDGETS (waveform, shaped editing, paragraphs) ===%N")
+			run_studio_tests
+
 			print ("%N========================%N")
 			print ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then
@@ -555,6 +558,74 @@ feature {NONE} -- Test runners
 			run_test (agent fd_tests.test_typed_absolute_file_accepts, "typed_absolute_file_accepts")
 			run_test (agent fd_tests.test_accept_delivers_full_path, "accept_delivers_full_path")
 		end
+
+	run_studio_tests
+		do
+			create waveform_tests
+			run_test (agent waveform_tests.test_silence_is_flat, "waveform_silence_is_flat")
+			run_test (agent waveform_tests.test_sine_reaches_full_scale, "waveform_sine_reaches_full_scale")
+			run_test (agent waveform_tests.test_out_of_range_samples_are_clamped, "waveform_out_of_range_clamped")
+			run_test (agent waveform_tests.test_short_sound_is_not_padded, "waveform_short_sound_not_padded")
+			run_test (agent waveform_tests.test_column_peaks_any_width, "waveform_column_peaks_any_width")
+			run_test (agent waveform_tests.test_column_peaks_without_audio_are_zero, "waveform_column_peaks_without_audio")
+			run_test (agent waveform_tests.test_seek_math_both_ways, "waveform_seek_math_both_ways")
+			run_test (agent waveform_tests.test_click_seeks_and_reports, "waveform_click_seeks_and_reports")
+			run_test (agent waveform_tests.test_click_without_audio_is_refused, "waveform_click_without_audio_refused")
+			run_test (agent waveform_tests.test_markers_within_the_audio, "waveform_markers_within_audio")
+			run_test (agent waveform_tests.test_headless_paint, "waveform_headless_paint")
+			create shaped_edit_tests
+			run_test (agent shaped_edit_tests.test_toy_caret_round_trip, "textbox_toy_caret_round_trip")
+			run_test (agent shaped_edit_tests.test_toy_newline_opens_a_line, "textbox_toy_newline_opens_a_line")
+			run_test (agent shaped_edit_tests.test_shaped_latin_round_trip, "textbox_shaped_latin_round_trip")
+			run_test (agent shaped_edit_tests.test_shaped_hebrew_caret_walks_leftward, "textbox_shaped_hebrew_caret_walks_leftward")
+			run_test (agent shaped_edit_tests.test_shaped_mixed_round_trip, "textbox_shaped_mixed_bidi_round_trip")
+			run_test (agent shaped_edit_tests.test_shaped_paragraphs_stack, "textbox_shaped_paragraphs_stack")
+			run_test (agent shaped_edit_tests.test_shaped_wrap_stays_inside, "textbox_shaped_wrap_stays_inside")
+			run_test (agent shaped_edit_tests.test_masked_box_keeps_the_toy_path, "textbox_masked_keeps_toy_path")
+			run_test (agent shaped_edit_tests.test_click_and_drag_select_hebrew, "textbox_click_and_drag_select_hebrew")
+			run_test (agent shaped_edit_tests.test_headless_paint_both_paths, "textbox_headless_paint_both_paths")
+			create paragraph_tests
+			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
+			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")
+			run_test (agent paragraph_tests.test_virtualisation_and_hit_test, "paragraphs_virtualisation_and_hit_test")
+			run_test (agent paragraph_tests.test_wheel_clamps, "paragraphs_wheel_clamps")
+			run_test (agent paragraph_tests.test_selection_set_and_anchor, "paragraphs_selection_set_and_anchor")
+			run_test (agent paragraph_tests.test_click_selects_and_keys_move, "paragraphs_click_selects_and_keys_move")
+			run_test (agent paragraph_tests.test_insert_remove_move_keep_lists_honest, "paragraphs_insert_remove_move")
+			run_test (agent paragraph_tests.test_put_text_reflows, "paragraphs_put_text_reflows")
+			run_test (agent paragraph_tests.test_edit_in_place_reflows_and_commits, "paragraphs_edit_in_place_reflows_and_commits")
+			run_test (agent paragraph_tests.test_edit_cancel_restores, "paragraphs_edit_cancel_restores")
+			run_test (agent paragraph_tests.test_click_elsewhere_commits, "paragraphs_click_elsewhere_commits")
+			run_test (agent paragraph_tests.test_remove_while_editing_drops_editor, "paragraphs_remove_while_editing")
+			run_test (agent paragraph_tests.test_shaped_measurement_and_paint, "paragraphs_shaped_measurement_and_paint")
+			run_test (agent paragraph_tests.test_gutter_only_for_visible, "paragraphs_gutter_only_for_visible")
+			create mark_tests
+			run_test (agent mark_tests.test_mark_code_round_trip, "marks_code_round_trip")
+			run_test (agent mark_tests.test_palette_readable_on_both_themes, "marks_palette_readable_on_both_themes")
+			run_test (agent mark_tests.test_legend_defines_and_rethemes, "marks_legend_defines_and_rethemes")
+			run_test (agent mark_tests.test_marked_text_mark_remove_restyle, "marks_marked_text_mark_remove_restyle")
+			run_test (agent mark_tests.test_marked_text_codec_and_unresolved, "marks_marked_text_codec_and_unresolved")
+			run_test (agent mark_tests.test_marked_text_follows_edits, "marks_marked_text_follows_edits")
+			run_test (agent mark_tests.test_geometry_segments_merge_per_line, "marks_geometry_segments_merge_per_line")
+			run_test (agent mark_tests.test_painter_paints_every_aspect_headless, "marks_painter_paints_every_aspect_headless")
+			run_test (agent mark_tests.test_legend_view_draws_and_picks, "marks_legend_view_draws_and_picks")
+			create marked_edit_tests
+			run_test (agent marked_edit_tests.test_textbox_spans_follow_typing_and_undo, "marks_textbox_spans_follow_typing_and_undo")
+			run_test (agent marked_edit_tests.test_textbox_set_text_and_shared_marks, "marks_textbox_set_text_and_shared_marks")
+			run_test (agent marked_edit_tests.test_textbox_paints_marks_both_engines, "marks_textbox_paints_both_engines")
+			run_test (agent marked_edit_tests.test_paragraphs_share_marks_with_the_editor, "marks_paragraphs_share_with_editor")
+			run_test (agent marked_edit_tests.test_paragraphs_marks_travel_with_mutation, "marks_paragraphs_travel_with_mutation")
+		end
+
+	mark_tests: SW_MARK_ASSAULT
+
+	marked_edit_tests: SW_MARKED_EDIT_ASSAULT
+
+	waveform_tests: SW_WAVEFORM_ASSAULT
+
+	shaped_edit_tests: SW_SHAPED_EDIT_ASSAULT
+
+	paragraph_tests: SW_PARAGRAPH_LIST_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.

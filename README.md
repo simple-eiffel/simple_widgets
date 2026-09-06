@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-270%2F270-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-327%2F327-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -16,7 +16,16 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-✅ **ALL SIX WAVES SHIPPED** — 103 classes (97 library + 5 devkit + 1 speechkit)
+✅ **ALL SIX WAVES SHIPPED, plus the Studio widgets (0.8.0)** — 114 classes (108 library + 5 devkit + 1 speechkit)
+- 0.8.0: HIGHLIGHTS — the data behind the text: `SW_MARKED_TEXT` spans with
+  reasons that follow every edit, `SW_MARK_LEGEND` for meaning (looks, labels,
+  badges), `SW_MARK_PALETTE` held readable by contract on both themes,
+  `SW_MARK_PAINTER` with a size floor, `SW_MARK_LEGEND_VIEW`, and
+  `SW_TEXT_GEOMETRY` lifted out of the text box
+- 0.8.0: `SW_TEXT_BOX` edits SHAPED text (a caret that walks leftward through
+  Hebrew, hit-tested by cluster), `SW_PARAGRAPH_LIST` (variable-height
+  paragraphs, selection set, edit in place), `SW_WAVEFORM` (envelope,
+  playhead, markers, seek), and `SW_CLUSTER_MATH` written once for all three
 - Wave 5 (all 11 composites): tree table, spreadsheet doctrine whole,
   pivot, kanban, scheduler, gantt, file manager, query builder, form
   generator, org chart, TRUE DOCKING with collapsing reflow zones
@@ -25,7 +34,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 270 contract-assault tests passing (`screen_grab_marries_cairo` reads the
+- 327 contract-assault tests passing (`screen_grab_marries_cairo` reads the
   real desktop and fails in a locked session — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
@@ -63,7 +72,9 @@ own palette; dark and light), SW_PAINTER (the only class that touches cairo).
 **Controls** — button (4 kinds), label (3 roles, honest wrapping), text box
 (full engine: caret, disjoint multi-select, clipboard, Windows spell-check
 with one-click suggestions, password mode with reveal eye and clipboard
-denial), combo (an editable dropdown that IS a text box), select, check box,
+denial, and since 0.8.0 a SHAPED path — bidi caret and cluster hit-testing
+through the window's shaping kit — and HIGHLIGHTS: spans with reasons that
+follow every edit, painted through a legend), combo (an editable dropdown that IS a text box), select, check box,
 switch, radio group, slider, number box, progress, chips.
 
 **Layout** — row/column containership unifying Vision2's model with flex
@@ -71,13 +82,16 @@ switch, radio group, slider, number box, progress, chips.
 idiom), splitter (contract-clamped ratio).
 
 **Data & chrome** — virtualized list (10,000 rows scroll like ten; selection,
-double-click activation, per-row pick-and-drop pebbles), scroll area, tabs,
+double-click activation, per-row pick-and-drop pebbles), paragraph list
+(variable-height shaped paragraphs, host-drawn gutter and bands, a selection
+set with an anchor, one paragraph editable in place), scroll area, tabs,
 drawn menus (built fresh on every open), menu bar (builder agents), toolbar
 (toggles queried by label), status bar.
 
 **Dialogs & media** — drawn modal alerts, a complete drawn **file dialog**
 (open/save, dirs-first listing, extension filter — base PATH/DIRECTORY only),
-PNG display with contain scaling; a shell-drop zone (WM_DROPFILES
+PNG display with contain scaling; a waveform (envelope from a sampler agent,
+playhead, markers, seek); a shell-drop zone (WM_DROPFILES
 through the widget spine to any opted-in control).
 
 **Services** — clipboard (Unicode, surrogate-safe, hardened against

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW_WAVEFORM - simple_widgets</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
+        </div>
+        <h1>SW_WAVEFORM</h1>
+        <p class="tagline">The amplitude envelope of a sound, a playhead, and markers down the time axis - buffer-agnostic by design.</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="../index.html">simple_widgets home</a></li>
+            <li><a href="../index.html#gallery">All controls</a></li>
+            <li><a href="#example">Example</a></li>
+            <li><a href="#limits">Known limits</a></li>
+            <li><a href="#gotchas">Bugs &amp; gotchas</a></li>
+            <li><a href="#future">Future</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_widgets">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="description">
+            <h2>Description</h2>
+            <p>One vertical bar per pixel column, drawn from a summary of lows and highs the widget reads <em>once</em> through a sampler agent: count, sample rate, and a function answering frame <code>i</code> (0-based, so simple_audio's <code>agent buffer.sample_at (?, 0)</code> passes verbatim). A nine-minute recording is twelve million samples; the widget keeps 4,096 columns of peaks and re-buckets them to whatever width it is painted at. The played part draws in the accent, the rest muted, the playhead in the caret colour, markers as warning ticks wearing a mono label. A silence is a flat centre line - which is exactly the gap a pacing gate measures.</p>
+            <p>A click or drag seeks and fires <code>on_seek</code> with the second; the host that owns the player reports real progress back through <code>set_position</code>. <code>position_at</code>, <code>x_of</code> and <code>column_peaks</code> are public and assaulted headless.</p>
+            <p class="muted"><em>Source: <code>src/sw_waveform.e</code> &middot; since 0.8.0 (2026-09-05), built for simple_narrate's Studio.</em></p>
+        </section>
+
+        <section id="example">
+            <h2>Wired to simple_audio</h2>
+<pre><code><span class="keyword">create</span> wave.make (72.0)
+wave.set_samples (buf.frame_count, buf.sample_rate, <span class="keyword">agent</span> buf.sample_at (?, 0))
+wave.add_marker (1.42, <span class="string">"sentence"</span>)
+wave.set_on_seek (<span class="keyword">agent</span> player_seek)
+<span class="comment">-- heartbeat: wave.set_position (player.position)</span></code></pre>
+        </section>
+
+        <section id="limits">
+            <h2>Known limits</h2>
+            <ul>
+                <li>Mono envelope: a stereo buffer is summarised through whichever channel the sampler answers.</li>
+                <li>No selection range, no zoom; the whole sound fills the width, v1.</li>
+            </ul>
+        </section>
+
+        <section id="gotchas">
+            <h2>Bugs &amp; gotchas</h2>
+            <ul>
+                <li>Samples outside [-1, 1] are clamped, not refused: a mis-scaled float buffer draws full-scale rather than painting outside the box.</li>
+                <li>The summary is read at <code>set_samples</code> and never again; a buffer the host mutates afterwards is not reflected until it is set again.</li>
+            </ul>
+        </section>
+
+        <section id="future">
+            <h2>Extension plans &amp; possibilities</h2>
+            <ul>
+                <li>A selection range (in and out points) for trimming; a zoomed window over a long recording; per-channel lanes.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>simple_widgets &middot; part of the
+        <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem &middot; MIT License</p>
+    </footer>
+</body>
+</html>
