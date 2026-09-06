@@ -3,6 +3,19 @@ note
 		A single line of text in one of the three type roles. The role
 		is semantic: ui for the tool's own voice, body for the author's
 		prose, mono for machine-produced values.
+
+		THE SHAPED PATH (0.8.1). When the painter carries a shaping kit,
+		a ui or body label is laid out and painted through it - the way
+		the menu bar's titles have been since 0.7.2 - so a label in
+		Hebrew reads right-to-left, Greek keeps its accents and an emoji
+		is a picture. The measure is the shaped measure: `preferred_width'
+		is the layout's own width, and a wrapping label breaks where the
+		kit breaks it, not at blanks. A MONO label stays on cairo's toy
+		path whatever the painter carries: mono marks machine-produced
+		values - seeds, timings, counts - which are ASCII by definition,
+		and the kit's face policy (the theme's ui face for Latin) would
+		take the monospace away from them. `shaped_layout' says which
+		path a label is on for a given painter: Void is the toy path.
 	]"
 
 class
@@ -27,6 +40,7 @@ feature {NONE} -- Initialization
 			role := a_role
 			size := a_size
 			is_bold := a_bold
+			create shaped.make
 		ensure
 			text_kept: text.same_string_general (a_text)
 		end
@@ -62,6 +76,56 @@ feature -- Access
 			-- labels wrap by default; chrome labels stay single-line.
 	custom_color: NATURAL_32
 			-- 0 means: theme ink (or muted ink).
+
+feature -- Shaped text
+
+	is_shaped_role: BOOLEAN
+			-- Does this label's role take the shaped path when a kit is
+			-- there? ui and body do; mono keeps cairo's toy path (see
+			-- the class note).
+		do
+			Result := role /= {SW_PAINTER}.Role_mono
+		ensure
+			definition: Result = (role /= {SW_PAINTER}.Role_mono)
+		end
+
+	takes_shaped_path (a_p: SW_PAINTER): BOOLEAN
+			-- Will this label measure and paint through `a_p''s kit?
+			-- Only with a kit, only for a shaped role, and only when
+			-- there is text to shape.
+		do
+			Result := a_p.has_shaping and is_shaped_role and not text.is_empty
+		ensure
+			definition: Result = (a_p.has_shaping and is_shaped_role and not text.is_empty)
+		end
+
+	pixel_size (a_p: SW_PAINTER): INTEGER
+			-- The size this label is SHAPED at: `size' through the
+			-- theme's `text_scale', the same number `SW_PAINTER.font'
+			-- hands cairo on the toy path.
+		do
+			Result := (size * a_p.theme.text_scale).rounded.max (1)
+		ensure
+			positive: Result >= 1
+		end
+
+	shaped_layout (a_p: SW_PAINTER; a_width: REAL_64): detachable SHAPED_LAYOUT
+			-- `text' through `a_p''s kit: one unbounded line, or broken
+			-- to `a_width' when this label wraps (`a_width' under one
+			-- pixel means unbounded). Void when the label paints on the
+			-- toy path - no kit, a mono role, or nothing to shape.
+		do
+			if takes_shaped_path (a_p) and then attached a_p.shaping as al_kit then
+				if is_wrapping then
+					Result := al_kit.layout_for (text, a_width.floor.max (0), pixel_size (a_p))
+				else
+					Result := shaped.layout_of (al_kit, text, pixel_size (a_p))
+				end
+			end
+		ensure
+			shaped_exactly_when: attached Result = takes_shaped_path (a_p)
+			at_this_size: attached Result as al_layout implies al_layout.pixel_size = pixel_size (a_p)
+		end
 
 feature -- Element change
 
@@ -109,9 +173,15 @@ feature -- Element change
 feature -- Layout
 
 	preferred_width (a_p: SW_PAINTER): REAL_64
+			-- As wide as the text PAINTS: the shaped measure on the
+			-- shaped path, cairo's advance on the toy path.
 		do
-			a_p.font (role, size, is_bold)
-			Result := a_p.advance (text)
+			if attached shaped_layout (a_p, 0.0) as al_layout then
+				Result := al_layout.total_width
+			else
+				a_p.font (role, size, is_bold)
+				Result := a_p.advance (text)
+			end
 		end
 
 	line_step (a_p: SW_PAINTER): REAL_64
@@ -125,11 +195,19 @@ feature -- Layout
 			-- from cairo's font extents for the selected font, so it
 			-- already carries the scale, and the theme's `padding' is the
 			-- leading, which scales too.
+			--
+			-- On the shaped path the step is the shaped line's own
+			-- height plus the same leading.
 		do
-			a_p.font (role, size, is_bold)
-			Result := a_p.text_extent + a_p.theme.padding
+			if attached shaped_layout (a_p, 0.0) as al_layout then
+				Result := al_layout.total_height + a_p.theme.padding
+			else
+				a_p.font (role, size, is_bold)
+				Result := a_p.text_extent + a_p.theme.padding
+			end
 		ensure
-			clears_the_glyphs: Result >= a_p.text_extent
+			clears_the_glyphs: not takes_shaped_path (a_p) implies Result >= a_p.text_extent
+			leaded: Result >= a_p.theme.padding
 		end
 
 	baseline_offset (a_p: SW_PAINTER): REAL_64
@@ -144,9 +222,16 @@ feature -- Layout
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- A wrapping label on the shaped path is as tall as the kit
+			-- breaks it; on the toy path, as many blank-broken lines as
+			-- `a_width' demands.
 		do
 			if is_wrapping then
-				Result := wrapped_lines (a_p, a_width).count * line_step (a_p)
+				if attached shaped_layout (a_p, a_width) as al_layout then
+					Result := al_layout.total_height + a_p.theme.padding
+				else
+					Result := wrapped_lines (a_p, a_width).count * line_step (a_p)
+				end
 			else
 				Result := line_step (a_p)
 			end
@@ -199,13 +284,8 @@ feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
 		local
-			lines: ARRAYED_LIST [STRING_32]
-			i: INTEGER
 			step, base: REAL_64
 		do
-			step := line_step (a_p)
-			base := baseline_offset (a_p)
-			a_p.font (role, size, is_bold)
 			if custom_color /= 0 then
 				a_p.set_color (custom_color)
 			elseif is_muted then
@@ -213,6 +293,29 @@ feature -- Drawing
 			else
 				a_p.set_color (a_p.theme.ink)
 			end
+			if attached shaped_layout (a_p, width) as al_layout then
+					-- The layout's TOP-LEFT goes where the toy path's
+					-- glyph box starts: half the leading below the top
+					-- edge, so both paths centre a line in its step.
+				a_p.draw_shaped_layout (al_layout, x, y + a_p.theme.padding / 2.0)
+			else
+				step := line_step (a_p)
+				base := baseline_offset (a_p)
+				a_p.font (role, size, is_bold)
+				draw_toy (a_p, step, base)
+			end
+		end
+
+	draw_toy (a_p: SW_PAINTER; a_step, a_base: REAL_64)
+			-- The toy path: cairo's `show_text', one line or blank-broken
+			-- lines `a_step' apart, the first baseline at `a_base'.
+		local
+			lines: ARRAYED_LIST [STRING_32]
+			i: INTEGER
+			step, base: REAL_64
+		do
+			step := a_step
+			base := a_base
 			if is_wrapping then
 				lines := wrapped_lines (a_p, width)
 				from
@@ -228,7 +331,14 @@ feature -- Drawing
 			end
 		end
 
+feature {NONE} -- Shaped text
+
+	shaped: SW_SHAPED_TEXT
+			-- The one-line layout cache for the unwrapped label: shaped
+			-- once per text and size, then only looked up.
+
 invariant
 	text_attached: text /= Void
+	shaped_attached: shaped /= Void
 
 end

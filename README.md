@@ -16,7 +16,10 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-✅ **ALL SIX WAVES SHIPPED, plus the Studio widgets (0.8.0)** — 114 classes (108 library + 5 devkit + 1 speechkit)
+✅ **ALL SIX WAVES SHIPPED, plus the Studio widgets (0.8.1)** — 114 classes (108 library + 5 devkit + 1 speechkit)
+- 0.8.1: `SW_LABEL` joins the shaped path — a Hebrew label reads right-to-left
+  and an emoji label is a picture whenever the window has shaped text on;
+  `mono` labels keep cairo's toy path so machine values keep their monospace
 - 0.8.0: HIGHLIGHTS — the data behind the text: `SW_MARKED_TEXT` spans with
   reasons that follow every edit, `SW_MARK_LEGEND` for meaning (looks, labels,
   badges), `SW_MARK_PALETTE` held readable by contract on both themes,
