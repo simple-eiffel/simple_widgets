@@ -106,6 +106,14 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   disguise); `note` is a keyword; `prune_all` on a string list wants
   `compare_objects`.
 
+- **The showroom gains a Studio page** (`demo/sw_demo.e`): a paragraph list
+  with a stripe-and-dot gutter and a plate-rule band, five speaking functions
+  in a legend view whose pick lays the function over the editor's selection, a
+  marked shaped text box with Hebrew inside it, and a waveform fed by a
+  synthesized reading with sentence markers. Note for the next session: the
+  test target compiles the demo cluster but SW_DEMO is dead code from
+  TEST_APP's root, so only `-target sw_demo` type-checks it.
+
 - Suite 327/327 (was 270). Downstream rebuilt and run: simple_chat 278/278
   (from the project root, where its evidence folder lives),
   simple_ocr_capture 75/75, simple_speed_reader 51/51.
