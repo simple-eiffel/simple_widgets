@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Changed (0.8.1 — THE LABEL JOINS THE SHAPED PATH)
+
+Found by simple_narrate's Studio shell, whose first gate is "Hebrew in a
+label reads right-to-left": `SW_LABEL` painted with `SW_PAINTER.text` -
+cairo's toy `show_text` - while the menu bar beside it had drawn through the
+window's shaping kit since 0.7.2. A window with shaped text on drew its
+Hebrew menu titles right-to-left and its Hebrew labels left-to-right.
+
+- **`SW_LABEL` measures and paints through the kit** when the painter carries
+  one and the role is `ui` or `body`: `preferred_width` is the layout's own
+  width, a wrapping label breaks where the kit breaks it (not at blanks), and
+  `draw` goes through `draw_shaped_layout`. `shaped_layout (painter, width)`
+  says which path a label is on - Void is the toy path; `takes_shaped_path`,
+  `is_shaped_role` and `pixel_size` beside it.
+- **A `mono` label stays on the toy path** whatever the painter carries: mono
+  marks machine-produced values, ASCII by definition, and the kit's face
+  policy (the theme's ui face for Latin) would take the monospace away.
+- An empty label shapes nothing (the toy path, zero wide, one step tall).
+- Contract note: `line_step`'s `clears_the_glyphs` now holds on the toy path
+  only (the shaped step is the shaped line's height plus the leading);
+  `leaded: Result >= padding` added.
+- `SW_LABEL_SHAPING_ASSAULT`, 5 tests: a Hebrew label's first letter paints in
+  the RIGHT half (read from the layout's cluster positions) and the two paths
+  paint different pixels; an emoji label carries saturated artwork the toy
+  path does not; a mono label measures the same with a kit as without; an
+  empty label; a wrapping body label is taller narrow than wide and has more
+  than one line. Evidence: `evidence/label-hebrew-2x.png`.
+
 ### Added (0.8.0 — THE STUDIO WIDGETS: shaped editing, paragraphs, waveform)
 
 Three gaps surfaced while framing simple_narrate's Studio against

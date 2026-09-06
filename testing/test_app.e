@@ -89,6 +89,9 @@ feature {NONE} -- Initialization
 			print ("%N=== SHAPED MENUS (emoji + RTL mnemonics) ===%N")
 			run_menu_shaping_tests
 
+			print ("%N=== SHAPED LABELS (RTL, artwork, mono stays toy) ===%N")
+			run_label_shaping_tests
+
 			print ("%N=== STUDIO WIDGETS (waveform, shaped editing, paragraphs) ===%N")
 			run_studio_tests
 
@@ -543,6 +546,18 @@ feature {NONE} -- Test runners
 			run_test (agent menu_shaping_tests.test_a_hebrew_pad_underlines_the_glyph_it_names, "a_hebrew_pad_underlines_the_glyph_it_names (2x)")
 			run_test (agent menu_shaping_tests.test_the_menu_measures_what_it_paints, "the_menu_measures_what_it_paints (2x)")
 			run_test (agent menu_shaping_tests.test_an_item_with_no_mnemonic_underlines_nothing, "an_item_with_no_mnemonic_underlines_nothing")
+		end
+
+	label_shaping_tests: SW_LABEL_SHAPING_ASSAULT
+
+	run_label_shaping_tests
+		do
+			create label_shaping_tests
+			run_test (agent label_shaping_tests.test_a_hebrew_label_paints_its_first_letter_rightmost, "a_hebrew_label_paints_its_first_letter_rightmost (2x, offscreen PNG)")
+			run_test (agent label_shaping_tests.test_an_emoji_label_paints_artwork_and_not_a_box, "an_emoji_label_paints_artwork_and_not_a_box (2x)")
+			run_test (agent label_shaping_tests.test_a_mono_label_keeps_the_toy_path_whatever_the_painter_carries, "a_mono_label_keeps_the_toy_path_whatever_the_painter_carries")
+			run_test (agent label_shaping_tests.test_an_empty_label_shapes_nothing, "an_empty_label_shapes_nothing")
+			run_test (agent label_shaping_tests.test_a_wrapping_body_label_breaks_where_the_kit_breaks_it, "a_wrapping_body_label_breaks_where_the_kit_breaks_it")
 		end
 
 	run_file_dialog_tests
