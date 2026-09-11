@@ -135,8 +135,19 @@ feature -- Layout
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- One row across; one `Row_h' per option when stacked - the
+			-- vertical form used to claim a single row and its second
+			-- and later options were drawn under whatever came next
+			-- (simple_ocr_capture's Video tab, 2026-09-11).
 		do
-			Result := 28.0
+			if is_vertical then
+				Result := (Row_h * options.count).max (28.0)
+			else
+				Result := 28.0
+			end
+		ensure then
+			at_least_a_row: Result >= 28.0
+			every_option_fits: is_vertical implies Result >= Row_h * options.count
 		end
 
 feature -- Drawing
