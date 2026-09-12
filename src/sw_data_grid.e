@@ -108,14 +108,20 @@ feature -- Element change
 		end
 
 	set_rows (a_rows: ARRAYED_LIST [G])
+			-- Adopt a SNAPSHOT of `a_rows'. The grid owns its own list, so a
+			-- caller that later mutates its own list (removing a row, clearing
+			-- finished ones) cannot desync `rows' from the cached `view' and
+			-- trip `view_never_exceeds_rows'. To reflect such a change, the
+			-- caller calls `set_rows' again - which every refresh already does.
 		do
-			rows := a_rows
+			rows := a_rows.twin
 			if selected_model > rows.count then
 				selected_model := 0
 			end
 			rebuild_view
 		ensure
-			kept: rows = a_rows
+			owns_snapshot: rows /= a_rows
+			same_size: rows.count = a_rows.count
 		end
 
 	add_row (a_row: G)

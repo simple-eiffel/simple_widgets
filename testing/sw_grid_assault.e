@@ -109,6 +109,33 @@ feature -- Filter and selection
 			assert_integers_equal ("beta was filtered away", 0, g.selected_model)
 		end
 
+	test_set_rows_snapshots_against_external_mutation
+			-- Regression: a caller that shrinks its OWN list after `set_rows'
+			-- (Remove, Clear Finished) must not desync the grid's `rows' from
+			-- its cached `view' and trip `view_never_exceeds_rows'. The grid
+			-- takes a snapshot, so the caller's later mutation cannot reach it.
+		local
+			g: like new_grid
+			l: ARRAYED_LIST [TUPLE [name: STRING_32; size: INTEGER]]
+		do
+			g := new_grid
+			create l.make (2)
+			l.extend ([{STRING_32} "one", 1])
+			l.extend ([{STRING_32} "two", 2])
+			g.set_rows (l)
+			assert_integers_equal ("grid took the two", 2, g.rows.count)
+			assert ("grid owns a snapshot, not the caller's list", g.rows /= l)
+				-- The caller shrinks its own list, as Remove/Clear Finished do.
+			l.finish
+			l.remove
+			assert_integers_equal ("caller's list is now one", 1, l.count)
+			assert_integers_equal ("grid snapshot is unaffected", 2, g.rows.count)
+				-- The exact call that used to crash with the invariant violated.
+			g.select_model_row (0)
+			assert_integers_equal ("selection cleared without a crash", 0, g.selected_model)
+			assert ("view still within rows", g.view.count <= g.rows.count)
+		end
+
 feature -- Geometry
 
 	test_column_resize_clamps
