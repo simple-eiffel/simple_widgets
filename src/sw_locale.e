@@ -206,7 +206,7 @@ feature -- Time
 		require
 			sane: a_decimals >= 0 and a_decimals <= 9
 		local
-			whole, frac_part, scale, i: INTEGER_64
+			whole, frac_part, scale: INTEGER_64
 			digits, grouped: STRING_32
 			negative: BOOLEAN
 			v: REAL_64
