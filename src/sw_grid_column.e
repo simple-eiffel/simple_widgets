@@ -41,6 +41,11 @@ feature -- Access
 
 	Min_width: REAL_64 = 40.0
 
+	grow: REAL_64
+			-- Share of the grid's spare width this column takes when the
+			-- grid is wider than its columns; 0 = its own width only (the
+			-- default). The same vocabulary as {SW_WIDGET}.grow.
+
 feature -- Element change
 
 	set_width (a_w: REAL_64)
@@ -50,6 +55,25 @@ feature -- Element change
 			width := a_w.max (Min_width)
 		ensure
 			at_least_minimum: width >= Min_width
+		end
+
+	set_grow (a_g: REAL_64)
+		require
+			non_negative: a_g >= 0.0
+		do
+			grow := a_g
+		ensure
+			set: grow = a_g
+		end
+
+	growing: like Current
+			-- Fluent: take spare width with weight 1.
+		do
+			grow := 1.0
+			Result := Current
+		ensure
+			growing: grow = 1.0
+			chained: Result = Current
 		end
 
 	set_key (a_key: FUNCTION [G, COMPARABLE])
@@ -83,5 +107,6 @@ invariant
 	title_attached: title /= Void
 	value_attached: value /= Void
 	never_vanishes: width >= Min_width
+	grow_non_negative: grow >= 0.0
 
 end
