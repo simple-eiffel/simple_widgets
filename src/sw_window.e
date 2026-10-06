@@ -1614,6 +1614,9 @@ feature {NONE} -- Popup lifecycle
 				tooltip_visible := False
 				after_input
 			elseif attached w as sw and then sw.wants_hover_point then
+					-- A widget that follows the pointer within itself may
+					-- change its pointer shape too (a grid's column divider).
+				set_cursor_kind (sw.cursor_kind)
 				after_input
 			end
 		end

@@ -160,4 +160,43 @@ feature -- Geometry
 			assert_integers_equal ("beyond content", 0, g.view_row_at (5000.0))
 		end
 
+feature -- Growing columns and the divider cursor
+
+	test_growing_column_takes_spare_width
+			-- A growing column takes the grid's spare width (less the
+			-- scrollbar gutter); a fixed one keeps its own; a narrow grid
+			-- gives nothing extra.
+		local
+			g: SW_DATA_GRID [TUPLE [name: STRING_32; size: INTEGER]]
+		do
+			create g.make (200.0)
+			g.add_column ((create {SW_GRID_COLUMN [TUPLE [name: STRING_32; size: INTEGER]]}.make ("Name", 120.0, agent name_of)).growing)
+			g.add_column (create {SW_GRID_COLUMN [TUPLE [name: STRING_32; size: INTEGER]]}.make ("Size", 80.0, agent size_text))
+			g.set_bounds (0.0, 0.0, 400.0, 200.0)
+			assert ("grows into the spare width", g.shown_width (1) = 120.0 + (400.0 - g.Scroll_gutter - 200.0))
+			assert ("fixed column unchanged", g.shown_width (2) = 80.0)
+			g.set_bounds (0.0, 0.0, 150.0, 200.0)
+			assert ("no spare, own width", g.shown_width (1) = 120.0)
+		end
+
+	test_divider_shows_resize_cursor
+			-- Over a header divider the pointer is the left-right arrow;
+			-- in the body or mid-header it is the plain arrow.
+		local
+			g: like new_grid
+		do
+			g := new_grid
+			g.set_bounds (0.0, 0.0, 400.0, 200.0)
+			g.set_hovered (True)
+			g.set_hover_point (120.0, 10.0)
+			assert_integers_equal ("divider in header", 3, g.cursor_kind)
+			g.set_hover_point (60.0, 10.0)
+			assert_integers_equal ("mid header", 0, g.cursor_kind)
+			g.set_hover_point (120.0, 100.0)
+			assert_integers_equal ("divider line in body", 0, g.cursor_kind)
+			g.set_hovered (False)
+			g.set_hover_point (120.0, 10.0)
+			assert_integers_equal ("not hovered", 0, g.cursor_kind)
+		end
+
 end

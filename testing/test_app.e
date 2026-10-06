@@ -193,6 +193,8 @@ feature {NONE} -- Test runners
 			run_test (agent grid_tests.test_set_rows_snapshots_against_external_mutation, "grid_set_rows_snapshots_external_mutation")
 			run_test (agent grid_tests.test_column_resize_clamps, "grid_column_resize_clamps")
 			run_test (agent grid_tests.test_view_row_at_guards, "grid_view_row_at_guards")
+			run_test (agent grid_tests.test_growing_column_takes_spare_width, "grid_growing_column_takes_spare_width")
+			run_test (agent grid_tests.test_divider_shows_resize_cursor, "grid_divider_shows_resize_cursor")
 		end
 
 	guis7_tests: SW_7GUIS_ASSAULT

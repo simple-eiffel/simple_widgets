@@ -16,7 +16,7 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click, handle_double_click, handle_drag, handle_wheel,
-			handle_key, wants_hover_point, accepts_focus
+			handle_key, wants_hover_point, accepts_focus, cursor_kind
 		end
 
 create
@@ -78,6 +78,30 @@ feature -- Access
 			-- Fired with the MODEL index on double-click.
 
 	filter: detachable FUNCTION [G, BOOLEAN]
+
+	shown_width (a_i: INTEGER): REAL_64
+			-- Column `a_i''s drawn width: its own, plus its share of the
+			-- spare width when it grows and the grid is wider than its columns.
+		require
+			valid: a_i >= 1 and a_i <= columns.count
+		local
+			l_total_grow: REAL_64
+		do
+			Result := columns.i_th (a_i).width
+			if columns.i_th (a_i).grow > 0.0 then
+				across
+					columns as c
+				loop
+					l_total_grow := l_total_grow + c.grow
+				end
+				Result := Result + (width - Scroll_gutter - content_width).max (0.0) * columns.i_th (a_i).grow / l_total_grow
+			end
+		ensure
+			at_least_own: Result >= columns.i_th (a_i).width
+		end
+
+	Scroll_gutter: REAL_64 = 10.0
+			-- Width kept clear for the vertical scrollbar when columns grow.
 
 	content_width: REAL_64
 		do
@@ -224,7 +248,7 @@ feature -- Layout
 			until
 				i > columns.count or Result > 0
 			loop
-				cx := cx + columns.i_th (i).width
+				cx := cx + shown_width (i)
 				if (a_px - cx).abs <= 5.0 then
 					Result := i
 				end
@@ -246,10 +270,10 @@ feature -- Layout
 			until
 				i > columns.count or Result > 0
 			loop
-				if a_px >= cx and a_px < cx + columns.i_th (i).width then
+				if a_px >= cx and a_px < cx + shown_width (i) then
 					Result := i
 				end
-				cx := cx + columns.i_th (i).width
+				cx := cx + shown_width (i)
 				i := i + 1
 			end
 		ensure
@@ -296,11 +320,11 @@ feature -- Drawing
 					loop
 						col := columns.i_th (ci)
 						s := col.value.item ([rows.i_th (view.i_th (i))])
-						a_p.push_clip (cx + 1.0, ry, col.width - 2.0, Row_h)
+						a_p.push_clip (cx + 1.0, ry, shown_width (ci) - 2.0, Row_h)
 						a_p.set_color (t.ink)
 						a_p.text (cx + 8.0, ry + Row_h - 8.0, s)
 						a_p.pop_clip
-						cx := cx + col.width
+						cx := cx + shown_width (ci)
 						ci := ci + 1
 					end
 					i := i + 1
@@ -317,21 +341,21 @@ feature -- Drawing
 				ci > columns.count
 			loop
 				col := columns.i_th (ci)
-				a_p.push_clip (cx + 1.0, y, col.width - 2.0, Header_h)
+				a_p.push_clip (cx + 1.0, y, shown_width (ci) - 2.0, Header_h)
 				a_p.set_color (t.ink)
 				a_p.text (cx + 8.0, y + Header_h - 10.0, col.title)
 				if ci = sort_column then
 					a_p.set_color (t.accent)
 					if is_descending then
-						a_p.line (cx + col.width - 20.0, y + 12.0, cx + col.width - 15.0, y + 19.0, 1.8)
-						a_p.line (cx + col.width - 15.0, y + 19.0, cx + col.width - 10.0, y + 12.0, 1.8)
+						a_p.line (cx + shown_width (ci) - 20.0, y + 12.0, cx + shown_width (ci) - 15.0, y + 19.0, 1.8)
+						a_p.line (cx + shown_width (ci) - 15.0, y + 19.0, cx + shown_width (ci) - 10.0, y + 12.0, 1.8)
 					else
-						a_p.line (cx + col.width - 20.0, y + 19.0, cx + col.width - 15.0, y + 12.0, 1.8)
-						a_p.line (cx + col.width - 15.0, y + 12.0, cx + col.width - 10.0, y + 19.0, 1.8)
+						a_p.line (cx + shown_width (ci) - 20.0, y + 19.0, cx + shown_width (ci) - 15.0, y + 12.0, 1.8)
+						a_p.line (cx + shown_width (ci) - 15.0, y + 12.0, cx + shown_width (ci) - 10.0, y + 19.0, 1.8)
 					end
 				end
 				a_p.pop_clip
-				cx := cx + col.width
+				cx := cx + shown_width (ci)
 					-- divider, with a hover affordance for resizing
 				if shows_hover and then (hover_px - cx).abs <= 5.0 then
 					a_p.set_color (t.accent)
@@ -360,6 +384,16 @@ feature -- Drawing
 		end
 
 feature -- Input
+
+	cursor_kind: INTEGER
+			-- Left-right resize arrows over a header divider (where a drag
+			-- resizes the column), the arrow everywhere else.
+		do
+			if is_hovered and then is_enabled and then hover_py < y + Header_h
+					and then column_edge_at (hover_px) > 0 then
+				Result := 3
+			end
+		end
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
 		local
@@ -423,10 +457,11 @@ feature -- Input
 				until
 					i >= resizing_column
 				loop
-					cx := cx + columns.i_th (i).width
+					cx := cx + shown_width (i)
 					i := i + 1
 				end
-				columns.i_th (resizing_column).set_width (a_px - cx)
+				columns.i_th (resizing_column).set_width (a_px - cx
+					- (shown_width (resizing_column) - columns.i_th (resizing_column).width))
 			end
 		end
 
