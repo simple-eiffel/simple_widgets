@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.8.2 — A TEXT BOX MEASURES THE SAME TWICE, IN ROWS IT REALLY HAS)
+
+Found by simple_chat's composer tests, which failed on two measurements that
+0.8.0's shaped editing left inconsistent.
+
+- **`SW_TEXT_BOX.preferred_height` no longer depends on the last font
+  drawn.** Its floor, `SW_PAINTER.min_control_height`, measures the painter's
+  CURRENT font, and only a toy-path relayout happened to select the body font
+  first. At 2x the same box, text and width measured 70, 75 or 80 px depending
+  on what had been painted before it, so a box was arranged at one height and
+  measured at another. The new public `minimum_height` selects the body font
+  and reads the floor, as every other control selects its own font. One
+  visible result: an empty or one-line shaped text box now sits at the
+  documented body-font floor (README: text box 42 → 80 px at 1x → 2x). Before,
+  it often borrowed a smaller floor from whatever was drawn last. The six
+  2x thread evidence frames were rewritten for this reason: their composer is
+  80 px, not 57 px.
+- **`SW_TEXT_BOX.row_height` is the pitch the lines are really stacked at.**
+  It answered the theme's `scaled_line_height` on both paths, 60 px at 2x,
+  while the shaped path stacks lines at the kit's line height, 45 px. A host
+  capping a box at five rows therefore let it grow to about 6.7 lines. On the
+  shaped path it now answers the new `SW_SHAPING.line_height`: the facade's
+  `line_height`, one line of the kit's primary face at the body pixel size. The
+  toy path is unchanged.
+- **A blank line is a row.** The facade lays an EMPTY piece out at the bare
+  pixel size and leaves the primary-face height to its consumers (simple_shaping
+  R10 / FR-N01). So on the shaped path a blank line between paragraphs, or an
+  empty box, was 16 px against 21 px text lines at 1x.
+  `SW_TEXT_GEOMETRY.build_shaped` now gives an empty piece the kit's
+  `line_height`, so N plain lines (blank ones included) measure N rows. A line
+  in another script's face is still as tall as that face makes it: Hebrew
+  shaped in its own face measured 25 px against Latin's 21 px at 1x.
+- Four new tests in `SW_SHAPED_EDIT_ASSAULT`, run on both the toy and shaped
+  paths: the height is the same after four different fonts, and one to eight
+  lines are N rows (plus the inset, or the floor), with a five-row cap holding
+  five lines. Three of them failed before the fix (the toy rows already held).
+  Suite 335 to 339, all passing.
+
 ### Changed (0.8.1 — THE LABEL JOINS THE SHAPED PATH)
 
 Found by simple_narrate's Studio shell, whose first gate is "Hebrew in a

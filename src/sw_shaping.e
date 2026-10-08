@@ -110,6 +110,25 @@ feature -- Measurement and layout
 				and Result.pixel_size = a_pixel_size
 		end
 
+	line_height (a_pixel_size: INTEGER): REAL_64
+			-- One line of this kit's primary face at `a_pixel_size': the
+			-- facade's `line_height' under this kit's policy. It is the row
+			-- a line of plain body text occupies, and what an EMPTY line must
+			-- be given: the facade lays an empty line out at the bare pixel
+			-- size and leaves the primary-face floor to its consumers (R10,
+			-- FR-N01), so a host that stacks lines takes it from here.
+		require
+			size_positive: a_pixel_size > 0
+		do
+			if attached fonts as al_fonts then
+				Result := facade.line_height (a_pixel_size, al_fonts)
+			else
+				Result := facade.line_height (a_pixel_size, facade.default_fonts)
+			end
+		ensure
+			positive: Result > 0.0
+		end
+
 feature -- Element change
 
 	set_theme_faces (a_theme: SW_THEME)

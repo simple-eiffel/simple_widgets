@@ -462,7 +462,7 @@ feature -- Building
 			lay: SHAPED_LAYOUT
 			ln: SHAPED_LINE
 			rn: SHAPED_RUN
-			top, run_left, cl, cr: REAL_64
+			top, run_left, cl, cr, l_height: REAL_64
 		do
 			reset
 			is_shaped := True
@@ -498,9 +498,18 @@ feature -- Building
 					k > lay.lines.count
 				loop
 					ln := lay.lines.i_th (k)
+					l_height := ln.height
+					if para_end = para_start then
+							-- an EMPTY piece (a blank line, or empty text): the
+							-- facade measures it at the bare pixel size and
+							-- leaves the primary-face row to its consumer, so
+							-- it gets that row here - a blank line is as tall
+							-- as the lines around it, and N lines are N rows
+						l_height := l_height.max (a_kit.line_height (a_px))
+					end
 					line_top.extend (top)
 					line_ascent.extend (ln.ascent)
-					line_height.extend (ln.height)
+					line_height.extend (l_height)
 					from
 						src := ln.source_start
 					until
@@ -539,7 +548,7 @@ feature -- Building
 						run_left := run_left + rn.advance_width
 						r := r + 1
 					end
-					top := top + ln.height
+					top := top + l_height
 					line := line + 1
 					k := k + 1
 				end

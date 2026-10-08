@@ -223,6 +223,103 @@ feature -- Shaped path
 			assert ("painted three times", True)
 		end
 
+feature -- Measurement (0.8.2)
+
+	test_toy_height_ignores_the_last_font
+			-- The same box, text and width measure the same height whatever
+			-- font the painter was left holding - toy path.
+		do
+			check_height_ignores_the_last_font (plain_painter, "toy")
+		end
+
+	test_shaped_height_ignores_the_last_font
+			-- The same, on the shaped path.
+		do
+			check_height_ignores_the_last_font (shaped_painter, "shaped")
+		end
+
+	test_toy_lines_stack_at_row_height
+			-- N plain lines are N x `row_height', and a five-row cap holds
+			-- exactly five lines - toy path.
+		do
+			check_lines_stack_at_row_height (plain_painter, "toy")
+		end
+
+	test_shaped_lines_stack_at_row_height
+			-- The same, on the shaped path, where the row is the kit's own
+			-- line height and not the theme's toy pitch.
+		do
+			check_lines_stack_at_row_height (shaped_painter, "shaped")
+		end
+
+feature {NONE} -- Measurement checks
+
+	check_height_ignores_the_last_font (a_p: SW_PAINTER; a_path: STRING)
+			-- One box measured four times at one width, after four different
+			-- fonts were selected, one of them three times the body size so
+			-- the floor `min_control_height' would bind if it were read under it.
+		local
+			b: SW_TEXT_BOX
+			h_body, h_ui, h_mono, h_big: REAL_64
+		do
+			create b.make ("hello")
+			a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
+			h_body := b.preferred_height (a_p, 300.0)
+			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			h_ui := b.preferred_height (a_p, 300.0)
+			a_p.font ({SW_PAINTER}.Role_mono, a_p.theme.size_label, True)
+			h_mono := b.preferred_height (a_p, 300.0)
+			a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body * 3.0, True)
+			h_big := b.preferred_height (a_p, 300.0)
+			assert_reals_equal (a_path + ": after the UI font", h_body, h_ui, 0.000_1)
+			assert_reals_equal (a_path + ": after the mono font", h_body, h_mono, 0.000_1)
+			assert_reals_equal (a_path + ": after a font three times the body", h_body, h_big, 0.000_1)
+		end
+
+	check_lines_stack_at_row_height (a_p: SW_PAINTER; a_path: STRING)
+			-- One to eight explicit lines: content is exactly N rows (a blank
+			-- line and an empty box included), the box
+			-- is those rows plus its inside inset (or `minimum_height',
+			-- whichever is larger), and a cap of five rows plus the inset is
+			-- what five lines need - the sixth is one row more.
+		local
+			b: SW_TEXT_BOX
+			l_row, l_h, l_cap, l_five, l_six: REAL_64
+			n: INTEGER
+			l_text: STRING_32
+		do
+			create b.make ("")
+			l_row := b.row_height (a_p)
+			create l_text.make_from_string_general ("line 1")
+			from n := 1 until n > 8 loop
+				if n > 1 then
+					l_text.append_string_general ("%Nline " + n.out)
+				end
+				b.set_text (l_text)
+				l_h := b.preferred_height (a_p, 300.0)
+				assert_integers_equal (a_path + ": " + n.out + " lines laid out", n, b.line_count)
+				assert_reals_equal (a_path + ": " + n.out + " lines are " + n.out + " rows",
+					n * l_row, b.content_height, 0.01)
+				assert_reals_equal (a_path + ": " + n.out + " lines measure their rows plus the inset",
+					(n * l_row + 2.0 * b.Pad_y).max (b.minimum_height (a_p)), l_h, 0.01)
+				if n = 5 then
+					l_five := l_h
+				elseif n = 6 then
+					l_six := l_h
+				end
+				n := n + 1
+			end
+			b.set_text ({STRING_32} "line 1%N%Nline 3")
+			l_h := b.preferred_height (a_p, 300.0)
+			assert_reals_equal (a_path + ": a blank line is a row like the others", 3.0 * l_row, b.content_height, 0.01)
+			b.set_text ({STRING_32} "")
+			l_h := b.preferred_height (a_p, 300.0)
+			assert_reals_equal (a_path + ": and an empty box holds one row", l_row, b.content_height, 0.01)
+			l_cap := 5.0 * l_row + 2.0 * b.Pad_y
+			assert_reals_equal (a_path + ": a five-row cap is what five lines need", l_cap, l_five, 0.01)
+			assert_reals_equal (a_path + ": and a sixth line is one row past it", l_cap + l_row, l_six, 0.01)
+		end
+
 feature {NONE} -- Helpers
 
 	offset_under (a_b: SW_TEXT_BOX; a_offset: INTEGER): INTEGER

@@ -16,7 +16,10 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-✅ **ALL SIX WAVES SHIPPED, plus the Studio widgets (0.8.1)** — 114 classes (108 library + 5 devkit + 1 speechkit)
+✅ **ALL SIX WAVES SHIPPED, plus the Studio widgets (0.8.2)** — 114 classes (108 library + 5 devkit + 1 speechkit)
+- 0.8.2: `SW_TEXT_BOX` measures the same whatever was drawn last
+  (`minimum_height`), and `row_height` is the pitch its shaped lines are
+  really stacked at, blank lines included (`SW_SHAPING.line_height`)
 - 0.8.1: `SW_LABEL` joins the shaped path — a Hebrew label reads right-to-left
   and an emoji label is a picture whenever the window has shaped text on;
   `mono` labels keep cairo's toy path so machine values keep their monospace
@@ -609,7 +612,8 @@ already carries `text_scale`; `min_control_height` adds the inside inset above
 and below, and `min_control_width (s)` does the same either side of a measured
 advance. `SW_BUTTON`, `SW_TEXT_BOX`, `SW_CHECK_BOX` and `SW_NUMBER_BOX` clamp
 their natural height up to it — a larger explicit anchor still wins through
-`clamped_height`. Measured at 1x → 2x: button 38 → 75, text box 42 → 80, check
+`clamped_height` (`SW_TEXT_BOX.minimum_height` selects the body font first, so
+the answer never depends on what was drawn last). Measured at 1x → 2x: button 38 → 75, text box 42 → 80, check
 box 38 → 75, number box 38 → 75, label 24 → 47 px.
 
 `SW_LABEL.line_step` is measured too (`text_extent` + the theme's leading), so a

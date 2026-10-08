@@ -602,6 +602,10 @@ feature {NONE} -- Test runners
 			run_test (agent shaped_edit_tests.test_masked_box_keeps_the_toy_path, "textbox_masked_keeps_toy_path")
 			run_test (agent shaped_edit_tests.test_click_and_drag_select_hebrew, "textbox_click_and_drag_select_hebrew")
 			run_test (agent shaped_edit_tests.test_headless_paint_both_paths, "textbox_headless_paint_both_paths")
+			run_test (agent shaped_edit_tests.test_toy_height_ignores_the_last_font, "textbox_toy_height_ignores_the_last_font")
+			run_test (agent shaped_edit_tests.test_shaped_height_ignores_the_last_font, "textbox_shaped_height_ignores_the_last_font")
+			run_test (agent shaped_edit_tests.test_toy_lines_stack_at_row_height, "textbox_toy_lines_stack_at_row_height")
+			run_test (agent shaped_edit_tests.test_shaped_lines_stack_at_row_height, "textbox_shaped_lines_stack_at_row_height")
 			create paragraph_tests
 			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
 			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")

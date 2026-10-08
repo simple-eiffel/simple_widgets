@@ -528,11 +528,24 @@ feature -- Element change
 feature -- Layout
 
 	row_height (a_p: SW_PAINTER): REAL_64
-			-- One text row at the current scale. `line_height' is a
-			-- nominal 1x token; the glyphs are painted at
-			-- `size_body * text_scale', so the row must scale with them.
+			-- One text row at the current scale: the pitch this box
+			-- actually stacks its lines at, so N plain lines are N rows.
+			-- On the shaped path (`ensure_layout' with a kit, text not
+			-- masked) that is the kit's `line_height' - one line of its
+			-- primary face at the laid-out body pixel size, the pitch
+			-- `SW_TEXT_GEOMETRY.build_shaped' stacks plain body lines and
+			-- blank lines at (a line in another script's face, Hebrew in
+			-- David say, is as tall as that face makes it). On the toy
+			-- path it is the theme's `scaled_line_height',
+			-- what `build_toy' uses. (Before 0.8.2 this answered the toy
+			-- pitch on both paths: 60 px against 45 px shaped lines at 2x,
+			-- so a host capping a box at five rows let it grow to 6.7.)
 		do
-			Result := a_p.theme.scaled_line_height
+			if a_p.has_shaping and not is_hiding and then attached a_p.shaping as al_kit then
+				Result := al_kit.line_height (body_pixels (a_p))
+			else
+				Result := a_p.theme.scaled_line_height
+			end
 		ensure
 			positive: Result >= 0.0
 		end
@@ -546,13 +559,29 @@ feature -- Layout
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 			-- The rows it needs plus the inside inset, never less than
-			-- the minimum the font demands (ascent + descent + the
-			-- theme's `control_inset' above and below).
+			-- the minimum the font demands: `minimum_height'.
 		do
 			ensure_layout (a_p, a_width - 2.0 * Pad_x)
-			Result := (content_height + 2.0 * Pad_y).max (a_p.min_control_height)
+			Result := (content_height + 2.0 * Pad_y).max (minimum_height (a_p))
 		ensure then
-			at_least_the_minimum: Result >= a_p.min_control_height
+			at_least_the_minimum: Result >= minimum_height (a_p)
+		end
+
+	minimum_height (a_p: SW_PAINTER): REAL_64
+			-- The least height this box may have: `SW_PAINTER.
+			-- min_control_height' (the font's ascent + descent plus the
+			-- theme's `control_inset' above and below) read under the BODY
+			-- font, the role the box paints its text in. That query measures
+			-- the painter's CURRENT font, so the body font is selected here
+			-- first, as every other control selects its own. Before 0.8.2
+			-- only a toy-path relayout happened to select it; on the shaped
+			-- path one box, text and width measured 70, 75 or 80 px at 2x
+			-- depending on what had been drawn before it.
+		do
+			a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
+			Result := a_p.min_control_height
+		ensure
+			clears_the_insets: Result >= 2.0 * a_p.theme.control_inset
 		end
 
 feature -- Drawing
@@ -1099,6 +1128,15 @@ feature -- Metrics
 
 feature {NONE} -- Engine
 
+	body_pixels (a_p: SW_PAINTER): INTEGER
+			-- The body text's pixel size at the theme's scale: what the
+			-- shaped path lays out at, and what `row_height' measures.
+		do
+			Result := (a_p.theme.size_body * a_p.theme.text_scale).rounded.max (1)
+		ensure
+			positive: Result >= 1
+		end
+
 	Eye_zone: REAL_64 = 30.0
 			-- Right-edge click zone of a masked box: the reveal eye.
 
@@ -1118,7 +1156,7 @@ feature {NONE} -- Engine
 			px, wpx: INTEGER
 		do
 			want_shaped := a_p.has_shaping and not is_hiding
-			px := (a_p.theme.size_body * a_p.theme.text_scale).rounded.max (1)
+			px := body_pixels (a_p)
 			if layout_width /= a_wrap or geometry.count /= text.count
 				or laid_shaped /= want_shaped or laid_size /= px
 			then
