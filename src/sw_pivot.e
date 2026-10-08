@@ -168,7 +168,6 @@ feature -- Drawing
 			t: SW_THEME
 			r, c: INTEGER
 			cx, cy, label_w: REAL_64
-			s: STRING_32
 		do
 			t := a_p.theme
 			a_p.set_color (t.surface)

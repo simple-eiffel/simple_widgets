@@ -218,7 +218,6 @@ feature -- Input
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
 		local
-			p: SW_PAINTER
 			cx: REAL_64
 			i: INTEGER
 		do

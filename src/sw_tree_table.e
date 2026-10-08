@@ -17,11 +17,22 @@ class
 inherit
 	SW_TREE [G]
 		redefine
-			draw, row_at, max_scroll
+			make, draw, row_at, max_scroll
 		end
 
 create
 	make
+
+feature {NONE} -- Initialization
+
+	make (a_viewport_height: REAL_64)
+			-- A REAL_64 attribute is self-initializing, so an attribute
+			-- body would never run (VWAB): the 220 px tree column is
+			-- set here.
+		do
+			Precursor (a_viewport_height)
+			tree_col_width := 220.0
+		end
 
 feature -- Access
 
@@ -31,9 +42,7 @@ feature -- Access
 		end
 
 	tree_col_width: REAL_64
-		attribute
-			Result := 220.0
-		end
+			-- Width of the tree column; 220 px from `make'.
 
 	Header_h: REAL_64 = 26.0
 
