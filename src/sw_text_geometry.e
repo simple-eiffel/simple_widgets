@@ -53,11 +53,15 @@ feature {NONE} -- Initialization
 			create line_height.make (2)
 			create layouts.make (2)
 			create para_tops.make (2)
+			create line_offset.make (2)
 			line_top.extend (0.0)
 			line_ascent.extend (0.0)
 			line_height.extend (0.0)
+			line_offset.extend (0.0)
+			alignment := {SHAPING_CONSTANTS}.Align_left
 		ensure
 			empty: count = 0
+			flush_left: alignment = {SHAPING_CONSTANTS}.Align_left
 			one_line: line_count = 1
 		end
 
@@ -152,6 +156,56 @@ feature -- Access
 			Result := line_top.last + line_height.last
 		ensure
 			non_negative: Result >= 0.0
+		end
+
+feature -- Alignment (GW-02)
+
+	alignment: INTEGER
+			-- How `build_shaped' places each line in `box_width':
+			-- a SHAPING_CONSTANTS Align_* code. Align_left (the default)
+			-- is the geometry before GW-02; Align_start sets a Hebrew
+			-- paragraph flush right and an English one flush left.
+
+	box_width: REAL_64
+			-- The width lines are aligned in (0: no alignment).
+
+	set_alignment (a_alignment: INTEGER; a_box_width: REAL_64)
+			-- Align the next `build_shaped' by `a_alignment' in a box
+			-- `a_box_width' wide. Every slot, caret and hit-test moves
+			-- with its line, so they keep agreeing with what paints.
+		require
+			alignment_valid: a_alignment >= {SHAPING_CONSTANTS}.Align_start
+				and a_alignment <= {SHAPING_CONSTANTS}.Align_center
+			box_non_negative: a_box_width >= 0.0
+		do
+			alignment := a_alignment
+			box_width := a_box_width
+		ensure
+			alignment_set: alignment = a_alignment
+			box_set: box_width = a_box_width
+		end
+
+	offset_of_line (a_line: INTEGER): REAL_64
+			-- How far right of the text origin visual line `a_line' starts.
+		require
+			in_lines: a_line >= 0 and a_line < line_count
+		do
+			Result := line_offset.i_th (a_line + 1)
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	is_aligned: BOOLEAN
+			-- Will `build_shaped' move lines off the left edge?
+		do
+			Result := alignment /= {SHAPING_CONSTANTS}.Align_left and box_width > 0.0
+		end
+
+	starts_right_to_left: BOOLEAN
+			-- Is the first paragraph laid out right to left? (A host puts
+			-- a gutter on the reading-start side from this.)
+		do
+			Result := not layouts.is_empty and then layouts.first.is_rtl
 		end
 
 feature -- Caret geometry
@@ -441,6 +495,7 @@ feature -- Building
 				line_top.extend (i * row)
 				line_ascent.extend (base)
 				line_height.extend (row)
+				line_offset.extend (0.0)
 				i := i + 1
 			end
 		ensure
@@ -458,11 +513,11 @@ feature -- Building
 			size_positive: a_px > 0
 			wrap_non_negative: a_wrap_px >= 0
 		local
-			n, i, line, para_start, para_end, k, r, c, src, slot: INTEGER
+			n, i, line, para_start, para_end, k, r, c, src, slot, pending_break: INTEGER
 			lay: SHAPED_LAYOUT
 			ln: SHAPED_LINE
 			rn: SHAPED_RUN
-			top, run_left, cl, cr, l_height: REAL_64
+			top, run_left, cl, cr, l_height, off: REAL_64
 		do
 			reset
 			is_shaped := True
@@ -507,9 +562,27 @@ feature -- Building
 							-- as the lines around it, and N lines are N rows
 						l_height := l_height.max (a_kit.line_height (a_px))
 					end
+						-- GW-02: where this line starts in the box.
+					if is_aligned then
+						off := lay.line_offset (ln, box_width, alignment)
+					else
+						off := 0.0
+					end
 					line_top.extend (top)
 					line_ascent.extend (ln.ascent)
 					line_height.extend (l_height)
+					line_offset.extend (off)
+					if k = 1 and pending_break > 0 then
+							-- the break that opened this paragraph stands at
+							-- its reading start: the left of an LTR line, the
+							-- right of an RTL one
+						if lay.is_rtl then
+							lay_x.put_i_th (off + ln.width, pending_break)
+						else
+							lay_x.put_i_th (off, pending_break)
+						end
+						pending_break := 0
+					end
 					from
 						src := ln.source_start
 					until
@@ -518,11 +591,11 @@ feature -- Building
 						slot := para_start + src - 1
 						if slot >= 1 and slot <= n then
 							lay_line.put_i_th (line, slot)
-							lay_x.put_i_th (ln.width, slot)
+							lay_x.put_i_th (off + ln.width, slot)
 						end
 						src := src + 1
 					end
-					run_left := 0.0
+					run_left := off
 					from
 						r := 1
 					until
@@ -558,6 +631,9 @@ feature -- Building
 					lay_line.put_i_th (line, para_end)
 					lay_rtl.put_i_th (False, para_end)
 					lay_break.put_i_th (True, para_end)
+					if is_aligned then
+						pending_break := para_end
+					end
 				end
 				para_start := para_end + 1
 			end
@@ -565,6 +641,7 @@ feature -- Building
 				line_top.extend (0.0)
 				line_ascent.extend (a_px)
 				line_height.extend (a_px * 1.4)
+				line_offset.extend (0.0)
 			end
 		ensure
 			one_slot_per_char: count = a_text.count
@@ -590,9 +667,13 @@ feature {NONE} -- Implementation
 			line_top.wipe_out
 			line_ascent.wipe_out
 			line_height.wipe_out
+			line_offset.wipe_out
 			layouts.wipe_out
 			para_tops.wipe_out
 		end
+
+	line_offset: ARRAYED_LIST [REAL_64]
+			-- Per visual line: where it starts in the box (GW-02).
 
 	add_slot (a_x, a_adv: REAL_64; a_line: INTEGER; a_rtl, a_break: BOOLEAN)
 		do
@@ -617,6 +698,7 @@ invariant
 	slots_parallel: lay_x.count = lay_adv.count and lay_adv.count = lay_line.count
 		and lay_line.count = lay_rtl.count and lay_rtl.count = lay_break.count
 	lines_parallel: line_top.count = line_ascent.count and line_ascent.count = line_height.count
+	offsets_parallel: line_offset.count = line_height.count
 	layouts_parallel: layouts.count = para_tops.count
 
 end

@@ -266,6 +266,24 @@ feature -- Shaped text (simple_shaping)
 			context_survives: context.is_valid
 		end
 
+	draw_shaped_layout_aligned (a_layout: SHAPED_LAYOUT; a_x, a_y, a_box_width: REAL_64; a_alignment: INTEGER)
+			-- Paint `a_layout' in a box with TOP-LEFT (`a_x', `a_y') and
+			-- width `a_box_width', each line placed by `a_alignment'
+			-- (SHAPING_CONSTANTS Align_*): with Align_start a Hebrew
+			-- paragraph sits flush right (GW-02).
+		require
+			shaping_available: has_shaping
+			alignment_valid: a_alignment >= {SHAPING_CONSTANTS}.Align_start
+				and a_alignment <= {SHAPING_CONSTANTS}.Align_center
+			box_non_negative: a_box_width >= 0.0
+		do
+			if attached shaping as al_shaping then
+				al_shaping.bridge.draw_layout_aligned (context, a_layout, a_x, a_y, a_box_width, a_alignment)
+			end
+		ensure
+			context_survives: context.is_valid
+		end
+
 feature -- Shapes
 
 	fill_rect (a_x, a_y, a_w, a_h: REAL_64)

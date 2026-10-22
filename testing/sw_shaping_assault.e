@@ -541,6 +541,154 @@ feature -- GW-04: every widget's text through the shaped path, Hebrew and Greek 
 				ctx.text_extents ({STRING_32} "abc").x_advance, p.advance ("abc"), 0.000_1)
 		end
 
+feature -- GW-02: Hebrew flush right, the gutter on the reading side
+
+	test_gw02_geometry_sets_hebrew_flush_right
+			-- With Align_start the Hebrew line ends at the box's right edge,
+			-- the caret before the first character stands there, and a click
+			-- at the right edge lands on the reading start; English in the
+			-- same geometry starts at the left.
+		local
+			kit: SW_SHAPING
+			g: SW_TEXT_GEOMETRY
+			box: REAL_64
+		do
+			create kit.make_with_assets (shaping_assets)
+			create g.make
+			box := 600.0
+			g.set_alignment ({SHAPING_CONSTANTS}.Align_start, box)
+			g.build_shaped (kit, genesis_1_1_wlc, box.floor, 22, False)
+			assert_true ("the paragraph starts right to left", g.starts_right_to_left)
+			assert_reals_equal ("the line is flush right",
+				box - g.layouts.first.lines.first.width, g.offset_of_line (0), 0.01)
+			assert_reals_equal ("the reading-start caret is at the right edge", box, g.x_at_offset (0), 1.0)
+			assert_integers_equal ("a click at the right edge is the reading start", 0,
+				g.offset_at (box - 1.0, g.ascent_of_line (0) / 2.0))
+			g.build_shaped (kit, {STRING_32} "In the beginning", box.floor, 22, False)
+			assert_false ("English starts left to right", g.starts_right_to_left)
+			assert_reals_equal ("and flush left", 0.0, g.offset_of_line (0), 0.01)
+		end
+
+	test_gw02_text_box_hebrew_flush_right_light
+			-- The light half: a Hebrew text box set to Align_start inks its
+			-- right side, not its left.
+		do
+			text_box_flush_right_gate (create {SW_THEME}.make_light)
+		end
+
+	test_gw02_text_box_hebrew_flush_right_dark
+			-- The dark half of the same gate.
+		do
+			text_box_flush_right_gate (create {SW_THEME}.make_dark)
+		end
+
+	test_gw02_paragraph_list_gutter_follows_reading_light
+			-- Light: Hebrew paragraphs carry the verse number on the right,
+			-- English and Greek on the left; evidence written.
+		do
+			paragraph_list_gate (create {SW_THEME}.make_light, "gw02_verses_light.png")
+		end
+
+	test_gw02_paragraph_list_gutter_follows_reading_dark
+			-- Dark: the same.
+		do
+			paragraph_list_gate (create {SW_THEME}.make_dark, "gw02_verses_dark.png")
+		end
+
+feature {NONE} -- GW-02 gates
+
+	text_box_flush_right_gate (a_theme: SW_THEME)
+			-- Draw pointed Genesis 1:1 in a 700-wide text box set to
+			-- Align_start; the right half must hold most of the ink.
+		local
+			kit: SW_SHAPING
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			tb: SW_TEXT_BOX
+			left_ink, right_ink: INTEGER
+		do
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (a_theme)
+			create surf.make (720, 120)
+			create ctx.make (surf)
+			create p.make (ctx, a_theme)
+			p.set_shaping (kit)
+			p.set_color (a_theme.surface)
+			p.fill_rect (0.0, 0.0, 720.0, 120.0)
+			create tb.make (genesis_1_1_wlc)
+			tb.set_text_alignment ({SHAPING_CONSTANTS}.Align_start)
+			tb.set_bounds (10.0, 10.0, 700.0, 100.0)
+			tb.arrange (p)
+			tb.draw (p)
+			surf.flush.do_nothing
+			left_ink := pixels_unlike (surf, a_theme.surface, 20, 20, 360, 100)
+			right_ink := pixels_unlike (surf, a_theme.surface, 360, 20, 700, 100)
+			assert_true ("the right half carries the Hebrew", right_ink > 2 * left_ink)
+		end
+
+	paragraph_list_gate (a_theme: SW_THEME; a_evidence: STRING)
+			-- Three verses - Genesis 1:1 in Hebrew, John 1:1 in Greek, John
+			-- 1:1 in English - with Align_start and the gutter on the reading
+			-- side: the Hebrew gutter sits right of the others, its text
+			-- starts left of theirs, and every gutter draws.
+		local
+			kit: SW_SHAPING
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			pl: SW_PARAGRAPH_LIST
+			path: STRING_32
+		do
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (a_theme)
+			create surf.make (900, 330)
+			create ctx.make (surf)
+			create p.make (ctx, a_theme)
+			p.set_shaping (kit)
+			p.set_color (a_theme.background)
+			p.fill_rect (0.0, 0.0, 900.0, 330.0)
+			create pl.make (310.0)
+			pl.add (genesis_1_1_wlc)
+			pl.add (john_1_1_wh)
+			pl.add ("In the beginning was the Word, and the Word was with God, and the Word was God.")
+			pl.set_gutter_width (40.0)
+			pl.set_text_alignment ({SHAPING_CONSTANTS}.Align_start)
+			pl.set_gutter_on_reading_side (True)
+			create gutter_xs.make_filled (-1.0, 1, 3)
+			pl.set_gutter_renderer (agent record_gutter)
+			pl.set_bounds (10.0, 10.0, 880.0, 310.0)
+			pl.arrange (p)
+			pl.draw (p)
+			surf.flush.do_nothing
+			assert_true ("every gutter drew", gutter_xs [1] >= 0.0 and gutter_xs [2] >= 0.0 and gutter_xs [3] >= 0.0)
+			assert_true ("the Hebrew gutter is on the right", gutter_xs [1] > gutter_xs [2] + 400.0)
+			assert_reals_equal ("Greek and English keep the left gutter", gutter_xs [2], gutter_xs [3], 0.001)
+			assert_true ("the Hebrew text starts left of the others", pl.item_text_x (1) < pl.item_text_x (3))
+			path := evidence_path (a_evidence)
+			if not path.is_empty then
+				if surf.write_png (path) then
+				end
+			end
+		end
+
+	gutter_xs: ARRAY [REAL_64]
+			-- Where each paragraph's gutter was drawn.
+		attribute
+			create Result.make_filled (-1.0, 1, 3)
+		end
+
+	record_gutter (a_p: SW_PAINTER; a_i: INTEGER; a_x, a_y, a_w, a_h: REAL_64)
+			-- Draw paragraph `a_i''s verse number and note where it went.
+		do
+			if a_i >= gutter_xs.lower and a_i <= gutter_xs.upper then
+				gutter_xs [a_i] := a_x
+			end
+			a_p.font ({SW_PAINTER}.Role_ui, 13.0, True)
+			a_p.set_color (a_p.theme.accent)
+			a_p.text (a_x + 8.0, a_y + 22.0, (a_i).out)
+		end
+
 feature {NONE} -- GW-04 gate
 
 	painter_text_gate (a_theme: SW_THEME; a_evidence: STRING)
