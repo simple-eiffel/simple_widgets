@@ -469,6 +469,10 @@ feature {NONE} -- Test runners
 			run_test (agent shaping_tests.test_ascii_bubble_renders_on_both_paths, "ascii_bubble_renders_on_both_paths")
 			run_test (agent shaping_tests.test_kit_prepends_the_theme_face_for_latin_only, "kit_prepends_the_theme_face_for_latin_only (Q1)")
 			run_test (agent shaping_tests.test_niqqud_offsets_are_reported_not_swallowed, "niqqud_offsets_are_reported_not_swallowed (diagnostic)")
+			run_test (agent shaping_tests.test_gw04_painter_text_shapes_hebrew_and_greek_light, "gw04_painter_text_shapes_hebrew_and_greek_light")
+			run_test (agent shaping_tests.test_gw04_painter_text_shapes_hebrew_and_greek_dark, "gw04_painter_text_shapes_hebrew_and_greek_dark")
+			run_test (agent shaping_tests.test_gw04_advance_is_the_shaped_width, "gw04_advance_is_the_shaped_width")
+			run_test (agent shaping_tests.test_gw04_without_a_kit_the_toy_path_is_unchanged, "gw04_without_a_kit_the_toy_path_is_unchanged")
 		end
 
 	chat_text_tests: SW_CHAT_TEXT_ASSAULT
@@ -665,6 +669,14 @@ feature {NONE} -- Test runners
 			end
 		rescue
 			print ("  FAIL: " + a_name + "%N")
+			if attached (create {EXCEPTION_MANAGER}).last_exception as al_exception then
+				if attached al_exception.tag as al_tag then
+					print ("        tag: " + al_tag.to_string_8 + "%N")
+				end
+				if attached al_exception.description as al_text then
+					print ("        why: " + al_text.to_string_8 + "%N")
+				end
+			end
 			failed := failed + 1
 			l_retried := True
 			retry

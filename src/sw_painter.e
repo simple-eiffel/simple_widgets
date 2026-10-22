@@ -65,19 +65,65 @@ feature -- Type
 				context.select_font (fam, context.Slant_normal, context.Weight_normal).do_nothing
 			end
 			context.set_font_size (a_size * theme.text_scale).do_nothing
+				-- GW-04: remembered for the shaped path.
+			font_role := a_role
+			font_bold := a_bold
+			font_pixel_size := (a_size * theme.text_scale).rounded.max (1)
+		ensure
+			role_kept: font_role = a_role
+			bold_kept: font_bold = a_bold
+			pixel_size_kept: font_pixel_size >= 1
 		end
+
+	font_role: INTEGER
+			-- Role of the last `font' call (0 before the first).
+
+	font_bold: BOOLEAN
+			-- Was the last `font' call bold?
+
+	font_pixel_size: INTEGER
+			-- Pixel size of the last `font' call, through `text_scale'
+			-- (0 before the first).
 
 	text (a_x, a_y: REAL_64; a_s: READABLE_STRING_GENERAL)
 			-- Draw `a_s' with its baseline at (`a_x', `a_y'), in the
 			-- current font and colour.
+			--
+			-- GW-04: with a shaping kit attached, EVERY widget's text goes
+			-- through simple_shaping here - bidi, Hebrew pointing and
+			-- cantillation, polytonic Greek, font fallback - so no widget
+			-- needs its own shaped path. Without a kit, cairo's toy path,
+			-- unchanged.
 		do
-			context.move_to (a_x, a_y).show_text (a_s.to_string_32).do_nothing
+			if takes_shaped_path (a_s) and then attached shaping as al_kit then
+				if attached al_kit.layout_styled (a_s, 0, font_pixel_size, font_role, font_bold) as al_layout
+					and then not al_layout.lines.is_empty
+				then
+					draw_shaped_layout (al_layout, a_x, a_y - al_layout.lines.first.ascent)
+				end
+			else
+				context.move_to (a_x, a_y).show_text (a_s.to_string_32).do_nothing
+			end
 		end
 
 	advance (a_s: READABLE_STRING_GENERAL): REAL_64
-			-- Horizontal advance of `a_s' in the current font.
+			-- Horizontal advance of `a_s' in the current font: the shaped
+			-- width when `text' would shape it (GW-04), cairo's otherwise.
 		do
-			Result := context.text_extents (a_s.to_string_32).x_advance
+			if takes_shaped_path (a_s) and then attached shaping as al_kit then
+				Result := al_kit.layout_styled (a_s, 0, font_pixel_size, font_role, font_bold).total_width
+			else
+				Result := context.text_extents (a_s.to_string_32).x_advance
+			end
+		end
+
+	takes_shaped_path (a_s: READABLE_STRING_GENERAL): BOOLEAN
+			-- Will `text' and `advance' shape `a_s'? With a kit, after a
+			-- `font' call, and for non-empty text.
+		do
+			Result := has_shaping and font_pixel_size > 0 and not a_s.is_empty
+		ensure
+			definition: Result = (has_shaping and font_pixel_size > 0 and not a_s.is_empty)
 		end
 
 feature -- Font metrics (the minimum-size law)

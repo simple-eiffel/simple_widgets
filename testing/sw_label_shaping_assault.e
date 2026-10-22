@@ -197,10 +197,23 @@ feature -- What stays on the toy path
 
 			create lb.make_mono ("seed 4171")
 			assert_false ("a mono role is not a shaped role", lb.is_shaped_role)
-			assert_false ("so a mono label never takes the shaped path", lb.takes_shaped_path (shaped_p))
+			assert_false ("so a mono label builds no layout of its own", lb.takes_shaped_path (shaped_p))
 			assert_true ("and builds no layout", lb.shaped_layout (shaped_p, 0.0) = Void)
-			assert_true ("it measures the same with a kit as without",
-				(lb.preferred_width (shaped_p) - lb.preferred_width (plain_p)).abs < 0.001)
+
+				-- GW-04 (2026-10-22): the label still draws through
+				-- `SW_PAINTER.text', and with a kit the painter shapes in the
+				-- theme's MONO face (not the ui face the class note feared).
+				-- The monospace survives whenever the mono face is present -
+				-- here it is shipped privately through GW-01.
+			assert_true ("the mono face loads privately", kit.facade.load_font_file (plex_mono_fixture) >= 1)
+			th.set_families (th.family_ui, th.family_body, {STRING_32} "IBM Plex Mono")
+			kit.set_theme_faces (th)
+			shaped_p.font ({SW_PAINTER}.Role_mono, 13.0, False)
+			assert_reals_equal ("digits keep one width", shaped_p.advance ("0000"), shaped_p.advance ("1111"), 0.5)
+			assert_reals_equal ("so do capitals", shaped_p.advance ("0000"), shaped_p.advance ("WWWW"), 0.5)
+			assert_true ("the label is as wide as its painter measures",
+				lb.preferred_width (shaped_p) >= shaped_p.advance ("seed 4171") - 0.001)
+			assert_true ("and the plain painter still measures it", lb.preferred_width (plain_p) > 0.0)
 			lb.set_bounds (0.0, 0.0, 300.0, 40.0)
 			lb.draw (shaped_p)
 			lb.draw (plain_p)
@@ -420,6 +433,22 @@ feature {NONE} -- Ink
 		end
 
 feature {NONE} -- Locating things on disk
+
+	plex_mono_fixture: STRING_32
+			-- simple_shaping's OFL IBM Plex Mono fixture (GW-01), under
+			-- $SIMPLE_EIFFEL.
+		local
+			env: EXECUTION_ENVIRONMENT
+		do
+			create env
+			if attached env.item ("SIMPLE_EIFFEL") as al_root then
+				Result := al_root.to_string_32 + {STRING_32} "/simple_shaping/testing/fixtures/fonts/IBMPlexMono-Regular.ttf"
+			else
+				Result := {STRING_32} "IBMPlexMono-Regular.ttf"
+			end
+		ensure
+			not_empty: not Result.is_empty
+		end
 
 	shaping_assets: STRING_32
 			-- The Noto png/128 tree, or empty: the runnable folder first,

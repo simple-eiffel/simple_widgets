@@ -10,12 +10,15 @@ note
 		Hebrew reads right-to-left, Greek keeps its accents and an emoji
 		is a picture. The measure is the shaped measure: `preferred_width'
 		is the layout's own width, and a wrapping label breaks where the
-		kit breaks it, not at blanks. A MONO label stays on cairo's toy
-		path whatever the painter carries: mono marks machine-produced
-		values - seeds, timings, counts - which are ASCII by definition,
-		and the kit's face policy (the theme's ui face for Latin) would
-		take the monospace away from them. `shaped_layout' says which
-		path a label is on for a given painter: Void is the toy path.
+		kit breaks it, not at blanks. A MONO label builds no layout of
+		its own: mono marks machine-produced values - seeds, timings,
+		counts - and the kit's ui policy would take the monospace away
+		from them. It paints and measures through `SW_PAINTER.text' and
+		`advance', which since GW-04 (0.9.x) shape with the theme's MONO
+		face whenever the painter carries a kit, so the monospace holds
+		whenever that face is present (ship it with
+		`SIMPLE_SHAPING.load_font_file'). `shaped_layout' says whether a
+		label lays itself out: Void means it goes through the painter.
 	]"
 
 class

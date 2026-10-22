@@ -110,6 +110,56 @@ feature -- Measurement and layout
 				and Result.pixel_size = a_pixel_size
 		end
 
+	layout_styled (a_text: READABLE_STRING_GENERAL; a_width_pixels, a_pixel_size, a_role: INTEGER;
+			a_bold: BOOLEAN): SHAPED_LAYOUT
+			-- `a_text' laid out like `layout_for', but in the theme face of
+			-- `a_role' (SW_PAINTER.Role_ui, Role_body, Role_mono) at regular
+			-- or bold weight - the policy SW_PAINTER.text and `advance' use
+			-- (GW-04). Hebrew, Greek and every other script still fall
+			-- through to simple_shaping's own scholar lists.
+		require
+			width_non_negative: a_width_pixels >= 0
+			size_positive: a_pixel_size > 0
+			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
+				or a_role = {SW_PAINTER}.Role_mono
+		do
+			Result := facade.layout (a_text.to_string_32, a_width_pixels, a_pixel_size,
+				styled_fonts (a_role, a_bold))
+		ensure
+			parameters_kept: Result.width_pixels = a_width_pixels
+				and Result.pixel_size = a_pixel_size
+		end
+
+	styled_fonts (a_role: INTEGER; a_bold: BOOLEAN): FONT_LIST
+			-- The policy for `a_role' at regular or bold weight: the role's
+			-- theme face leading the general list (once `set_theme_faces'
+			-- has run), so it carries Latin, digits and punctuation, and
+			-- simple_shaping's Hebrew and Greek lists for those scripts.
+		require
+			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
+				or a_role = {SW_PAINTER}.Role_mono
+		local
+			l_index: INTEGER
+		do
+			l_index := (a_role - 1) * 2 + (if a_bold then 2 else 1 end)
+			if attached role_fonts [l_index] as al_fonts then
+				Result := al_fonts
+			else
+				create Result.make_default
+				if attached role_family (a_role) as al_family then
+						-- Leading, not a Latin prepend: the role's face must
+						-- also carry digits and punctuation (a mono label's
+						-- "4171" otherwise came from Segoe UI).
+					Result := Result.with_leading_family (al_family)
+				end
+				Result := Result.with_style (if a_bold then {SHAPING_FONT}.Weight_bold else {SHAPING_FONT}.Weight_regular end, False)
+				role_fonts [l_index] := Result
+			end
+		ensure
+			styled: Result.weight = (if a_bold then {SHAPING_FONT}.Weight_bold else {SHAPING_FONT}.Weight_regular end)
+			usable: not Result.is_empty
+		end
+
 	line_height (a_pixel_size: INTEGER): REAL_64
 			-- One line of this kit's primary face at `a_pixel_size': the
 			-- facade's `line_height' under this kit's policy. It is the row
@@ -142,8 +192,14 @@ feature -- Element change
 			create l_fonts.make_default
 			fonts := l_fonts
 				.with_family_for_script ({SHAPING_CONSTANTS}.Script_class_latin, a_theme.family_ui)
+				-- GW-04: the per-role policies follow the theme too.
+			create ui_family.make_from_string_general (a_theme.family_ui)
+			create body_family.make_from_string_general (a_theme.family_body)
+			create mono_family.make_from_string_general (a_theme.family_mono)
+			role_fonts.fill_with (Void)
 		ensure
 			policy_present: attached fonts
+			role_faces_follow: attached ui_family as al_ui and then al_ui.same_string_general (a_theme.family_ui)
 		end
 
 	set_fonts (a_fonts: detachable FONT_LIST)
@@ -154,6 +210,27 @@ feature -- Element change
 			fonts := a_fonts
 		ensure
 			set: fonts = a_fonts
+		end
+
+feature {NONE} -- Per-role policies (GW-04)
+
+	role_fonts: ARRAY [detachable FONT_LIST]
+			-- Cached policies: index (role - 1) * 2 + 1 regular, + 2 bold.
+		once ("OBJECT")
+			create Result.make_filled (Void, 1, 6)
+		end
+
+	ui_family, body_family, mono_family: detachable STRING_32
+			-- The theme's faces, once `set_theme_faces' has run.
+
+	role_family (a_role: INTEGER): detachable STRING_32
+			-- The theme face for `a_role', or Void before `set_theme_faces'.
+		do
+			inspect a_role
+			when 2 then Result := body_family
+			when 3 then Result := mono_family
+			else Result := ui_family
+			end
 		end
 
 feature -- Removal
