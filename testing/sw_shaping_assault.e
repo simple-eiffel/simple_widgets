@@ -478,6 +478,216 @@ feature -- The chat thread
 			kit.dispose_surfaces
 		end
 
+feature -- GW-04: every widget's text through the shaped path, Hebrew and Greek in both themes
+
+	test_gw04_painter_text_shapes_hebrew_and_greek_light
+			-- Larry, 2026-10-22: "Hebrew and Greek need to work in both Light
+			-- and Dark. Period. Full stop." The light half.
+		do
+			painter_text_gate (create {SW_THEME}.make_light, "gw04_hebrew_greek_light.png")
+		end
+
+	test_gw04_painter_text_shapes_hebrew_and_greek_dark
+			-- The dark half of the same gate.
+		do
+			painter_text_gate (create {SW_THEME}.make_dark, "gw04_hebrew_greek_dark.png")
+		end
+
+	test_gw04_advance_is_the_shaped_width
+			-- With a kit, `advance' measures what `text' draws: the shaped
+			-- layout's width, bold wider than regular.
+		local
+			kit: SW_SHAPING
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			regular, bold: REAL_64
+		do
+			create kit.make_with_assets (shaping_assets)
+			create th.make_light
+			kit.set_theme_faces (th)
+			create surf.make (400, 80)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			p.set_shaping (kit)
+			p.font ({SW_PAINTER}.Role_body, 24.0, False)
+			assert_true ("the painter shapes now", p.takes_shaped_path (genesis_1_1_wlc))
+			assert_reals_equal ("advance is the shaped width",
+				kit.layout_styled (genesis_1_1_wlc, 0, p.font_pixel_size, {SW_PAINTER}.Role_body, False).total_width,
+				p.advance (genesis_1_1_wlc), 0.001)
+			p.font ({SW_PAINTER}.Role_ui, 18.0, False)
+			regular := p.advance ("Passage Guide")
+			p.font ({SW_PAINTER}.Role_ui, 18.0, True)
+			bold := p.advance ("Passage Guide")
+			assert_true ("bold measures wider than regular", bold > regular)
+		end
+
+	test_gw04_without_a_kit_the_toy_path_is_unchanged
+			-- No kit: `text' and `advance' are cairo's, exactly as before.
+		local
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+		do
+			create th.make_light
+			create surf.make (400, 80)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			p.font ({SW_PAINTER}.Role_ui, 16.0, False)
+			assert_false ("no kit, no shaping", p.takes_shaped_path ("abc"))
+			assert_reals_equal ("advance is cairo's",
+				ctx.text_extents ({STRING_32} "abc").x_advance, p.advance ("abc"), 0.000_1)
+		end
+
+feature {NONE} -- GW-04 gate
+
+	painter_text_gate (a_theme: SW_THEME; a_evidence: STRING)
+			-- Draw pointed Genesis 1:1 (WLC, cantillation) and polytonic
+			-- John 1:1 (WH, combining marks) through plain `SW_PAINTER.text',
+			-- on `a_theme''s surface in `a_theme''s ink, and require: both
+			-- shaped (runs painted, none skipped), no missing glyph (tofu),
+			-- Hebrew laid right to left, ink on the page in both lines, and
+			-- some pixels at full ink colour (the text is drawn in the theme's
+			-- ink, not washed out). Writes an evidence PNG when the repository
+			-- is underfoot.
+		local
+			kit: SW_SHAPING
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			hebrew, greek: SHAPED_LAYOUT
+			painted, skipped: INTEGER
+			path: STRING_32
+		do
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (a_theme)
+			create surf.make (900, 170)
+			create ctx.make (surf)
+			create p.make (ctx, a_theme)
+			p.set_color (a_theme.surface)
+			p.fill_rect (0.0, 0.0, 900.0, 170.0)
+			p.set_shaping (kit)
+			p.font ({SW_PAINTER}.Role_body, 30.0, False)
+			p.set_color (a_theme.ink)
+			painted := kit.bridge.painted_runs
+			skipped := kit.bridge.skipped_runs
+			p.text (20.0, 62.0, genesis_1_1_wlc)
+			p.text (20.0, 140.0, john_1_1_wh)
+			surf.flush.do_nothing
+
+			assert_true ("runs were painted", kit.bridge.painted_runs > painted)
+			assert_integers_equal ("no run was skipped", skipped, kit.bridge.skipped_runs)
+			hebrew := kit.layout_styled (genesis_1_1_wlc, 0, p.font_pixel_size, {SW_PAINTER}.Role_body, False)
+			greek := kit.layout_styled (john_1_1_wh, 0, p.font_pixel_size, {SW_PAINTER}.Role_body, False)
+			assert_false ("no Hebrew tofu", has_missing_glyph (hebrew))
+			assert_false ("no Greek tofu", has_missing_glyph (greek))
+			assert_integers_equal ("Hebrew is a right-to-left paragraph",
+				{SHAPING_CONSTANTS}.Direction_rtl, hebrew.base_direction)
+			assert_true ("Hebrew line carries ink", pixels_unlike (surf, a_theme.surface, 0, 0, 900, 85) > 1500)
+			assert_true ("Greek line carries ink", pixels_unlike (surf, a_theme.surface, 0, 85, 900, 170) > 1500)
+			assert_true ("text reaches full ink colour", pixels_near (surf, a_theme.ink, 0, 0, 900, 170) > 100)
+
+			path := evidence_path (a_evidence)
+			if not path.is_empty then
+				if surf.write_png (path) then
+				end
+			end
+		end
+
+	has_missing_glyph (a_layout: SHAPED_LAYOUT): BOOLEAN
+			-- Does any glyph run of `a_layout' use glyph 0 (.notdef, tofu)?
+		local
+			i: INTEGER
+		do
+			across a_layout.lines as l loop
+				across l.runs as r loop
+					if attached {GLYPH_RUN} r as al_run then
+						from i := al_run.glyph_ids.lower until i > al_run.glyph_ids.upper loop
+							if al_run.glyph_ids [i] = 0 then
+								Result := True
+							end
+							i := i + 1
+						end
+					end
+				end
+			end
+		end
+
+	pixels_unlike (a_surface: CAIRO_SURFACE; a_ground: NATURAL_32; a_x0, a_y0, a_x1, a_y1: INTEGER): INTEGER
+			-- Pixels in the box whose colour is not `a_ground'.
+		local
+			px, py: INTEGER
+		do
+			from py := a_y0.max (0) until py >= a_y1.min (a_surface.height) loop
+				from px := a_x0.max (0) until px >= a_x1.min (a_surface.width) loop
+					if pixel_at (a_surface, px, py).bit_and (0xFFFFFF) /= a_ground.bit_and (0xFFFFFF) then
+						Result := Result + 1
+					end
+					px := px + 1
+				end
+				py := py + 1
+			end
+		end
+
+	pixels_near (a_surface: CAIRO_SURFACE; a_colour: NATURAL_32; a_x0, a_y0, a_x1, a_y1: INTEGER): INTEGER
+			-- Pixels in the box within 24 of `a_colour' on every channel.
+		local
+			px, py: INTEGER
+			l_pixel: NATURAL_32
+		do
+			from py := a_y0.max (0) until py >= a_y1.min (a_surface.height) loop
+				from px := a_x0.max (0) until px >= a_x1.min (a_surface.width) loop
+					l_pixel := pixel_at (a_surface, px, py)
+					if channel_near (l_pixel, a_colour, 16) and channel_near (l_pixel, a_colour, 8)
+						and channel_near (l_pixel, a_colour, 0)
+					then
+						Result := Result + 1
+					end
+					px := px + 1
+				end
+				py := py + 1
+			end
+		end
+
+	channel_near (a_one, a_other: NATURAL_32; a_shift: INTEGER): BOOLEAN
+			-- Are the channels at `a_shift' within 24 of each other?
+		do
+			Result := ((a_one |>> a_shift).bit_and (0xFF).to_integer_32
+				- (a_other |>> a_shift).bit_and (0xFF).to_integer_32).abs <= 24
+		end
+
+	genesis_1_1_wlc: STRING_32
+			-- Genesis 1:1, Westminster Leningrad Codex, pointed, with
+			-- cantillation (bible.db), as code points.
+		do
+			Result := text_of (<<0x05D1, 0x05B0, 0x05BC, 0x05E8, 0x05B5, 0x05D0, 0x05E9, 0x05B4, 0x05C1, 0x0596, 0x05D9, 0x05EA,
+				0x0020, 0x05D1, 0x05B8, 0x05BC, 0x05E8, 0x05B8, 0x05A3, 0x05D0, 0x0020, 0x05D0, 0x05B1, 0x05DC,
+				0x05B9, 0x05D4, 0x05B4, 0x0591, 0x05D9, 0x05DD, 0x0020, 0x05D0, 0x05B5, 0x05A5, 0x05EA, 0x0020,
+				0x05D4, 0x05B7, 0x05E9, 0x05B8, 0x05BC, 0x05C1, 0x05DE, 0x05B7, 0x0596, 0x05D9, 0x05B4, 0x05DD,
+				0x0020, 0x05D5, 0x05B0, 0x05D0, 0x05B5, 0x05A5, 0x05EA, 0x0020, 0x05D4, 0x05B8, 0x05D0, 0x05B8,
+				0x05BD, 0x05E8, 0x05B6, 0x05E5, 0x05C3>>)
+		ensure
+			sixty_five: Result.count = 65
+		end
+
+	john_1_1_wh: STRING_32
+			-- John 1:1, Westcott-Hort 1881 (bible.db), polytonic with
+			-- combining marks, as code points.
+		do
+			Result := text_of (<<0x0395, 0x0313, 0x03BD, 0x0020, 0x03B1, 0x0313, 0x03C1, 0x03C7, 0x03B7, 0x0342, 0x0345, 0x0020,
+				0x03B7, 0x0313, 0x0342, 0x03BD, 0x0020, 0x03BF, 0x0314, 0x0020, 0x03BB, 0x03BF, 0x0301, 0x03B3,
+				0x03BF, 0x03C2, 0x002C, 0x0020, 0x03BA, 0x03B1, 0x03B9, 0x0300, 0x0020, 0x03BF, 0x0314, 0x0020,
+				0x03BB, 0x03BF, 0x0301, 0x03B3, 0x03BF, 0x03C2, 0x0020, 0x03B7, 0x0313, 0x0342, 0x03BD, 0x0020,
+				0x03C0, 0x03C1, 0x03BF, 0x0300, 0x03C2, 0x0020, 0x03C4, 0x03BF, 0x0300, 0x03BD, 0x0020, 0x03B8,
+				0x03B5, 0x03BF, 0x0301, 0x03BD, 0x002C, 0x0020, 0x03BA, 0x03B1, 0x03B9, 0x0300, 0x0020, 0x03B8,
+				0x03B5, 0x03BF, 0x0300, 0x03C2, 0x0020, 0x03B7, 0x0313, 0x0342, 0x03BD, 0x0020, 0x03BF, 0x0314,
+				0x0020, 0x03BB, 0x03BF, 0x0301, 0x03B3, 0x03BF, 0x03C2, 0x002E>>)
+		ensure
+			ninety_two: Result.count = 92
+		end
+
 feature {NONE} -- Measuring a widget against its own background
 
 	non_background_ink (a_surface: CAIRO_SURFACE; a_context: CAIRO_CONTEXT;

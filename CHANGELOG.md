@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Changed (0.10.0 — EVERY WIDGET'S TEXT GOES THROUGH THE SHAPED PATH; GW-04)
+
+Asked for by simple_bible (gap GW-04): Hebrew and Greek appear in data
+grids, trees, tabs, chips, selects, dialogs, the status bar, dock title bars,
+charts and tooltips, and until now only labels, text boxes, paragraph lists,
+menus and the chat thread were shaped.
+
+- **`SW_PAINTER.text` and `advance` shape whenever the painter carries a
+  kit.** They use the role and weight of the last `font` call, with the
+  baseline where the toy path put it, so every widget gets bidi, pointing,
+  cantillation, polytonic marks and font fallback with no widget of its own
+  changed. Without a kit, cairo's toy path is exactly as before. New:
+  `font_role`, `font_bold`, `font_pixel_size`, `takes_shaped_path`.
+- **`SW_SHAPING.layout_styled (text, width, size, role, bold)` and
+  `styled_fonts (role, bold)`:** one policy per role (ui, body, mono) and
+  weight, with the theme's face for that role LEADING the general list
+  (simple_shaping 0.3.1 `with_leading_family`), so it carries Latin, digits
+  and punctuation. Hebrew and Greek fall through to simple_shaping's scholar
+  lists, which an app can now ship privately (simple_shaping 0.2.0
+  `load_font_file`). Bold labels are bold (simple_shaping 0.3.0).
+- **Requires simple_shaping 0.3.1.** Clients rebuild with `-clean`.
+- **The Hebrew and Greek gate**, in both themes: pointed Genesis 1:1 (WLC,
+  cantillation) and polytonic John 1:1 (WH, combining marks) drawn through
+  plain `SW_PAINTER.text`. Both shaped with no run skipped, no glyph 0 (tofu),
+  Hebrew right to left, ink on both lines and pixels at full ink colour.
+  Evidence: `evidence/gw04_hebrew_greek_light.png` and
+  `gw04_hebrew_greek_dark.png`.
+- `SW_LABEL`'s mono note restated: a mono label still builds no layout of its
+  own, and through the painter it now shapes in the theme's MONO face. The
+  test proves the monospace holds (digits and capitals one width) with the
+  mono face loaded privately.
+- The test runner prints the failing assertion's tag and message.
+- Tests: 347 pass, 0 fail, 0 warnings.
+
 ### Added (0.9.0 — THEME TOKENS FOR FILLED CONTROLS, STATUS INKS, AND DARK MODE; GW-28)
 
 Asked for by simple_bible's light and dark mockups (gap GW-28): the
