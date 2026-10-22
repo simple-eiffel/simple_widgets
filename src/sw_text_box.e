@@ -56,8 +56,11 @@ feature {NONE} -- Initialization
 			create marks.make (text.count)
 			create mark_painter.make
 			layout_width := -1.0
+			text_alignment := {SHAPING_CONSTANTS}.Align_left
+			laid_alignment := text_alignment
 		ensure
 			text_kept: text.same_string_general (a_text)
+			flush_left: text_alignment = {SHAPING_CONSTANTS}.Align_left
 		end
 
 	make_single_line (a_text: READABLE_STRING_GENERAL)
@@ -417,6 +420,26 @@ feature -- Clipboard and selection commands
 			end
 		end
 
+feature -- Alignment (GW-02)
+
+	text_alignment: INTEGER
+			-- How lines sit in the box on the shaped path: a
+			-- SHAPING_CONSTANTS Align_* code. Align_left (the default)
+			-- is the box before GW-02; Align_start sets Hebrew flush
+			-- right and English flush left, line by paragraph.
+
+	set_text_alignment (a_alignment: INTEGER)
+			-- Place lines by `a_alignment'; the next layout honors it,
+			-- and the caret and selection follow the text.
+		require
+			alignment_valid: a_alignment >= {SHAPING_CONSTANTS}.Align_start
+				and a_alignment <= {SHAPING_CONSTANTS}.Align_center
+		do
+			text_alignment := a_alignment
+		ensure
+			set: text_alignment = a_alignment
+		end
+
 feature -- Element change
 
 	set_text (a_text: READABLE_STRING_GENERAL)
@@ -752,7 +775,12 @@ feature -- Drawing
 				until
 					i > geometry.layouts.count
 				loop
-					a_p.draw_shaped_layout (geometry.layouts.i_th (i), ox, oy + geometry.para_tops.i_th (i))
+					if geometry.is_aligned then
+						a_p.draw_shaped_layout_aligned (geometry.layouts.i_th (i), ox, oy + geometry.para_tops.i_th (i),
+							geometry.box_width, geometry.alignment)
+					else
+						a_p.draw_shaped_layout (geometry.layouts.i_th (i), ox, oy + geometry.para_tops.i_th (i))
+					end
 					i := i + 1
 				end
 			else
@@ -1146,6 +1174,8 @@ feature {NONE} -- Engine
 			-- Pixel size the cached layout was shaped at.
 	laid_shaped: BOOLEAN
 			-- Did the cached layout come from the shaping kit?
+	laid_alignment: INTEGER
+			-- `text_alignment' the cached layout was placed by (GW-02).
 
 	ensure_layout (a_p: SW_PAINTER; a_wrap: REAL_64)
 			-- Measure-then-place, cached against width, size and engine:
@@ -1159,16 +1189,21 @@ feature {NONE} -- Engine
 			px := body_pixels (a_p)
 			if layout_width /= a_wrap or geometry.count /= text.count
 				or laid_shaped /= want_shaped or laid_size /= px
+				or laid_alignment /= text_alignment
 			then
 				layout_width := a_wrap
 				laid_size := px
 				laid_shaped := want_shaped
+				laid_alignment := text_alignment
 				if want_shaped and then attached a_p.shaping as al_kit then
 					if is_single_line then
 						wpx := 0
 					else
 						wpx := a_wrap.floor.max (16)
 					end
+						-- GW-02: lines placed by `text_alignment' in the
+						-- box the text may fill.
+					geometry.set_alignment (text_alignment, a_wrap.max (0.0))
 					geometry.build_shaped (al_kit, text, wpx, px, is_single_line)
 				else
 					a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)

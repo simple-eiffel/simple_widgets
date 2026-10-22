@@ -94,9 +94,12 @@ feature {NONE} -- Initialization
 			create mark_painter.make
 			create edit_backup.make_empty
 			create edit_marks_backup.make (0)
+			text_alignment := {SHAPING_CONSTANTS}.Align_left
 		ensure
 			kept: viewport_height = a_viewport_height
 			empty: count = 0
+			flush_left: text_alignment = {SHAPING_CONSTANTS}.Align_left
+			gutter_left: not is_gutter_on_reading_side
 		end
 
 feature -- Access
@@ -378,9 +381,81 @@ feature -- Geometry
 		end
 
 	text_x: REAL_64
-			-- Where a paragraph's text starts, in window coordinates.
+			-- Where a paragraph's text starts, in window coordinates, with
+			-- the gutter on the left (every paragraph before GW-02).
 		do
 			Result := x + gutter_width + item_pad
+		end
+
+	item_text_x (a_i: INTEGER): REAL_64
+			-- Where paragraph `a_i''s text starts: `text_x', or - for a
+			-- right-to-left paragraph when the gutter follows the reading -
+			-- just inside the left edge, the gutter moved to the right.
+		require
+			in_range: a_i >= 1 and a_i <= count
+		do
+			if gutter_reads_right (a_i) then
+				Result := x + item_pad
+			else
+				Result := text_x
+			end
+		end
+
+	item_gutter_x (a_i: INTEGER): REAL_64
+			-- Where paragraph `a_i''s gutter is drawn: the left edge, or the
+			-- right edge of the text area for a right-to-left paragraph when
+			-- the gutter follows the reading (GW-02: the verse number sits on
+			-- the side the Hebrew starts from).
+		require
+			in_range: a_i >= 1 and a_i <= count
+		do
+			if gutter_reads_right (a_i) then
+				Result := x + width - Bar_w - 4.0 - gutter_width
+			else
+				Result := x
+			end
+		end
+
+	gutter_reads_right (a_i: INTEGER): BOOLEAN
+			-- Does paragraph `a_i' carry its gutter on the right?
+		require
+			in_range: a_i >= 1 and a_i <= count
+		do
+			Result := is_gutter_on_reading_side and then a_i <= geometries.count
+				and then geometries.i_th (a_i).starts_right_to_left
+		end
+
+feature -- Alignment (GW-02)
+
+	text_alignment: INTEGER
+			-- How each paragraph's lines sit in the text area on the shaped
+			-- path: a SHAPING_CONSTANTS Align_* code. Align_left (the
+			-- default) is the list before GW-02; Align_start sets each Hebrew
+			-- paragraph flush right and each English one flush left.
+
+	is_gutter_on_reading_side: BOOLEAN
+			-- Does a right-to-left paragraph carry its gutter on the right?
+
+	set_text_alignment (a_alignment: INTEGER)
+			-- Place every paragraph's lines by `a_alignment'.
+		require
+			alignment_valid: a_alignment >= {SHAPING_CONSTANTS}.Align_start
+				and a_alignment <= {SHAPING_CONSTANTS}.Align_center
+		do
+			if a_alignment /= text_alignment then
+				text_alignment := a_alignment
+				laid_width := -1.0
+			end
+		ensure
+			set: text_alignment = a_alignment
+		end
+
+	set_gutter_on_reading_side (a_on: BOOLEAN)
+			-- Put a right-to-left paragraph's gutter on the right (or not).
+		do
+			is_gutter_on_reading_side := a_on
+		ensure
+			set: is_gutter_on_reading_side = a_on
 		end
 
 	text_width: REAL_64
@@ -768,6 +843,9 @@ feature -- Editing
 			l_ed.set_marks (marks_list.i_th (a_i))
 			l_ed.set_legend (legend)
 			l_ed.mark_painter.set_floors (mark_painter.min_mark_size, mark_painter.min_effect_size, mark_painter.min_badge_size)
+				-- GW-02: the editor places lines as the list does, so the
+				-- text does not jump sideways when editing begins.
+			l_ed.set_text_alignment (text_alignment)
 			l_ed.set_focused (True)
 			editor := l_ed
 			editing_index := a_i
@@ -861,7 +939,7 @@ feature -- Layout
 			if is_editing and then attached editor as al_ed then
 				i := editing_index
 				ty := y - scroll_y + laid_tops.i_th (i) + item_pad + bands_above.i_th (i)
-				al_ed.set_bounds (text_x - al_ed.Pad_x, ty - al_ed.Pad_y,
+				al_ed.set_bounds (item_text_x (i) - al_ed.Pad_x, ty - al_ed.Pad_y,
 					text_width + 2.0 * al_ed.Pad_x,
 					laid_heights.i_th (i) - 2.0 * item_pad - bands_above.i_th (i) - bands_below.i_th (i)
 						+ 2.0 * al_ed.Pad_y)
@@ -932,12 +1010,12 @@ feature -- Drawing
 						a_p.rrect_stroke (bx + 0.5, by + 0.5, bw - 1.0, bh - 1.0, t.radius)
 					end
 					if attached gutter_renderer as al_g and then gutter_width > 0.0 then
-						al_g.call (a_p, i, bx, by, gutter_width, bh)
+						al_g.call (a_p, i, item_gutter_x (i), by, gutter_width, bh)
 					end
 					ty := by + item_pad
 					if bands_above.i_th (i) > 0.0 then
 						if attached band_renderer as al_b then
-							al_b.call (a_p, i, True, text_x, ty, text_width, bands_above.i_th (i))
+							al_b.call (a_p, i, True, item_text_x (i), ty, text_width, bands_above.i_th (i))
 						end
 						ty := ty + bands_above.i_th (i)
 					end
@@ -948,15 +1026,15 @@ feature -- Drawing
 						if marks_list.i_th (i).text_count /= geometries.i_th (i).count then
 							marks_list.i_th (i).clamp_to (geometries.i_th (i).count)
 						end
-						mark_painter.paint_under (a_p, geometries.i_th (i), marks_list.i_th (i), legend, text_x, ty)
+						mark_painter.paint_under (a_p, geometries.i_th (i), marks_list.i_th (i), legend, item_text_x (i), ty)
 						a_p.set_color (t.ink)
-						draw_item_text (i, a_p, 0.0, 0.0, text_x, ty)
-						mark_painter.paint_over (a_p, geometries.i_th (i), marks_list.i_th (i), legend, text_x, ty,
-							t.size_body * t.text_scale, agent draw_item_text (i, ?, ?, ?, text_x, ty))
+						draw_item_text (i, a_p, 0.0, 0.0, item_text_x (i), ty)
+						mark_painter.paint_over (a_p, geometries.i_th (i), marks_list.i_th (i), legend, item_text_x (i), ty,
+							t.size_body * t.text_scale, agent draw_item_text (i, ?, ?, ?, item_text_x (i), ty))
 						ty := by + item_pad + bands_above.i_th (i) + th
 					end
 					if bands_below.i_th (i) > 0.0 and then attached band_renderer as al_b2 then
-						al_b2.call (a_p, i, False, text_x, ty, text_width, bands_below.i_th (i))
+						al_b2.call (a_p, i, False, item_text_x (i), ty, text_width, bands_below.i_th (i))
 					end
 					i := i + 1
 				end
@@ -1187,6 +1265,7 @@ feature {NONE} -- Measurement
 			in_range: a_i >= 1 and a_i <= count
 			positive: a_wpx > 0 and a_px > 0
 		do
+			geometries.i_th (a_i).set_alignment (text_alignment, a_wpx.to_double)
 			geometries.i_th (a_i).build_shaped (a_kit, texts.i_th (a_i), a_wpx, a_px, False)
 			Result := geometries.i_th (a_i).content_height
 		ensure
@@ -1224,7 +1303,12 @@ feature {NONE} -- Measurement
 				until
 					k > g.layouts.count
 				loop
-					a_p.draw_shaped_layout (g.layouts.i_th (k), ox, oy + g.para_tops.i_th (k))
+					if g.is_aligned then
+						a_p.draw_shaped_layout_aligned (g.layouts.i_th (k), ox, oy + g.para_tops.i_th (k),
+							g.box_width, g.alignment)
+					else
+						a_p.draw_shaped_layout (g.layouts.i_th (k), ox, oy + g.para_tops.i_th (k))
+					end
 					k := k + 1
 				end
 			else

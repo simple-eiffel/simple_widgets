@@ -44,8 +44,10 @@ feature {NONE} -- Initialization
 			size := a_size
 			is_bold := a_bold
 			create shaped.make
+			text_alignment := {SHAPING_CONSTANTS}.Align_left
 		ensure
 			text_kept: text.same_string_general (a_text)
+			flush_left: text_alignment = {SHAPING_CONSTANTS}.Align_left
 		end
 
 	make_ui (a_text: READABLE_STRING_GENERAL)
@@ -128,6 +130,24 @@ feature -- Shaped text
 		ensure
 			shaped_exactly_when: attached Result = takes_shaped_path (a_p)
 			at_this_size: attached Result as al_layout implies al_layout.pixel_size = pixel_size (a_p)
+		end
+
+feature -- Alignment (GW-02)
+
+	text_alignment: INTEGER
+			-- How a shaped label's lines sit in its width: a
+			-- SHAPING_CONSTANTS Align_* code. Align_left by default;
+			-- Align_start sets a Hebrew label flush right.
+
+	set_text_alignment (a_alignment: INTEGER)
+			-- Place this label's lines by `a_alignment'.
+		require
+			alignment_valid: a_alignment >= {SHAPING_CONSTANTS}.Align_start
+				and a_alignment <= {SHAPING_CONSTANTS}.Align_center
+		do
+			text_alignment := a_alignment
+		ensure
+			set: text_alignment = a_alignment
 		end
 
 feature -- Element change
@@ -300,7 +320,13 @@ feature -- Drawing
 					-- The layout's TOP-LEFT goes where the toy path's
 					-- glyph box starts: half the leading below the top
 					-- edge, so both paths centre a line in its step.
-				a_p.draw_shaped_layout (al_layout, x, y + a_p.theme.padding / 2.0)
+				if text_alignment /= {SHAPING_CONSTANTS}.Align_left then
+						-- GW-02: placed in the label's own width.
+					a_p.draw_shaped_layout_aligned (al_layout, x, y + a_p.theme.padding / 2.0,
+						width.max (0.0), text_alignment)
+				else
+					a_p.draw_shaped_layout (al_layout, x, y + a_p.theme.padding / 2.0)
+				end
 			else
 				step := line_step (a_p)
 				base := baseline_offset (a_p)

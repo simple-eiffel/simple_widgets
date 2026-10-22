@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.11.0 — HEBREW FLUSH RIGHT, THE GUTTER ON THE READING SIDE; GW-02)
+
+Asked for by simple_bible (gap GW-02): a Hebrew verse must read right to
+left AND sit flush right, with its verse number on the right.
+
+- **`SW_TEXT_GEOMETRY.set_alignment (alignment, box_width)`:** `build_shaped`
+  places each line by `SHAPED_LAYOUT.line_offset` (simple_shaping 0.4.0),
+  and every slot moves with its line, so carets, selections, squiggles and
+  hit-tests keep agreeing with what paints. A line break's slot stands at the
+  reading start of the line it opens. New: `offset_of_line`, `is_aligned`,
+  `starts_right_to_left`.
+- **`SW_PAINTER.draw_shaped_layout_aligned (layout, x, y, box_width,
+  alignment)`.**
+- **`SW_TEXT_BOX.set_text_alignment`, `SW_PARAGRAPH_LIST.set_text_alignment`
+  and `SW_LABEL.set_text_alignment`.** With `Align_start`, each Hebrew
+  paragraph sits flush right and each English one flush left. The list's
+  inline editor aligns the same way, so text does not jump when editing
+  begins.
+- **`SW_PARAGRAPH_LIST.set_gutter_on_reading_side`:** a right-to-left
+  paragraph carries its gutter on the right and its text moves left
+  (`item_gutter_x`, `item_text_x`). Bands and marks follow.
+- The default for all three is `Align_left` with the gutter on the left:
+  exactly the behavior before GW-02.
+- Tests, in both themes: geometry (flush right, reading-start caret at the
+  right edge, a click there is offset 0); a Hebrew text box inks its right
+  half; a three-verse list (Hebrew, Greek, English) puts the Hebrew gutter
+  on the right. Evidence: `evidence/gw02_verses_light.png` and
+  `gw02_verses_dark.png`. 352 pass, 0 fail, 0 warnings.
+
 ### Changed (0.10.0 — EVERY WIDGET'S TEXT GOES THROUGH THE SHAPED PATH; GW-04)
 
 Asked for by simple_bible (gap GW-04): Hebrew and Greek appear in data

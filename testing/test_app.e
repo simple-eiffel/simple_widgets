@@ -473,6 +473,11 @@ feature {NONE} -- Test runners
 			run_test (agent shaping_tests.test_gw04_painter_text_shapes_hebrew_and_greek_dark, "gw04_painter_text_shapes_hebrew_and_greek_dark")
 			run_test (agent shaping_tests.test_gw04_advance_is_the_shaped_width, "gw04_advance_is_the_shaped_width")
 			run_test (agent shaping_tests.test_gw04_without_a_kit_the_toy_path_is_unchanged, "gw04_without_a_kit_the_toy_path_is_unchanged")
+			run_test (agent shaping_tests.test_gw02_geometry_sets_hebrew_flush_right, "gw02_geometry_sets_hebrew_flush_right")
+			run_test (agent shaping_tests.test_gw02_text_box_hebrew_flush_right_light, "gw02_text_box_hebrew_flush_right_light")
+			run_test (agent shaping_tests.test_gw02_text_box_hebrew_flush_right_dark, "gw02_text_box_hebrew_flush_right_dark")
+			run_test (agent shaping_tests.test_gw02_paragraph_list_gutter_follows_reading_light, "gw02_paragraph_list_gutter_follows_reading_light")
+			run_test (agent shaping_tests.test_gw02_paragraph_list_gutter_follows_reading_dark, "gw02_paragraph_list_gutter_follows_reading_dark")
 		end
 
 	chat_text_tests: SW_CHAT_TEXT_ASSAULT
