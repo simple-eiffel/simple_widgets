@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.13.0 — THE WINDOW FOLLOWS THE WINDOWS LIGHT/DARK SETTING; GW-27)
+
+simple_bible's theming decision: default Light, a Dark theme, and the user
+can switch. This release adds the third choice, "follow Windows". It needs
+simple_shell 1.16.0.
+
+- **`SW_WINDOW.follow_system_theme (light, dark)`** wears the member of the
+  pair that Windows asks for. Event 53 (`Event_appearance_changed`) swaps
+  the theme live and repaints. The swap is handled before modality, so an
+  open dialog or popup cannot block it. **`set_on_theme_changed`** tells
+  the app the new theme. A later **`set_theme`** is the user's own choice:
+  it stops following.
+- **The caption always matches the theme:** creation, `set_theme` and every
+  followed flip call `set_dark_title_bar (theme.is_dark)`.
+- Tests:
+  - following matches `SHELL_APPEARANCE.system_prefers_dark`, caption
+    included;
+  - 53 with 1, then 0, swaps the theme both ways, and frame pixel (2,2)
+    repaints in each background;
+  - the app is told twice, with the right themes;
+  - a dialog does not block the flip;
+  - after `set_theme`, a flip is ignored.
+- 359 pass, 0 fail, 0 warnings (clean build).
+
 ### Added (0.12.0 — POINTED HEBREW AND POLYTONIC GREEK, VERIFIED IN THE SHIPPED FACES; GW-03)
 
 Asked for by simple_bible (gap GW-03): Hebrew with vowel points and

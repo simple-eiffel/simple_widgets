@@ -161,6 +161,85 @@ feature -- Tests
 			assert ("height clamped down", b.clamped_height (99.0) = 44.0)
 		end
 
+feature -- GW-27: the window follows the Windows light/dark setting
+
+	test_gw27_follow_matches_windows
+			-- Following picks the member of the pair Windows asks for,
+			-- and the caption matches it.
+		local
+			w: SW_WINDOW
+			a: SHELL_APPEARANCE
+		do
+			create a
+			create w.make ("follow", 0, 0, 200, 120, create {SW_THEME}.make_light)
+			assert_false ("a light window starts with a light caption", w.title_bar_is_dark)
+			w.follow_system_theme (create {SW_THEME}.make_light, create {SW_THEME}.make_dark)
+			assert_true ("following", w.is_following_system_theme)
+			assert_true ("the theme matches Windows", w.theme.is_dark = a.system_prefers_dark)
+			assert_true ("and so does the caption", w.title_bar_is_dark = a.system_prefers_dark)
+		end
+
+	test_gw27_flip_swaps_live
+			-- Event 53 swaps the theme both ways, repaints in it, tells
+			-- the app, and still acts while a dialog is open.
+		local
+			w: SW_WINDOW
+			l_light, l_dark: SW_THEME
+			l_told: ARRAYED_LIST [SW_THEME]
+			d: SW_DIALOG
+		do
+			create l_light.make_light
+			create l_dark.make_dark
+			create l_told.make (2)
+			create w.make ("follow", 0, 0, 200, 120, l_light)
+			w.follow_system_theme (l_light, l_dark)
+			w.set_on_theme_changed (agent l_told.extend)
+			l_told.wipe_out
+			w.dispatch (w.Event_appearance_changed, 1, 0)
+			assert_true ("dark on 1", w.theme = l_dark and w.painter.theme = l_dark and w.title_bar_is_dark)
+			assert_integers_equal ("repainted in dark", l_dark.background.to_integer_32, frame_pixel (w, 2, 2))
+			w.dispatch (w.Event_appearance_changed, 0, 0)
+			assert_true ("light on 0", w.theme = l_light and not w.title_bar_is_dark)
+			assert_integers_equal ("repainted in light", l_light.background.to_integer_32, frame_pixel (w, 2, 2))
+			assert_integers_equal ("the app was told twice", 2, l_told.count)
+			assert_true ("with the right themes", l_told.first = l_dark and l_told.last = l_light)
+			create d.make ({SW_DIALOG}.Kind_info, "Title", "Body")
+			w.show_dialog (d)
+			w.dispatch (w.Event_appearance_changed, 1, 0)
+			assert_true ("a dialog does not block the flip", w.theme = l_dark)
+			w.close_dialog
+		end
+
+	test_gw27_user_choice_stops_following
+			-- The user's own choice (set_theme) wins: later flips are ignored.
+		local
+			w: SW_WINDOW
+			l_light, l_dark: SW_THEME
+		do
+			create l_light.make_light
+			create l_dark.make_dark
+			create w.make ("follow", 0, 0, 200, 120, l_light)
+			w.follow_system_theme (l_light, l_dark)
+			w.set_theme (l_light)
+			assert_false ("no longer following", w.is_following_system_theme)
+			w.dispatch (w.Event_appearance_changed, 1, 0)
+			assert_true ("a flip leaves the chosen theme", w.theme = l_light and not w.title_bar_is_dark)
+		end
+
+feature {NONE} -- GW-27 helpers
+
+	frame_pixel (a_window: SW_WINDOW; a_x, a_y: INTEGER): INTEGER
+			-- RGB of the window's last frame at (`a_x', `a_y').
+		local
+			mp: MANAGED_POINTER
+			s: CAIRO_SURFACE
+		do
+			s := a_window.offscreen
+			s.flush.do_nothing
+			create mp.share_from_pointer (s.data, s.stride * s.height)
+			Result := (mp.read_natural_32 (a_y * s.stride + a_x * 4).bit_and (0xFFFFFF)).to_integer_32
+		end
+
 feature {NONE} -- Fixture
 
 	call_is_refused (a_call: PROCEDURE): BOOLEAN

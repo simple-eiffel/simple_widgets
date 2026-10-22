@@ -150,6 +150,9 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_theme_gw28_fills_take_the_right_ink, "theme_gw28_fills_take_the_right_ink")
 			run_test (agent chrome_tests.test_theme_gw28_ramp_moves_away, "theme_gw28_ramp_moves_away")
 			run_test (agent chrome_tests.test_theme_gw28_unreadable_rejected, "theme_gw28_unreadable_rejected")
+			run_test (agent chrome_tests.test_gw27_follow_matches_windows, "gw27_follow_matches_windows")
+			run_test (agent chrome_tests.test_gw27_flip_swaps_live, "gw27_flip_swaps_live")
+			run_test (agent chrome_tests.test_gw27_user_choice_stops_following, "gw27_user_choice_stops_following")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
 		end
