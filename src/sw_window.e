@@ -87,8 +87,10 @@ feature {NONE} -- Initialization
 			offscreen := cairo.create_surface (alloc_w, alloc_h)
 			create ctx.make (offscreen)
 			create painter.make (ctx, theme)
+			set_dark_title_bar (a_theme.is_dark)
 		ensure
 			theme_kept: theme = a_theme
+			caption_matches: title_bar_is_dark = a_theme.is_dark
 		end
 
 feature -- Access
@@ -185,15 +187,50 @@ feature -- Element change
 
 	set_theme (a_theme: SW_THEME)
 			-- Swap the token set live; the next render wears it, and
-			-- the OS-side backdrop brush follows (it paints pixels a
-			-- live resize exposes before our next frame lands).
+			-- the OS-side backdrop brush and the caption follow (the
+			-- brush paints pixels a live resize exposes before our next
+			-- frame lands). This is the user's own choice, so it stops
+			-- `follow_system_theme'.
 		do
-			theme := a_theme
-			create painter.make (ctx, a_theme)
-			painter.set_shaping (shaping)
-			set_backdrop_rgb (a_theme.background.to_integer_32)
+			system_light := Void
+			system_dark := Void
+			wear_theme (a_theme)
 		ensure
 			swapped: theme = a_theme
+			not_following: not is_following_system_theme
+		end
+
+feature -- Following Windows (GW-27)
+
+	follow_system_theme (a_light, a_dark: SW_THEME)
+			-- Wear `a_dark' while Windows is set to dark for apps and
+			-- `a_light' otherwise, and switch live when that setting
+			-- flips. A later `set_theme' stops following.
+		require
+			light_is_light: not a_light.is_dark
+			dark_is_dark: a_dark.is_dark
+		do
+			system_light := a_light
+			system_dark := a_dark
+			wear_system_theme (appearance.system_prefers_dark)
+		ensure
+			following: is_following_system_theme
+		end
+
+	is_following_system_theme: BOOLEAN
+			-- Does the theme follow the Windows light/dark setting?
+		do
+			Result := attached system_light and attached system_dark
+		end
+
+	on_theme_changed: detachable PROCEDURE [SW_THEME]
+			-- Told the new theme whenever following Windows swaps it.
+
+	set_on_theme_changed (a_action: PROCEDURE [SW_THEME])
+		do
+			on_theme_changed := a_action
+		ensure
+			set: on_theme_changed = a_action
 		end
 
 	set_frame_echo (a_path: READABLE_STRING_GENERAL)
@@ -399,6 +436,10 @@ feature {NONE} -- Dispatch
 					-- Likewise the surface: a resize that arrives while a
 					-- dialog or popup is open must still reallocate.
 				resize_surface (a_x, a_y)
+			elseif a_type = Event_appearance_changed and then is_following_system_theme then
+					-- And the theme: Windows flipped light/dark (GW-27).
+				wear_system_theme (a_x = 1)
+				request_render
 			end
 			if attached dialog as d then
 				dispatch_to_dialog (d, a_type, a_x, a_y)
@@ -465,6 +506,43 @@ feature -- Dialogs
 			dialog := Void
 		ensure
 			closed: dialog = Void
+		end
+
+feature {NONE} -- Theme internals (GW-27)
+
+	system_light, system_dark: detachable SW_THEME
+			-- The pair `follow_system_theme' chooses between.
+
+	wear_theme (a_theme: SW_THEME)
+			-- Put `a_theme' on: tokens, painter, backdrop brush, caption.
+		do
+			theme := a_theme
+			create painter.make (ctx, a_theme)
+			painter.set_shaping (shaping)
+			set_backdrop_rgb (a_theme.background.to_integer_32)
+			set_dark_title_bar (a_theme.is_dark)
+		ensure
+			worn: theme = a_theme and painter.theme = a_theme
+			caption_matches: title_bar_is_dark = a_theme.is_dark
+		end
+
+	wear_system_theme (a_dark: BOOLEAN)
+			-- Wear the dark or light member of the followed pair, and
+			-- tell `on_theme_changed'.
+		require
+			following: is_following_system_theme
+		do
+			if a_dark and then attached system_dark as al_dark then
+				wear_theme (al_dark)
+			elseif attached system_light as al_light then
+				wear_theme (al_light)
+			end
+			if attached on_theme_changed as al_told then
+				al_told.call (theme)
+			end
+		ensure
+			still_following: is_following_system_theme
+			dark_as_asked: theme.is_dark = a_dark
 		end
 
 feature {NONE} -- Dispatch internals
