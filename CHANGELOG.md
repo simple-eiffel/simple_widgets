@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.9.0 — THEME TOKENS FOR FILLED CONTROLS, STATUS INKS, AND DARK MODE; GW-28)
+
+Asked for by simple_bible's light and dark mockups (gap GW-28): the
+mockups draw filled controls, status chips and heat maps, and in dark mode
+white text on the brightened accent fill is only about 3.3:1.
+
+- **`SW_THEME` gains fifteen tokens in both palettes:** `ink_on_accent`,
+  `ink_on_success`, `ink_on_warning`, `ink_on_danger` (text on a filled
+  control; white in light, `0x0B1220` in dark); `ink_accent`, `ink_success`,
+  `ink_warning`, `ink_danger` (strong text on each wash and on the surface);
+  `ink_soft` (secondary body text); `divider`, `selection`, `scrim`; and a
+  five-step sequential `ramp (i)` for heat maps and ordered charts.
+- **`is_readable`** checks every text-bearing pairing (4.5:1 for body text,
+  3:1 for labels) and that the ramp moves away from the surface step by step.
+  `make_light` and `make_dark` guarantee it, and **`is_dark`** says which a
+  theme is. It is deliberately not in the invariant: the invariant runs on
+  every call during painting, and this is about thirty WCAG computations.
+- **New setters refuse unreadable values at the call site:**
+  `set_inks_on_fills`, `set_semantic_inks`, `set_quiet_tones` and `set_ramp`.
+  The existing setters are unchanged.
+- Tests: four in `SW_CHROME_ASSAULT` (343 pass, 0 fail).
+
+### Fixed
+
+- Zero warnings again. `SW_MESH.draw` no longer uses the obsolete
+  `as_string_8` conversion, and the drawer-tab test agents drop the empty
+  `()` argument list.
+
 ### Fixed (0.8.2 — A TEXT BOX MEASURES THE SAME TWICE, IN ROWS IT REALLY HAS)
 
 Found by simple_chat's composer tests, which failed on two measurements that

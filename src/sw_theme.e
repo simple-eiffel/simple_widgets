@@ -40,8 +40,30 @@ feature {NONE} -- Initialization
 			wash_success := 0xE0F0E9
 			wash_warning := 0xFAF1DD
 			wash_danger := 0xF8E7E2
+				-- GW-28 (2026-10-22): the tokens the simple_bible mockups
+				-- needed, light values as drawn in the approved light page.
+			ink_on_accent := 0xFFFFFF
+			ink_on_success := 0xFFFFFF
+			ink_on_warning := 0xFFFFFF
+			ink_on_danger := 0xFFFFFF
+			ink_accent := 0x154A85
+			ink_success := 0x13503D
+			ink_warning := 0x6E4708
+			ink_danger := 0x8A2D19
+			ink_soft := 0x3A4452
+			divider := 0xEEF1F5
+			selection := 0xEEF4FB
+			scrim := 0x7D8796
+			ramp_1 := 0xC7DAF1
+			ramp_2 := 0x9BBBE3
+			ramp_3 := 0x7BA9DE
+			ramp_4 := 0x4D8FD6
+			ramp_5 := 0x1F5FA8
 			init_families
 			set_metrics
+		ensure
+			light: not is_dark
+			readable: is_readable
 		end
 
 	make_dark
@@ -63,8 +85,30 @@ feature {NONE} -- Initialization
 			wash_success := 0x1D3A2C
 			wash_warning := 0x3D330E
 			wash_danger := 0x40231C
+				-- GW-28 (2026-10-22): dark values as drawn in the approved
+				-- dark page. Fills brighten in dark, so their text goes dark.
+			ink_on_accent := 0x0B1220
+			ink_on_success := 0x0B1220
+			ink_on_warning := 0x0B1220
+			ink_on_danger := 0x0B1220
+			ink_accent := 0x9CC3EE
+			ink_success := 0x7FD9A4
+			ink_warning := 0xE8C77A
+			ink_danger := 0xF0937D
+			ink_soft := 0xC9D1DC
+			divider := 0x2A313C
+			selection := 0x1F2B3B
+			scrim := 0x07090C
+			ramp_1 := 0x24344A
+			ramp_2 := 0x2F5378
+			ramp_3 := 0x3A6A9C
+			ramp_4 := 0x4378B3
+			ramp_5 := 0x4D8FD6
 			init_families
 			set_metrics
+		ensure
+			dark: is_dark
+			readable: is_readable
 		end
 
 	init_families
@@ -117,6 +161,191 @@ feature -- Semantic colours
 	wash_success: NATURAL_32
 	wash_warning: NATURAL_32
 	wash_danger: NATURAL_32
+
+feature -- Ink on filled controls (GW-28)
+
+	ink_on_accent: NATURAL_32
+			-- Text on an `accent' fill (a filled button, a selected chip or
+			-- segment, a link-set badge).
+
+	ink_on_success: NATURAL_32
+			-- Text on a `success' fill.
+
+	ink_on_warning: NATURAL_32
+			-- Text on a `warning' fill.
+
+	ink_on_danger: NATURAL_32
+			-- Text on a `danger' fill.
+
+feature -- Strong semantic inks (GW-28)
+
+	ink_accent: NATURAL_32
+			-- Accent-family text on `wash_accent' or on `surface' (status
+			-- chips, banners).
+
+	ink_success: NATURAL_32
+			-- Success-family text on `wash_success' or on `surface'.
+
+	ink_warning: NATURAL_32
+			-- Warning-family text on `wash_warning' or on `surface'.
+
+	ink_danger: NATURAL_32
+			-- Danger-family text on `wash_danger' or on `surface'.
+
+feature -- Secondary ink, lines, selection, scrim (GW-28)
+
+	ink_soft: NATURAL_32
+			-- Secondary body text: quieter than `ink', still body-readable
+			-- (unlike `ink_muted', which is for labels and hints).
+
+	divider: NATURAL_32
+			-- Row and list separators, quieter than `outline'.
+
+	selection: NATURAL_32
+			-- Selected row or verse ground, quieter than `wash_accent';
+			-- `ink' and `ink_soft' read on it.
+
+	scrim: NATURAL_32
+			-- The dimmed ground behind a modal dialog or sheet.
+
+feature -- Sequential ramp (GW-28)
+
+	Ramp_count: INTEGER = 5
+			-- Steps in the sequential ramp.
+
+	ramp (a_step: INTEGER): NATURAL_32
+			-- Step `a_step' of the sequential ramp for heat maps and ordered
+			-- charts: 1 sits nearest the surface, `Ramp_count' stands out
+			-- most, in light and dark alike.
+		require
+			step_in_range: a_step >= 1 and a_step <= Ramp_count
+		do
+			inspect a_step
+			when 1 then Result := ramp_1
+			when 2 then Result := ramp_2
+			when 3 then Result := ramp_3
+			when 4 then Result := ramp_4
+			else Result := ramp_5
+			end
+		end
+
+feature -- Status (GW-28)
+
+	is_dark: BOOLEAN
+			-- Is this a dark theme? Decided by its surface.
+		do
+			Result := luminance (surface) < 0.5
+		end
+
+	is_readable: BOOLEAN
+			-- Does every text-bearing pairing meet its contrast rule?
+			-- Body text 4.5:1 (WCAG AA), labels and hints 3:1, and the ramp
+			-- moving strictly away from the surface step by step.
+			-- Kept out of the invariant on purpose: the invariant runs on
+			-- every call during painting, and this is about thirty WCAG
+			-- computations. Creation procedures and the GW-28 setters
+			-- guarantee it instead.
+		do
+			Result := contrast_ratio (ink, surface) >= Body_contrast
+				and contrast_ratio (ink_soft, surface) >= Body_contrast
+				and contrast_ratio (ink_muted, surface) >= Label_contrast
+				and contrast_ratio (ink, selection) >= Body_contrast
+				and contrast_ratio (ink_soft, selection) >= Body_contrast
+				and contrast_ratio (ink_on_accent, accent) >= Body_contrast
+				and contrast_ratio (ink_on_success, success) >= Body_contrast
+				and contrast_ratio (ink_on_warning, warning) >= Body_contrast
+				and contrast_ratio (ink_on_danger, danger) >= Body_contrast
+				and contrast_ratio (ink_accent, wash_accent) >= Body_contrast
+				and contrast_ratio (ink_success, wash_success) >= Body_contrast
+				and contrast_ratio (ink_warning, wash_warning) >= Body_contrast
+				and contrast_ratio (ink_danger, wash_danger) >= Body_contrast
+				and contrast_ratio (ink_accent, surface) >= Body_contrast
+				and contrast_ratio (ink_success, surface) >= Body_contrast
+				and contrast_ratio (ink_warning, surface) >= Body_contrast
+				and contrast_ratio (ink_danger, surface) >= Body_contrast
+				and ramp_moves_away
+		end
+
+	Body_contrast: REAL_64 = 4.5
+			-- WCAG AA for body text.
+
+	Label_contrast: REAL_64 = 3.0
+			-- WCAG AA for large text, labels and non-text marks.
+
+feature -- Element change (GW-28)
+
+	set_inks_on_fills (a_accent, a_success, a_warning, a_danger: NATURAL_32)
+			-- Recolour the text drawn on filled controls.
+		require
+			on_accent_readable: contrast_ratio (a_accent, accent) >= Body_contrast
+			on_success_readable: contrast_ratio (a_success, success) >= Body_contrast
+			on_warning_readable: contrast_ratio (a_warning, warning) >= Body_contrast
+			on_danger_readable: contrast_ratio (a_danger, danger) >= Body_contrast
+		do
+			ink_on_accent := a_accent
+			ink_on_success := a_success
+			ink_on_warning := a_warning
+			ink_on_danger := a_danger
+		ensure
+			set: ink_on_accent = a_accent and ink_on_success = a_success
+				and ink_on_warning = a_warning and ink_on_danger = a_danger
+		end
+
+	set_semantic_inks (a_accent, a_success, a_warning, a_danger: NATURAL_32)
+			-- Recolour the strong semantic inks.
+		require
+			accent_readable: contrast_ratio (a_accent, wash_accent) >= Body_contrast
+				and contrast_ratio (a_accent, surface) >= Body_contrast
+			success_readable: contrast_ratio (a_success, wash_success) >= Body_contrast
+				and contrast_ratio (a_success, surface) >= Body_contrast
+			warning_readable: contrast_ratio (a_warning, wash_warning) >= Body_contrast
+				and contrast_ratio (a_warning, surface) >= Body_contrast
+			danger_readable: contrast_ratio (a_danger, wash_danger) >= Body_contrast
+				and contrast_ratio (a_danger, surface) >= Body_contrast
+		do
+			ink_accent := a_accent
+			ink_success := a_success
+			ink_warning := a_warning
+			ink_danger := a_danger
+		ensure
+			set: ink_accent = a_accent and ink_success = a_success
+				and ink_warning = a_warning and ink_danger = a_danger
+		end
+
+	set_quiet_tones (a_ink_soft, a_divider, a_selection, a_scrim: NATURAL_32)
+			-- Recolour secondary ink, dividers, selection and scrim.
+		require
+			soft_readable: contrast_ratio (a_ink_soft, surface) >= Body_contrast
+			selection_keeps_ink: contrast_ratio (ink, a_selection) >= Body_contrast
+				and contrast_ratio (a_ink_soft, a_selection) >= Body_contrast
+		do
+			ink_soft := a_ink_soft
+			divider := a_divider
+			selection := a_selection
+			scrim := a_scrim
+		ensure
+			set: ink_soft = a_ink_soft and divider = a_divider
+				and selection = a_selection and scrim = a_scrim
+		end
+
+	set_ramp (a_1, a_2, a_3, a_4, a_5: NATURAL_32)
+			-- Replace the sequential ramp, nearest-the-surface first.
+		require
+			moves_away: contrast_ratio (a_1, surface) < contrast_ratio (a_2, surface)
+				and contrast_ratio (a_2, surface) < contrast_ratio (a_3, surface)
+				and contrast_ratio (a_3, surface) < contrast_ratio (a_4, surface)
+				and contrast_ratio (a_4, surface) < contrast_ratio (a_5, surface)
+		do
+			ramp_1 := a_1
+			ramp_2 := a_2
+			ramp_3 := a_3
+			ramp_4 := a_4
+			ramp_5 := a_5
+		ensure
+			set: ramp (1) = a_1 and ramp (2) = a_2 and ramp (3) = a_3
+				and ramp (4) = a_4 and ramp (5) = a_5
+			moves_away: ramp_moves_away
+		end
 
 feature -- Type roles
 
@@ -320,6 +549,20 @@ feature -- Measurement
 			Result := (hi + 0.05) / (lo + 0.05)
 		ensure
 			at_least_one: Result >= 1.0
+		end
+
+feature {NONE} -- Ramp storage (GW-28)
+
+	ramp_1, ramp_2, ramp_3, ramp_4, ramp_5: NATURAL_32
+
+	ramp_moves_away: BOOLEAN
+			-- Does each ramp step contrast more with the surface than the
+			-- one before?
+		do
+			Result := contrast_ratio (ramp_1, surface) < contrast_ratio (ramp_2, surface)
+				and contrast_ratio (ramp_2, surface) < contrast_ratio (ramp_3, surface)
+				and contrast_ratio (ramp_3, surface) < contrast_ratio (ramp_4, surface)
+				and contrast_ratio (ramp_4, surface) < contrast_ratio (ramp_5, surface)
 		end
 
 feature {NONE} -- Implementation

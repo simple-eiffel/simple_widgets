@@ -146,6 +146,10 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_toolbar_by_label_state, "toolbar_by_label_state")
 			run_test (agent chrome_tests.test_toolbar_click_fires_and_latches, "toolbar_click_fires_and_latches")
 			run_test (agent chrome_tests.test_theme_invariants_both_ways, "theme_invariants_both_ways")
+			run_test (agent chrome_tests.test_theme_gw28_both_palettes_readable, "theme_gw28_both_palettes_readable")
+			run_test (agent chrome_tests.test_theme_gw28_fills_take_the_right_ink, "theme_gw28_fills_take_the_right_ink")
+			run_test (agent chrome_tests.test_theme_gw28_ramp_moves_away, "theme_gw28_ramp_moves_away")
+			run_test (agent chrome_tests.test_theme_gw28_unreadable_rejected, "theme_gw28_unreadable_rejected")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
 		end

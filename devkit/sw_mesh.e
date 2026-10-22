@@ -303,7 +303,7 @@ feature -- Drawing
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_chip, False)
 			a_p.set_color (t.ink_muted)
 			a_p.text (x + 10.0, y + height - 10.0,
-				node_count.out + {STRING_32} " widgets to depth " + max_depth.out + {STRING_32} ", live physics %/8212/ drag pins a node; double-click reveals it")
+				node_count.out.to_string_32 + {STRING_32} " widgets to depth " + max_depth.out + {STRING_32} ", live physics %/8212/ drag pins a node; double-click reveals it")
 				-- the names chip: click toggles all-node labels
 			if show_labels then
 				a_p.set_color (t.wash_accent)
