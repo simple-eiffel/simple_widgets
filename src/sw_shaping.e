@@ -123,8 +123,13 @@ feature -- Measurement and layout
 			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
 				or a_role = {SW_PAINTER}.Role_mono
 		do
-			Result := facade.layout (a_text.to_string_32, a_width_pixels, a_pixel_size,
-				styled_fonts (a_role, a_bold))
+			if a_pixel_size < small_size_below and then not small_script_faces.is_empty then
+				Result := facade.layout (a_text.to_string_32, a_width_pixels, a_pixel_size,
+					small_styled_fonts (a_role, a_bold))
+			else
+				Result := facade.layout (a_text.to_string_32, a_width_pixels, a_pixel_size,
+					styled_fonts (a_role, a_bold))
+			end
 		ensure
 			parameters_kept: Result.width_pixels = a_width_pixels
 				and Result.pixel_size = a_pixel_size
@@ -151,6 +156,10 @@ feature -- Measurement and layout
 						-- also carry digits and punctuation (a mono label's
 						-- "4171" otherwise came from Segoe UI).
 					Result := Result.with_leading_family (al_family)
+				end
+					-- GW-03: the app's own faces for Hebrew, Greek, ...
+				across script_faces as f loop
+					Result := Result.with_family_for_script (@ f.key, f)
 				end
 				Result := Result.with_style (if a_bold then {SHAPING_FONT}.Weight_bold else {SHAPING_FONT}.Weight_regular end, False)
 				role_fonts [l_index] := Result
@@ -197,6 +206,7 @@ feature -- Element change
 			create body_family.make_from_string_general (a_theme.family_body)
 			create mono_family.make_from_string_general (a_theme.family_mono)
 			role_fonts.fill_with (Void)
+			small_role_fonts.fill_with (Void)
 		ensure
 			policy_present: attached fonts
 			role_faces_follow: attached ui_family as al_ui and then al_ui.same_string_general (a_theme.family_ui)
@@ -212,7 +222,99 @@ feature -- Element change
 			set: fonts = a_fonts
 		end
 
+feature -- Script faces (GW-03)
+
+	set_script_face (a_script_class: INTEGER; a_family: READABLE_STRING_GENERAL)
+			-- Shape `a_script_class' (SHAPING_CONSTANTS Script_class_hebrew,
+			-- Script_class_greek, ...) in `a_family' first, in every role:
+			-- how an app puts its own reading faces in front of
+			-- simple_shaping's defaults. Ship the face with
+			-- `SIMPLE_SHAPING.load_font_file' if readers may not have it.
+		require
+			class_valid: facade.default_fonts.is_valid_script_class (a_script_class)
+			family_not_empty: not a_family.is_empty
+		do
+			script_faces.force (create {STRING_32}.make_from_string_general (a_family), a_script_class)
+			role_fonts.fill_with (Void)
+			small_role_fonts.fill_with (Void)
+		ensure
+			recorded: attached script_face (a_script_class) as al_face
+				and then al_face.same_string_general (a_family)
+		end
+
+	script_face (a_script_class: INTEGER): detachable STRING_32
+			-- The face `set_script_face' put first for `a_script_class'.
+		do
+			Result := script_faces.item (a_script_class)
+		end
+
+	set_small_script_face (a_script_class: INTEGER; a_family: READABLE_STRING_GENERAL; a_below_px: INTEGER)
+			-- Below `a_below_px' pixels, shape `a_script_class' in `a_family'
+			-- instead. GW-03 measured why: at 14 px a regular face's vowel
+			-- points and cantillation antialias to grey (light theme: 24% of
+			-- the mark ink at 3:1); the same family's true Medium design
+			-- keeps them crisp. A static Medium file is its own GDI family
+			-- ("Noto Serif Hebrew Medium"), so asking weight 500 of the
+			-- regular family does NOT reach it - name the face here.
+		require
+			class_valid: facade.default_fonts.is_valid_script_class (a_script_class)
+			family_not_empty: not a_family.is_empty
+			threshold_positive: a_below_px > 0
+		do
+			small_script_faces.force (create {STRING_32}.make_from_string_general (a_family), a_script_class)
+			small_size_below := a_below_px
+			small_role_fonts.fill_with (Void)
+		ensure
+			recorded: attached small_script_faces.item (a_script_class) as al_face
+				and then al_face.same_string_general (a_family)
+			threshold_set: small_size_below = a_below_px
+		end
+
+	small_size_below: INTEGER
+			-- Pixel size below which the small script faces apply (0: never).
+
 feature {NONE} -- Per-role policies (GW-04)
+
+	script_faces: HASH_TABLE [STRING_32, INTEGER]
+			-- Script class -> the app's face for it (GW-03).
+		once ("OBJECT")
+			create Result.make (4)
+		end
+
+	small_script_faces: HASH_TABLE [STRING_32, INTEGER]
+			-- Script class -> the face used below `small_size_below' (GW-03).
+		once ("OBJECT")
+			create Result.make (4)
+		end
+
+	small_role_fonts: ARRAY [detachable FONT_LIST]
+			-- Cached small-size policies, indexed as `role_fonts'.
+		once ("OBJECT")
+			create Result.make_filled (Void, 1, 6)
+		end
+
+	small_styled_fonts (a_role: INTEGER; a_bold: BOOLEAN): FONT_LIST
+			-- `styled_fonts' with the small script faces put in front.
+		require
+			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
+				or a_role = {SW_PAINTER}.Role_mono
+		local
+			l_index: INTEGER
+		do
+			l_index := (a_role - 1) * 2 + (if a_bold then 2 else 1 end)
+			if attached small_role_fonts [l_index] as al_fonts then
+				Result := al_fonts
+			else
+				Result := styled_fonts (a_role, a_bold).twin
+				across small_script_faces as f loop
+					Result := Result.with_family_for_script (@ f.key, f)
+				end
+				small_role_fonts [l_index] := Result
+			end
+		ensure
+			usable: not Result.is_empty
+		end
+
 
 	role_fonts: ARRAY [detachable FONT_LIST]
 			-- Cached policies: index (role - 1) * 2 + 1 regular, + 2 bold.
