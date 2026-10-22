@@ -70,6 +70,68 @@ feature -- Tests
 			assert ("washes survive identity swap", True)
 		end
 
+	test_theme_gw28_both_palettes_readable
+			-- GW-28: every text-bearing pairing meets its contrast rule in
+			-- both palettes, and each palette knows which it is.
+		local
+			l_light, l_dark: SW_THEME
+		do
+			create l_light.make_light
+			create l_dark.make_dark
+			assert ("light is readable", l_light.is_readable)
+			assert ("dark is readable", l_dark.is_readable)
+			assert ("light is not dark", not l_light.is_dark)
+			assert ("dark is dark", l_dark.is_dark)
+		end
+
+	test_theme_gw28_fills_take_the_right_ink
+			-- GW-28: light fills carry white text; dark fills brighten, so
+			-- their text goes dark (white on dark-theme accent is ~3.3:1).
+		local
+			l_light, l_dark: SW_THEME
+		do
+			create l_light.make_light
+			create l_dark.make_dark
+			assert_naturals_equal ("light: white on accent", 0xFFFFFF, l_light.ink_on_accent)
+			assert ("dark: white on accent would fail", l_dark.contrast_ratio (0xFFFFFF, l_dark.accent) < l_dark.Body_contrast)
+			assert ("dark: ink on accent passes", l_dark.contrast_ratio (l_dark.ink_on_accent, l_dark.accent) >= l_dark.Body_contrast)
+			assert ("dark: ink on danger passes", l_dark.contrast_ratio (l_dark.ink_on_danger, l_dark.danger) >= l_dark.Body_contrast)
+			assert ("dark: warning ink on its wash", l_dark.contrast_ratio (l_dark.ink_warning, l_dark.wash_warning) >= l_dark.Body_contrast)
+		end
+
+	test_theme_gw28_ramp_moves_away
+			-- GW-28: each ramp step stands out more than the last, against
+			-- a white surface and against a dark one alike.
+		local
+			l_theme: SW_THEME
+			i: INTEGER
+		do
+			create l_theme.make_light
+			from i := 1 until i >= l_theme.Ramp_count loop
+				assert ("light step " + i.out, l_theme.contrast_ratio (l_theme.ramp (i), l_theme.surface) < l_theme.contrast_ratio (l_theme.ramp (i + 1), l_theme.surface))
+				i := i + 1
+			end
+			create l_theme.make_dark
+			from i := 1 until i >= l_theme.Ramp_count loop
+				assert ("dark step " + i.out, l_theme.contrast_ratio (l_theme.ramp (i), l_theme.surface) < l_theme.contrast_ratio (l_theme.ramp (i + 1), l_theme.surface))
+				i := i + 1
+			end
+		end
+
+	test_theme_gw28_unreadable_rejected
+			-- GW-28: an unreadable value is refused at the call site, and a
+			-- readable one is taken.
+		local
+			l_theme: SW_THEME
+		do
+			create l_theme.make_dark
+			assert ("white on dark accent refused", call_is_refused (agent l_theme.set_inks_on_fills (0xFFFFFF, l_theme.ink_on_success, l_theme.ink_on_warning, l_theme.ink_on_danger)))
+			assert ("surface-coloured soft ink refused", call_is_refused (agent l_theme.set_quiet_tones (l_theme.surface, l_theme.divider, l_theme.selection, l_theme.scrim)))
+			assert ("a reversed ramp refused", call_is_refused (agent l_theme.set_ramp (l_theme.ramp (5), l_theme.ramp (4), l_theme.ramp (3), l_theme.ramp (2), l_theme.ramp (1))))
+			l_theme.set_inks_on_fills (0x000000, 0x000000, 0x000000, 0x000000)
+			assert ("readable value taken", l_theme.ink_on_accent = 0x000000 and l_theme.is_readable)
+		end
+
 	test_painter_circles_and_text
 			-- The circle primitives (born from the dash-through-the-
 			-- circles bug) and text advance, headless.
@@ -100,6 +162,21 @@ feature -- Tests
 		end
 
 feature {NONE} -- Fixture
+
+	call_is_refused (a_call: PROCEDURE): BOOLEAN
+			-- Does `a_call' raise (a contract refusing its arguments)?
+		local
+			l_raised: BOOLEAN
+		do
+			if l_raised then
+				Result := True
+			else
+				a_call.call (Void)
+			end
+		rescue
+			l_raised := True
+			retry
+		end
 
 	headless_painter: SW_PAINTER
 			-- A painter over an offscreen image surface: real cairo,

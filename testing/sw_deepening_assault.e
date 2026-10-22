@@ -793,9 +793,9 @@ feature -- Batch 5: layout
 			create th.make_dark
 			create w.make ("edges", 0, 0, 400, 300, th)
 			w.set_root (create {SW_LABEL}.make_ui ("page"))
-			w.add_drawer_tab ("LOG", agent (): SW_WIDGET do create {SW_LABEL} Result.make_ui ("log") end, w.Edge_top)
-			w.add_drawer_tab ("OUT", agent (): SW_WIDGET do create {SW_LABEL} Result.make_ui ("out") end, w.Edge_bottom)
-			w.add_drawer_tab ("NAV", agent (): SW_WIDGET do create {SW_LABEL} Result.make_ui ("nav") end, w.Edge_left)
+			w.add_drawer_tab ("LOG", agent: SW_WIDGET do create {SW_LABEL} Result.make_ui ("log") end, w.Edge_top)
+			w.add_drawer_tab ("OUT", agent: SW_WIDGET do create {SW_LABEL} Result.make_ui ("out") end, w.Edge_bottom)
+			w.add_drawer_tab ("NAV", agent: SW_WIDGET do create {SW_LABEL} Result.make_ui ("nav") end, w.Edge_left)
 			assert_reals_equal ("top gutter reserved", 22.0, w.gutter_top, 0.000_1)
 			assert_reals_equal ("bottom gutter reserved", 22.0, w.gutter_bottom, 0.000_1)
 			assert_reals_equal ("left gutter reserved", 22.0, w.gutter_left, 0.000_1)
