@@ -478,6 +478,10 @@ feature {NONE} -- Test runners
 			run_test (agent shaping_tests.test_gw02_text_box_hebrew_flush_right_dark, "gw02_text_box_hebrew_flush_right_dark")
 			run_test (agent shaping_tests.test_gw02_paragraph_list_gutter_follows_reading_light, "gw02_paragraph_list_gutter_follows_reading_light")
 			run_test (agent shaping_tests.test_gw02_paragraph_list_gutter_follows_reading_dark, "gw02_paragraph_list_gutter_follows_reading_dark")
+			run_test (agent shaping_tests.test_gw03_faces_cover_and_marks_attach, "gw03_faces_cover_and_marks_attach")
+			run_test (agent shaping_tests.test_gw03_marks_visible_light, "gw03_marks_visible_light")
+			run_test (agent shaping_tests.test_gw03_marks_visible_dark, "gw03_marks_visible_dark")
+			run_test (agent shaping_tests.test_gw03_mapm_nbsp_never_breaks_before_paseq, "gw03_mapm_nbsp_never_breaks_before_paseq")
 		end
 
 	chat_text_tests: SW_CHAT_TEXT_ASSAULT

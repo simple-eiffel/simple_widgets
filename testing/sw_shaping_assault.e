@@ -595,6 +595,302 @@ feature -- GW-02: Hebrew flush right, the gutter on the reading side
 			paragraph_list_gate (create {SW_THEME}.make_dark, "gw02_verses_dark.png")
 		end
 
+feature -- GW-03: pointed Hebrew and polytonic Greek, verified in the shipped faces
+
+	test_gw03_faces_cover_and_marks_attach
+			-- At 14, 18, 24, 32 and 40 px: Hebrew in Noto Serif Hebrew and
+			-- Greek in Noto Serif (loaded privately, as an app ships them),
+			-- no tofu, and the marks ATTACH rather than take up room - the
+			-- pointed verse is about as wide as its bare consonants, the
+			-- decomposed Greek about as wide as its precomposed form.
+		local
+			kit: SW_SHAPING
+			sizes: ARRAY [INTEGER]
+			i, px: INTEGER
+			pointed, bare, decomposed, composed: SHAPED_LAYOUT
+		do
+			kit := gw03_kit (create {SW_THEME}.make_light)
+			sizes := <<14, 18, 24, 32, 40>>
+			from i := sizes.lower until i > sizes.upper loop
+				px := sizes [i]
+				pointed := kit.layout_styled (genesis_1_1_wlc, 0, px, {SW_PAINTER}.Role_body, False)
+				bare := kit.layout_styled (consonants_only (genesis_1_1_wlc), 0, px, {SW_PAINTER}.Role_body, False)
+				decomposed := kit.layout_styled (john_1_1_wh, 0, px, {SW_PAINTER}.Role_body, False)
+				composed := kit.layout_styled (john_1_1_wh_nfc, 0, px, {SW_PAINTER}.Role_body, False)
+				assert_false (px.out + " px: no Hebrew tofu", has_missing_glyph (pointed))
+				assert_false (px.out + " px: no Greek tofu", has_missing_glyph (decomposed) or has_missing_glyph (composed))
+				if px < 18 then
+					assert_true (px.out + " px: Hebrew letters in Noto Serif Hebrew Medium",
+						letters_in_family (pointed, 0x05D0, 0x05EA, "Noto Serif Hebrew Medium"))
+				else
+					assert_true (px.out + " px: Hebrew letters in Noto Serif Hebrew",
+						letters_in_family (pointed, 0x05D0, 0x05EA, "Noto Serif Hebrew"))
+				end
+				assert_true (px.out + " px: Greek letters in Noto Serif",
+					letters_in_family (decomposed, 0x0370, 0x03FF, "Noto Serif"))
+				assert_true (px.out + " px: Hebrew marks attach (width within 4%)",
+					(pointed.total_width - bare.total_width).abs <= 0.04 * bare.total_width)
+				assert_true (px.out + " px: Greek combining marks attach (width within 4%)",
+					(decomposed.total_width - composed.total_width).abs <= 0.04 * composed.total_width)
+				i := i + 1
+			end
+		end
+
+	test_gw03_marks_visible_light
+			-- Light: the points ink below the line and read clearly.
+		do
+			marks_visible_gate (create {SW_THEME}.make_light, "gw03_specimen_light.png")
+		end
+
+	test_gw03_marks_visible_dark
+			-- Dark: the same, and no fading on the dark ground.
+		do
+			marks_visible_gate (create {SW_THEME}.make_dark, "gw03_specimen_dark.png")
+		end
+
+	test_gw03_mapm_nbsp_never_breaks_before_paseq
+			-- MapM writes a no-break space before paseq (FR-008). Nehemiah
+			-- 11:33 wrapped at every width from 60 to 400 px: the no-break
+			-- space, the word before it and the paseq after it always share a
+			-- line; and nothing is tofu.
+		local
+			kit: SW_SHAPING
+			lay: SHAPED_LAYOUT
+			w, nbsp: INTEGER
+		do
+			kit := gw03_kit (create {SW_THEME}.make_light)
+			nbsp := nehemiah_11_33_mapm.index_of ((0x00A0).to_character_32, 1)
+			assert_true ("the verse holds its no-break space", nbsp > 1)
+			assert_integers_equal ("and paseq follows it", 0x05C0, nehemiah_11_33_mapm.code (nbsp + 1).to_integer_32)
+			from w := 60 until w > 400 loop
+				lay := kit.layout_styled (nehemiah_11_33_mapm, w, 22, {SW_PAINTER}.Role_body, False)
+				assert_false ("no tofu at " + w.out, has_missing_glyph (lay))
+				assert_true ("no break around the no-break space at " + w.out,
+					same_line (lay, nbsp - 1, nbsp) and same_line (lay, nbsp, nbsp + 1))
+				w := w + 20
+			end
+		end
+
+feature {NONE} -- GW-03 gates
+
+	gw03_kit (a_theme: SW_THEME): SW_SHAPING
+			-- A kit with the app's reading faces loaded privately and put
+			-- first: Noto Serif Hebrew for Hebrew, Noto Serif for Greek and
+			-- for the body role.
+		local
+			l_names: ARRAY [STRING]
+			i: INTEGER
+		do
+			create Result.make_with_assets (shaping_assets)
+			l_names := <<"NotoSerifHebrew-Regular.ttf", "NotoSerifHebrew-Medium.ttf", "NotoSerif-Regular.ttf", "NotoSerif-Medium.ttf">>
+			from i := l_names.lower until i > l_names.upper loop
+				assert_true (l_names [i] + " loads", Result.facade.load_font_file (widgets_font_fixture (l_names [i])) >= 1)
+				i := i + 1
+			end
+			a_theme.set_families (a_theme.family_ui, {STRING_32} "Noto Serif", a_theme.family_mono)
+			Result.set_theme_faces (a_theme)
+			Result.set_script_face ({SHAPING_CONSTANTS}.Script_class_hebrew, {STRING_32} "Noto Serif Hebrew")
+			Result.set_script_face ({SHAPING_CONSTANTS}.Script_class_greek, {STRING_32} "Noto Serif")
+				-- below 18 px the true Medium design keeps the points crisp
+			Result.set_small_script_face ({SHAPING_CONSTANTS}.Script_class_hebrew, {STRING_32} "Noto Serif Hebrew Medium", 18)
+		end
+
+	marks_visible_gate (a_theme: SW_THEME; a_evidence: STRING)
+			-- At 14 px, the smallest reading size: the pointed verse puts
+			-- clearly more ink below its baseline than the bare consonants
+			-- do, and at least a quarter of that mark ink reaches 3:1 against
+			-- the surface (WCAG's floor for non-text marks). Then a specimen
+			-- at all five sizes is written as evidence.
+		local
+			kit: SW_SHAPING
+			pointed_ink, bare_ink, strong: INTEGER
+			path: STRING_32
+		do
+			kit := gw03_kit (a_theme)
+			pointed_ink := ink_below_baseline (kit, a_theme, genesis_1_1_wlc, 14, False)
+			bare_ink := ink_below_baseline (kit, a_theme, consonants_only (genesis_1_1_wlc), 14, False)
+			assert_true ("the points ink below the line", pointed_ink > (bare_ink * 3) // 2 + 20)
+			strong := ink_below_baseline (kit, a_theme, genesis_1_1_wlc, 14, True)
+			path := evidence_path (a_evidence)
+			if not path.is_empty then
+				write_specimen (kit, a_theme, path)
+			end
+			assert_true ("a quarter of the mark ink reads at 3:1 or better", strong * 4 >= pointed_ink)
+			path := evidence_path (a_evidence)
+			if not path.is_empty then
+				write_specimen (kit, a_theme, path)
+			end
+		end
+
+	ink_below_baseline (a_kit: SW_SHAPING; a_theme: SW_THEME; a_text: STRING_32; a_px: INTEGER; a_strong_only: BOOLEAN): INTEGER
+			-- Pixels below the baseline (from 2 px under it to half the
+			-- size) unlike the surface - or, with `a_strong_only', at 3:1 or
+			-- more against it.
+		local
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			px_x, px_y, baseline: INTEGER
+			l_pixel: NATURAL_32
+		do
+			create surf.make (800, 80)
+			create ctx.make (surf)
+			create p.make (ctx, a_theme)
+			p.set_shaping (a_kit)
+			p.set_color (a_theme.surface)
+			p.fill_rect (0.0, 0.0, 800.0, 80.0)
+			p.font ({SW_PAINTER}.Role_body, a_px / a_theme.text_scale, False)
+			p.set_color (a_theme.ink)
+			baseline := 40
+			p.text (10.0, baseline.to_double, a_text)
+			surf.flush.do_nothing
+			from px_y := baseline + 2 until px_y > baseline + a_px // 2 + 2 loop
+				from px_x := 0 until px_x >= 800 loop
+					l_pixel := pixel_at (surf, px_x, px_y).bit_and (0xFFFFFF)
+					if l_pixel /= a_theme.surface.bit_and (0xFFFFFF) then
+						if not a_strong_only or else a_theme.contrast_ratio (l_pixel, a_theme.surface) >= 3.0 then
+							Result := Result + 1
+						end
+					end
+					px_x := px_x + 1
+				end
+				px_y := px_y + 1
+			end
+		end
+
+	write_specimen (a_kit: SW_SHAPING; a_theme: SW_THEME; a_path: STRING_32)
+			-- Genesis 1:1 and John 1:1 at 14, 18, 24, 32 and 40 px.
+		local
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			sizes: ARRAY [INTEGER]
+			i: INTEGER
+			y: REAL_64
+		do
+			create surf.make (1400, 560)
+			create ctx.make (surf)
+			create p.make (ctx, a_theme)
+			p.set_shaping (a_kit)
+			p.set_color (a_theme.surface)
+			p.fill_rect (0.0, 0.0, 1400.0, 560.0)
+			sizes := <<14, 18, 24, 32, 40>>
+			y := 10.0
+			from i := sizes.lower until i > sizes.upper loop
+				y := y + sizes [i] * 1.6
+				p.font ({SW_PAINTER}.Role_ui, 11.0, False)
+				p.set_color (a_theme.ink_muted)
+				p.text (8.0, y, sizes [i].out + " px")
+				p.font ({SW_PAINTER}.Role_body, sizes [i] / a_theme.text_scale, False)
+				p.set_color (a_theme.ink)
+				p.text (60.0, y, genesis_1_1_wlc)
+				p.text (60.0 + sizes [i] * 21.0, y, john_1_1_wh_nfc.substring (1, 28))
+				i := i + 1
+			end
+			surf.flush.do_nothing
+			if surf.write_png (a_path) then
+			end
+		end
+
+	letters_in_family (a_layout: SHAPED_LAYOUT; a_low, a_high: INTEGER; a_family: STRING): BOOLEAN
+			-- Is every glyph run holding a letter in [`a_low', `a_high']
+			-- realized in `a_family', and is there at least one?
+		local
+			c, l_found: INTEGER
+			l_has: BOOLEAN
+		do
+			Result := True
+			across a_layout.lines as l loop
+				across l.runs as r loop
+					if attached {GLYPH_RUN} r as al_run then
+						l_has := False
+						from c := al_run.source_start until c > al_run.source_start + al_run.source_count - 1 loop
+							if a_layout.source_text.code (c).to_integer_32 >= a_low
+								and a_layout.source_text.code (c).to_integer_32 <= a_high
+							then
+								l_has := True
+							end
+							c := c + 1
+						end
+						if l_has then
+							l_found := l_found + 1
+							if not al_run.font.realized_family.as_string_32.is_case_insensitive_equal (a_family) then
+								Result := False
+							end
+						end
+					end
+				end
+			end
+			Result := Result and l_found > 0
+		end
+
+	same_line (a_layout: SHAPED_LAYOUT; a_one, a_other: INTEGER): BOOLEAN
+			-- Do source characters `a_one' and `a_other' sit on one line?
+		do
+			across a_layout.lines as l loop
+				if a_one >= l.source_start and a_one < l.source_start + l.source_count
+					and a_other >= l.source_start and a_other < l.source_start + l.source_count
+				then
+					Result := True
+				end
+			end
+		end
+
+	consonants_only (a_text: STRING_32): STRING_32
+			-- `a_text' without points and cantillation (U+0591-U+05C7),
+			-- keeping maqaf, paseq, sof pasuq and nun hafukha, which are
+			-- spacing characters.
+		local
+			i, c: INTEGER
+		do
+			create Result.make (a_text.count)
+			from i := 1 until i > a_text.count loop
+				c := a_text.code (i).to_integer_32
+				if c < 0x0591 or c > 0x05C7 or c = 0x05BE or c = 0x05C0 or c = 0x05C3 or c = 0x05C6 then
+					Result.append_code (c.to_natural_32)
+				end
+				i := i + 1
+			end
+		end
+
+	widgets_font_fixture (a_name: STRING): STRING_32
+			-- simple_widgets' own OFL font fixture `a_name', under
+			-- $SIMPLE_EIFFEL.
+		local
+			env: EXECUTION_ENVIRONMENT
+		do
+			create env
+			if attached env.item ("SIMPLE_EIFFEL") as al_root then
+				Result := al_root.to_string_32 + {STRING_32} "/simple_widgets/testing/fixtures/fonts/" + a_name.to_string_32
+			else
+				Result := a_name.to_string_32
+			end
+		end
+
+	john_1_1_wh_nfc: STRING_32
+			-- John 1:1 (WH) in NFC: precomposed polytonic letters.
+		do
+			Result := text_of (<<0x1F18, 0x03BD, 0x0020, 0x1F00, 0x03C1, 0x03C7, 0x1FC7, 0x0020, 0x1F26, 0x03BD, 0x0020, 0x1F41,
+				0x0020, 0x03BB, 0x03CC, 0x03B3, 0x03BF, 0x03C2, 0x002C, 0x0020, 0x03BA, 0x03B1, 0x1F76, 0x0020,
+				0x1F41, 0x0020, 0x03BB, 0x03CC, 0x03B3, 0x03BF, 0x03C2, 0x0020, 0x1F26, 0x03BD, 0x0020, 0x03C0,
+				0x03C1, 0x1F78, 0x03C2, 0x0020, 0x03C4, 0x1F78, 0x03BD, 0x0020, 0x03B8, 0x03B5, 0x03CC, 0x03BD,
+				0x002C, 0x0020, 0x03BA, 0x03B1, 0x1F76, 0x0020, 0x03B8, 0x03B5, 0x1F78, 0x03C2, 0x0020, 0x1F26,
+				0x03BD, 0x0020, 0x1F41, 0x0020, 0x03BB, 0x03CC, 0x03B3, 0x03BF, 0x03C2, 0x002E>>)
+		ensure
+			seventy: Result.count = 70
+		end
+
+	nehemiah_11_33_mapm: STRING_32
+			-- Nehemiah 11:33, MapM (bible.db), with its no-break space
+			-- before paseq, cantillation and meteg.
+		do
+			Result := text_of (<<0x05D7, 0x05B8, 0x05E6, 0x05A5, 0x05D5, 0x05B9, 0x05E8, 0x00A0, 0x05C0, 0x0020, 0x05E8, 0x05B8,
+				0x05DE, 0x05B8, 0x0596, 0x05D4, 0x0020, 0x05D2, 0x05BC, 0x05B4, 0x05EA, 0x05BC, 0x05B8, 0x05BD,
+				0x05D9, 0x05B4, 0x05DD, 0x05C3>>)
+		ensure
+			twenty_eight: Result.count = 28
+		end
+
 feature {NONE} -- GW-02 gates
 
 	text_box_flush_right_gate (a_theme: SW_THEME)

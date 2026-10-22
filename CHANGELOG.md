@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.12.0 — POINTED HEBREW AND POLYTONIC GREEK, VERIFIED IN THE SHIPPED FACES; GW-03)
+
+Asked for by simple_bible (gap GW-03): Hebrew with vowel points and
+cantillation, MapM's no-break space before paseq, and polytonic Greek must
+render correctly in both themes from 14 to 40 px.
+
+- **`SW_SHAPING.set_script_face (script_class, family)`:** an app's own
+  reading face for a script goes first in every role (Noto Serif Hebrew for
+  Hebrew, Noto Serif for Greek).
+- **`SW_SHAPING.set_small_script_face (script_class, family, below_px)`.**
+  Measured: at 14 px, regular Noto Serif Hebrew's points antialias to grey
+  (light theme: 16 of 67 mark pixels at 3:1). The true Medium design gives
+  31%. A static Medium file is its own GDI family, so asking weight 500 of the
+  regular family returns Regular unchanged (600 synthesizes bold). The face
+  must be named.
+- **The GW-03 gate, in Noto Serif Hebrew and Noto Serif loaded privately
+  (OFL fixtures in `testing/fixtures/fonts/`):**
+  - At 14, 18, 24, 32 and 40 px: no tofu, every Hebrew letter in the Hebrew
+    face (Medium below 18 px) and every Greek letter in Noto Serif. The marks
+    attach: pointed Genesis 1:1 is within 4% of its bare consonants' width,
+    and decomposed John 1:1 within 4% of its precomposed form.
+  - Light and dark at 14 px: the points ink below the line (67 pixels against
+    2 for the bare consonants), and at least a quarter of that ink reads at 3:1
+    against the surface.
+  - Nehemiah 11:33 (MapM) wrapped at every width from 60 to 400 px: the
+    no-break space, the word before it and the paseq after it always share a
+    line, with no tofu.
+  - Evidence: `evidence/gw03_specimen_light.png` and `gw03_specimen_dark.png`.
+- 356 pass, 0 fail, 0 warnings.
+
 ### Added (0.11.0 — HEBREW FLUSH RIGHT, THE GUTTER ON THE READING SIDE; GW-02)
 
 Asked for by simple_bible (gap GW-02): a Hebrew verse must read right to
