@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.16.0 — STATUS-BAR SECTIONS; GW-11)
+
+simple_bible's status bar shows the reference and version, the active link
+set, the versification note, job progress with Cancel, and the database
+edition. `SW_STATUS_BAR` had only a left and a right message.
+
+- **Sections**, between the existing left and right messages (both kept):
+  - `add_text (text, trailing)` and `add_widget (widget, width, trailing)`
+    answer the section's index;
+  - `set_section_text`, `set_section_visible`, `set_on_section_click`,
+    `section (i)` and `section_at (x)`.
+  - Leading sections pack after the left message, trailing ones before
+    the right message, each side in the order added, with a divider
+    between neighbours.
+- **Clickable text sections** draw in the accent ink, show the hand
+  cursor, and run their agent through the window's ordinary click path.
+- **Hosted widgets** (an `SW_PROGRESS`, a Cancel `SW_BUTTON`) are real
+  children: they are arranged into their section, vertically centered,
+  and they draw, hit-test, take clicks and the focus.
+- A hidden section takes no room, draws nothing, answers no click and
+  drops out of `sub_widgets`.
+- New class `SW_STATUS_SECTION`.
+- Tests:
+  - layout order, no overlap, the last trailing section on the right pad,
+    the progress bar inside its section;
+  - the link-set section's agent fires and a plain section does nothing,
+    both through `dispatch`; the hosted Cancel fires;
+  - hiding the progress section closes up the trailing side;
+  - Hebrew/Greek gate in light and dark: pointed Genesis 1:1, polytonic
+    John 1:1 and a mixed English/Hebrew line, no tofu, each section at
+    least 40 pixels at 3:1. Evidence `gw11_status_light.png` and
+    `gw11_status_dark.png`.
+- 366 pass, 0 fail, 0 warnings.
+
 ### Added (0.15.0 — A WORKER'S WAKE REACHES THE APP; GW-26)
 
 This release needs simple_shell 1.18.0.

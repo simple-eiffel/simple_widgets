@@ -671,6 +671,87 @@ feature -- GW-03: pointed Hebrew and polytonic Greek, verified in the shipped fa
 			end
 		end
 
+feature -- GW-11: status-bar sections carry Hebrew and Greek in both themes
+
+	test_gw11_status_sections_hebrew_greek_light
+		do
+			status_gate (create {SW_THEME}.make_light, "gw11_status_light.png")
+		end
+
+	test_gw11_status_sections_hebrew_greek_dark
+		do
+			status_gate (create {SW_THEME}.make_dark, "gw11_status_dark.png")
+		end
+
+feature {NONE} -- GW-11 gate
+
+	status_gate (a_theme: SW_THEME; a_evidence: STRING)
+			-- Three sections - pointed Genesis 1:1, polytonic John 1:1, a
+			-- mixed English/Hebrew line - in the status bar's own role and
+			-- size: no tofu, and each section inks at least 40 pixels at
+			-- 3:1 or better against the bar's surface. Evidence written.
+		local
+			kit: SW_SHAPING
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			bar: SW_STATUS_BAR
+			l_texts: ARRAY [STRING_32]
+			i, l_index: INTEGER
+			path: STRING_32
+		do
+			kit := gw03_kit (a_theme)
+			l_texts := <<genesis_1_1_wlc, john_1_1_wh_nfc.substring (1, 28), mixed_english_hebrew>>
+			create surf.make (1600, 40)
+			create ctx.make (surf)
+			create p.make (ctx, a_theme)
+			p.set_shaping (kit)
+			create bar.make
+			from i := l_texts.lower until i > l_texts.upper loop
+				l_index := bar.add_text (l_texts [i], i = l_texts.upper)
+				assert_false ("section " + i.out + " has no tofu",
+					has_missing_glyph (kit.layout_styled (l_texts [i], 0, 13, {SW_PAINTER}.Role_mono, False)))
+				i := i + 1
+			end
+			bar.set_bounds (0.0, 4.0, 1600.0, 32.0)
+			bar.arrange (p)
+			bar.draw (p)
+			surf.flush.do_nothing
+			from i := 1 until i > bar.sections.count loop
+				assert_true ("section " + i.out + " reads at 3:1 or better",
+					strong_ink (surf, a_theme, bar.section (i), a_theme.surface_variant) >= 40)
+				i := i + 1
+			end
+			path := evidence_path (a_evidence)
+			if not path.is_empty and then surf.write_png (path) then
+			end
+		end
+
+	strong_ink (a_surface: CAIRO_SURFACE; a_theme: SW_THEME; a_section: SW_STATUS_SECTION; a_ground: NATURAL_32): INTEGER
+			-- Pixels inside the section's span reading at 3:1 or better
+			-- against `a_ground'.
+		local
+			px, py: INTEGER
+			l_pixel: NATURAL_32
+		do
+			from py := 6 until py >= 34 loop
+				from px := a_section.left.truncated_to_integer until px >= (a_section.left + a_section.span).truncated_to_integer.min (a_surface.width - 1) loop
+					l_pixel := pixel_at (a_surface, px, py).bit_and (0xFFFFFF)
+					if a_theme.contrast_ratio (l_pixel, a_ground) >= 3.0 then
+						Result := Result + 1
+					end
+					px := px + 1
+				end
+				py := py + 1
+			end
+		end
+
+	mixed_english_hebrew: STRING_32
+			-- "Genesis 1:1 begins " + its first Hebrew word, pointed.
+		do
+			Result := {STRING_32} "Genesis 1:1 begins " + genesis_1_1_wlc.substring (1, genesis_1_1_wlc.index_of (' ', 1) - 1)
+		end
+
 feature {NONE} -- GW-03 gates
 
 	gw03_kit (a_theme: SW_THEME): SW_SHAPING
