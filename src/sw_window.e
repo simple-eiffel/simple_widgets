@@ -733,6 +733,12 @@ feature -- Sheets
 			shown: sheet = a_content
 		end
 
+	has_sheet: BOOLEAN
+			-- Is a sheet, drawer or popover presented?
+		do
+			Result := sheet /= Void
+		end
+
 	show_drawer (a_content: SW_WIDGET; a_width: REAL_64; a_from_right: BOOLEAN)
 			-- Present `a_content' as a full-height edge panel on a
 			-- lightly dimmed backdrop. A click outside the panel (or
@@ -824,17 +830,27 @@ feature -- Accelerators
 			-- modifier state `a_ctrl' / `a_alt' / `a_shift', anywhere in
 			-- this window - regardless of which widget holds focus.
 			--
-			-- A modifier is REQUIRED. An unmodified accelerator would
-			-- take the letter out of every text box in the window, which
-			-- is not an accelerator but a bug; a widget's own bare keys
-			-- stay the widget's.
+			-- A modifier is REQUIRED, except on F1-F12 (GW-24). An
+			-- unmodified accelerator would take the letter out of every
+			-- text box in the window, which is not an accelerator but a
+			-- bug; a widget's own bare keys stay the widget's. Function
+			-- keys type nothing, so F1 (help), F3 (find next) and F6
+			-- (next pane) may stand alone.
 		require
 			key_named: a_vk > 0
-			modified: a_ctrl or a_alt
+			modified: a_ctrl or a_alt or is_function_key (a_vk)
 		do
 			accelerators.extend ([a_vk, a_ctrl, a_alt, a_shift, a_action])
 		ensure
 			grew: accelerators.count = old accelerators.count + 1
+		end
+
+	is_function_key (a_vk: INTEGER): BOOLEAN
+			-- Is `a_vk' one of F1-F12 (virtual keys 112..123)?
+		do
+			Result := a_vk >= 112 and a_vk <= 123
+		ensure
+			definition: Result = (a_vk >= 112 and a_vk <= 123)
 		end
 
 	clear_accelerators
@@ -1045,6 +1061,8 @@ feature {NONE} -- Accelerator dispatch
 			-- for `&File' without asking, which is what every Windows
 			-- application has done since 1985.
 		do
+				-- a new key-down: whatever the last one armed is stale
+			swallow_next_char := False
 			if key_down_accelerator_fired (a_vk, a_ctrl, a_alt, a_shift) then
 				after_input
 			elseif a_alt and then key_down_mnemonic_fired (a_vk) then
@@ -1270,6 +1288,7 @@ feature {NONE} -- Popup lifecycle
 	dispatch_plain (a_type, a_x, a_y: INTEGER)
 		local
 			l_keys: SW_KEYS
+			l_swallow: BOOLEAN
 		do
 			inspect a_type
 			when 2 then
@@ -1316,6 +1335,14 @@ feature {NONE} -- Popup lifecycle
 				end
 				after_input
 			when 3 then
+					-- GW-24: only a CONTROL code can trail a key-down
+					-- accelerator (Ctrl+[ is 27, Ctrl+6 is 30); most make no
+					-- WM_CHAR at all (Ctrl+1, F5, Alt+S, whose WM_SYSCHAR the
+					-- shell eats). So the flag eats a control code only, and
+					-- any character disarms it - the reader's next real
+					-- keystroke is never lost.
+				l_swallow := swallow_next_char and a_x < 32
+				swallow_next_char := False
 					-- UTF-16 arrives in units; astral characters come as a
 					-- surrogate pair across two WM_CHARs. Pair them here so
 					-- widgets only ever see whole code points (R8).
@@ -1327,12 +1354,11 @@ feature {NONE} -- Popup lifecycle
 						after_input
 					end
 					pending_surrogate := 0
-				elseif swallow_next_char then
+				elseif l_swallow then
 						-- the key-down half of this gesture already ran
 						-- an accelerator; the WM_CHAR that trails it is
 						-- the same keystroke, not a second one
 					pending_surrogate := 0
-					swallow_next_char := False
 				elseif char_accelerator_fired (a_x) then
 					pending_surrogate := 0
 					after_input

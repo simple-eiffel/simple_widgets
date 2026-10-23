@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.14.0 — FUNCTION KEYS AND CTRL+DIGIT ACCELERATORS; GW-24)
+
+This release needs simple_shell 1.17.0, which delivers F1-F12, Ctrl+digit
+and Ctrl+punctuation as event 4.
+
+- **`register_accelerator` accepts F1-F12 with no modifier.** Function keys
+  type nothing, so F1 (help), F3 (find next) and F6 (next pane) can stand
+  alone. Letters and digits still require Ctrl or Alt. New query:
+  `is_function_key`.
+- **Fixed: a key-down accelerator ate the reader's next keystroke.** It
+  armed a flag that swallowed the next WM_CHAR, whatever it was. Ctrl+1,
+  Ctrl+Plus and Alt+S make no WM_CHAR, so the next real character typed
+  was lost. Now the flag eats only a control code (Ctrl+[ makes 27, which
+  would read as Escape), and any character or new key-down disarms it.
+  Shown before and after: with the old logic,
+  `gw24_no_trailing_char_never_eats_the_next_keystroke` fails with "the
+  next keystroke still types".
+- New query `has_sheet`: is a sheet, drawer or popover presented?
+- Tests:
+  - bare F1 fires while a text box holds the focus, and the box is untouched;
+  - after Ctrl+1 and after Alt+S, the next characters still type;
+  - Ctrl+['s trailing 27 does not close an open sheet, while a bare 27
+    does.
+- 362 pass, 0 fail, 0 warnings (clean build).
+
 ### Added (0.13.0 — THE WINDOW FOLLOWS THE WINDOWS LIGHT/DARK SETTING; GW-27)
 
 simple_bible's theming decision: default Light, a Dark theme, and the user
