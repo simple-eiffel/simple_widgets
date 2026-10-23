@@ -143,8 +143,11 @@ feature -- Sections (GW-11)
 feature -- Layout
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- The status font's measured box with the theme's `padding'
+			-- above and below (32 pixels at 1x, as it always was).
 		do
-			Result := 32.0
+			set_font (a_p)
+			Result := (a_p.text_extent + 2.0 * a_p.theme.padding).max (32.0 * a_p.theme.text_scale)
 		end
 
 	arrange (a_p: SW_PAINTER)
@@ -154,9 +157,9 @@ feature -- Layout
 			l_trailing: INTEGER
 		do
 			set_font (a_p)
-			lx := x + Pad
+			lx := x + pad (a_p)
 			if not left_text.is_empty then
-				lx := lx + a_p.advance (left_text) + Gap
+				lx := lx + a_p.advance (left_text) + gap (a_p)
 			end
 			across sections as s loop
 				if not s.is_visible then
@@ -164,29 +167,29 @@ feature -- Layout
 				elseif not s.is_trailing then
 					w := natural_width (s, a_p)
 					s.place (lx, w)
-					lx := lx + w + Gap
+					lx := lx + w + gap (a_p)
 				else
 					total := total + natural_width (s, a_p)
 					l_trailing := l_trailing + 1
 				end
 			end
 			if l_trailing > 0 then
-				total := total + Gap * (l_trailing - 1)
-				tx := x + width - Pad - total
+				total := total + gap (a_p) * (l_trailing - 1)
+				tx := x + width - pad (a_p) - total
 				if not right_text.is_empty then
-					tx := tx - a_p.advance (right_text) - Gap
+					tx := tx - a_p.advance (right_text) - gap (a_p)
 				end
 				across sections as s loop
 					if s.is_visible and s.is_trailing then
 						w := natural_width (s, a_p)
 						s.place (tx, w)
-						tx := tx + w + Gap
+						tx := tx + w + gap (a_p)
 					end
 				end
 			end
 			across sections as s loop
 				if s.is_visible and then attached s.widget as al_w then
-					h := al_w.preferred_height (a_p, s.span).min (height - 8.0).max (0.0)
+					h := al_w.preferred_height (a_p, s.span).min (height - a_p.theme.padding).max (0.0)
 					al_w.set_bounds (s.left, y + (height - h) / 2.0, s.span, h)
 					al_w.arrange (a_p)
 				end
@@ -209,10 +212,10 @@ feature -- Drawing
 			l_base := y + height / 2.0 + 5.0
 			a_p.set_color (t.ink_muted)
 			if not left_text.is_empty then
-				a_p.text (x + Pad, l_base, left_text)
+				a_p.text (x + pad (a_p), l_base, left_text)
 			end
 			if not right_text.is_empty then
-				a_p.text (x + width - Pad - a_p.advance (right_text), l_base, right_text)
+				a_p.text (x + width - pad (a_p) - a_p.advance (right_text), l_base, right_text)
 			end
 			l_before := not left_text.is_empty
 			l_first_trailing := True
@@ -220,7 +223,7 @@ feature -- Drawing
 				if s.is_visible and s.span > 0.0 then
 					if (not s.is_trailing and l_before) or (s.is_trailing and not l_first_trailing) then
 						a_p.set_color (t.divider)
-						a_p.vline (s.left - Gap / 2.0, y + 8.0, height - 16.0)
+						a_p.vline (s.left - gap (a_p) / 2.0, y + a_p.theme.padding, height - 2.0 * a_p.theme.padding)
 					end
 					if s.is_trailing then
 						l_first_trailing := False
@@ -243,7 +246,7 @@ feature -- Drawing
 			end
 			if not l_first_trailing and not right_text.is_empty then
 				a_p.set_color (t.divider)
-				a_p.vline (l_trailing_end + Gap / 2.0, y + 8.0, height - 16.0)
+				a_p.vline (l_trailing_end + gap (a_p) / 2.0, y + a_p.theme.padding, height - 2.0 * a_p.theme.padding)
 			end
 		end
 
@@ -308,11 +311,19 @@ feature -- Input
 
 feature {NONE} -- Implementation
 
-	Pad: REAL_64 = 12.0
-			-- Space at each end.
+	pad (a_p: SW_PAINTER): REAL_64
+			-- Space at each end: the theme's `border_width' (Vision2's
+			-- EV_BOX.border_width), so it scales with the text.
+		do
+			Result := a_p.theme.border_width
+		end
 
-	Gap: REAL_64 = 16.0
-			-- Space between neighbours; the divider sits in its middle.
+	gap (a_p: SW_PAINTER): REAL_64
+			-- Space between neighbours, the divider in its middle: twice the
+			-- theme's `padding'.
+		do
+			Result := 2.0 * a_p.theme.padding
+		end
 
 	set_font (a_p: SW_PAINTER)
 		do

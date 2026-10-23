@@ -155,6 +155,7 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_gw27_user_choice_stops_following, "gw27_user_choice_stops_following")
 			run_test (agent chrome_tests.test_gw26_wake_calls_the_app_even_under_a_dialog, "gw26_wake_calls_the_app_even_under_a_dialog")
 			run_test (agent chrome_tests.test_gw11_sections_lay_out_and_answer, "gw11_sections_lay_out_and_answer")
+			run_test (agent chrome_tests.test_status_bar_and_hover_card_spacing_scale, "status_bar_and_hover_card_spacing_scale")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
 		end
