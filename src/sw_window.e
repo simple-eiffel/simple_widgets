@@ -88,6 +88,7 @@ feature {NONE} -- Initialization
 			create ctx.make (offscreen)
 			create painter.make (ctx, theme)
 			set_dark_title_bar (a_theme.is_dark)
+			hover_card_grace_ms := 300
 		ensure
 			theme_kept: theme = a_theme
 			caption_matches: title_bar_is_dark = a_theme.is_dark
@@ -422,6 +423,11 @@ feature {NONE} -- Dispatch
 				if attached on_tick as tk then
 					tk.call
 				end
+				if hover_card_close_due then
+						-- GW-09: the pointer stayed off the card
+					close_hover_card
+					request_render
+				end
 				age_toasts
 				if is_drawer_mode and then not drawer_pinned then
 					if peek_close_due (not point_in_sheet_panel (last_pointer_x, last_pointer_y)
@@ -499,6 +505,7 @@ feature -- Dialogs
 
 	show_dialog (a_d: SW_DIALOG)
 		do
+			close_hover_card
 			a_d.measure (painter, win_w, win_h)
 			dialog := a_d
 			after_input
@@ -615,6 +622,7 @@ feature {NONE} -- Dispatch internals
 
 	show_popup (a_m: SW_MENU; a_x, a_y: INTEGER)
 		do
+			close_hover_card
 			a_m.measure (painter)
 			a_m.place (a_x, a_y, win_w, win_h)
 			popup := a_m
@@ -818,6 +826,115 @@ feature -- Sheets
 			focused := Void
 		ensure
 			closed: sheet = Void
+		end
+
+feature -- Hover card (GW-09)
+
+	hover_card: detachable SW_HOVER_CARD
+			-- The card up now: a widget tree over the page, opened after a
+			-- dwell for a sub-region a widget named (a word, a reference).
+
+	has_hover_card: BOOLEAN
+		do
+			Result := hover_card /= Void
+		ensure
+			definition: Result = (hover_card /= Void)
+		end
+
+	hover_card_grace_ms: INTEGER
+			-- How long the pointer may be off the card, its anchor and the
+			-- gap between them before the card closes (300 by default).
+
+	set_hover_card_grace_ms (a_ms: INTEGER)
+		require
+			non_negative: a_ms >= 0
+		do
+			hover_card_grace_ms := a_ms
+		ensure
+			set: hover_card_grace_ms = a_ms
+		end
+
+	show_hover_card (a_card: SW_HOVER_CARD)
+			-- Put `a_card' up, over everything but a dialog or a popup
+			-- (while one is open it is ignored). NON-MODAL: the page keeps
+			-- its input everywhere off the card, and the card takes the
+			-- pointer only over itself. A card for the anchor already shown
+			-- leaves the one up as it is, so a reader resting on the same
+			-- word again does not see it rebuilt.
+		do
+			if dialog = Void and popup = Void then
+				if attached hover_card as al_up and then al_up.anchor_matches (a_card) then
+						-- the same word: keep the card the reader may be using
+				else
+					hover_card := a_card
+					a_card.content.set_parent (Void)
+					place_hover_card
+				end
+				hover_card_out_since := 0
+			end
+		ensure
+			up_unless_modal: (dialog = Void and popup = Void) implies attached hover_card
+		end
+
+	close_hover_card
+			-- Take the card down; a widget of it that held the focus or
+			-- the hover lets go.
+		do
+			if attached hover_card as al_card then
+				if attached focused as al_f and then belongs_to (al_f, al_card.content) then
+					al_f.set_focused (False)
+					focused := Void
+				end
+				if attached hovered as al_h and then belongs_to (al_h, al_card.content) then
+					al_h.set_hovered (False)
+					hovered := Void
+				end
+			end
+			hover_card := Void
+			hover_card_out_since := 0
+		ensure
+			closed: hover_card = Void
+		end
+
+	hover_card_px, hover_card_py, hover_card_pw, hover_card_ph: REAL_64
+			-- The card's panel, as last placed.
+
+	point_in_hover_card (a_x, a_y: INTEGER): BOOLEAN
+			-- Is the point on the card's panel?
+		do
+			Result := hover_card /= Void and then a_x >= hover_card_px and then a_x < hover_card_px + hover_card_pw
+				and then a_y >= hover_card_py and then a_y < hover_card_py + hover_card_ph
+		end
+
+	point_keeps_hover_card (a_x, a_y: INTEGER): BOOLEAN
+			-- Does the pointer at this point hold the card open: on the
+			-- panel, on the anchor, or in the box that spans both (the way
+			-- from the word to the card)?
+		local
+			l, t, r, b: REAL_64
+		do
+			if attached hover_card as al_card then
+				l := hover_card_px
+				t := hover_card_py
+				r := hover_card_px + hover_card_pw
+				b := hover_card_py + hover_card_ph
+				if al_card.has_anchor then
+					l := l.min (al_card.anchor_x)
+					t := t.min (al_card.anchor_y)
+					r := r.max (al_card.anchor_x + al_card.anchor_width)
+					b := b.max (al_card.anchor_y + al_card.anchor_height)
+				end
+				Result := a_x >= l and a_x < r and a_y >= t and a_y < b
+			end
+		ensure
+			the_panel_keeps_it: point_in_hover_card (a_x, a_y) implies Result
+		end
+
+	hover_card_close_due: BOOLEAN
+			-- Has the pointer been off the card long enough?
+		do
+			Result := hover_card /= Void and then hover_card_out_since /= 0
+				and then tick_ms - hover_card_out_since >= hover_card_grace_ms
 		end
 
 feature -- Focus traversal
@@ -1192,6 +1309,95 @@ feature -- Peek grace
 			reset: not a_outside implies peek_out_ticks = 0
 		end
 
+feature {NONE} -- Hover card internals (GW-09)
+
+	Hover_card_pad: REAL_64 = 12.0
+			-- Between the card's edge and its content.
+
+	Hover_card_gap: REAL_64 = 6.0
+			-- Between the anchor and the card.
+
+	hover_card_out_since: INTEGER
+			-- When the pointer left what keeps the card open (`tick_ms');
+			-- 0 while it is inside.
+
+	place_hover_card
+			-- Size the card to its content and seat it: below the anchor,
+			-- above it when the window has no room below, at the pointer
+			-- when there is no anchor; always inside the window.
+		local
+			l_below: REAL_64
+		do
+			if attached hover_card as al_card then
+				hover_card_pw := al_card.width + 2.0 * Hover_card_pad
+				hover_card_ph := (al_card.content.preferred_height (painter, al_card.width)
+					+ 2.0 * Hover_card_pad).min ((win_h - 8.0).max (2.0 * Hover_card_pad + 1.0))
+				if al_card.has_anchor then
+					hover_card_px := al_card.anchor_x
+					l_below := al_card.anchor_y + al_card.anchor_height + Hover_card_gap
+					if l_below + hover_card_ph <= win_h - 4.0 then
+						hover_card_py := l_below
+					else
+						hover_card_py := al_card.anchor_y - Hover_card_gap - hover_card_ph
+					end
+				else
+					hover_card_px := last_pointer_x + 12.0
+					hover_card_py := last_pointer_y + 16.0
+				end
+				hover_card_px := hover_card_px.min (win_w - hover_card_pw - 4.0).max (4.0)
+				hover_card_py := hover_card_py.min (win_h - hover_card_ph - 4.0).max (4.0)
+				al_card.content.set_bounds (hover_card_px + Hover_card_pad, hover_card_py + Hover_card_pad,
+					al_card.width, hover_card_ph - 2.0 * Hover_card_pad)
+				al_card.content.arrange (painter)
+			end
+		end
+
+	watch_hover_card (a_x, a_y: INTEGER)
+			-- The pointer moved: start the grace when it leaves what keeps
+			-- the card open, stop it when it comes back.
+		do
+			if hover_card /= Void then
+				if point_keeps_hover_card (a_x, a_y) then
+					hover_card_out_since := 0
+				elseif hover_card_out_since = 0 then
+					hover_card_out_since := tick_ms
+					if hover_card_out_since = 0 then
+						hover_card_out_since := 1
+					end
+				end
+			end
+		end
+
+	belongs_to (a_widget, a_root: SW_WIDGET): BOOLEAN
+			-- Is `a_widget' `a_root' or inside it?
+		local
+			w: detachable SW_WIDGET
+		do
+			from
+				w := a_widget
+			until
+				w = Void or Result
+			loop
+				Result := w = a_root
+				w := w.parent
+			end
+		end
+
+	draw_hover_card (a_card: SW_HOVER_CARD)
+			-- A lifted panel: a soft shadow, the surface, an outline, then
+			-- the content clipped to the panel.
+		do
+			painter.set_color_alpha (0x000000, 0.18)
+			painter.rrect_fill (hover_card_px + 1.0, hover_card_py + 3.0, hover_card_pw, hover_card_ph, theme.radius + 2.0)
+			painter.set_color (theme.surface)
+			painter.rrect_fill (hover_card_px, hover_card_py, hover_card_pw, hover_card_ph, theme.radius + 2.0)
+			painter.set_color (theme.outline)
+			painter.rrect_stroke (hover_card_px + 0.5, hover_card_py + 0.5, hover_card_pw - 1.0, hover_card_ph - 1.0, theme.radius + 2.0)
+			painter.push_clip (hover_card_px + 1.0, hover_card_py + 1.0, hover_card_pw - 2.0, hover_card_ph - 2.0)
+			a_card.content.draw (painter)
+			painter.pop_clip
+		end
+
 feature {NONE} -- Focus internals
 
 	shift_focus (a_dir: INTEGER)
@@ -1310,6 +1516,10 @@ feature {NONE} -- Popup lifecycle
 		do
 			inspect a_type
 			when 2 then
+				if hover_card /= Void and then not point_in_hover_card (a_x, a_y) then
+						-- GW-09: a click off the card closes it and still lands
+					close_hover_card
+				end
 				if point_on_pin (a_x, a_y) then
 					drawer_pinned := not drawer_pinned
 				elseif point_on_sheet_close (a_x, a_y) then
@@ -1389,6 +1599,9 @@ feature {NONE} -- Popup lifecycle
 							focus_next
 						end
 						after_input
+					elseif a_x = 27 and then hover_card /= Void then
+						close_hover_card
+						after_input
 					elseif a_x = 27 and then sheet /= Void and then focused = Void then
 						close_sheet
 						after_input
@@ -1455,6 +1668,10 @@ feature {NONE} -- Popup lifecycle
 					-- it asked (GW-08: a word's hover card).
 				if attached hovered as dw and then dw.dwell_ms > 0 then
 					dw.handle_dwell (last_pointer_x, last_pointer_y)
+						-- GW-09: the widget may name a sub-region with a card
+					if attached dw.hover_card_at (last_pointer_x, last_pointer_y) as al_card then
+						show_hover_card (al_card)
+					end
 					after_input
 				end
 			when 13 then
@@ -1464,10 +1681,15 @@ feature {NONE} -- Popup lifecycle
 					open_drawer_from_tab (drawer_tab_at (a_x, a_y), False)
 				end
 				update_hover (a_x, a_y)
+				watch_hover_card (a_x, a_y)
 			when 14 then
 				last_pointer_x := -30000
 				last_pointer_y := -30000
 				cancel_dwell_timer
+				if hover_card /= Void then
+					close_hover_card
+					after_input
+				end
 				if attached hovered as hw then
 					hw.set_hovered (False)
 					hovered := Void
@@ -1491,6 +1713,10 @@ feature {NONE} -- Popup lifecycle
 				after_input
 
 			when 15 then
+				if hover_card /= Void and then not point_in_hover_card (a_x, a_y) then
+						-- the page moves under the card's word: close it
+					close_hover_card
+				end
 				if attached target_at (a_x, a_y) as w then
 					bubble_wheel (w, event_extra)
 				end
@@ -1961,6 +2187,10 @@ feature {NONE} -- Rendering
 						sheet_px + sheet_pw - 5.0, sheet_py + sheet_ph - 10.0, 1.6)
 				end
 			end
+			if attached hover_card as al_card and then dialog = Void then
+				place_hover_card
+				draw_hover_card (al_card)
+			end
 			if lens.is_active (is_dev_mode) and then attached hovered as hw then
 				lens.draw_chip (painter, theme, hw)
 			end
@@ -2302,6 +2532,7 @@ feature {NONE} -- State
 		require
 			positive: a_width > 0.0
 		do
+			close_hover_card
 			sheet := a_content
 			sheet_width := a_width
 			sheet_mode := a_mode
@@ -2527,7 +2758,10 @@ feature -- Drawer tab (peek and pin)
 			-- popovers keep their dismiss-on-outside behaviour, and
 			-- centered sheets stay truly modal.
 		do
-			if attached sheet as s then
+			if attached hover_card as al_card and then point_in_hover_card (a_x, a_y) then
+					-- GW-09: the card is over everything it covers
+				Result := al_card.content.widget_at (a_x, a_y)
+			elseif attached sheet as s then
 				if sheet_mode = Mode_center or else point_in_sheet_panel (a_x, a_y) then
 					Result := s.widget_at (a_x, a_y)
 				elseif drawer_pinned and then is_drawer_mode

@@ -445,6 +445,130 @@ feature -- Pointing (GW-08)
 			assert_false ("disarmed at the end", w.is_dwell_timer_armed)
 		end
 
+feature -- Hover card (GW-09)
+
+	test_gw09_dwell_opens_a_card_at_the_word
+			-- Through the window's own event path: a dwell on "beginning"
+			-- opens the builder's card, anchored at the whole word and
+			-- seated below it inside the window. It stays while the pointer
+			-- is on the word or on the card, its button takes a click, a
+			-- second rest on the same word keeps the same card, a rest on
+			-- another word replaces it, and off both it closes after the
+			-- grace (and not before).
+		local
+			w: SW_WINDOW
+			l: SW_PARAGRAPH_LIST
+			b, word: TUPLE [x, y, width, height: REAL_64]
+			cx, cy, kx, ky: INTEGER
+			c1: detachable SW_HOVER_CARD
+		do
+			create w.make ("card", 0, 0, 700, 420, create {SW_THEME}.make_light)
+			l := filled (6)
+			l.put_text (2, genesis_kjv)
+			w.set_root (l)
+			w.request_render
+			cards_built := 0
+			card_clicks := 0
+			l.set_hover_card_builder (agent build_card)
+			assert_integers_equal ("a builder alone wants the dwell", 400, l.dwell_ms)
+			assert_true ("the word around b is beginning",
+				l.word_at (2, 8).lo = 7 and l.word_at (2, 8).hi = 16)
+			b := l.text_boxes (2, 7, 8).first
+			word := l.text_boxes (2, 7, 16).first
+			cx := (b.x + b.width / 2.0).truncated_to_integer
+			cy := (b.y + b.height / 2.0).truncated_to_integer
+			w.dispatch (13, cx, cy)
+			w.dispatch (w.Event_dwell, 0, 0)
+			assert_true ("the dwell opened a card", w.has_hover_card)
+			c1 := w.hover_card
+			if attached c1 as al_c then
+				assert_true ("anchored at the whole word",
+					al_c.anchor_x = word.x and al_c.anchor_width = word.width and al_c.anchor_y = word.y)
+				assert_true ("seated below the word", w.hover_card_py >= word.y + word.height)
+				assert_true ("inside the window", w.hover_card_px >= 0.0
+					and w.hover_card_px + w.hover_card_pw <= 700.0 and w.hover_card_py + w.hover_card_ph <= 420.0)
+			end
+			w.set_hover_card_grace_ms (0)
+			w.dispatch (13, cx + 1, cy)
+			w.dispatch (7, 0, 0)
+			assert_true ("on the word it stays", w.has_hover_card)
+			kx := (w.hover_card_px + w.hover_card_pw / 2.0).truncated_to_integer
+			ky := (w.hover_card_py + 6.0).truncated_to_integer
+			w.dispatch (13, kx, ky)
+			w.dispatch (7, 0, 0)
+			assert_true ("on the card it stays", w.has_hover_card)
+			assert_false ("the page under it lets go of the pointer", l.is_hovered)
+			if attached last_card_button as al_btn then
+				w.dispatch (2, (al_btn.x + al_btn.width / 2.0).truncated_to_integer,
+					(al_btn.y + al_btn.height / 2.0).truncated_to_integer)
+				w.dispatch (10, (al_btn.x + al_btn.width / 2.0).truncated_to_integer,
+					(al_btn.y + al_btn.height / 2.0).truncated_to_integer)
+				assert_integers_equal ("the card's button took the click", 1, card_clicks)
+			end
+			assert_true ("and the card is still up", w.has_hover_card)
+			w.dispatch (13, cx, cy)
+			w.dispatch (w.Event_dwell, 0, 0)
+			assert_true ("a rest on the same word keeps the same card", w.hover_card = c1)
+			b := l.text_boxes (2, 17, 18).first
+			w.dispatch (13, (b.x + b.width / 2.0).truncated_to_integer, (b.y + b.height / 2.0).truncated_to_integer)
+			w.dispatch (w.Event_dwell, 0, 0)
+			assert_true ("a rest on God opens God's card", w.has_hover_card and w.hover_card /= c1)
+			w.set_hover_card_grace_ms (300)
+			w.dispatch (13, 600, 400)
+			w.dispatch (7, 0, 0)
+			assert_true ("off both, the grace has not run yet", w.has_hover_card)
+			w.set_hover_card_grace_ms (0)
+			w.dispatch (13, 600, 401)
+			w.dispatch (7, 0, 0)
+			assert_false ("off both, after the grace it closes", w.has_hover_card)
+			w.dispatch (13, 650, 405)
+			w.dispatch (14, 0, 0)
+		end
+
+	test_gw09_card_closes_on_click_escape_leave_and_modal
+			-- A click off the card closes it AND still reaches the page;
+			-- Escape, the pointer leaving the window and a dialog opening
+			-- each close it too.
+		local
+			w: SW_WINDOW
+			l: SW_PARAGRAPH_LIST
+			cx, cy: INTEGER
+			b: TUPLE [x, y, width, height: REAL_64]
+			d: SW_DIALOG
+		do
+			create w.make ("card", 0, 0, 700, 420, create {SW_THEME}.make_light)
+			l := filled (6)
+			l.put_text (2, genesis_kjv)
+			w.set_root (l)
+			w.request_render
+			l.set_hover_card_builder (agent build_card)
+			b := l.text_boxes (2, 7, 8).first
+			cx := (b.x + b.width / 2.0).truncated_to_integer
+			cy := (b.y + b.height / 2.0).truncated_to_integer
+			w.dispatch (13, cx, cy)
+			w.dispatch (w.Event_dwell, 0, 0)
+			assert_true ("up", w.has_hover_card)
+			w.dispatch (2, 30, (l.text_top (6) + 4.0).truncated_to_integer)
+			w.dispatch (10, 30, (l.text_top (6) + 4.0).truncated_to_integer)
+			assert_false ("a click off the card closes it", w.has_hover_card)
+			assert_integers_equal ("and the click still selected paragraph 6", 6, l.selected_index)
+			w.dispatch (13, cx, cy)
+			w.dispatch (w.Event_dwell, 0, 0)
+			w.dispatch (3, 27, 0)
+			assert_false ("Escape closes it", w.has_hover_card)
+			w.dispatch (13, cx, cy)
+			w.dispatch (w.Event_dwell, 0, 0)
+			w.dispatch (14, 0, 0)
+			assert_false ("leaving the window closes it", w.has_hover_card)
+			w.dispatch (13, cx, cy)
+			w.dispatch (w.Event_dwell, 0, 0)
+			create d.make ({SW_DIALOG}.Kind_info, "Title", "Body")
+			w.show_dialog (d)
+			assert_false ("a dialog closes it", w.has_hover_card)
+			w.close_dialog
+			w.dispatch (14, 0, 0)
+		end
+
 feature {NONE} -- Helpers
 
 	filled (a_n: INTEGER): SW_PARAGRAPH_LIST
@@ -557,6 +681,25 @@ feature {NONE} -- Capture
 	genesis_kjv: STRING_32
 		do
 			Result := {STRING_32} "In the beginning God created the heaven and the earth. And the earth was without form, and void."
+		end
+
+	cards_built, card_clicks: INTEGER
+	last_card_button: detachable SW_BUTTON
+
+	build_card (a_item, a_character: INTEGER): detachable SW_HOVER_CARD
+			-- A small word card: the word, a gloss, a button.
+		local
+			col: SW_COLUMN
+			btn: SW_BUTTON
+		do
+			cards_built := cards_built + 1
+			create col.make
+			col.put (create {SW_LABEL}.make_body ("word " + a_character.out))
+			col.put (create {SW_LABEL}.make_ui ("gloss"))
+			create btn.make ("Word Study", agent do card_clicks := card_clicks + 1 end)
+			col.put (btn)
+			last_card_button := btn
+			create Result.make (col, 220.0)
 		end
 
 feature {NONE} -- Fixture

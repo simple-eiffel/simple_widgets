@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-371%2F371-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-375%2F375-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -32,6 +32,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.15.0 | GW-26 | `SW_WINDOW.set_on_wake`: a worker processor's wake reaches the app at once, even under a dialog |
 | 0.16.0 | GW-11 | Status-bar sections: text, clickable text, hosted progress bar and Cancel button |
 | 0.17.0 | GW-08 | `SW_PARAGRAPH_LIST.character_at` / `text_boxes`; `on_hover`, `on_dwell` (400 ms, window-timed), `on_scroll`; raised Strong's numbers and small-caps LORD through `set_styles` |
+| 0.18.0 | GW-09 | The hover card: `SW_WINDOW.show_hover_card`, non-modal, anchored at a word, open while hovered; `SW_WIDGET.hover_card_at`; `SW_PARAGRAPH_LIST.set_hover_card_builder` and `word_at` |
 
 ✅ **ALL SIX WAVES SHIPPED, plus the Studio widgets (0.8.2)** — 114 classes (108 library + 5 devkit + 1 speechkit)
 - 0.8.2: `SW_TEXT_BOX` measures the same whatever was drawn last
@@ -57,7 +58,7 @@ theme, with evidence PNGs in `evidence/`.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 371 contract-assault tests passing at 0.17.0 (`screen_grab_marries_cairo` reads the
+- 375 contract-assault tests passing at 0.18.0 (`screen_grab_marries_cairo` reads the
   real desktop and fails in a locked session — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
