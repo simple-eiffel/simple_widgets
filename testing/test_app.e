@@ -154,6 +154,7 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_gw27_flip_swaps_live, "gw27_flip_swaps_live")
 			run_test (agent chrome_tests.test_gw27_user_choice_stops_following, "gw27_user_choice_stops_following")
 			run_test (agent chrome_tests.test_gw26_wake_calls_the_app_even_under_a_dialog, "gw26_wake_calls_the_app_even_under_a_dialog")
+			run_test (agent chrome_tests.test_gw11_sections_lay_out_and_answer, "gw11_sections_lay_out_and_answer")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
 		end
@@ -486,6 +487,8 @@ feature {NONE} -- Test runners
 			run_test (agent shaping_tests.test_gw03_marks_visible_light, "gw03_marks_visible_light")
 			run_test (agent shaping_tests.test_gw03_marks_visible_dark, "gw03_marks_visible_dark")
 			run_test (agent shaping_tests.test_gw03_mapm_nbsp_never_breaks_before_paseq, "gw03_mapm_nbsp_never_breaks_before_paseq")
+			run_test (agent shaping_tests.test_gw11_status_sections_hebrew_greek_light, "gw11_status_sections_hebrew_greek_light")
+			run_test (agent shaping_tests.test_gw11_status_sections_hebrew_greek_dark, "gw11_status_sections_hebrew_greek_dark")
 		end
 
 	chat_text_tests: SW_CHAT_TEXT_ASSAULT

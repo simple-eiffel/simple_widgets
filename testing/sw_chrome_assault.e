@@ -253,6 +253,86 @@ feature -- GW-26: a worker's wake reaches the app
 			w.set_heartbeat_ms (250)
 		end
 
+feature -- GW-11: status-bar sections
+
+	test_gw11_sections_lay_out_and_answer
+			-- Left message, two leading text sections, then trailing:
+			-- edition text, a progress bar, a Cancel button. Leading packs
+			-- left to right after the left message; trailing ends at the
+			-- right pad in the order added; nothing overlaps; the hosted
+			-- widgets sit inside the bar. A clickable section runs its
+			-- agent through the window's own click path, the Cancel button
+			-- fires through it too, and a hidden section takes no room and
+			-- answers nothing.
+		local
+			w: SW_WINDOW
+			root: SW_COLUMN
+			bar: SW_STATUS_BAR
+			l_prog: SW_PROGRESS
+			l_cancel: SW_BUTTON
+			l_links, l_note, l_ed, l_pg, l_cn: INTEGER
+			l_clicks, l_cancels: CELL [INTEGER]
+			l_old_left: REAL_64
+		do
+			create l_clicks.put (0)
+			create l_cancels.put (0)
+			create w.make ("status", 0, 0, 900, 200, create {SW_THEME}.make_light)
+			create root.make
+			create bar.make
+			root.put (create {SW_LABEL}.make_ui ("body"))
+			root.put (bar)
+			w.set_root (root)
+			bar.set_left ("Gen 1:1 · WLC")
+			l_links := bar.add_text ("Links: Default", False)
+			l_note := bar.add_text ("LXX Ps 22:1 = MT Ps 23:1", False)
+			l_ed := bar.add_text ("Edition 2026.10", True)
+			create l_prog.make (0.4)
+			l_pg := bar.add_widget (l_prog, 120.0, True)
+			create l_cancel.make ("Cancel", agent (a_c: CELL [INTEGER]) do a_c.put (a_c.item + 1) end (l_cancels))
+			l_cn := bar.add_widget (l_cancel, 80.0, True)
+			bar.set_on_section_click (l_links, agent (a_c: CELL [INTEGER]) do a_c.put (a_c.item + 1) end (l_clicks))
+			w.request_render
+			assert_true ("leading after the left message", bar.section (l_links).left > bar.x + 12.0)
+			assert_true ("leading in order, no overlap",
+				bar.section (l_note).left >= bar.section (l_links).left + bar.section (l_links).span)
+			assert_true ("trailing in order, no overlap",
+				bar.section (l_pg).left >= bar.section (l_ed).left + bar.section (l_ed).span
+				and bar.section (l_cn).left >= bar.section (l_pg).left + bar.section (l_pg).span)
+			assert_true ("the last trailing section ends at the right pad",
+				(bar.section (l_cn).left + bar.section (l_cn).span - (bar.x + bar.width - 12.0)).abs < 0.5)
+			assert_true ("leading never runs into trailing",
+				bar.section (l_note).left + bar.section (l_note).span < bar.section (l_ed).left)
+			assert_true ("the progress bar sits in its section, inside the bar",
+				l_prog.x = bar.section (l_pg).left and l_prog.width = 120.0
+				and l_prog.y >= bar.y and l_prog.y + l_prog.height <= bar.y + bar.height)
+			assert_true ("a clickable section shows the hand", bar.wants_hover_point)
+			w.dispatch (2, mid (bar.section (l_links)), (bar.y + bar.height / 2.0).truncated_to_integer)
+			assert_integers_equal ("the link-set section ran its agent", 1, l_clicks.item)
+			w.dispatch (2, mid (bar.section (l_note)), (bar.y + bar.height / 2.0).truncated_to_integer)
+			assert_integers_equal ("a plain section does nothing", 1, l_clicks.item)
+			w.dispatch (2, mid (bar.section (l_cn)), (bar.y + bar.height / 2.0).truncated_to_integer)
+			assert_integers_equal ("the hosted Cancel button fired", 1, l_cancels.item)
+			assert_true ("the hosted widgets are children", bar.sub_widgets.has (l_prog) and bar.sub_widgets.has (l_cancel))
+			l_old_left := bar.section (l_pg).left
+			bar.set_section_visible (l_pg, False)
+			w.request_render
+			assert_true ("a hidden section takes no room", bar.section (l_pg).span = 0.0)
+			assert_integers_equal ("and answers nothing where it was", 0,
+				(bar.section_at (l_old_left + 1.0) = l_pg).to_integer)
+			assert_false ("and is no longer a child", bar.sub_widgets.has (l_prog))
+			assert_true ("the trailing side closed up",
+				(bar.section (l_cn).left + bar.section (l_cn).span - (bar.x + bar.width - 12.0)).abs < 0.5
+				and bar.section (l_cn).left >= bar.section (l_ed).left + bar.section (l_ed).span)
+		end
+
+feature {NONE} -- GW-11 helpers
+
+	mid (a_section: SW_STATUS_SECTION): INTEGER
+			-- The horizontal middle of a placed section.
+		do
+			Result := (a_section.left + a_section.span / 2.0).truncated_to_integer
+		end
+
 feature {NONE} -- GW-27 helpers
 
 	frame_pixel (a_window: SW_WINDOW; a_x, a_y: INTEGER): INTEGER
