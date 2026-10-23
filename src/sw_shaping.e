@@ -110,6 +110,27 @@ feature -- Measurement and layout
 				and Result.pixel_size = a_pixel_size
 		end
 
+	layout_with_styles (a_text: READABLE_STRING_GENERAL; a_width_pixels, a_pixel_size: INTEGER;
+			a_styles: SHAPING_STYLES): SHAPED_LAYOUT
+			-- `layout_for', with stretches set smaller, raised or in small
+			-- capitals as `a_styles' says (GW-08: Strong's numbers, LORD).
+			-- No spans: the very layout `layout_for' gives.
+		require
+			width_non_negative: a_width_pixels >= 0
+			size_positive: a_pixel_size > 0
+		do
+			if attached fonts as al_fonts then
+				Result := facade.layout_styled (a_text.to_string_32, a_width_pixels, a_pixel_size,
+					al_fonts, a_styles)
+			else
+				Result := facade.layout_styled (a_text.to_string_32, a_width_pixels, a_pixel_size,
+					facade.default_fonts, a_styles)
+			end
+		ensure
+			parameters_kept: Result.width_pixels = a_width_pixels
+				and Result.pixel_size = a_pixel_size
+		end
+
 	layout_styled (a_text: READABLE_STRING_GENERAL; a_width_pixels, a_pixel_size, a_role: INTEGER;
 			a_bold: BOOLEAN): SHAPED_LAYOUT
 			-- `a_text' laid out like `layout_for', but in the theme face of

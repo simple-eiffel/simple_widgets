@@ -201,6 +201,19 @@ feature -- Alignment (GW-02)
 			Result := alignment /= {SHAPING_CONSTANTS}.Align_left and box_width > 0.0
 		end
 
+	styles: detachable SHAPING_STYLES
+			-- How the next `build_shaped' sets stretches of the text
+			-- smaller, raised or in small capitals (GW-08); Void or empty:
+			-- plain. The toy path ignores it.
+
+	set_styles (a_styles: detachable SHAPING_STYLES)
+			-- Set the next `build_shaped' by `a_styles'.
+		do
+			styles := a_styles
+		ensure
+			set: styles = a_styles
+		end
+
 	starts_right_to_left: BOOLEAN
 			-- Is the first paragraph laid out right to left? (A host puts
 			-- a gutter on the reading-start side from this.)
@@ -368,6 +381,35 @@ feature -- Caret geometry
 			Result := Result.max (0).min (line_count - 1)
 		ensure
 			in_lines: Result >= 0 and Result < line_count
+		end
+
+	character_at (a_dx, a_dy: REAL_64): INTEGER
+			-- The character painted under a point in the text's own frame
+			-- (GW-08: which word the pointer is over): the one whose slot
+			-- holds `a_dx' on the visual line under `a_dy'. 0 off the text -
+			-- above or below every line, past a line's ends, on a break.
+		local
+			i, ln: INTEGER
+		do
+			if count > 0 and then a_dy >= 0.0 and then a_dy < content_height then
+				ln := line_at_y (a_dy)
+				from
+					i := 1
+				until
+					i > count or Result > 0
+				loop
+					if lay_line.i_th (i) = ln and then not lay_break.i_th (i)
+						and then lay_adv.i_th (i) > 0.0
+						and then a_dx >= lay_x.i_th (i) and then a_dx < lay_x.i_th (i) + lay_adv.i_th (i)
+					then
+						Result := i
+					end
+					i := i + 1
+				end
+			end
+		ensure
+			in_range: Result >= 0 and Result <= count
+			on_a_painted_slot: Result > 0 implies (not is_break (Result) and width_of (Result) > 0.0)
 		end
 
 	offset_at (a_dx, a_dy: REAL_64): INTEGER
@@ -544,7 +586,13 @@ feature -- Building
 				loop
 					para_end := para_end + 1
 				end
-				lay := a_kit.layout_for (a_text.substring (para_start, para_end - 1), a_wrap_px, a_px)
+				if attached styles as al_styles and then not al_styles.is_empty then
+						-- GW-08: this piece's spans, numbered from its start.
+					lay := a_kit.layout_with_styles (a_text.substring (para_start, para_end - 1),
+						a_wrap_px, a_px, al_styles.slice (para_start, para_end - para_start))
+				else
+					lay := a_kit.layout_for (a_text.substring (para_start, para_end - 1), a_wrap_px, a_px)
+				end
 				layouts.extend (lay)
 				para_tops.extend (top)
 				from

@@ -311,6 +311,140 @@ feature -- Shaped path
 			assert_integers_equal ("exactly the visible band", l.last_visible - l.first_visible + 1, gutters)
 		end
 
+feature -- Pointing (GW-08)
+
+	test_gw08_character_at_names_the_character
+			-- The point inside a character's box is that character of that
+			-- paragraph; a gutter, a line's empty end, the gap between
+			-- paragraphs and the paragraph under the editor are no character.
+		local
+			l: SW_PARAGRAPH_LIST
+			b, w: TUPLE [x, y, width, height: REAL_64]
+			cy: REAL_64
+		do
+			l := filled (3)
+			l.put_text (2, genesis_kjv)
+			l.set_bounds (0.0, 0.0, 400.0, 300.0)
+			l.arrange (shaped_painter)
+			assert_integers_equal ("one box for one character", 1, l.text_boxes (2, 7, 8).count)
+			b := l.text_boxes (2, 7, 8).first
+			cy := b.y + b.height / 2.0
+			assert_integers_equal ("the point in the box of b is b", 8, l.character_at (b.x + b.width / 2.0, cy))
+			assert_integers_equal ("of paragraph 2", 2, l.item_at (cy))
+			assert_integers_equal ("the gutter is no character", 0, l.character_at (l.x + 4.0, cy))
+			w := l.text_boxes (2, 7, 16).first
+			assert_true ("the word's box holds the letter's", w.width > 3.0 * b.width and w.x <= b.x)
+			assert_integers_equal ("caret before the first character", 0,
+				l.caret_offset_at (l.item_text_x (2) - 3.0, cy))
+			assert_integers_equal ("past a short line's end is no character", 0,
+				l.character_at (l.item_text_x (1) + 300.0, l.text_top (1) + 6.0))
+			assert_integers_equal ("the gap between paragraphs is no character", 0,
+				l.character_at (b.x + 1.0, l.item_top (2) - l.item_gap / 2.0))
+			l.begin_edit (2)
+			l.arrange (shaped_painter)
+			assert_integers_equal ("the editor answers over its paragraph, not the list", 0,
+				l.character_at (b.x + b.width / 2.0, cy))
+			l.end_edit (False)
+		end
+
+	test_gw08_hover_dwell_and_scroll_are_heard
+			-- `on_hover' hears the character under the pointer change (and
+			-- only a change), `on_dwell' hears a rest on a character,
+			-- `on_scroll' hears a real scroll, and a wheel turn under a
+			-- resting pointer re-reads the character under it.
+		local
+			l: SW_PARAGRAPH_LIST
+			b: TUPLE [x, y, width, height: REAL_64]
+			cx, cy: REAL_64
+			n: INTEGER
+		do
+			l := filled (40)
+			l.put_text (2, genesis_kjv)
+			l.set_bounds (0.0, 0.0, 400.0, 300.0)
+			l.arrange (shaped_painter)
+			assert_integers_equal ("nobody listens: no dwell wanted", 0, l.dwell_ms)
+			l.set_on_hover (agent record_hover)
+			l.set_on_dwell (agent record_dwell)
+			l.set_on_scroll (agent record_scroll)
+			assert_integers_equal ("a listener: the word hover card's 400 ms", 400, l.dwell_ms)
+			b := l.text_boxes (2, 7, 8).first
+			cx := b.x + b.width / 2.0
+			cy := b.y + b.height / 2.0
+			hover_events := 0
+			l.set_hovered (True)
+			l.set_hover_point (cx, cy)
+			assert_integers_equal ("heard once", 1, hover_events)
+			assert_true ("on b of paragraph 2", hover_heard_item = 2 and hover_heard_character = 8)
+			l.set_hover_point (cx + 0.25, cy)
+			assert_integers_equal ("the same character is silent", 1, hover_events)
+			l.set_hover_point (l.x + 4.0, cy)
+			assert_true ("leaving the text is heard as (0, 0)",
+				hover_events = 2 and hover_heard_item = 0 and hover_heard_character = 0)
+			dwell_events := 0
+			l.handle_dwell (cx, cy)
+			assert_true ("a rest on b is heard", dwell_events = 1 and dwell_heard_item = 2 and dwell_heard_character = 8)
+			l.handle_dwell (l.x + 4.0, cy)
+			assert_integers_equal ("a rest on the gutter is not", 1, dwell_events)
+			l.set_dwell_delay (250)
+			assert_integers_equal ("the delay is the host's", 250, l.dwell_ms)
+			l.set_hover_point (cx, cy)
+			n := hover_events
+			scroll_events := 0
+			assert_true ("the wheel scrolls", l.handle_wheel (-120))
+			assert_true ("the scroll is heard", scroll_events = 1 and scroll_heard = l.scroll_y and l.scroll_y > 0.0)
+			assert_integers_equal ("the text moved under the pointer: heard", n + 1, hover_events)
+			l.scroll_to (l.scroll_y)
+			assert_integers_equal ("no move, no scroll heard", 1, scroll_events)
+			l.set_hovered (False)
+			assert_true ("leaving the list leaves the text", hover_heard_item = 0 and l.hover_character = 0)
+		end
+
+	test_gw08_window_times_the_dwell
+			-- Through the window's own event path: a pointer move over a
+			-- character arms the shell's dwell timer and is heard; the timer's
+			-- event reaches the list as a rest on that character; leaving
+			-- cancels it. Under a dialog the dwell goes nowhere - not to the
+			-- list and not to the app's shell-event handler.
+		local
+			w: SW_WINDOW
+			l: SW_PARAGRAPH_LIST
+			d: SW_DIALOG
+			b: TUPLE [x, y, width, height: REAL_64]
+			cx, cy: INTEGER
+		do
+			create w.make ("dwell", 0, 0, 600, 400, create {SW_THEME}.make_light)
+			l := filled (5)
+			l.put_text (2, genesis_kjv)
+			w.set_root (l)
+			w.request_render
+			l.set_on_hover (agent record_hover)
+			l.set_on_dwell (agent record_dwell)
+			b := l.text_boxes (2, 7, 8).first
+			cx := (b.x + b.width / 2.0).truncated_to_integer
+			cy := (b.y + b.height / 2.0).truncated_to_integer
+			dwell_events := 0
+			w.dispatch (13, cx, cy)
+			assert_true ("the list is under the pointer", l.is_hovered)
+			assert_true ("the move was heard on b", hover_heard_item = 2 and hover_heard_character = 8)
+			assert_true ("the window armed the dwell", w.is_dwell_timer_armed)
+			w.dispatch (w.Event_dwell, 0, 0)
+			assert_true ("the rest reached the list", dwell_events = 1 and dwell_heard_item = 2 and dwell_heard_character = 8)
+			w.dispatch (14, 0, 0)
+			assert_false ("leaving cancels it", w.is_dwell_timer_armed)
+			assert_true ("and leaves the text", hover_heard_item = 0)
+			shell_events := 0
+			w.set_on_shell_event (agent record_shell)
+			w.dispatch (13, cx, cy)
+			create d.make ({SW_DIALOG}.Kind_info, "Title", "Body")
+			w.show_dialog (d)
+			w.dispatch (w.Event_dwell, 0, 0)
+			assert_integers_equal ("a dialog swallows the dwell", 1, dwell_events)
+			assert_integers_equal ("and keeps it from the app's shell handler", 0, shell_events)
+			w.close_dialog
+			w.dispatch (14, 0, 0)
+			assert_false ("disarmed at the end", w.is_dwell_timer_armed)
+		end
+
 feature {NONE} -- Helpers
 
 	filled (a_n: INTEGER): SW_PARAGRAPH_LIST
@@ -388,6 +522,41 @@ feature {NONE} -- Capture
 	record_commit (a_i: INTEGER; a_text: STRING_32)
 		do
 			committed := a_text.twin
+		end
+
+	hover_events, hover_heard_item, hover_heard_character: INTEGER
+	dwell_events, dwell_heard_item, dwell_heard_character: INTEGER
+	scroll_events, shell_events: INTEGER
+	scroll_heard: REAL_64
+
+	record_hover (a_item, a_character: INTEGER)
+		do
+			hover_events := hover_events + 1
+			hover_heard_item := a_item
+			hover_heard_character := a_character
+		end
+
+	record_dwell (a_item, a_character: INTEGER)
+		do
+			dwell_events := dwell_events + 1
+			dwell_heard_item := a_item
+			dwell_heard_character := a_character
+		end
+
+	record_scroll (a_y: REAL_64)
+		do
+			scroll_events := scroll_events + 1
+			scroll_heard := a_y
+		end
+
+	record_shell (a_type, a_x, a_y: INTEGER)
+		do
+			shell_events := shell_events + 1
+		end
+
+	genesis_kjv: STRING_32
+		do
+			Result := {STRING_32} "In the beginning God created the heaven and the earth. And the earth was without form, and void."
 		end
 
 feature {NONE} -- Fixture

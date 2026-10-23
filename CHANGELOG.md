@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.17.0 — POINTING AT A WORD, RAISED STRONG'S, SMALL-CAPS LORD; GW-08)
+
+simple_bible's reader hovers a word for its lexicon card, raises Strong's
+numbers after tagged words, and sets LORD in small capitals.
+`SW_PARAGRAPH_LIST` could say which paragraph was under the pointer, but
+not which character, and it set every character the same way.
+
+- **Hit test.** `character_at (x, y)` gives the character of paragraph
+  `item_at (y)` painted under a point, and 0 on a gutter, a band, a
+  line's empty end, the gap between paragraphs, or the paragraph under
+  the editor. Also `caret_offset_at`, and `text_boxes (item, lo, hi)`:
+  the window rectangles of a stretch, to anchor a hover card or ring a
+  word. Underneath is `SW_TEXT_GEOMETRY.character_at`.
+- **Events:**
+  - `on_hover (item, character)` fires when the character under the
+    pointer changes, and gives (0, 0) when the pointer leaves the text.
+    A wheel turn re-reads the character under a resting pointer.
+  - `on_dwell (item, character)` fires when the pointer rests for
+    `dwell_delay` (400 milliseconds by default).
+  - `on_scroll (y)` fires on every real scroll.
+- **Dwell, window-wide.** `SW_WIDGET.dwell_ms` and `handle_dwell`.
+  `SW_WINDOW` re-arms simple_shell 1.19.0's one-shot dwell timer on every
+  pointer move and wheel turn over a widget that wants it, cancels it when
+  the pointer leaves, and hands event 55 to the hovered widget. A dialog
+  or popup swallows the event, and it never reaches the app's shell-event
+  handler.
+- **Styled runs** (simple_shaping 0.5.0). `SW_PARAGRAPH_LIST.set_styles
+  (item, SHAPING_STYLES)` and `styles_of`; `SW_TEXT_GEOMETRY.set_styles`;
+  `SW_SHAPING.layout_with_styles`. Superscripts and small capitals show on
+  the shaped path; the toy path and the in-place editor show them plain.
+- Tests: the hit test; hover, dwell and scroll events; the dwell through
+  the window's own event path, including under a dialog; KJV Genesis 1:1
+  and 2:7 with 15 raised numbers and small-caps LORD above the same text
+  plain and the Hebrew verse, in both themes (evidence
+  gw08_strongs_light.png and gw08_strongs_dark.png). 371 pass on a clean
+  build.
+
 ### Added (0.16.0 — STATUS-BAR SECTIONS; GW-11)
 
 simple_bible's status bar shows the reference and version, the active link

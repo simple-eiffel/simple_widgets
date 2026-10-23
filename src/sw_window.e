@@ -489,7 +489,7 @@ feature {NONE} -- Dispatch
 					-- was up would otherwise trap the user beneath it -
 					-- the overlay eats every input and its Escape (34)
 					-- would die here.
-				if a_type >= 21 and then attached on_shell_event as sh then
+				if a_type >= 21 and then a_type /= Event_dwell and then attached on_shell_event as sh then
 					sh.call (a_type, a_x, a_y)
 				end
 			end
@@ -607,7 +607,7 @@ feature {NONE} -- Dispatch internals
 			else
 					-- shell events pass through modality
 					-- (see dispatch_to_dialog)
-				if a_type >= 21 and then attached on_shell_event as sh then
+				if a_type >= 21 and then a_type /= Event_dwell and then attached on_shell_event as sh then
 					sh.call (a_type, a_x, a_y)
 				end
 			end
@@ -1279,7 +1279,7 @@ feature {NONE} -- Popup lifecycle
 			else
 					-- shell events pass through modality
 					-- (see dispatch_to_dialog)
-				if a_type >= 21 and then attached on_shell_event as sh then
+				if a_type >= 21 and then a_type /= Event_dwell and then attached on_shell_event as sh then
 					sh.call (a_type, a_x, a_y)
 				end
 			end
@@ -1450,6 +1450,13 @@ feature {NONE} -- Popup lifecycle
 						after_input
 					end
 				end
+			when Event_dwell then
+					-- The pointer rested on the hovered widget for as long as
+					-- it asked (GW-08: a word's hover card).
+				if attached hovered as dw and then dw.dwell_ms > 0 then
+					dw.handle_dwell (last_pointer_x, last_pointer_y)
+					after_input
+				end
 			when 13 then
 				last_pointer_x := a_x
 				last_pointer_y := a_y
@@ -1460,6 +1467,7 @@ feature {NONE} -- Popup lifecycle
 			when 14 then
 				last_pointer_x := -30000
 				last_pointer_y := -30000
+				cancel_dwell_timer
 				if attached hovered as hw then
 					hw.set_hovered (False)
 					hovered := Void
@@ -1486,6 +1494,9 @@ feature {NONE} -- Popup lifecycle
 				if attached target_at (a_x, a_y) as w then
 					bubble_wheel (w, event_extra)
 				end
+					-- The text moved under a resting pointer: time the rest
+					-- again (GW-08).
+				rearm_dwell (hovered)
 				after_input
 			when 11 then
 				if lens.is_active (is_dev_mode)
@@ -1721,6 +1732,7 @@ feature {NONE} -- Popup lifecycle
 			if attached w as pw then
 				pw.set_hover_point (a_x, a_y)
 			end
+			rearm_dwell (w)
 			if w /= hovered then
 				if attached hovered as hw then
 					hw.set_hovered (False)
@@ -1740,6 +1752,18 @@ feature {NONE} -- Popup lifecycle
 					-- change its pointer shape too (a grid's column divider).
 				set_cursor_kind (sw.cursor_kind)
 				after_input
+			end
+		end
+
+	rearm_dwell (a_widget: detachable SW_WIDGET)
+			-- Time a fresh rest on `a_widget' when it wants one; otherwise
+			-- nothing is pending (GW-08). Called on every pointer move, so
+			-- the shot only fires once the pointer stops.
+		do
+			if attached a_widget as al_w and then al_w.dwell_ms > 0 then
+				arm_dwell_timer (al_w.dwell_ms)
+			else
+				cancel_dwell_timer
 			end
 		end
 
