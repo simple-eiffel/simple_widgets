@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-327%2F327-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-371%2F371-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -15,6 +15,23 @@ controls. Every pixel is the toolkit's own.
 Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
+
+**0.9.0 - 0.17.0: the simple_bible gap program** (tracker in simple_bible,
+`.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
+every text item is gated on Hebrew and Greek in both the light and the dark
+theme, with evidence PNGs in `evidence/`.
+
+| Version | Gap | What |
+|---|---|---|
+| 0.9.0 | GW-28 | Theme tokens for filled controls, status inks and dark mode, held by invariants |
+| 0.10.0 | GW-04 | Every widget's text goes through the shaped path, in the theme's faces, bold and italic |
+| 0.11.0 | GW-02 | Hebrew flush right; a paragraph's gutter on the reading side |
+| 0.12.0 | GW-03 | `SW_SHAPING.set_script_face` / `set_small_script_face`: pointed Hebrew and polytonic Greek verified in the shipped faces |
+| 0.13.0 | GW-27 | The window follows the Windows light/dark setting (`follow_system_theme`), dark caption |
+| 0.14.0 | GW-24 | Function keys and Ctrl+digit accelerators; a key-down accelerator no longer eats the next keystroke |
+| 0.15.0 | GW-26 | `SW_WINDOW.set_on_wake`: a worker processor's wake reaches the app at once, even under a dialog |
+| 0.16.0 | GW-11 | Status-bar sections: text, clickable text, hosted progress bar and Cancel button |
+| 0.17.0 | GW-08 | `SW_PARAGRAPH_LIST.character_at` / `text_boxes`; `on_hover`, `on_dwell` (400 ms, window-timed), `on_scroll`; raised Strong's numbers and small-caps LORD through `set_styles` |
 
 ✅ **ALL SIX WAVES SHIPPED, plus the Studio widgets (0.8.2)** — 114 classes (108 library + 5 devkit + 1 speechkit)
 - 0.8.2: `SW_TEXT_BOX` measures the same whatever was drawn last
@@ -40,7 +57,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 327 contract-assault tests passing (`screen_grab_marries_cairo` reads the
+- 371 contract-assault tests passing at 0.17.0 (`screen_grab_marries_cairo` reads the
   real desktop and fails in a locked session — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
