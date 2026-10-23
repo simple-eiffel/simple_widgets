@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-270%2F270-brightgreen.svg" alt="270/270 tests">
+            <img src="https://img.shields.io/badge/tests-371%2F371-brightgreen.svg" alt="371/371 tests">
         </div>
     </header>
 
@@ -38,6 +38,23 @@
     </nav>
 
     <main>
+        <section id="recent">
+            <h2>Recent additions (0.9.0 - 0.17.0, for simple_bible)</h2>
+            <table>
+                <tr><th>Version</th><th>What</th></tr>
+                <tr><td><code>0.9.0</code></td><td>Theme tokens for filled controls, status inks and dark mode (GW-28)</td></tr>
+                <tr><td><code>0.10.0</code></td><td>Every widget's text through the shaped path, in the theme's faces (GW-04)</td></tr>
+                <tr><td><code>0.11.0</code></td><td>Hebrew flush right; the gutter on the reading side (GW-02)</td></tr>
+                <tr><td><code>0.12.0</code></td><td>Script faces: pointed Hebrew and polytonic Greek in the shipped fonts (GW-03)</td></tr>
+                <tr><td><code>0.13.0</code></td><td>Follow the Windows light/dark setting (GW-27)</td></tr>
+                <tr><td><code>0.14.0</code></td><td>Function-key and Ctrl+digit accelerators (GW-24)</td></tr>
+                <tr><td><code>0.15.0</code></td><td>A worker's wake reaches the app at once (GW-26)</td></tr>
+                <tr><td><code>0.16.0</code></td><td>Status-bar sections (GW-11)</td></tr>
+                <tr><td><code>0.17.0</code></td><td>Pointing at a word, hover/dwell/scroll events, raised Strong's numbers and small-caps LORD (GW-08)</td></tr>
+            </table>
+            <p>Text items are gated on Hebrew and Greek in both themes; 371 tests pass at 0.17.0.</p>
+        </section>
+
         <section id="overview">
             <h2>Overview</h2>
             <p>
@@ -622,7 +639,7 @@
             <p>
                 The library ships a test target that drives the model layer headless - including
                 drawing, via a painter over an offscreen cairo surface - with <em>every assertion
-                live</em> (F_code with contracts kept). 75 tests across ten assault sets; the suite
+                live</em> (F_code with contracts kept). 371 tests at 0.17.0 (75 across ten assault sets at first); the suite
                 caught three real defects on its first day (a truncation alias in list row math, a
                 clipboard race against history managers, and an ECF namespace clash).
             </p>
