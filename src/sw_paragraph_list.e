@@ -47,6 +47,18 @@ note
 		the anchor. Assigning one property to six paragraphs is one
 		gesture, which is the whole reason the set exists.
 
+		POINTING AND STYLING (GW-08). `character_at' answers which
+		character of which paragraph (`item_at') is under a point, so a
+		host can name the word the pointer is on; `text_boxes' gives the
+		rectangles of a stretch, to anchor a hover card or ring a word.
+		`on_hover' hears the character under the pointer change,
+		`on_dwell' hears the pointer rest on one for `dwell_delay'
+		milliseconds (400 by default; the window times it), and
+		`on_scroll' hears every scroll. `set_styles' sets stretches of a
+		paragraph smaller, raised or in small capitals - Strong's numbers
+		after their words, LORD - on the shaped path; the toy path and
+		the in-place editor show them plain.
+
 		HIGHLIGHTS. Every paragraph has its own SW_MARKED_TEXT
 		(`marks_of') - spans with reasons that a legend (`legend') turns
 		into looks - painted by SW_MARK_PAINTER under and over the
@@ -65,7 +77,8 @@ inherit
 		redefine
 			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
 			handle_double_click, handle_drag, handle_key, handle_char,
-			accepts_focus, wants_hover_point, cursor_kind, focusables
+			accepts_focus, wants_hover_point, cursor_kind, focusables,
+			set_hover_point, set_hovered, dwell_ms, handle_dwell
 		end
 
 create
@@ -90,7 +103,9 @@ feature {NONE} -- Initialization
 			create bands_below.make (16)
 			create selected_flags.make (16)
 			create marks_list.make (16)
+			create styles_list.make (16)
 			create geometries.make (16)
+			dwell_delay := 400
 			create mark_painter.make
 			create edit_backup.make_empty
 			create edit_marks_backup.make (0)
@@ -186,6 +201,28 @@ feature -- Access
 			legend := a_legend
 		ensure
 			set: legend = a_legend
+		end
+
+	styles_of (a_i: INTEGER): SHAPING_STYLES
+			-- How paragraph `a_i''s stretches are set (a copy; change it
+			-- through `set_styles').
+		require
+			in_range: a_i >= 1 and a_i <= count
+		do
+			Result := styles_list.i_th (a_i).deep_twin
+		end
+
+	set_styles (a_i: INTEGER; a_styles: SHAPING_STYLES)
+			-- Set paragraph `a_i''s stretches by `a_styles' (a copy is
+			-- kept); it re-measures on the next frame.
+		require
+			in_range: a_i >= 1 and a_i <= count
+		do
+			styles_list.put_i_th (a_styles.deep_twin, a_i)
+			styles_list.i_th (a_i).clamp_to (texts.i_th (a_i).count)
+			revisions.put_i_th (revisions.i_th (a_i) + 1, a_i)
+		ensure
+			kept: styles_of (a_i).count <= a_styles.count
 		end
 
 feature -- Status
@@ -425,6 +462,160 @@ feature -- Geometry
 				and then geometries.i_th (a_i).starts_right_to_left
 		end
 
+feature -- Pointing (GW-08)
+
+	character_at (a_px, a_py: REAL_64): INTEGER
+			-- With `item_at', the hit test: the character of paragraph
+			-- `item_at (a_py)' painted under window point (`a_px', `a_py').
+			-- 0 when the point is on no character - a gutter, a band, past
+			-- a line's end, between paragraphs - or on the paragraph under
+			-- the in-place editor (the editor answers there).
+		local
+			i: INTEGER
+		do
+			i := item_at (a_py)
+			if i > 0 and then i /= editing_index and then i <= geometries.count then
+				Result := geometries.i_th (i).character_at (a_px - item_text_x (i), a_py - text_top (i))
+			end
+		ensure
+			non_negative: Result >= 0
+			only_over_a_paragraph: Result > 0 implies item_at (a_py) > 0
+		end
+
+	caret_offset_at (a_px, a_py: REAL_64): INTEGER
+			-- The caret offset nearest the point in paragraph
+			-- `item_at (a_py)', 0 .. its length; 0 outside every paragraph.
+		local
+			i: INTEGER
+		do
+			i := item_at (a_py)
+			if i > 0 and then i <= geometries.count then
+				Result := geometries.i_th (i).offset_at (a_px - item_text_x (i), a_py - text_top (i))
+			end
+		ensure
+			non_negative: Result >= 0
+		end
+
+	text_boxes (a_i, a_lo, a_hi: INTEGER): ARRAYED_LIST [TUPLE [x, y, width, height: REAL_64]]
+			-- Window rectangles of paragraph `a_i''s characters `a_lo' + 1
+			-- .. `a_hi', one per visual line: where a hover card anchors and
+			-- a word is ringed. Empty before the paragraph is measured.
+		require
+			in_range: a_i >= 1 and a_i <= count
+			range_valid: a_lo >= 0 and a_lo <= a_hi and a_hi <= text_of (a_i).count
+		local
+			g: SW_TEXT_GEOMETRY
+			ox, oy: REAL_64
+		do
+			create Result.make (1)
+			if is_laid_out and then a_i <= geometries.count and then geometries.i_th (a_i).count = texts.i_th (a_i).count then
+				g := geometries.i_th (a_i)
+				ox := item_text_x (a_i)
+				oy := text_top (a_i)
+				across g.segments (a_lo, a_hi) as sg loop
+					Result.extend ([ox + sg.left, oy + g.top_of_line (sg.line), sg.width, g.height_of_line (sg.line)])
+				end
+			end
+		ensure
+			positive_widths: across Result as b all b.width > 0.0 end
+		end
+
+	text_top (a_i: INTEGER): REAL_64
+			-- Window y where paragraph `a_i''s text begins (below its band).
+		require
+			in_range: a_i >= 1 and a_i <= count
+		do
+			if is_laid_out then
+				Result := y - scroll_y + laid_tops.i_th (a_i) + item_pad + bands_above.i_th (a_i)
+			end
+		end
+
+	hover_item: INTEGER
+			-- The paragraph of the character under the pointer; 0 = none.
+
+	hover_character: INTEGER
+			-- The character under the pointer in `hover_item'; 0 = none.
+
+	dwell_delay: INTEGER
+			-- Milliseconds the pointer must rest on a character before
+			-- `on_dwell' (400: the word hover card's delay).
+
+	on_hover: detachable PROCEDURE [INTEGER, INTEGER]
+			-- The character under the pointer changed: (paragraph,
+			-- character), or (0, 0) when the pointer left the text.
+
+	on_dwell: detachable PROCEDURE [INTEGER, INTEGER]
+			-- The pointer rested `dwell_delay' on (paragraph, character).
+
+	on_scroll: detachable PROCEDURE [REAL_64]
+			-- The list scrolled: the new `scroll_y'.
+
+	set_on_hover (a_action: detachable PROCEDURE [INTEGER, INTEGER])
+		do
+			on_hover := a_action
+		ensure
+			set: on_hover = a_action
+		end
+
+	set_on_dwell (a_action: detachable PROCEDURE [INTEGER, INTEGER])
+		do
+			on_dwell := a_action
+		ensure
+			set: on_dwell = a_action
+		end
+
+	set_on_scroll (a_action: detachable PROCEDURE [REAL_64])
+		do
+			on_scroll := a_action
+		ensure
+			set: on_scroll = a_action
+		end
+
+	set_dwell_delay (a_ms: INTEGER)
+		require
+			positive: a_ms > 0
+		do
+			dwell_delay := a_ms
+		ensure
+			set: dwell_delay = a_ms
+		end
+
+	dwell_ms: INTEGER
+			-- `dwell_delay' while someone listens on `on_dwell'.
+		do
+			if attached on_dwell then
+				Result := dwell_delay
+			end
+		end
+
+	handle_dwell (a_px, a_py: REAL_64)
+			-- The window says the pointer rested: tell the host which
+			-- character it rested on, if any.
+		local
+			ch: INTEGER
+		do
+			ch := character_at (a_px, a_py)
+			if ch > 0 and then attached on_dwell as al_d then
+				al_d.call (item_at (a_py), ch)
+			end
+		end
+
+	set_hover_point (a_px, a_py: REAL_64)
+			-- Follow the pointer to the character under it.
+		do
+			Precursor (a_px, a_py)
+			follow_hover
+		end
+
+	set_hovered (a_hovered: BOOLEAN)
+			-- Leaving the list leaves the text.
+		do
+			Precursor (a_hovered)
+			if not a_hovered then
+				hover_to (0, 0)
+			end
+		end
+
 feature -- Alignment (GW-02)
 
 	text_alignment: INTEGER
@@ -498,6 +689,8 @@ feature -- Element change
 			selected_flags.put_left (False)
 			marks_list.go_i_th (a_i)
 			marks_list.put_left (create {SW_MARKED_TEXT}.make (l_text.count))
+			styles_list.go_i_th (a_i)
+			styles_list.put_left (create {SHAPING_STYLES}.make)
 			drop_measurements
 			if selected_index >= a_i then
 				selected_index := selected_index + 1
@@ -527,6 +720,7 @@ feature -- Element change
 				al_ed.set_text (l_text)
 			end
 			marks_list.i_th (a_i).clamp_to (l_text.count)
+			styles_list.i_th (a_i).clamp_to (l_text.count)
 		ensure
 			kept: text_of (a_i).same_string_general (a_text)
 			count_unchanged: count = old count
@@ -552,6 +746,8 @@ feature -- Element change
 			selected_flags.remove
 			marks_list.go_i_th (a_i)
 			marks_list.remove
+			styles_list.go_i_th (a_i)
+			styles_list.remove
 			drop_measurements
 			if selected_index = a_i then
 				selected_index := 0
@@ -579,9 +775,11 @@ feature -- Element change
 			l_above, l_below: REAL_64
 			l_sel: BOOLEAN
 			l_marks: SW_MARKED_TEXT
+			l_styles: SHAPING_STYLES
 		do
 			if a_from /= a_to then
 				l_marks := marks_list.i_th (a_from)
+				l_styles := styles_list.i_th (a_from)
 				l_text := texts.i_th (a_from)
 				l_rev := revisions.i_th (a_from)
 				l_above := bands_above.i_th (a_from)
@@ -599,6 +797,8 @@ feature -- Element change
 				selected_flags.remove
 				marks_list.go_i_th (a_from)
 				marks_list.remove
+				styles_list.go_i_th (a_from)
+				styles_list.remove
 				texts.go_i_th (a_to)
 				texts.put_left (l_text)
 				revisions.go_i_th (a_to)
@@ -611,6 +811,8 @@ feature -- Element change
 				selected_flags.put_left (l_sel)
 				marks_list.go_i_th (a_to)
 				marks_list.put_left (l_marks)
+				styles_list.go_i_th (a_to)
+				styles_list.put_left (l_styles)
 				selected_index := shifted (selected_index, a_from, a_to)
 				editing_index := shifted (editing_index, a_from, a_to)
 				drop_measurements
@@ -630,6 +832,9 @@ feature -- Element change
 			bands_below.wipe_out
 			selected_flags.wipe_out
 			marks_list.wipe_out
+			styles_list.wipe_out
+			hover_item := 0
+			hover_character := 0
 			selected_index := 0
 			scroll_y := 0.0
 			drop_measurements
@@ -802,8 +1007,15 @@ feature -- Selection
 feature -- Scrolling
 
 	scroll_to (a_y: REAL_64)
+			-- Scroll to `a_y', clamped; `on_scroll' hears a real move.
+		local
+			l_old: REAL_64
 		do
+			l_old := scroll_y
 			scroll_y := a_y.max (0.0).min (max_scroll)
+			if scroll_y /= l_old and then attached on_scroll as al_s then
+				al_s.call (scroll_y)
+			end
 		ensure
 			clamped: scroll_y >= 0.0 and scroll_y <= max_scroll
 		end
@@ -1058,8 +1270,13 @@ feature -- Drawing
 feature -- Input
 
 	handle_wheel (a_delta: INTEGER): BOOLEAN
+			-- Scroll; the text moved under the pointer, so the character
+			-- under it may have changed.
 		do
 			scroll_to (scroll_y - a_delta / 120.0 * Wheel_step)
+			if is_hovered then
+				follow_hover
+			end
 			Result := True
 		end
 
@@ -1181,6 +1398,8 @@ feature {NONE} -- Measurement
 			-- Per paragraph, where its characters paint (either engine).
 	marks_list: ARRAYED_LIST [SW_MARKED_TEXT]
 			-- Per paragraph, the data behind it.
+	styles_list: ARRAYED_LIST [SHAPING_STYLES]
+			-- Per paragraph, how its stretches are set (GW-08).
 	edit_marks_backup: SW_MARKED_TEXT
 			-- The edited paragraph's marks as they stood at `begin_edit'.
 	selected_flags: ARRAYED_LIST [BOOLEAN]
@@ -1266,6 +1485,7 @@ feature {NONE} -- Measurement
 			positive: a_wpx > 0 and a_px > 0
 		do
 			geometries.i_th (a_i).set_alignment (text_alignment, a_wpx.to_double)
+			geometries.i_th (a_i).set_styles (styles_list.i_th (a_i))
 			geometries.i_th (a_i).build_shaped (a_kit, texts.i_th (a_i), a_wpx, a_px, False)
 			Result := geometries.i_th (a_i).content_height
 		ensure
@@ -1402,6 +1622,33 @@ feature {NONE} -- Measurement
 			end
 		end
 
+	follow_hover
+			-- The character under `hover_px', `hover_py' becomes the hover.
+		local
+			ch: INTEGER
+		do
+			ch := character_at (hover_px, hover_py)
+			if ch > 0 then
+				hover_to (item_at (hover_py), ch)
+			else
+				hover_to (0, 0)
+			end
+		end
+
+	hover_to (a_item, a_character: INTEGER)
+			-- Move the hover; `on_hover' hears a change.
+		do
+			if a_item /= hover_item or else a_character /= hover_character then
+				hover_item := a_item
+				hover_character := a_character
+				if attached on_hover as al_h then
+					al_h.call (a_item, a_character)
+				end
+			end
+		ensure
+			moved: hover_item = a_item and hover_character = a_character
+		end
+
 	drop_editor
 			-- Take the editor down without judging its text.
 		do
@@ -1419,7 +1666,7 @@ invariant
 	texts_attached: texts /= Void
 	parallel_model: revisions.count = count and bands_above.count = count
 		and bands_below.count = count and selected_flags.count = count
-		and marks_list.count = count
+		and marks_list.count = count and styles_list.count = count
 	parallel_measurements: laid_heights.count = laid_tops.count
 		and laid_revisions.count = laid_heights.count
 		and geometries.count = laid_heights.count
@@ -1430,5 +1677,7 @@ invariant
 	scroll_non_negative: scroll_y >= 0.0
 	metrics_non_negative: gutter_width >= 0.0 and item_gap >= 0.0 and item_pad >= 0.0
 	viewport_positive: viewport_height > 0.0
+	hover_whole: (hover_item = 0) = (hover_character = 0)
+	dwell_delay_positive: dwell_delay > 0
 
 end

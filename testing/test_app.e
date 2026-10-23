@@ -489,6 +489,8 @@ feature {NONE} -- Test runners
 			run_test (agent shaping_tests.test_gw03_mapm_nbsp_never_breaks_before_paseq, "gw03_mapm_nbsp_never_breaks_before_paseq")
 			run_test (agent shaping_tests.test_gw11_status_sections_hebrew_greek_light, "gw11_status_sections_hebrew_greek_light")
 			run_test (agent shaping_tests.test_gw11_status_sections_hebrew_greek_dark, "gw11_status_sections_hebrew_greek_dark")
+			run_test (agent shaping_tests.test_gw08_raised_strongs_and_small_caps_light, "gw08_raised_strongs_and_small_caps_light")
+			run_test (agent shaping_tests.test_gw08_raised_strongs_and_small_caps_dark, "gw08_raised_strongs_and_small_caps_dark")
 		end
 
 	chat_text_tests: SW_CHAT_TEXT_ASSAULT
@@ -648,6 +650,9 @@ feature {NONE} -- Test runners
 			run_test (agent paragraph_tests.test_remove_while_editing_drops_editor, "paragraphs_remove_while_editing")
 			run_test (agent paragraph_tests.test_shaped_measurement_and_paint, "paragraphs_shaped_measurement_and_paint")
 			run_test (agent paragraph_tests.test_gutter_only_for_visible, "paragraphs_gutter_only_for_visible")
+			run_test (agent paragraph_tests.test_gw08_character_at_names_the_character, "gw08_character_at_names_the_character")
+			run_test (agent paragraph_tests.test_gw08_hover_dwell_and_scroll_are_heard, "gw08_hover_dwell_and_scroll_are_heard")
+			run_test (agent paragraph_tests.test_gw08_window_times_the_dwell, "gw08_window_times_the_dwell")
 			create mark_tests
 			run_test (agent mark_tests.test_mark_code_round_trip, "marks_code_round_trip")
 			run_test (agent mark_tests.test_palette_readable_on_both_themes, "marks_palette_readable_on_both_themes")

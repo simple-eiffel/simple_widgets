@@ -290,6 +290,21 @@ feature -- Input
 			hover_py := a_py
 		end
 
+	dwell_ms: INTEGER
+			-- How long the pointer must rest on this widget before the
+			-- window calls `handle_dwell'; 0 (the default) never. The
+			-- window times it with the shell's one-shot dwell timer,
+			-- re-armed on every pointer move (GW-08).
+		do
+		ensure
+			non_negative: Result >= 0
+		end
+
+	handle_dwell (a_px, a_py: REAL_64)
+			-- The pointer has rested `dwell_ms' at (`a_px', `a_py').
+		do
+		end
+
 	set_hovered (a_hovered: BOOLEAN)
 		do
 			if is_hovered /= a_hovered then

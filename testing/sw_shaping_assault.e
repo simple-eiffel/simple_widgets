@@ -683,6 +683,130 @@ feature -- GW-11: status-bar sections carry Hebrew and Greek in both themes
 			status_gate (create {SW_THEME}.make_dark, "gw11_status_dark.png")
 		end
 
+feature -- GW-08: raised Strong's numbers and small-caps LORD, with Hebrew below, in both themes
+
+	test_gw08_raised_strongs_and_small_caps_light
+		do
+			strongs_gate (create {SW_THEME}.make_light, "gw08_strongs_light.png")
+		end
+
+	test_gw08_raised_strongs_and_small_caps_dark
+		do
+			strongs_gate (create {SW_THEME}.make_dark, "gw08_strongs_dark.png")
+		end
+
+feature {NONE} -- GW-08 gate
+
+	strongs_gate (a_theme: SW_THEME; a_evidence: STRING)
+			-- KJV Genesis 1:1 and 2:7 with every Strong's number raised small
+			-- and "Lord" in small capitals, the same text plain beneath it,
+			-- then Genesis 1:1 in Hebrew. Require: shaped; each raised number
+			-- narrower than the same number plain; no wrap ever separates a
+			-- number from its word; small-caps "ord" shaped at 78 percent
+			-- of the body size; the Hebrew still flush right. Writes an
+			-- evidence PNG when the repository is underfoot.
+		local
+			kit: SW_SHAPING
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			pl: SW_PARAGRAPH_LIST
+			st: SHAPING_STYLES
+			l_text: STRING_32
+			i, j, l_lord, l_numbers, l_px, l_ord_size: INTEGER
+			l_ord_restyled: BOOLEAN
+			path: STRING_32
+		do
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (a_theme)
+			create surf.make (900, 400)
+			create ctx.make (surf)
+			create p.make (ctx, a_theme)
+			p.set_shaping (kit)
+			p.set_color (a_theme.background)
+			p.fill_rect (0.0, 0.0, 900.0, 400.0)
+			l_text := {STRING_32} "In the beginning7225 God430 created1254 the heaven8064 and the earth776. And the Lord3068 God430 formed3335 man120 of the dust6083 of the ground127, and breathed5301 into his nostrils639 the breath5397 of life2416."
+			create st.make
+			from
+				i := 1
+			until
+				i > l_text.count
+			loop
+				if l_text.item (i).is_digit then
+					from
+						j := i
+					until
+						j > l_text.count or else not l_text.item (j).is_digit
+					loop
+						j := j + 1
+					end
+					st.add_superscript (i, j - i)
+					l_numbers := l_numbers + 1
+					i := j
+				else
+					i := i + 1
+				end
+			end
+			l_lord := l_text.substring_index ("Lord", 1)
+			st.add_small_caps (l_lord, 4)
+			create pl.make (380.0)
+			pl.add (l_text)
+			pl.add (l_text)
+			pl.add (genesis_1_1_wlc)
+			pl.set_styles (1, st)
+			pl.set_gutter_width (40.0)
+			pl.set_text_alignment ({SHAPING_CONSTANTS}.Align_start)
+			pl.set_gutter_on_reading_side (True)
+			pl.set_bounds (10.0, 10.0, 880.0, 380.0)
+			pl.arrange (p)
+			pl.draw (p)
+			surf.flush.do_nothing
+			assert_true ("shaped", pl.is_shaped_layout)
+			assert_integers_equal ("fifteen numbers", 15, l_numbers)
+			from
+				i := 1
+			until
+				i > st.count
+			loop
+				if st.rise_at (st.span_start (i)) > 0.0 then
+					assert_true ("number " + i.out + " raised small: narrower than plain",
+						boxes_width (pl.text_boxes (1, st.span_start (i) - 1, st.span_start (i) + st.span_count (i) - 1))
+						< 0.8 * boxes_width (pl.text_boxes (2, st.span_start (i) - 1, st.span_start (i) + st.span_count (i) - 1)))
+					assert_integers_equal ("number " + i.out + " on its word's line", 1,
+						pl.text_boxes (1, st.span_start (i) - 2, st.span_start (i)).count)
+				end
+				i := i + 1
+			end
+			l_px := (a_theme.size_body * a_theme.text_scale).rounded
+			across kit.layout_with_styles (l_text, 0, l_px, st).lines as ln loop
+				across ln.runs as r loop
+					if attached {GLYPH_RUN} r as al_g and then al_g.source_start <= l_lord + 1
+						and then l_lord + 1 < al_g.source_start + al_g.source_count
+					then
+						l_ord_size := al_g.pixel_size
+						l_ord_restyled := al_g.is_restyled
+					end
+				end
+			end
+			assert_integers_equal ("small-caps ord is set at 78 percent of the body size",
+				(l_px * 0.78).rounded, l_ord_size)
+			assert_true ("and says it was restyled", l_ord_restyled)
+			assert_true ("the Hebrew still starts flush right", pl.item_text_x (3) < pl.item_text_x (1))
+			path := evidence_path (a_evidence)
+			if not path.is_empty then
+				if surf.write_png (path) then
+				end
+			end
+		end
+
+	boxes_width (a_boxes: ARRAYED_LIST [TUPLE [x, y, width, height: REAL_64]]): REAL_64
+			-- The boxes' widths added.
+		do
+			across a_boxes as b loop
+				Result := Result + b.width
+			end
+		end
+
 feature {NONE} -- GW-11 gate
 
 	status_gate (a_theme: SW_THEME; a_evidence: STRING)
