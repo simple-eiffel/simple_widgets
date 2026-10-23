@@ -446,4 +446,227 @@ feature -- Files, queries, forms, charts of command
 			assert ("and the east stands up", r.rw > 0.0)
 		end
 
+feature -- Dock (GW-05)
+
+	test_gw05_tabbed_zone_shows_one_panel
+			-- Five panels in the south zone: stacked, each gets a fifth;
+			-- tabbed, one tab each, the active panel fills the zone, a
+			-- click on a tab (through the window) shows that panel, the
+			-- content answers hit tests, and a tab lifts its panel as a
+			-- pebble.
+		local
+			w: SW_WINDOW
+			dh: SW_DOCK_HOST
+			z: SW_DOCK_ZONE
+			ids: ARRAYED_LIST [INTEGER]
+			r: TUPLE [rx, ry, rw, rh: REAL_64]
+		do
+			create w.make ("dock", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			create dh.make (create {SW_LABEL}.make_ui ("the document"))
+			create ids.make (5)
+			across <<"Word Study", "Search Results", "Guides", "Census", "Notes">> as t loop
+				ids.extend (dh.add_panel (t, create {SW_LABEL}.make_ui (t), dh.Zone_south))
+			end
+			dock_changes := 0
+			dh.set_on_layout_change (agent do dock_changes := dock_changes + 1 end)
+			w.set_root (dh)
+			w.request_render
+			z := dh.zone_widget (dh.Zone_south)
+			r := dh.zone_rect (dh.Zone_south)
+			assert_reals_equal ("stacked: each panel a fifth", r.rh / 5.0, z.panel_slot_h, 0.000_1)
+			dh.set_tabbed (dh.Zone_south, True)
+			assert_integers_equal ("switching to tabs is a layout change", 1, dock_changes)
+			w.request_render
+			assert_integers_equal ("one tab per panel", 5, z.tab_ids.count)
+			assert_integers_equal ("the first panel shows", ids [1], dh.active_panel (dh.Zone_south))
+			assert_reals_equal ("and fills the zone under the strip",
+				r.rh - z.bar_h - 2.0 * z.content_pad, dh.panels [ids [1]].content.height, 0.000_1)
+			assert_true ("tabs left to right without overlap",
+				across 2 |..| 5 as k all z.tab_lefts [k] >= z.tab_lefts [k - 1] + z.tab_widths [k - 1] - 0.000_1 end)
+			w.dispatch (2, (z.tab_lefts [3] + z.tab_widths [3] / 2.0).truncated_to_integer, (r.ry + 8.0).truncated_to_integer)
+			w.dispatch (10, (z.tab_lefts [3] + z.tab_widths [3] / 2.0).truncated_to_integer, (r.ry + 8.0).truncated_to_integer)
+			assert_integers_equal ("a click on the third tab shows Guides", ids [3], dh.active_panel (dh.Zone_south))
+			assert_integers_equal ("and is a layout change", 2, dock_changes)
+			assert_true ("the shown panel answers hit tests",
+				dh.widget_at (r.rx + 40.0, r.ry + z.bar_h + 20.0) = dh.panels [ids [3]].content)
+			if attached {INTEGER_REF} z.pebble_at (z.tab_lefts [4] + 4.0, r.ry + 8.0) as al_id then
+				assert_integers_equal ("a tab lifts its panel", ids [4], al_id.item)
+			else
+				assert_true ("a tab is a pebble source", False)
+			end
+		end
+
+	test_gw05_edges_drag_and_clamp
+			-- Through the window: the west edge shows the left-right
+			-- cursor, follows a drag, stops at the largest share and
+			-- announces once on release; the south edge drags too; the
+			-- centre always keeps its minimum.
+		local
+			w: SW_WINDOW
+			dh: SW_DOCK_HOST
+			r: TUPLE [rx, ry, rw, rh: REAL_64]
+			ex, ey: INTEGER
+		do
+			create w.make ("dock", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			create dh.make (create {SW_LABEL}.make_ui ("the document"))
+			if dh.add_panel ("explorer", create {SW_LABEL}.make_ui ("tree"), dh.Zone_west) > 0 then end
+			if dh.add_panel ("output", create {SW_LABEL}.make_ui ("log"), dh.Zone_south) > 0 then end
+			if dh.add_panel ("properties", create {SW_LABEL}.make_ui ("form"), dh.Zone_east) > 0 then end
+			w.set_root (dh)
+			w.request_render
+			dock_changes := 0
+			dh.set_on_layout_change (agent do dock_changes := dock_changes + 1 end)
+			r := dh.zone_rect (dh.Zone_west)
+			ex := (r.rx + r.rw).truncated_to_integer
+			ey := (r.ry + r.rh / 2.0).truncated_to_integer
+			assert_integers_equal ("the west edge is found", dh.Zone_west, dh.edge_at (ex, ey))
+			w.dispatch (13, ex, ey)
+			assert_integers_equal ("with the left-right cursor", 3, dh.cursor_kind)
+			w.dispatch (2, ex, ey)
+			w.dispatch (9, (dh.x + dh.width * 0.4).truncated_to_integer, ey)
+			assert_reals_equal ("the edge follows the drag", 0.4,
+				dh.west_fraction, 2.0 / dh.width)
+			assert_integers_equal ("no announcement mid-drag", 0, dock_changes)
+			w.dispatch (9, (dh.x + dh.width * 0.95).truncated_to_integer, ey)
+			assert_reals_equal ("and stops at the largest share", dh.Max_fraction, dh.west_fraction, 0.000_1)
+			w.dispatch (10, (dh.x + dh.width * 0.95).truncated_to_integer, ey)
+			assert_integers_equal ("one announcement on release", 1, dock_changes)
+			assert_integers_equal ("released", 0, dh.dragging_edge)
+			w.request_render
+			assert_true ("the centre keeps its minimum across", dh.center_rect.rw >= dh.Min_center - 0.000_1)
+			r := dh.zone_rect (dh.Zone_south)
+			w.dispatch (13, (r.rx + 300.0).truncated_to_integer, r.ry.truncated_to_integer)
+			assert_integers_equal ("the south edge shows the up-down cursor", 4, dh.cursor_kind)
+			w.dispatch (2, (r.rx + 300.0).truncated_to_integer, r.ry.truncated_to_integer)
+			w.dispatch (9, (r.rx + 300.0).truncated_to_integer, (dh.y + dh.height * 0.5).truncated_to_integer)
+			w.dispatch (10, (r.rx + 300.0).truncated_to_integer, (dh.y + dh.height * 0.5).truncated_to_integer)
+			assert_reals_equal ("the south edge follows", 0.5, dh.south_fraction, 2.0 / dh.height)
+			dh.set_fraction (dh.Zone_east, 0.6)
+			assert_true ("west and east squeezed: the centre still keeps its minimum",
+				dh.center_rect.rw >= dh.Min_center - 0.000_1)
+		end
+
+	test_gw05_hide_show_remove
+			-- Hiding a zone's only panel collapses the zone and keeps the
+			-- panel; showing it brings it back where it was; removing lets
+			-- it go, the ids after it shift, and keys still find panels.
+		local
+			dh: SW_DOCK_HOST
+			p1, p2, p3: INTEGER
+		do
+			create dh.make (create {SW_LABEL}.make_ui ("the document"))
+			dh.set_bounds (0.0, 0.0, 800.0, 500.0)
+			p1 := dh.add_keyed_panel ("P04", "Cross references", create {SW_LABEL}.make_ui ("x"), dh.Zone_east)
+			p2 := dh.add_keyed_panel ("P05", "Word study", create {SW_LABEL}.make_ui ("w"), dh.Zone_south)
+			p3 := dh.add_keyed_panel ("P07", "Search results", create {SW_LABEL}.make_ui ("s"), dh.Zone_south)
+			dh.set_tabbed (dh.Zone_south, True)
+			dh.hide_panel (p1)
+			assert_false ("hidden", dh.is_panel_visible (p1))
+			assert_reals_equal ("its zone collapsed", 0.0, dh.zone_rect (dh.Zone_east).rw, 0.0)
+			assert_integers_equal ("but it is still in the zone", 1, dh.all_panels_in (dh.Zone_east).count)
+			dh.show_panel (p1)
+			assert_true ("shown again, where it was", dh.is_panel_visible (p1) and dh.panels [p1].zone = dh.Zone_east)
+			dh.activate_panel (p3)
+			dh.hide_panel (p3)
+			assert_integers_equal ("hiding the shown tab shows the other", p2, dh.active_panel (dh.Zone_south))
+			dh.show_panel (p3)
+			assert_integers_equal ("showing a hidden tab shows it", p3, dh.active_panel (dh.Zone_south))
+			dh.remove_panel (p2)
+			assert_integers_equal ("one fewer", 2, dh.panels.count)
+			assert_integers_equal ("the key finds the shifted panel", 2, dh.panel_by_key ("P07"))
+			assert_integers_equal ("its tab is still the shown one", 2, dh.active_panel (dh.Zone_south))
+			assert_integers_equal ("a removed key finds nothing", 0, dh.panel_by_key ("P05"))
+		end
+
+	test_gw05_snapshot_round_trip
+			-- A layout's snapshot restored into a host built the default
+			-- way gives the same layout back, line for line; a panel the
+			-- snapshot does not name keeps its state and follows; a key it
+			-- names that the host lacks is passed over; text that does not
+			-- read changes nothing.
+		local
+			a, b: SW_DOCK_HOST
+			snap, before: STRING_32
+		do
+			a := study_dock
+			a.set_tabbed (a.Zone_south, True)
+			a.activate_panel (a.panel_by_key ("P09"))
+			a.set_fraction (a.Zone_south, 0.4)
+			a.set_fraction (a.Zone_west, 0.18)
+			a.move_panel (a.panel_by_key ("P04"), a.Zone_west)
+			a.hide_panel (a.panel_by_key ("P08"))
+			snap := a.layout_snapshot
+			b := study_dock
+			b.restore_layout (snap)
+			assert_true ("it read", b.last_restore_ok)
+			assert_true ("the same layout, line for line", b.layout_snapshot.same_string (snap))
+			assert_integers_equal ("Census is the shown tab", b.panel_by_key ("P09"), b.active_panel (b.Zone_south))
+			assert_false ("Guides is hidden", b.is_panel_visible (b.panel_by_key ("P08")))
+			assert_reals_equal ("the south share", 0.4, b.south_fraction, 0.000_1)
+			b := study_dock
+			if b.add_keyed_panel ("P20", "Notes", create {SW_LABEL}.make_ui ("n"), b.Zone_east) > 0 then end
+			b.restore_layout (snap + {STRING_32} "%Npanel%TP99%Twest%Tshown")
+			assert_true ("an unknown key is passed over", b.last_restore_ok)
+			assert_integers_equal ("a panel it does not name keeps its zone", b.Zone_east, b.panels [b.panel_by_key ("P20")].zone)
+			assert_integers_equal ("and follows the named ones", b.panels.count, b.panel_by_key ("P20"))
+			b := study_dock
+			before := b.layout_snapshot
+			dock_changes := 0
+			b.set_on_layout_change (agent do dock_changes := dock_changes + 1 end)
+			b.restore_layout ("sw_dock 1%Nfraction%Twest%Tlots")
+			assert_false ("a bad line: not read", b.last_restore_ok)
+			assert_true ("and nothing changed", b.layout_snapshot.same_string (before))
+			assert_integers_equal ("nor was it announced", 0, dock_changes)
+			b.restore_layout ("not a dock")
+			assert_false ("a wrong header: not read", b.last_restore_ok)
+		end
+
+	test_gw05_spacing_follows_the_theme
+			-- The zone takes its spacing from the theme's Vision2 tokens, not
+			-- from constants: content inset = border_width, tab padding =
+			-- control_inset, bar = measured title + padding. At 2x text every
+			-- one of them doubles.
+		local
+			w1, w2: SW_WINDOW
+			d1, d2: SW_DOCK_HOST
+			t2: SW_THEME
+			z1, z2: SW_DOCK_ZONE
+		do
+			create w1.make ("dock", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			d1 := study_dock
+			d1.set_tabbed (d1.Zone_south, True)
+			w1.set_root (d1)
+			w1.request_render
+			create t2.make_light
+			t2.set_text_scale (2.0)
+			create w2.make ("dock", 0, 0, 1800, 1200, t2)
+			d2 := study_dock
+			d2.set_tabbed (d2.Zone_south, True)
+			w2.set_root (d2)
+			w2.request_render
+			z1 := d1.zone_widget (d1.Zone_south)
+			z2 := d2.zone_widget (d2.Zone_south)
+			assert_reals_equal ("content inset is the theme's border", w1.theme.border_width, z1.content_pad, 0.000_1)
+			assert_reals_equal ("tab padding is the theme's control inset", w1.theme.control_inset, z1.tab_pad, 0.000_1)
+			assert_reals_equal ("the inset doubles at 2x", 2.0 * z1.content_pad, z2.content_pad, 0.000_1)
+			assert_reals_equal ("the tab padding doubles at 2x", 2.0 * z1.tab_pad, z2.tab_pad, 0.000_1)
+			assert_true ("the bar grows with the text (about double)",
+				z2.bar_h > 1.8 * z1.bar_h and z2.bar_h < 2.2 * z1.bar_h)
+		end
+
+	study_dock: SW_DOCK_HOST
+			-- simple_bible's Study layout, built the default way.
+		do
+			create Result.make (create {SW_LABEL}.make_ui ("reader"))
+			Result.set_bounds (0.0, 0.0, 1200.0, 800.0)
+			if Result.add_keyed_panel ("P04", "Cross references", create {SW_LABEL}.make_ui ("x"), Result.Zone_east) > 0 then end
+			if Result.add_keyed_panel ("P05", "Word study", create {SW_LABEL}.make_ui ("w"), Result.Zone_south) > 0 then end
+			if Result.add_keyed_panel ("P07", "Search results", create {SW_LABEL}.make_ui ("s"), Result.Zone_south) > 0 then end
+			if Result.add_keyed_panel ("P08", "Guides", create {SW_LABEL}.make_ui ("g"), Result.Zone_south) > 0 then end
+			if Result.add_keyed_panel ("P09", "Census", create {SW_LABEL}.make_ui ("c"), Result.Zone_south) > 0 then end
+		end
+
+	dock_changes: INTEGER
+
+
 end

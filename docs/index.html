@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-375%2F375-brightgreen.svg" alt="375/375 tests">
+            <img src="https://img.shields.io/badge/tests-382%2F382-brightgreen.svg" alt="382/382 tests">
         </div>
     </header>
 
@@ -39,7 +39,7 @@
 
     <main>
         <section id="recent">
-            <h2>Recent additions (0.9.0 - 0.18.0, for simple_bible)</h2>
+            <h2>Recent additions (0.9.0 - 0.19.0, for simple_bible)</h2>
             <table>
                 <tr><th>Version</th><th>What</th></tr>
                 <tr><td><code>0.9.0</code></td><td>Theme tokens for filled controls, status inks and dark mode (GW-28)</td></tr>
@@ -52,8 +52,9 @@
                 <tr><td><code>0.16.0</code></td><td>Status-bar sections (GW-11)</td></tr>
                 <tr><td><code>0.17.0</code></td><td>Pointing at a word, hover/dwell/scroll events, raised Strong's numbers and small-caps LORD (GW-08)</td></tr>
                 <tr><td><code>0.18.0</code></td><td>The hover card: a non-modal widget tree anchored at a word, open while hovered (GW-09)</td></tr>
+                <tr><td><code>0.19.0</code></td><td>The dock: tabbed zones, draggable edges, hide/show/remove, snapshot and restore (GW-05)</td></tr>
             </table>
-            <p>Text items are gated on Hebrew and Greek in both themes; 375 tests pass at 0.18.0.</p>
+            <p>Text items are gated on Hebrew and Greek in both themes; 382 tests pass at 0.19.0.</p>
         </section>
 
         <section id="overview">
@@ -640,7 +641,7 @@
             <p>
                 The library ships a test target that drives the model layer headless - including
                 drawing, via a painter over an offscreen cairo surface - with <em>every assertion
-                live</em> (F_code with contracts kept). 375 tests at 0.18.0 (75 across ten assault sets at first); the suite
+                live</em> (F_code with contracts kept). 382 tests at 0.19.0 (75 across ten assault sets at first); the suite
                 caught three real defects on its first day (a truncation alias in list row math, a
                 clipboard race against history managers, and an ECF namespace clash).
             </p>
