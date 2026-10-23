@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.15.0 — A WORKER'S WAKE REACHES THE APP; GW-26)
+
+This release needs simple_shell 1.18.0.
+
+- **`SW_WINDOW.set_on_wake`:** when a worker processor calls
+  `SHELL_WAKE.wake`, `on_wake` runs (the app polls its job there) and the
+  window repaints. Wakes that arrive together come as one. Event 54 is
+  handled before modality, so an open dialog or popup cannot hold a result
+  back.
+- **The heartbeat is settable:** `set_heartbeat_ms`, inherited from
+  `SHELL_WINDOW`; the default is still 250 milliseconds.
+- Test: event 54 calls the app with and without an open dialog and is
+  harmless with no handler; the heartbeat passes through. 363 pass, 0
+  fail, 0 warnings (clean build).
+
 ### Added (0.14.0 — FUNCTION KEYS AND CTRL+DIGIT ACCELERATORS; GW-24)
 
 This release needs simple_shell 1.17.0, which delivers F1-F12, Ctrl+digit

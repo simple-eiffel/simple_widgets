@@ -153,6 +153,7 @@ feature {NONE} -- Test runners
 			run_test (agent chrome_tests.test_gw27_follow_matches_windows, "gw27_follow_matches_windows")
 			run_test (agent chrome_tests.test_gw27_flip_swaps_live, "gw27_flip_swaps_live")
 			run_test (agent chrome_tests.test_gw27_user_choice_stops_following, "gw27_user_choice_stops_following")
+			run_test (agent chrome_tests.test_gw26_wake_calls_the_app_even_under_a_dialog, "gw26_wake_calls_the_app_even_under_a_dialog")
 			run_test (agent chrome_tests.test_painter_circles_and_text, "painter_circles_and_text")
 			run_test (agent chrome_tests.test_layout_clamps, "layout_clamps")
 		end
