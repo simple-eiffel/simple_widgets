@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.18.0 — THE HOVER CARD; GW-09)
+
+simple_bible's reader rests on a word and its lexicon card opens beside
+it: the pointed word, transliteration, gloss, Strong's number,
+morphology, uses, provenance, and Word Study / Search / Journey / Pin.
+The old tooltip was one line of plain text per whole widget.
+`show_popover` holds a widget tree, but it is modal: while it is up the
+page beneath takes no input, so the reader could not move on to the next
+word.
+
+- **`SW_HOVER_CARD`**: a widget tree, its width, and the anchor (the
+  window rectangle of the word or reference it was opened for).
+- **`SW_WINDOW.show_hover_card` / `close_hover_card` / `has_hover_card`.**
+  The card is non-modal: the page keeps all its input off the card, and
+  the card takes the pointer only over itself, so its buttons work.
+  - Placement: drawn on top, with a soft shadow, below the anchor, or
+    above it when there is no room, and always inside the window.
+  - It stays open while the pointer is on the card, on the anchor, or
+    crossing between them. Off all three it closes after
+    `hover_card_grace_ms` (300 by default).
+  - A click off the card closes it and still reaches the page. Escape, the
+    pointer leaving the window, a wheel turn off the card, and a dialog,
+    popup or sheet opening also close it.
+  - A second rest on the same anchor keeps the card already up rather
+    than rebuilding it.
+- **A widget names the sub-region:** `SW_WIDGET.hover_card_at (x, y)`.
+  After a dwell the window asks the hovered widget for a card.
+- **`SW_PARAGRAPH_LIST.set_hover_card_builder`** (paragraph, character
+  → card). A card left without an anchor is anchored at the word under
+  the pointer. `word_at (item, character)`: a run of letters with their
+  marks, or a run of digits (a raised Strong's number is its own word);
+  Hebrew and Greek punctuation end a word.
+- Tests: through the window's own event path, a dwell opens the card
+  anchored at the whole word and below it; the card stays on the word
+  and on itself, its button takes a click, a second rest keeps it,
+  another word replaces it, and it closes after the grace but not
+  before; click-off (the click still selects), Escape, leaving the window
+  and a dialog each close it. Hebrew word card for Genesis 1:1 in both
+  themes, shaped (evidence gw09_word_card_light.png and
+  gw09_word_card_dark.png). 375 pass.
+
 ### Added (0.17.0 — POINTING AT A WORD, RAISED STRONG'S, SMALL-CAPS LORD; GW-08)
 
 simple_bible's reader hovers a word for its lexicon card, raises Strong's

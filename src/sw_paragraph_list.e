@@ -78,7 +78,7 @@ inherit
 			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
 			handle_double_click, handle_drag, handle_key, handle_char,
 			accepts_focus, wants_hover_point, cursor_kind, focusables,
-			set_hover_point, set_hovered, dwell_ms, handle_dwell
+			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
 		end
 
 create
@@ -581,11 +581,82 @@ feature -- Pointing (GW-08)
 		end
 
 	dwell_ms: INTEGER
-			-- `dwell_delay' while someone listens on `on_dwell'.
+			-- `dwell_delay' while someone listens on `on_dwell' or builds
+			-- hover cards.
 		do
-			if attached on_dwell then
+			if attached on_dwell or attached hover_card_builder then
 				Result := dwell_delay
 			end
+		end
+
+	hover_card_builder: detachable FUNCTION [INTEGER, INTEGER, detachable SW_HOVER_CARD]
+			-- Builds the card for (paragraph, character) after a dwell
+			-- (GW-09: a word's lexicon card); Void answers none. A card it
+			-- leaves without an anchor is anchored at the word.
+
+	set_hover_card_builder (a_builder: detachable FUNCTION [INTEGER, INTEGER, detachable SW_HOVER_CARD])
+		do
+			hover_card_builder := a_builder
+		ensure
+			set: hover_card_builder = a_builder
+		end
+
+	hover_card_at (a_px, a_py: REAL_64): detachable SW_HOVER_CARD
+			-- The builder's card for the character under the point,
+			-- anchored at its word unless the builder anchored it.
+		local
+			i, ch: INTEGER
+			l_word: TUPLE [lo, hi: INTEGER]
+			l_boxes: like text_boxes
+		do
+			ch := character_at (a_px, a_py)
+			if ch > 0 and then attached hover_card_builder as al_b then
+				i := item_at (a_py)
+				Result := al_b.item ([i, ch])
+				if attached Result as al_card and then not al_card.has_anchor then
+					l_word := word_at (i, ch)
+					l_boxes := text_boxes (i, l_word.lo, l_word.hi)
+					across l_boxes as b loop
+						if b.y <= a_py and a_py < b.y + b.height then
+							al_card.set_anchor (b.x, b.y, b.width, b.height)
+						end
+					end
+					if not al_card.has_anchor and then not l_boxes.is_empty then
+						al_card.set_anchor (l_boxes.first.x, l_boxes.first.y, l_boxes.first.width, l_boxes.first.height)
+					end
+				end
+			end
+		end
+
+	word_at (a_i, a_character: INTEGER): TUPLE [lo, hi: INTEGER]
+			-- The word around character `a_character' of paragraph `a_i', as
+			-- caret offsets: characters `lo' + 1 .. `hi'. A word is a run of
+			-- letters (with their marks) or a run of digits - so a raised
+			-- Strong's number is a word of its own - and a space or a
+			-- punctuation mark is a word of one.
+		require
+			in_range: a_i >= 1 and a_i <= count
+			character_in_text: a_character >= 1 and a_character <= text_of (a_i).count
+		local
+			t: STRING_32
+			k, lo, hi: INTEGER
+		do
+			t := texts.i_th (a_i)
+			k := word_class (t.item (a_character))
+			lo := a_character - 1
+			hi := a_character
+			if k /= 0 then
+				from until lo = 0 or else word_class (t.item (lo)) /= k loop
+					lo := lo - 1
+				end
+				from until hi = t.count or else word_class (t.item (hi + 1)) /= k loop
+					hi := hi + 1
+				end
+			end
+			Result := [lo, hi]
+		ensure
+			holds_it: Result.lo < a_character and a_character <= Result.hi
+			in_text: Result.lo >= 0 and Result.hi <= text_of (a_i).count
 		end
 
 	handle_dwell (a_px, a_py: REAL_64)
@@ -1620,6 +1691,40 @@ feature {NONE} -- Measurement
 					al_c.call (i, al_ed.text.twin)
 				end
 			end
+		end
+
+	word_class (c: CHARACTER_32): INTEGER
+			-- 0 a separator (space or punctuation), 1 a digit, 2 a letter,
+			-- a mark or anything else a word is made of.
+		do
+			if c.is_space or else Separators.has (c) then
+				Result := 0
+			elseif c >= '0' and c <= '9' then
+				Result := 1
+			else
+				Result := 2
+			end
+		end
+
+	Separators: STRING_32
+			-- Punctuation that ends a word, Hebrew and Greek included
+			-- (maqaf, paseq, sof pasuq, ano teleia, Greek question mark).
+		once
+			Result := {STRING_32} ".,;:!?%"'()[]{}<>/-"
+			Result.append_code (0x2014)
+			Result.append_code (0x2013)
+			Result.append_code (0x2018)
+			Result.append_code (0x2019)
+			Result.append_code (0x201C)
+			Result.append_code (0x201D)
+			Result.append_code (0x00AB)
+			Result.append_code (0x00BB)
+			Result.append_code (0x00B7)
+			Result.append_code (0x05BE)
+			Result.append_code (0x05C0)
+			Result.append_code (0x05C3)
+			Result.append_code (0x0387)
+			Result.append_code (0x037E)
 		end
 
 	follow_hover

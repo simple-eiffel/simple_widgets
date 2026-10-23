@@ -807,6 +807,124 @@ feature {NONE} -- GW-08 gate
 			end
 		end
 
+feature -- GW-09: a Hebrew word's hover card, shaped, in both themes
+
+	test_gw09_hebrew_word_card_light
+		do
+			word_card_gate (create {SW_THEME}.make_light, "gw09_word_card_light.png")
+		end
+
+	test_gw09_hebrew_word_card_dark
+		do
+			word_card_gate (create {SW_THEME}.make_dark, "gw09_word_card_dark.png")
+		end
+
+feature {NONE} -- GW-09 gate
+
+	word_card_gate (a_theme: SW_THEME; a_evidence: STRING)
+			-- Genesis 1:1 in Hebrew above the KJV, in a shaped window. A rest
+			-- on the first Hebrew word opens its card - the pointed word, its
+			-- transliteration, gloss, Strong's number and morphology, and the
+			-- four buttons - anchored at the word, below it, inside the
+			-- window, with its Hebrew drawn through the shaping kit. Writes
+			-- an evidence PNG when the repository is underfoot.
+		local
+			w: SW_WINDOW
+			kit: SW_SHAPING
+			pl: SW_PARAGRAPH_LIST
+			b: TUPLE [x, y, width, height: REAL_64]
+			ch, painted_before: INTEGER
+			path: STRING_32
+		do
+			create w.make ("word card", 0, 0, 760, 420, a_theme)
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (a_theme)
+			w.set_shaping (kit)
+			create pl.make (380.0)
+			pl.add (genesis_1_1_wlc)
+			pl.add ("In the beginning God created the heaven and the earth.")
+			pl.set_gutter_width (40.0)
+			pl.set_text_alignment ({SHAPING_CONSTANTS}.Align_start)
+			pl.set_gutter_on_reading_side (True)
+			pl.set_hover_card_builder (agent hebrew_card)
+			w.set_root (pl)
+			w.request_render
+			assert_true ("shaped", pl.is_shaped_layout)
+			b := pl.text_boxes (1, 0, 1).first
+			ch := pl.character_at (b.x + b.width / 2.0, b.y + b.height / 2.0)
+			assert_integers_equal ("the first letter of the verse", 1, ch)
+			w.dispatch (13, (b.x + b.width / 2.0).truncated_to_integer, (b.y + b.height / 2.0).truncated_to_integer)
+			w.dispatch (w.Event_dwell, 0, 0)
+			assert_true ("the rest opened the card", w.has_hover_card)
+			if attached w.hover_card as al_c then
+				assert_true ("anchored at the whole first word, not one letter",
+					al_c.anchor_width > 3.0 * b.width)
+				assert_true ("below the word", w.hover_card_py >= al_c.anchor_y + al_c.anchor_height)
+				assert_true ("inside the window",
+					w.hover_card_px >= 0.0 and w.hover_card_px + w.hover_card_pw <= 760.0
+					and w.hover_card_py + w.hover_card_ph <= 420.0)
+			end
+			painted_before := kit.bridge.painted_runs
+			w.request_render
+			assert_true ("the card's text went through the shaping kit", kit.bridge.painted_runs > painted_before)
+			assert_integers_equal ("nothing skipped", 0, kit.bridge.skipped_runs)
+			path := evidence_path (a_evidence)
+			if not path.is_empty then
+				if w.write_frame (path) then
+				end
+			end
+			w.dispatch (14, 0, 0)
+		end
+
+	hebrew_card (a_item, a_character: INTEGER): detachable SW_HOVER_CARD
+			-- The card the reader sees for B'reshit (Gen 1:1, word 1).
+		local
+			col: SW_COLUMN
+			row: SW_ROW
+			l_word: STRING_32
+			i: INTEGER
+		do
+			if a_item = 1 then
+				create l_word.make (12)
+				from
+					i := 1
+				until
+					i > genesis_1_1_wlc.count or else genesis_1_1_wlc.item (i) = ' '
+				loop
+					l_word.extend (genesis_1_1_wlc.item (i))
+					i := i + 1
+				end
+				create col.make
+				col.put (create {SW_LABEL}.make (l_word, {SW_PAINTER}.Role_body, 30.0, False))
+				col.put (create {SW_LABEL}.make_body (card_text_of (<<0x62, 0x0259, 0x72, 0x0113, 0x02BE, 0x0161, 0x00EE, 0x1E6F>>)
+					+ card_dot + {STRING_32} "in the beginning"))
+				col.put (create {SW_LABEL}.make_ui ({STRING_32} "H7225" + card_dot + {STRING_32} "noun, feminine singular, with preposition"))
+				col.put (create {SW_LABEL}.make_ui ({STRING_32} "51 uses in the Bible" + card_dot + {STRING_32} "Source: STEPBible TBESH"))
+				create row.make
+				row.put (create {SW_BUTTON}.make_primary ("Word Study", Void))
+				row.put (create {SW_BUTTON}.make ("Search", Void))
+				row.put (create {SW_BUTTON}.make ("Journey", Void))
+				row.put (create {SW_BUTTON}.make ("Pin", Void))
+				col.put (row)
+				create Result.make (col, 380.0)
+			end
+		end
+
+	card_text_of (a_codes: ARRAY [INTEGER]): STRING_32
+			-- The text of these code points (source files stay ASCII).
+		do
+			create Result.make (a_codes.count)
+			across a_codes as c loop
+				Result.append_code (c.to_natural_32)
+			end
+		end
+
+	card_dot: STRING_32
+			-- A spaced middle dot.
+		do
+			Result := card_text_of (<<0x20, 0x20, 0x00B7, 0x20, 0x20>>)
+		end
+
 feature {NONE} -- GW-11 gate
 
 	status_gate (a_theme: SW_THEME; a_evidence: STRING)

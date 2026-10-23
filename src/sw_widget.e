@@ -305,6 +305,14 @@ feature -- Input
 		do
 		end
 
+	hover_card_at (a_px, a_py: REAL_64): detachable SW_HOVER_CARD
+			-- The card this widget offers for the sub-region under
+			-- (`a_px', `a_py'), asked by the window after a dwell (GW-09);
+			-- Void (the default) offers none. A widget that offers cards
+			-- also answers a positive `dwell_ms'.
+		do
+		end
+
 	set_hovered (a_hovered: BOOLEAN)
 		do
 			if is_hovered /= a_hovered then
