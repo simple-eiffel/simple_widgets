@@ -325,6 +325,41 @@ feature -- GW-11: status-bar sections
 				and bar.section (l_cn).left >= bar.section (l_ed).left + bar.section (l_ed).span)
 		end
 
+feature -- Spacing from the theme (Vision2 tokens)
+
+	test_status_bar_and_hover_card_spacing_scale
+			-- The status bar's end pad is the theme's border_width and its
+			-- height the measured font plus padding; the hover card's inset
+			-- is border_width. At 2x text all of it doubles.
+		local
+			w1, w2: SW_WINDOW
+			t2: SW_THEME
+			b1, b2: SW_STATUS_BAR
+			n1, n2: INTEGER
+			c: SW_HOVER_CARD
+		do
+			create w1.make ("s1", 0, 0, 800, 300, create {SW_THEME}.make_light)
+			create t2.make_light
+			t2.set_text_scale (2.0)
+			create w2.make ("s2", 0, 0, 1600, 600, t2)
+			create b1.make
+			create b2.make
+			n1 := b1.add_text ("Links: Default", False)
+			n2 := b2.add_text ("Links: Default", False)
+			w1.set_root (b1)
+			w2.set_root (b2)
+			w1.request_render
+			w2.request_render
+			assert_reals_equal ("the end pad is the theme's border", w1.theme.border_width, b1.section (n1).left - b1.x, 0.000_1)
+			assert_reals_equal ("and doubles at 2x", 2.0 * (b1.section (n1).left - b1.x), b2.section (n2).left - b2.x, 0.000_1)
+			assert_true ("the bar grows with the text",
+				b2.preferred_height (w2.painter, 1000.0) > 1.8 * b1.preferred_height (w1.painter, 1000.0))
+			create c.make (create {SW_LABEL}.make_ui ("card"), 200.0)
+			w2.show_hover_card (c)
+			assert_reals_equal ("the card's inset is the 2x border", 2.0 * 2.0 * w1.theme.border_width,
+				w2.hover_card_pw - 200.0, 0.000_1)
+		end
+
 feature {NONE} -- GW-11 helpers
 
 	mid (a_section: SW_STATUS_SECTION): INTEGER

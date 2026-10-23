@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Changed (0.19.1 — STATUS BAR AND HOVER CARD SPACING FROM THE THEME)
+
+Larry asked whether the controls carry Vision2's inner and outer borders
+and padding. The toolkit does, as theme tokens that scale with the text,
+but two pieces of this program had kept fixed pixels.
+- `SW_STATUS_BAR`: the end pad is `theme.border_width` (was 12), the gap
+  between sections twice `theme.padding` (was 16), the divider insets
+  `theme.padding` (was 8), and the height the measured status font plus
+  `padding` above and below (was a fixed 32, still at least 32 at 1x).
+- `SW_WINDOW` hover card: the inset is `theme.border_width` (was 12), and
+  the gap from the word is `theme.padding` (was 6, now 8 at 1x).
+- Nothing else moves at 1x. At 2x text all of it doubles.
+- Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
+
 ### Added (0.19.0 — THE DOCK: TABS, DRAGGABLE EDGES, HIDE AND REMOVE, SNAPSHOT; GW-05)
 
 simple_bible's Study layout docks five panels in the south zone, and its

@@ -1311,11 +1311,18 @@ feature -- Peek grace
 
 feature {NONE} -- Hover card internals (GW-09)
 
-	Hover_card_pad: REAL_64 = 12.0
-			-- Between the card's edge and its content.
+	hover_card_pad: REAL_64
+			-- Between the card's edge and its content: the theme's
+			-- `border_width' - a card is a framed surface.
+		do
+			Result := theme.border_width
+		end
 
-	Hover_card_gap: REAL_64 = 6.0
-			-- Between the anchor and the card.
+	hover_card_gap: REAL_64
+			-- Between the anchor and the card: the theme's `padding'.
+		do
+			Result := theme.padding
+		end
 
 	hover_card_out_since: INTEGER
 			-- When the pointer left what keeps the card open (`tick_ms');
@@ -1329,16 +1336,16 @@ feature {NONE} -- Hover card internals (GW-09)
 			l_below: REAL_64
 		do
 			if attached hover_card as al_card then
-				hover_card_pw := al_card.width + 2.0 * Hover_card_pad
+				hover_card_pw := al_card.width + 2.0 * hover_card_pad
 				hover_card_ph := (al_card.content.preferred_height (painter, al_card.width)
-					+ 2.0 * Hover_card_pad).min ((win_h - 8.0).max (2.0 * Hover_card_pad + 1.0))
+					+ 2.0 * hover_card_pad).min ((win_h - 8.0).max (2.0 * hover_card_pad + 1.0))
 				if al_card.has_anchor then
 					hover_card_px := al_card.anchor_x
-					l_below := al_card.anchor_y + al_card.anchor_height + Hover_card_gap
+					l_below := al_card.anchor_y + al_card.anchor_height + hover_card_gap
 					if l_below + hover_card_ph <= win_h - 4.0 then
 						hover_card_py := l_below
 					else
-						hover_card_py := al_card.anchor_y - Hover_card_gap - hover_card_ph
+						hover_card_py := al_card.anchor_y - hover_card_gap - hover_card_ph
 					end
 				else
 					hover_card_px := last_pointer_x + 12.0
@@ -1346,8 +1353,8 @@ feature {NONE} -- Hover card internals (GW-09)
 				end
 				hover_card_px := hover_card_px.min (win_w - hover_card_pw - 4.0).max (4.0)
 				hover_card_py := hover_card_py.min (win_h - hover_card_ph - 4.0).max (4.0)
-				al_card.content.set_bounds (hover_card_px + Hover_card_pad, hover_card_py + Hover_card_pad,
-					al_card.width, hover_card_ph - 2.0 * Hover_card_pad)
+				al_card.content.set_bounds (hover_card_px + hover_card_pad, hover_card_py + hover_card_pad,
+					al_card.width, hover_card_ph - 2.0 * hover_card_pad)
 				al_card.content.arrange (painter)
 			end
 		end
