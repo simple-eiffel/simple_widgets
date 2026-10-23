@@ -119,6 +119,81 @@ feature -- The accelerator table
 			assert_true ("the box still holds the focus", box.is_focused)
 		end
 
+	test_gw24_bare_function_key_is_an_accelerator
+			-- F1 may stand alone (it types nothing) and fires from the
+			-- key-down door while a text box holds the focus.
+		local
+			w: SW_WINDOW
+			box: SW_TEXT_BOX
+			root: SW_COLUMN
+		do
+			create w.make ("acc", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			create box.make_single_line ("untouched")
+			create root.make
+			root.put (box)
+			w.set_root (root)
+			w.request_render
+			w.give_focus (box)
+			assert_true ("F1 is a function key", w.is_function_key (112) and not w.is_function_key (65))
+			w.register_accelerator (112, False, False, False, agent set_flag)
+			flag := False
+			w.simulate_key_down (112, False, False, False)
+			assert_true ("bare F1 fired", flag)
+			assert_strings_equal_diff ("the box was not touched", {STRING_32} "untouched", box.text)
+		end
+
+	test_gw24_no_trailing_char_never_eats_the_next_keystroke
+			-- Ctrl+1 and Alt+S make no WM_CHAR. Before GW-24 the flag they
+			-- armed ate the reader's NEXT real keystroke.
+		local
+			w: SW_WINDOW
+			box: SW_TEXT_BOX
+			root: SW_COLUMN
+		do
+			create w.make ("acc", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			create box.make_single_line ("")
+			create root.make
+			root.put (box)
+			w.set_root (root)
+			w.request_render
+			w.give_focus (box)
+			w.register_accelerator (49, True, False, False, agent set_flag)
+			w.register_accelerator (83, False, True, False, agent set_flag)
+			flag := False
+			w.simulate_key_down (49, True, False, False)
+			assert_true ("Ctrl+1 fired", flag)
+			w.dispatch (3, 97, 0)
+			assert_strings_equal_diff ("the next keystroke still types", {STRING_32} "a", box.text)
+			flag := False
+			w.simulate_key_down (83, False, True, False)
+			assert_true ("Alt+S fired", flag)
+			w.dispatch (3, 98, 0)
+			assert_strings_equal_diff ("and after Alt+S too", {STRING_32} "ab", box.text)
+		end
+
+	test_gw24_trailing_control_code_is_still_swallowed
+			-- Ctrl+[ makes WM_CHAR 27, which reads as Escape. After the
+			-- accelerator fires, that 27 must not close an open sheet.
+		local
+			w: SW_WINDOW
+			l_content: SW_LABEL
+		do
+			create w.make ("acc", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			create l_content.make_ui ("sheet")
+			w.request_render
+			w.show_sheet (l_content, 200.0)
+			assert_true ("nothing focused", w.focused = Void)
+			w.dispatch (3, 27, 0)
+			assert_false ("control: a bare 27 closes the sheet", w.has_sheet)
+			w.show_sheet (l_content, 200.0)
+			w.register_accelerator (219, True, False, False, agent set_flag)
+			flag := False
+			w.simulate_key_down (219, True, False, False)
+			assert_true ("Ctrl+[ fired", flag)
+			w.dispatch (3, 27, 0)
+			assert_true ("its trailing 27 was swallowed: the sheet stays", w.has_sheet)
+		end
+
 	test_the_modifier_state_must_match_exactly
 		local
 			w: SW_WINDOW
