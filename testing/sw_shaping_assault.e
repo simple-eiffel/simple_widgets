@@ -925,6 +925,84 @@ feature {NONE} -- GW-09 gate
 			Result := card_text_of (<<0x20, 0x20, 0x00B7, 0x20, 0x20>>)
 		end
 
+feature -- GW-05: the Study layout - a tabbed south zone - in both themes
+
+	test_gw05_study_layout_light
+		do
+			study_layout_gate (create {SW_THEME}.make_light, "gw05_study_layout_light.png")
+		end
+
+	test_gw05_study_layout_dark
+		do
+			study_layout_gate (create {SW_THEME}.make_dark, "gw05_study_layout_dark.png")
+		end
+
+feature {NONE} -- GW-05 gate
+
+	study_layout_gate (a_theme: SW_THEME; a_evidence: STRING)
+			-- simple_bible's Study layout in a shaped window: the reader in
+			-- the centre (Genesis 1:1 in Hebrew over the KJV), cross
+			-- references east, and five panels tabbed in the south zone,
+			-- one tab titled in Hebrew. Require: shaped; five tabs; the
+			-- shown panel fills the zone; nothing skipped. Writes an
+			-- evidence PNG when the repository is underfoot.
+		local
+			w: SW_WINDOW
+			kit: SW_SHAPING
+			dh: SW_DOCK_HOST
+			reader: SW_PARAGRAPH_LIST
+			z: SW_DOCK_ZONE
+			path: STRING_32
+		do
+			create w.make ("study", 0, 0, 1000, 620, a_theme)
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (a_theme)
+			w.set_shaping (kit)
+			create reader.make (300.0)
+			reader.add (genesis_1_1_wlc)
+			reader.add ("In the beginning God created the heaven and the earth.")
+			reader.set_text_alignment ({SHAPING_CONSTANTS}.Align_start)
+			create dh.make (reader)
+			if dh.add_keyed_panel ("P04", "Cross references", create {SW_LABEL}.make_ui ({STRING_32} "John 1:1" + card_dot + {STRING_32} "Hebrews 11:3" + card_dot + {STRING_32} "Psalm 33:6"), dh.Zone_east) > 0 then end
+			if dh.add_keyed_panel ("P05", "Word Study", create {SW_LABEL}.make_body (genesis_first_word), dh.Zone_south) > 0 then end
+			if dh.add_keyed_panel ("P07", "Search Results", create {SW_LABEL}.make_ui ("51 results"), dh.Zone_south) > 0 then end
+			if dh.add_keyed_panel ("P08", "Guides", create {SW_LABEL}.make_ui ("guides"), dh.Zone_south) > 0 then end
+			if dh.add_keyed_panel ("P09", "Census & Checks", create {SW_LABEL}.make_ui ("census"), dh.Zone_south) > 0 then end
+			if dh.add_keyed_panel ("P10", genesis_first_word, create {SW_LABEL}.make_ui ("a tab titled in Hebrew"), dh.Zone_south) > 0 then end
+			dh.set_tabbed (dh.Zone_south, True)
+			dh.set_fraction (dh.Zone_south, 0.34)
+			w.set_root (dh)
+			w.request_render
+			z := dh.zone_widget (dh.Zone_south)
+			assert_true ("shaped", reader.is_shaped_layout)
+			assert_integers_equal ("five tabs", 5, z.tab_ids.count)
+			assert_integers_equal ("Word Study shows", dh.panel_by_key ("P05"), dh.active_panel (dh.Zone_south))
+			assert_reals_equal ("and fills the zone under the strip",
+				dh.zone_rect (dh.Zone_south).rh - z.bar_h - 2.0 * z.content_pad, dh.panels [dh.panel_by_key ("P05")].content.height, 0.000_1)
+			assert_integers_equal ("nothing skipped", 0, kit.bridge.skipped_runs)
+			path := evidence_path (a_evidence)
+			if not path.is_empty then
+				if w.write_frame (path) then
+				end
+			end
+		end
+
+	genesis_first_word: STRING_32
+			-- B'reshit, pointed: the first word of Genesis 1:1.
+		local
+			i: INTEGER
+		do
+			create Result.make (12)
+			from
+				i := 1
+			until
+				i > genesis_1_1_wlc.count or else genesis_1_1_wlc.item (i) = ' '
+			loop
+				Result.extend (genesis_1_1_wlc.item (i))
+				i := i + 1
+			end
+		end
+
 feature {NONE} -- GW-11 gate
 
 	status_gate (a_theme: SW_THEME; a_evidence: STRING)

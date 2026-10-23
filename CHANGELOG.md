@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.19.0 — THE DOCK: TABS, DRAGGABLE EDGES, HIDE AND REMOVE, SNAPSHOT; GW-05)
+
+simple_bible's Study layout docks five panels in the south zone, and its
+presets and session restore must read and set the dock. `SW_DOCK_HOST`
+stacked a zone's panels in equal shares (five became unusable slivers),
+fixed every zone's share at creation, could not hide or remove a panel,
+and had no snapshot.
+
+- **Tabbed zones.** `set_tabbed (zone, True)` gives a zone one tab strip,
+  with the active panel filling the rest. A click on a tab shows that
+  panel, a middle-click lifts it for pick-and-drop as a title bar does,
+  and only the active panel is arranged, drawn and hit-tested.
+  `activate_panel`, `active_panel`. Moving or showing a panel shows it
+  in its zone.
+- **Draggable edges.** Each open zone's inner edge shows the resize
+  cursor and an accent line under the pointer, follows a drag inside
+  `Min_fraction` .. `Max_fraction`, and announces once on release.
+  `set_fraction (zone, f)` and `fraction (zone)`. The centre always keeps
+  `Min_center` pixels; the zones are squeezed in proportion.
+- **Hide, show, remove.** `hide_panel` keeps a panel and its place, and
+  its zone collapses when it was the last visible panel there.
+  `show_panel` brings it back. `remove_panel` lets it go, and the ids after
+  it shift down. Durable identity is the panel's key: `add_keyed_panel
+  (key, title, content, zone)` and `panel_by_key`. `add_panel` keys by
+  title. `panels_in` now lists the visible panels and `all_panels_in`
+  lists every one.
+- **Snapshot and restore.** `layout_snapshot` writes the fractions, the tab
+  modes, every panel's key, zone, visibility and order, and each tabbed
+  zone's active panel, one fact a line. `restore_layout` applies it all
+  or nothing, with one `on_layout_change`; `last_restore_ok` reports
+  whether it read. Panels the snapshot does not name keep their state and
+  follow; keys the host lacks are passed over.
+- **Spacing from the theme** (Vision2's model, as every box here uses it).
+  A zone is a framed surface like `SW_GROUP`:
+  - panel content is inset by `theme.border_width`;
+  - tabs are padded by `theme.control_inset`;
+  - the bar is the measured title font plus `theme.padding`.
+
+  All of it doubles at 2x text. Panel content is clipped to its zone.
+- The `zones_hold` invariant walked every panel on every call. It is
+  replaced by O(1) clauses.
+- Tests:
+  - stacked versus tabbed with five panels;
+  - a tab click through the window, hit tests in the shown panel, and a
+    tab as a pebble source;
+  - edge drag with cursor, clamp and one announcement, the south edge,
+    and the centre minimum;
+  - hide, show and remove with keys;
+  - a snapshot round trip line for line, unnamed panels, unknown keys,
+    and bad text changing nothing;
+  - spacing that follows the theme at 1x and 2x;
+  - the Study layout in both themes with a Hebrew tab title (evidence
+    gw05_study_layout_light.png and gw05_study_layout_dark.png).
+
+  382 pass.
+
 ### Added (0.18.0 — THE HOVER CARD; GW-09)
 
 simple_bible's reader rests on a word and its lexicon card opens beside

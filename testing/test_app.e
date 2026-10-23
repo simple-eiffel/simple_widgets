@@ -352,6 +352,11 @@ feature {NONE} -- Test runners
 			run_test (agent enterprise_tests.test_form_generator_model, "form_generator_model")
 			run_test (agent enterprise_tests.test_org_chart_layout_law, "org_chart_layout_law")
 			run_test (agent enterprise_tests.test_dock_reflow_law, "dock_reflow_law")
+			run_test (agent enterprise_tests.test_gw05_tabbed_zone_shows_one_panel, "gw05_tabbed_zone_shows_one_panel")
+			run_test (agent enterprise_tests.test_gw05_edges_drag_and_clamp, "gw05_edges_drag_and_clamp")
+			run_test (agent enterprise_tests.test_gw05_hide_show_remove, "gw05_hide_show_remove")
+			run_test (agent enterprise_tests.test_gw05_snapshot_round_trip, "gw05_snapshot_round_trip")
+			run_test (agent enterprise_tests.test_gw05_spacing_follows_the_theme, "gw05_spacing_follows_the_theme")
 		end
 
 	enterprise_tests: SW_ENTERPRISE_ASSAULT
@@ -493,6 +498,8 @@ feature {NONE} -- Test runners
 			run_test (agent shaping_tests.test_gw08_raised_strongs_and_small_caps_dark, "gw08_raised_strongs_and_small_caps_dark")
 			run_test (agent shaping_tests.test_gw09_hebrew_word_card_light, "gw09_hebrew_word_card_light")
 			run_test (agent shaping_tests.test_gw09_hebrew_word_card_dark, "gw09_hebrew_word_card_dark")
+			run_test (agent shaping_tests.test_gw05_study_layout_light, "gw05_study_layout_light")
+			run_test (agent shaping_tests.test_gw05_study_layout_dark, "gw05_study_layout_dark")
 		end
 
 	chat_text_tests: SW_CHAT_TEXT_ASSAULT
