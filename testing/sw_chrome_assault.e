@@ -226,6 +226,33 @@ feature -- GW-27: the window follows the Windows light/dark setting
 			assert_true ("a flip leaves the chosen theme", w.theme = l_light and not w.title_bar_is_dark)
 		end
 
+feature -- GW-26: a worker's wake reaches the app
+
+	test_gw26_wake_calls_the_app_even_under_a_dialog
+			-- Event 54 runs `on_wake' and repaints, with or without an open
+			-- dialog; with no handler it is harmless. The heartbeat setting
+			-- passes through to the shell.
+		local
+			w: SW_WINDOW
+			d: SW_DIALOG
+			l_calls: CELL [INTEGER]
+		do
+			create l_calls.put (0)
+			create w.make ("wake", 0, 0, 200, 120, create {SW_THEME}.make_light)
+			w.dispatch (w.Event_wake, 0, 0)
+			w.set_on_wake (agent (a_calls: CELL [INTEGER]) do a_calls.put (a_calls.item + 1) end (l_calls))
+			w.dispatch (w.Event_wake, 0, 0)
+			assert_integers_equal ("the app was called", 1, l_calls.item)
+			create d.make ({SW_DIALOG}.Kind_info, "Title", "Body")
+			w.show_dialog (d)
+			w.dispatch (w.Event_wake, 0, 0)
+			assert_integers_equal ("a dialog does not hold it back", 2, l_calls.item)
+			w.close_dialog
+			w.set_heartbeat_ms (100)
+			assert_integers_equal ("heartbeat settable", 100, w.heartbeat_ms)
+			w.set_heartbeat_ms (250)
+		end
+
 feature {NONE} -- GW-27 helpers
 
 	frame_pixel (a_window: SW_WINDOW; a_x, a_y: INTEGER): INTEGER

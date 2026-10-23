@@ -440,6 +440,11 @@ feature {NONE} -- Dispatch
 					-- And the theme: Windows flipped light/dark (GW-27).
 				wear_system_theme (a_x = 1)
 				request_render
+			elseif a_type = Event_wake and then attached on_wake as al_wake then
+					-- And a worker's result: a processor called
+					-- SHELL_WAKE.wake (GW-26). A dialog must not hold it back.
+				al_wake.call
+				request_render
 			end
 			if attached dialog as d then
 				dispatch_to_dialog (d, a_type, a_x, a_y)
@@ -668,8 +673,21 @@ feature -- Sheets
 		end
 
 	on_tick: detachable PROCEDURE
-			-- Fired every heartbeat (250ms) - the application's clock
-			-- for timers, elapsed displays, ambient animation.
+			-- Fired every heartbeat (250 ms unless `set_heartbeat_ms') -
+			-- the application's clock for timers, elapsed displays,
+			-- ambient animation.
+
+	on_wake: detachable PROCEDURE
+			-- Fired when a worker processor calls `SHELL_WAKE.wake'
+			-- (GW-26): poll the job here and show what it has; the window
+			-- repaints after. Wakes that arrive together come as one.
+
+	set_on_wake (a_action: PROCEDURE)
+		do
+			on_wake := a_action
+		ensure
+			set: on_wake = a_action
+		end
 
 	root_widget: detachable SW_WIDGET
 			-- The tree's root, for dev tooling (the mesh walks it).
