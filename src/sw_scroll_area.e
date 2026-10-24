@@ -14,7 +14,7 @@ inherit
 		redefine
 			sub_widgets,
 			arrange, widget_at, handle_wheel, handle_click, handle_drag,
-			wants_hover_point
+			wants_hover_point, handle_release
 		end
 
 create
@@ -28,6 +28,7 @@ feature {NONE} -- Initialization
 		do
 			viewport_height := a_viewport_height
 			wheel_step := 96.0
+			create bar.make
 		ensure
 			kept: viewport_height = a_viewport_height
 		end
@@ -35,6 +36,9 @@ feature {NONE} -- Initialization
 feature -- Access
 
 	child: detachable SW_WIDGET
+
+	bar: SW_VSCROLLBAR
+			-- The vertical scrollbar at the right edge.
 
 	viewport_height: REAL_64
 
@@ -62,7 +66,7 @@ feature -- Access
 
 	max_scroll_x: REAL_64
 		do
-			Result := (content_width - (width - Bar_w - 4.0)).max (0.0)
+			Result := (content_width - (width - bar.bar_width - 4.0)).max (0.0)
 		ensure
 			non_negative: Result >= 0.0
 		end
@@ -113,8 +117,6 @@ feature -- Tooling
 
 feature -- Layout
 
-	Bar_w: REAL_64 = 11.0
-
 	wants_hover_point: BOOLEAN
 		do
 			Result := True
@@ -129,8 +131,9 @@ feature -- Layout
 		local
 			inner_w: REAL_64
 		do
+			bar.place (x, y, width, height, a_p.theme)
 			if attached child as c then
-				inner_w := (width - Bar_w - 4.0).max (0.0)
+				inner_w := (width - bar.bar_width - 4.0).max (0.0)
 				content_width := c.preferred_width (a_p).max (inner_w)
 				content_height := c.preferred_height (a_p, content_width)
 				scroll_y := scroll_y.min (max_scroll)
@@ -138,6 +141,7 @@ feature -- Layout
 				c.set_bounds (x - scroll_x, y - scroll_y, content_width, content_height)
 				c.arrange (a_p)
 			end
+			bar.set_extent (height, content_height)
 		end
 
 feature -- Drawing
@@ -145,8 +149,7 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			track_h, thumb_h, thumb_y: REAL_64
-			track_w, thumb_w, thumb_x: REAL_64
+			track_w, thumb_w, thumb_x, bw: REAL_64
 		do
 			t := a_p.theme
 			a_p.push_clip (x, y, width, height)
@@ -154,31 +157,20 @@ feature -- Drawing
 				c.draw (a_p)
 			end
 			a_p.pop_clip
-			if max_scroll > 0.0 then
-				track_h := height - 4.0
-				a_p.set_color (t.surface_variant)
-				a_p.rrect_fill (x + width - Bar_w, y + 2.0, Bar_w - 2.0, track_h, 4.0)
-				thumb_h := (height / content_height * track_h).max (24.0)
-				thumb_y := y + 2.0 + (scroll_y / max_scroll) * (track_h - thumb_h)
-				if shows_hover and then hover_px >= x + width - Bar_w then
-					a_p.set_color (t.accent)
-				else
-					a_p.set_color (t.outline)
-				end
-				a_p.rrect_fill (x + width - Bar_w + 1.5, thumb_y, Bar_w - 5.0, thumb_h, 3.0)
-			end
+			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
 			if max_scroll_x > 0.0 then
-				track_w := width - Bar_w - 6.0
+				bw := bar.bar_width
+				track_w := width - bw - 6.0
 				a_p.set_color (t.surface_variant)
-				a_p.rrect_fill (x + 2.0, y + height - Bar_w, track_w, Bar_w - 2.0, 4.0)
-				thumb_w := ((width - Bar_w) / content_width * track_w).max (24.0)
+				a_p.rrect_fill (x + 2.0, y + height - bw, track_w, bw - 2.0, 4.0)
+				thumb_w := ((width - bw) / content_width * track_w).max (24.0)
 				thumb_x := x + 2.0 + (scroll_x / max_scroll_x) * (track_w - thumb_w)
-				if shows_hover and then hover_py >= y + height - Bar_w then
+				if shows_hover and then hover_py >= y + height - bw then
 					a_p.set_color (t.accent)
 				else
 					a_p.set_color (t.outline)
 				end
-				a_p.rrect_fill (thumb_x, y + height - Bar_w + 1.5, thumb_w, Bar_w - 5.0, 3.0)
+				a_p.rrect_fill (thumb_x, y + height - bw + 1.5, thumb_w, bw - 5.0, 3.0)
 			end
 		end
 
@@ -187,8 +179,8 @@ feature -- Hit testing
 	widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET
 		do
 			if contains (a_px, a_py) then
-				if a_px >= x + width - Bar_w
-					or else (max_scroll_x > 0.0 and then a_py >= y + height - Bar_w)
+				if bar.contains (a_px, a_py)
+					or else (max_scroll_x > 0.0 and then a_py >= y + height - bar.bar_width)
 				then
 					Result := Current
 				elseif attached child as c then
@@ -212,19 +204,19 @@ feature -- Input
 			if keys.shift_down and then max_scroll_x > 0.0 then
 				scroll_to_x (scroll_x - a_delta / 120.0 * wheel_step)
 			else
-				scroll_to (scroll_y - a_delta / 120.0 * wheel_step)
+				scroll_to (bar.wheel_scroll (scroll_y, a_delta, wheel_step / bar.Wheel_lines))
 			end
 			Result := True
 		end
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
 		do
-			if a_px >= x + width - Bar_w and max_scroll > 0.0 then
-					-- jump-scroll toward the click, then the drag refines
-				scroll_to ((a_py - y) / height * max_scroll)
+			if bar.contains (a_px, a_py) then
+					-- on the thumb a drag begins; on the track the view pages
+				scroll_to (bar.press (a_py, scroll_y))
 				dragging_horizontal := False
 				Result := True
-			elseif a_py >= y + height - Bar_w and max_scroll_x > 0.0 then
+			elseif a_py >= y + height - bar.bar_width and max_scroll_x > 0.0 then
 				scroll_to_x ((a_px - x) / width * max_scroll_x)
 				dragging_horizontal := True
 				Result := True
@@ -233,13 +225,20 @@ feature -- Input
 
 	handle_drag (a_px, a_py: REAL_64)
 		do
-			if dragging_horizontal then
-				if max_scroll_x > 0.0 then
-					scroll_to_x ((a_px - x) / width * max_scroll_x)
-				end
-			elseif max_scroll > 0.0 then
-				scroll_to ((a_py - y) / height * max_scroll)
+			if bar.is_dragging then
+				scroll_to (bar.drag_to (a_py))
+			elseif dragging_horizontal and then max_scroll_x > 0.0 then
+				scroll_to_x ((a_px - x) / width * max_scroll_x)
 			end
+		end
+
+	handle_release (a_x, a_y: INTEGER)
+			-- Let go of either thumb.
+		do
+			bar.release
+			dragging_horizontal := False
+		ensure then
+			released: not bar.is_dragging and not dragging_horizontal
 		end
 
 feature {NONE} -- Drag state

@@ -253,6 +253,7 @@ feature {NONE} -- Test runners
 			run_test (agent indicator_tests.test_empty_state_action_zone, "empty_state_action_zone")
 			run_test (agent indicator_tests.test_skeleton_draw_smoke, "skeleton_draw_smoke")
 			run_test (agent indicator_tests.test_scroll_wheel_step_programmable, "scroll_wheel_step_programmable")
+			run_test (agent indicator_tests.test_scroll_bar_drag_ends_on_release, "scroll_bar_drag_ends_on_release")
 			run_test (agent indicator_tests.test_scroll_two_axis_clamps, "scroll_two_axis_clamps")
 		end
 
