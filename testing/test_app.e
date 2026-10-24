@@ -460,6 +460,7 @@ feature {NONE} -- Test runners
 			run_test (agent chat_scroll_tests.test_scroll_to_clamps_and_updates_stickiness, "scroll_to_clamps_and_updates_stickiness")
 			run_test (agent chat_scroll_tests.test_clamp_survives_content_shrink, "clamp_survives_content_shrink")
 			run_test (agent chat_scroll_tests.test_sticky_transitions, "sticky_transitions")
+			run_test (agent chat_scroll_tests.test_wheel_notch_is_three_lines, "chat_wheel_notch_is_three_lines")
 			run_test (agent chat_scroll_tests.test_thumb_height_and_position, "thumb_height_and_position")
 			run_test (agent chat_scroll_tests.test_scrollbar_visible_only_on_overflow, "scrollbar_visible_only_on_overflow")
 			run_test (agent chat_scroll_tests.test_drag_thumb_scrolls, "drag_thumb_scrolls")
