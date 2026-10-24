@@ -169,6 +169,7 @@ feature {NONE} -- Test runners
 			run_test (agent tree_color_tests.test_flatten_follows_disclosure, "tree_flatten_follows_disclosure")
 			run_test (agent tree_color_tests.test_children_agent_is_lazy_enough, "tree_children_lazy")
 			run_test (agent tree_color_tests.test_selection_is_identity_stable, "tree_selection_identity_stable")
+			run_test (agent tree_color_tests.test_tree_bar_thumb_in_track_and_drags, "tree_bar_thumb_in_track_and_drags")
 			run_test (agent tree_color_tests.test_hsv_to_rgb_known_values, "color_hsv_known_values")
 			run_test (agent tree_color_tests.test_rgb_round_trips, "color_rgb_round_trips")
 			run_test (agent tree_color_tests.test_hex_readout, "color_hex_readout")

@@ -101,6 +101,50 @@ feature -- Tree
 				attached tr.selected_node as sn2 and then sn2.label.same_string_general ("a2"))
 		end
 
+	test_tree_bar_thumb_in_track_and_drags
+			-- On a long tree the thumb stays inside its track at the end,
+			-- the bar drags, and the drag ends on release.
+		local
+			f: ARRAYED_LIST [DEMO_NODE]
+			tr: SW_TREE [DEMO_NODE]
+			n: DEMO_NODE
+			i: INTEGER
+			p: SW_PAINTER
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			th: SW_THEME
+			l_scroll: REAL_64
+		do
+			create th.make_light
+			create surf.make (300, 200)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create f.make (300)
+			from i := 1 until i > 300 loop
+				create n.make ("node")
+				f.extend (n)
+				i := i + 1
+			end
+			tr := new_tree (f)
+			tr.set_bounds (0.0, 0.0, 300.0, 200.0)
+			tr.draw (p)
+			if tr.handle_wheel (-120 * 1000) then end
+			assert_reals_equal ("scrolled to the end", tr.max_scroll, tr.scroll_y, 0.001)
+			assert ("thumb ends inside the track",
+				tr.bar.thumb_top (tr.scroll_y) + tr.bar.thumb_height <= tr.bar.track_y + tr.bar.track_h + 0.001)
+			assert ("a press on the thumb is taken", tr.handle_click (tr.bar.track_x + 2.0, tr.bar.thumb_top (tr.scroll_y) + 2.0))
+			assert ("the bar is dragging", tr.bar.is_dragging)
+			tr.handle_drag (100.0, 20.0)
+			assert ("the drag moved the view up", tr.scroll_y < tr.max_scroll)
+			tr.handle_release (100, 20)
+			assert ("released", not tr.bar.is_dragging)
+			l_scroll := tr.scroll_y
+			tr.handle_drag (100.0, 150.0)
+			assert_reals_equal ("a later drag does nothing", l_scroll, tr.scroll_y, 0.0)
+			ctx.destroy
+			surf.destroy
+		end
+
 feature -- Inspector
 
 	test_inspector_reveals_truth
