@@ -53,6 +53,7 @@ feature {NONE} -- Initialization
 			create line_height.make (2)
 			create layouts.make (2)
 			create para_tops.make (2)
+			create para_starts.make (2)
 			create line_offset.make (2)
 			line_top.extend (0.0)
 			line_ascent.extend (0.0)
@@ -213,6 +214,25 @@ feature -- Alignment (GW-02)
 		ensure
 			set: styles = a_styles
 		end
+
+	fonts: detachable FONT_LIST
+			-- The policy the next `build_shaped' lays text out under (GW-13:
+			-- SW_SHAPING.fonts_for_role); Void: the kit's own.
+
+	set_fonts (a_fonts: detachable FONT_LIST)
+			-- Lay the next `build_shaped' out under `a_fonts'.
+		do
+			fonts := a_fonts
+		ensure
+			set: fonts = a_fonts
+		end
+
+	toy_role: INTEGER
+			-- The painter font `build_toy' measured with, which `draw'
+			-- selects again (0: the body face).
+
+	toy_size: REAL_64
+	toy_bold: BOOLEAN
 
 	starts_right_to_left: BOOLEAN
 			-- Is the first paragraph laid out right to left? (A host puts
@@ -475,6 +495,9 @@ feature -- Building
 		do
 			reset
 			is_shaped := False
+			toy_role := a_p.font_role
+			toy_size := a_p.font_size
+			toy_bold := a_p.font_bold
 			row := a_p.theme.scaled_line_height
 			base := (row - a_p.text_extent) / 2.0 + a_p.font_ascent
 			n := a_text.count
@@ -586,7 +609,17 @@ feature -- Building
 				loop
 					para_end := para_end + 1
 				end
-				if attached styles as al_styles and then not al_styles.is_empty then
+				if attached fonts as al_fonts then
+						-- GW-13: the host's policy, styled or not (no spans
+						-- is the plain layout itself).
+					if attached styles as al_fonts_styles then
+						lay := a_kit.facade.layout_styled (a_text.substring (para_start, para_end - 1).to_string_32,
+							a_wrap_px, a_px, al_fonts, al_fonts_styles.slice (para_start, para_end - para_start))
+					else
+						lay := a_kit.facade.layout (a_text.substring (para_start, para_end - 1).to_string_32,
+							a_wrap_px, a_px, al_fonts)
+					end
+				elseif attached styles as al_styles and then not al_styles.is_empty then
 						-- GW-08: this piece's spans, numbered from its start.
 					lay := a_kit.layout_with_styles (a_text.substring (para_start, para_end - 1),
 						a_wrap_px, a_px, al_styles.slice (para_start, para_end - para_start))
@@ -595,6 +628,7 @@ feature -- Building
 				end
 				layouts.extend (lay)
 				para_tops.extend (top)
+				para_starts.extend (para_start)
 				from
 					k := 1
 				until
@@ -698,7 +732,92 @@ feature -- Building
 			a_layout_per_piece: layouts.count = para_tops.count and layouts.count >= 1
 		end
 
+feature -- Drawing
+
+	draw (a_p: SW_PAINTER; a_text: READABLE_STRING_32; a_hidden: BOOLEAN; a_ox, a_oy: REAL_64)
+			-- `a_text' (the text this geometry was built from) with its
+			-- origin at (`a_ox', `a_oy'), in the painter's current colour:
+			-- on the shaped path its layouts, each line placed by the
+			-- alignment; on the toy path every character at its slot in the
+			-- body face, a bullet each when `a_hidden', line breaks drawing
+			-- nothing. The one drawing loop every geometry host shares.
+		require
+			built_from_it: a_text.count = count
+		local
+			k, ln: INTEGER
+		do
+			if is_shaped then
+				from
+					k := 1
+				until
+					k > layouts.count
+				loop
+					if is_aligned then
+						a_p.draw_shaped_layout_aligned (layouts.i_th (k), a_ox, a_oy + para_tops.i_th (k),
+							box_width, alignment)
+					else
+						a_p.draw_shaped_layout (layouts.i_th (k), a_ox, a_oy + para_tops.i_th (k))
+					end
+					k := k + 1
+				end
+			else
+				if toy_role > 0 and toy_size > 0.0 then
+					a_p.font (toy_role, toy_size, toy_bold)
+				else
+					a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
+				end
+				from
+					k := 1
+				until
+					k > count
+				loop
+					if not is_break (k) then
+						ln := line_of (k)
+						a_p.text (a_ox + x_of (k), a_oy + top_of_line (ln) + ascent_of_line (ln),
+							glyph_of (a_text, k, a_hidden))
+					end
+					k := k + 1
+				end
+			end
+		end
+
+	draw_hooked (a_p: SW_PAINTER; a_ox, a_oy: REAL_64;
+			a_before_run: PROCEDURE [INTEGER, SHAPED_RUN, REAL_64, REAL_64])
+			-- The shaped layouts with their origin at (`a_ox', `a_oy'),
+			-- calling `a_before_run' with the run's first character AS AN
+			-- INDEX OF THE WHOLE TEXT (a run counts from its own LF piece;
+			-- this adds the piece's start), the run, its pen x and its
+			-- baseline, before painting it - where a host colours a link
+			-- and underlines it (GW-13). Shaped path only.
+		require
+			shaped: is_shaped
+			painter_shapes: a_p.has_shaping
+		local
+			k: INTEGER
+		do
+			from
+				k := 1
+			until
+				k > layouts.count
+			loop
+				a_p.draw_shaped_layout_hooked (layouts.i_th (k), a_ox, a_oy + para_tops.i_th (k),
+					box_width, alignment, agent forward_run (para_starts.i_th (k), a_before_run, ?, ?, ?))
+				k := k + 1
+			end
+		end
+
 feature {NONE} -- Implementation
+
+	para_starts: ARRAYED_LIST [INTEGER]
+			-- Per layout, its piece's first character in the whole text.
+
+	forward_run (a_piece_start: INTEGER; a_hook: PROCEDURE [INTEGER, SHAPED_RUN, REAL_64, REAL_64];
+			a_run: SHAPED_RUN; a_pen, a_baseline: REAL_64)
+			-- Hand `a_run' to `a_hook' with its first character counted
+			-- from the start of the whole text.
+		do
+			a_hook.call (a_piece_start + a_run.source_start - 1, a_run, a_pen, a_baseline)
+		end
 
 	lay_x, lay_adv: ARRAYED_LIST [REAL_64]
 	lay_line: ARRAYED_LIST [INTEGER]
@@ -718,6 +837,7 @@ feature {NONE} -- Implementation
 			line_offset.wipe_out
 			layouts.wipe_out
 			para_tops.wipe_out
+			para_starts.wipe_out
 		end
 
 	line_offset: ARRAYED_LIST [REAL_64]
@@ -747,6 +867,6 @@ invariant
 		and lay_line.count = lay_rtl.count and lay_rtl.count = lay_break.count
 	lines_parallel: line_top.count = line_ascent.count and line_ascent.count = line_height.count
 	offsets_parallel: line_offset.count = line_height.count
-	layouts_parallel: layouts.count = para_tops.count
+	layouts_parallel: layouts.count = para_tops.count and para_starts.count = layouts.count
 
 end

@@ -15,7 +15,7 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click, handle_double_click, handle_wheel, handle_key,
-			wants_hover_point, accepts_focus
+			wants_hover_point, accepts_focus, handle_drag, handle_release
 		end
 
 create
@@ -31,6 +31,7 @@ feature {NONE} -- Initialization
 			create roots.make (4)
 			create open_nodes.make (16)
 			create visible.make (32)
+			create bar.make
 		ensure
 			kept: viewport_height = a_viewport_height
 		end
@@ -52,6 +53,9 @@ feature -- Access
 	Indent_w: REAL_64 = 20.0
 
 	scroll_y: REAL_64
+
+	bar: SW_VSCROLLBAR
+			-- The scrollbar at the right edge.
 
 	selected_node: detachable G
 			-- Object-stable selection: survives expand and collapse.
@@ -197,6 +201,8 @@ feature -- Drawing
 			sel: BOOLEAN
 		do
 			t := a_p.theme
+			bar.place (x, y, width, height, t)
+			bar.set_extent (height, visible.count * Row_h)
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			a_p.push_clip (x, y, width, height)
@@ -246,16 +252,7 @@ feature -- Drawing
 			end
 			a_p.pop_clip
 				-- scrollbar
-			if max_scroll > 0.0 then
-				a_p.set_color (t.surface_variant)
-				a_p.rrect_fill (x + width - 9.0, y + 2.0, 7.0, height - 4.0, 3.0)
-				a_p.set_color (t.outline)
-				a_p.rrect_fill (x + width - 8.0,
-					y + 2.0 + (scroll_y / (visible.count * Row_h)) * (height - 4.0),
-					5.0,
-					((height / (visible.count * Row_h)) * (height - 4.0)).max (20.0),
-					2.5)
-			end
+			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
 			a_p.set_color (t.outline)
 			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
 		end
@@ -268,7 +265,11 @@ feature -- Input
 			row: TUPLE [node: G; depth: INTEGER; has_kids: BOOLEAN]
 			ix: REAL_64
 		do
-			if is_enabled then
+			bar.set_extent (height, visible.count * Row_h)
+			if is_enabled and then bar.contains (a_px, a_py) then
+				scroll_y := bar.press (a_py, scroll_y)
+				Result := True
+			elseif is_enabled then
 				i := row_at (a_py)
 				if i > 0 then
 					row := visible.i_th (i)
@@ -305,9 +306,25 @@ feature -- Input
 
 	handle_wheel (a_delta: INTEGER): BOOLEAN
 		do
-			scroll_y := (scroll_y - a_delta / 120.0 * Row_h * 3.0)
-				.max (0.0).min (max_scroll)
+			bar.set_extent (height, visible.count * Row_h)
+			scroll_y := bar.wheel_scroll (scroll_y, a_delta, Row_h)
 			Result := True
+		end
+
+	handle_drag (a_px, a_py: REAL_64)
+			-- Drag the thumb, wherever the pointer is.
+		do
+			if bar.is_dragging then
+				scroll_y := bar.drag_to (a_py)
+			end
+		end
+
+	handle_release (a_x, a_y: INTEGER)
+			-- Let go of the scrollbar thumb.
+		do
+			bar.release
+		ensure then
+			released: not bar.is_dragging
 		end
 
 	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
@@ -387,6 +404,7 @@ feature {NONE} -- Engine
 				append_subtree (r, 0)
 			end
 			scroll_y := scroll_y.min (max_scroll)
+			bar.set_extent (height, visible.count * Row_h)
 		end
 
 	append_subtree (a_node: G; a_depth: INTEGER)

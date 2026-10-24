@@ -21,6 +21,53 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Changed (0.20.0 — SHARED VIEW PARTS: SCROLLING, POINTING, SELECTION, STACKING)
+
+Larry asked that common code be pushed up the abstraction structure, using
+Eiffel's multiple inheritance where it fits. A read-only review found the
+vertical scrollbar copied into six widgets (the copies had drifted: the tree
+and grid thumbs overran their tracks and could not be dragged, the paragraph
+list's drag never ended), the hover and dwell plumbing about to be copied a
+second time, and three copies of the text drawing loop.
+
+- **`SW_VSCROLLBAR`**, one scrollbar for every scrolling widget: the track,
+  a thumb drag that keeps its grab point, a track press that pages, three
+  lines a wheel notch, sizes from the new theme tokens
+  `SW_THEME.scrollbar_width` and `min_thumb` (both scale with text).
+  SW_LIST, SW_PARAGRAPH_LIST, SW_SCROLL_AREA, SW_CHAT_THREAD, SW_TREE and
+  SW_DATA_GRID use it. Every bar's drag now ends on release; the tree's and
+  grid's bars now click, page and drag; the tree's thumb stays inside its
+  track; a list notch is three rows (was two); a chat notch is three lines.
+- **Deferred ancestors a widget inherits side by side.** None redefines
+  another's SW_WIDGET features, so their shared features join:
+  - `SW_TEXT_POINTING`: the character under the pointer, `on_hover`,
+    `on_dwell`, hover cards anchored at the word. A widget names its texts
+    through `pointed_item`, `character_at`, `text_of`, `text_boxes`.
+  - `SW_VSCROLLING`: `scroll_y`, `scroll_to` with `on_scroll`, the bar,
+    wheel and paging keys. A widget gives `scroll_extent` and `wheel_line`.
+  - `SW_TEXT_SELECTION`: a selection across items, `selected_text`, Copy,
+    Select All, Ctrl+C / Ctrl+A / Escape.
+
+  SW_PARAGRAPH_LIST now inherits the first two.
+- **`SW_BLOCK_STACK`** stacks items of different heights (measured height,
+  revision, top) with binary-search lookups (`item_at`, `first_visible`,
+  `last_visible`, `scroll_into_view`). SW_PARAGRAPH_LIST stacks on it.
+- **`SW_WORD_BOUNDARY`** is the one definition of a word (letters with
+  marks, digit runs, Hebrew and Greek punctuation separating).
+- **`SW_TEXT_GEOMETRY.draw`** replaces the drawing loops of SW_TEXT_BOX,
+  SW_PARAGRAPH_LIST and SW_MARK_LEGEND_VIEW (the legend's skipped line
+  breaks and alignment) and draws a plain-path text in the font it was
+  measured in. `draw_hooked` paints shaped text with a hook before each run
+  (absolute character indexes); `set_fonts` lays text out under a role's
+  policy (`SW_SHAPING.fonts_for_role`).
+- `SW_PAINTER.stroke_rect`, `font_size`, `draw_shaped_layout_hooked`. The
+  dead `SW_PARAGRAPH_LIST.pieces_of` is gone.
+- Tests: a bar drag that ends on release (paragraph list: it failed on the
+  old code), the same for list, scroll area and grid, the tree's thumb in
+  its track, a chat wheel notch, and the block stack's lookups. 389 pass;
+  `screen_grab_marries_cairo` failed in these runs only because the desktop
+  was unreadable (an untouched path that passed in the run before).
+
 ### Added (0.19.0 — THE DOCK: TABS, DRAGGABLE EDGES, HIDE AND REMOVE, SNAPSHOT; GW-05)
 
 simple_bible's Study layout docks five panels in the south zone, and its

@@ -223,6 +223,30 @@ feature -- The fix, proven directly on SW_CHAT_THREAD
 			surf.destroy
 		end
 
+	test_wheel_notch_is_three_lines
+			-- One notch is SW_VSCROLLBAR.Wheel_lines lines of 20 px at 1x.
+		local
+			c: SW_CHAT_THREAD
+			p: SW_PAINTER
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			th: SW_THEME
+		do
+			create th.make_light
+			create surf.make (300, 120)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create c.make
+			c.set_bounds (0.0, 0.0, 300.0, 120.0)
+			add_plain_messages (c, 20)
+			c.draw (p)
+			c.scroll_to (0.0)
+			if c.handle_wheel (-120) then end
+			assert_reals_equal ("a notch is 3 lines of 20 px", 60.0 * th.text_scale, c.scroll_y, 0.01)
+			ctx.destroy
+			surf.destroy
+		end
+
 feature -- Scrollbar layout math
 
 	test_thumb_height_and_position

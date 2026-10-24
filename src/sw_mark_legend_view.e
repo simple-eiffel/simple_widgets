@@ -206,31 +206,8 @@ feature {NONE} -- Implementation
 	draw_sample (a_p: SW_PAINTER; a_dx, a_dy, a_sx, a_sy: REAL_64)
 			-- The sample text at the swatch origin plus an offset, in
 			-- the painter's current colour.
-		local
-			i: INTEGER
 		do
-			if geometry.is_shaped then
-				from
-					i := 1
-				until
-					i > geometry.layouts.count
-				loop
-					a_p.draw_shaped_layout (geometry.layouts.i_th (i), a_sx + a_dx, a_sy + a_dy + geometry.para_tops.i_th (i))
-					i := i + 1
-				end
-			else
-				a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
-				from
-					i := 1
-				until
-					i > geometry.count
-				loop
-					a_p.text (a_sx + a_dx + geometry.x_of (i),
-						a_sy + a_dy + geometry.top_of_line (geometry.line_of (i)) + geometry.ascent_of_line (geometry.line_of (i)),
-						sample.substring (i, i))
-					i := i + 1
-				end
-			end
+			geometry.draw (a_p, sample, False, a_sx + a_dx, a_sy + a_dy)
 		end
 
 invariant

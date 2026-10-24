@@ -186,6 +186,28 @@ feature -- Scroll area (two-axis)
 			assert ("top clamped", sa.scroll_y = 0.0)
 		end
 
+	test_scroll_bar_drag_ends_on_release
+			-- A thumb drag follows the pointer anywhere and ends on release.
+		local
+			sa: SW_SCROLL_AREA
+			tall: SW_SKELETON
+			l_scroll: REAL_64
+		do
+			create sa.make (150.0)
+			create tall.make (40)
+			sa.set_child (tall)
+			sa.set_bounds (0.0, 0.0, 300.0, 150.0)
+			sa.arrange (headless_painter)
+			assert ("overflows", sa.max_scroll > 0.0)
+			assert ("press on the thumb taken", sa.handle_click (295.0, 5.0))
+			sa.handle_drag (100.0, 100.0)
+			assert ("drag scrolled", sa.scroll_y > 0.0)
+			sa.handle_release (100, 100)
+			l_scroll := sa.scroll_y
+			sa.handle_drag (100.0, 140.0)
+			assert_reals_equal ("later drag does nothing", l_scroll, sa.scroll_y, 0.0)
+		end
+
 	test_scroll_two_axis_clamps
 		local
 			sa: SW_SCROLL_AREA

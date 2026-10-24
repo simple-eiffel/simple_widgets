@@ -73,12 +73,22 @@ class
 	SW_PARAGRAPH_LIST
 
 inherit
-	SW_WIDGET
+	SW_TEXT_POINTING
 		redefine
 			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
 			handle_double_click, handle_drag, handle_key, handle_char,
 			accepts_focus, wants_hover_point, cursor_kind, focusables,
+			handle_release
+		end
+
+	SW_VSCROLLING
+		undefine
 			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
+		redefine
+			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
+			handle_double_click, handle_drag, handle_key, handle_char,
+			accepts_focus, wants_hover_point, cursor_kind, focusables,
+			handle_release
 		end
 
 create
@@ -96,16 +106,15 @@ feature {NONE} -- Initialization
 			item_pad := 8.0
 			create texts.make (16)
 			create revisions.make (16)
-			create laid_revisions.make (16)
-			create laid_heights.make (16)
-			create laid_tops.make (16)
+			create stack.make
 			create bands_above.make (16)
 			create bands_below.make (16)
 			create selected_flags.make (16)
 			create marks_list.make (16)
 			create styles_list.make (16)
 			create geometries.make (16)
-			dwell_delay := 400
+			init_pointing
+			wheel_line := 20.0
 			create mark_painter.make
 			create edit_backup.make_empty
 			create edit_marks_backup.make (0)
@@ -129,16 +138,11 @@ feature -- Access
 
 	text_of (a_i: INTEGER): STRING_32
 			-- Paragraph `a_i''s text (a copy; the list keeps its own).
-		require
-			in_range: a_i >= 1 and a_i <= count
 		do
 			Result := texts.i_th (a_i).twin
 		end
 
 	viewport_height: REAL_64
-
-	scroll_y: REAL_64
-			-- How far the content is shifted up; 0 .. `max_scroll'.
 
 	gutter_width: REAL_64
 			-- The host-drawn column at every paragraph's left.
@@ -277,7 +281,8 @@ feature -- Status
 	is_laid_out: BOOLEAN
 			-- Has every paragraph been measured for the current width?
 		do
-			Result := laid_tops.count = count and laid_heights.count = count
+			Result := stack.count = count and geometries.count = count
+				and not stack.key.same_string ("%U")
 		end
 
 	is_shaped_layout: BOOLEAN
@@ -287,8 +292,6 @@ feature -- Status
 		end
 
 feature -- Geometry
-
-	Bar_w: REAL_64 = 11.0
 
 	band_above (a_i: INTEGER): REAL_64
 		require
@@ -312,17 +315,16 @@ feature -- Geometry
 			-- Every paragraph stacked with its gaps; 0 before layout.
 		do
 			if is_laid_out and count > 0 then
-				Result := laid_tops.last + laid_heights.last
+				Result := stack.content_height
 			end
 		ensure
 			non_negative: Result >= 0.0
 		end
 
-	max_scroll: REAL_64
+	scroll_extent: REAL_64
+			-- Every paragraph stacked (SW_VSCROLLING).
 		do
-			Result := (content_height - height).max (0.0)
-		ensure
-			non_negative: Result >= 0.0
+			Result := content_height
 		end
 
 	item_top (a_i: INTEGER): REAL_64
@@ -331,7 +333,7 @@ feature -- Geometry
 			in_range: a_i >= 1 and a_i <= count
 			laid_out: is_laid_out
 		do
-			Result := laid_tops.i_th (a_i)
+			Result := stack.top (a_i)
 		ensure
 			non_negative: Result >= 0.0
 		end
@@ -341,29 +343,17 @@ feature -- Geometry
 			in_range: a_i >= 1 and a_i <= count
 			laid_out: is_laid_out
 		do
-			Result := laid_heights.i_th (a_i)
+			Result := stack.height (a_i)
 		ensure
 			positive: Result > 0.0
 		end
 
 	item_at (a_py: REAL_64): INTEGER
-			-- The paragraph under window y `a_py'; 0 outside every box.
-		local
-			i: INTEGER
-			cy: REAL_64
+			-- The paragraph under window y `a_py'; 0 outside every box
+			-- (SW_BLOCK_STACK: a binary search).
 		do
 			if is_laid_out and then a_py >= y and then a_py < y + height then
-				cy := a_py - y + scroll_y
-				from
-					i := 1
-				until
-					i > count or Result > 0
-				loop
-					if cy >= laid_tops.i_th (i) and then cy < laid_tops.i_th (i) + laid_heights.i_th (i) then
-						Result := i
-					end
-					i := i + 1
-				end
+				Result := stack.item_at (a_py - y + scroll_y)
 			end
 		ensure
 			in_range: Result >= 0 and Result <= count
@@ -372,20 +362,9 @@ feature -- Geometry
 
 	first_visible: INTEGER
 			-- The first paragraph intersecting the viewport; 0 when empty.
-		local
-			i: INTEGER
 		do
 			if is_laid_out then
-				from
-					i := 1
-				until
-					i > count or Result > 0
-				loop
-					if laid_tops.i_th (i) + laid_heights.i_th (i) > scroll_y then
-						Result := i
-					end
-					i := i + 1
-				end
+				Result := stack.first_visible (scroll_y)
 			end
 		ensure
 			in_range: Result >= 0 and Result <= count
@@ -394,7 +373,6 @@ feature -- Geometry
 	last_visible: INTEGER
 			-- The last paragraph intersecting the viewport; 0 when empty.
 		local
-			i: INTEGER
 			vh: REAL_64
 		do
 			if is_laid_out then
@@ -402,16 +380,7 @@ feature -- Geometry
 				if vh <= 0.0 then
 					vh := viewport_height
 				end
-				from
-					i := 1
-				until
-					i > count
-				loop
-					if laid_tops.i_th (i) < scroll_y + vh then
-						Result := i
-					end
-					i := i + 1
-				end
+				Result := stack.last_visible (scroll_y, vh)
 			end
 		ensure
 			ordered: Result >= first_visible
@@ -447,7 +416,7 @@ feature -- Geometry
 			in_range: a_i >= 1 and a_i <= count
 		do
 			if gutter_reads_right (a_i) then
-				Result := x + width - Bar_w - 4.0 - gutter_width
+				Result := x + width - bar.bar_width - 4.0 - gutter_width
 			else
 				Result := x
 			end
@@ -477,8 +446,7 @@ feature -- Pointing (GW-08)
 			if i > 0 and then i /= editing_index and then i <= geometries.count then
 				Result := geometries.i_th (i).character_at (a_px - item_text_x (i), a_py - text_top (i))
 			end
-		ensure
-			non_negative: Result >= 0
+		ensure then
 			only_over_a_paragraph: Result > 0 implies item_at (a_py) > 0
 		end
 
@@ -500,9 +468,6 @@ feature -- Pointing (GW-08)
 			-- Window rectangles of paragraph `a_i''s characters `a_lo' + 1
 			-- .. `a_hi', one per visual line: where a hover card anchors and
 			-- a word is ringed. Empty before the paragraph is measured.
-		require
-			in_range: a_i >= 1 and a_i <= count
-			range_valid: a_lo >= 0 and a_lo <= a_hi and a_hi <= text_of (a_i).count
 		local
 			g: SW_TEXT_GEOMETRY
 			ox, oy: REAL_64
@@ -516,8 +481,6 @@ feature -- Pointing (GW-08)
 					Result.extend ([ox + sg.left, oy + g.top_of_line (sg.line), sg.width, g.height_of_line (sg.line)])
 				end
 			end
-		ensure
-			positive_widths: across Result as b all b.width > 0.0 end
 		end
 
 	text_top (a_i: INTEGER): REAL_64
@@ -526,165 +489,20 @@ feature -- Pointing (GW-08)
 			in_range: a_i >= 1 and a_i <= count
 		do
 			if is_laid_out then
-				Result := y - scroll_y + laid_tops.i_th (a_i) + item_pad + bands_above.i_th (a_i)
+				Result := y - scroll_y + stack.top (a_i) + item_pad + bands_above.i_th (a_i)
 			end
 		end
 
-	hover_item: INTEGER
-			-- The paragraph of the character under the pointer; 0 = none.
-
-	hover_character: INTEGER
-			-- The character under the pointer in `hover_item'; 0 = none.
-
-	dwell_delay: INTEGER
-			-- Milliseconds the pointer must rest on a character before
-			-- `on_dwell' (400: the word hover card's delay).
-
-	on_hover: detachable PROCEDURE [INTEGER, INTEGER]
-			-- The character under the pointer changed: (paragraph,
-			-- character), or (0, 0) when the pointer left the text.
-
-	on_dwell: detachable PROCEDURE [INTEGER, INTEGER]
-			-- The pointer rested `dwell_delay' on (paragraph, character).
-
-	on_scroll: detachable PROCEDURE [REAL_64]
-			-- The list scrolled: the new `scroll_y'.
-
-	set_on_hover (a_action: detachable PROCEDURE [INTEGER, INTEGER])
+	is_valid_item (a_item: INTEGER): BOOLEAN
+			-- Is `a_item' a paragraph (SW_TEXT_POINTING)?
 		do
-			on_hover := a_action
-		ensure
-			set: on_hover = a_action
+			Result := a_item >= 1 and a_item <= count
 		end
 
-	set_on_dwell (a_action: detachable PROCEDURE [INTEGER, INTEGER])
+	pointed_item (a_px, a_py: REAL_64): INTEGER
+			-- The paragraph under the point: `item_at (a_py)'.
 		do
-			on_dwell := a_action
-		ensure
-			set: on_dwell = a_action
-		end
-
-	set_on_scroll (a_action: detachable PROCEDURE [REAL_64])
-		do
-			on_scroll := a_action
-		ensure
-			set: on_scroll = a_action
-		end
-
-	set_dwell_delay (a_ms: INTEGER)
-		require
-			positive: a_ms > 0
-		do
-			dwell_delay := a_ms
-		ensure
-			set: dwell_delay = a_ms
-		end
-
-	dwell_ms: INTEGER
-			-- `dwell_delay' while someone listens on `on_dwell' or builds
-			-- hover cards.
-		do
-			if attached on_dwell or attached hover_card_builder then
-				Result := dwell_delay
-			end
-		end
-
-	hover_card_builder: detachable FUNCTION [INTEGER, INTEGER, detachable SW_HOVER_CARD]
-			-- Builds the card for (paragraph, character) after a dwell
-			-- (GW-09: a word's lexicon card); Void answers none. A card it
-			-- leaves without an anchor is anchored at the word.
-
-	set_hover_card_builder (a_builder: detachable FUNCTION [INTEGER, INTEGER, detachable SW_HOVER_CARD])
-		do
-			hover_card_builder := a_builder
-		ensure
-			set: hover_card_builder = a_builder
-		end
-
-	hover_card_at (a_px, a_py: REAL_64): detachable SW_HOVER_CARD
-			-- The builder's card for the character under the point,
-			-- anchored at its word unless the builder anchored it.
-		local
-			i, ch: INTEGER
-			l_word: TUPLE [lo, hi: INTEGER]
-			l_boxes: like text_boxes
-		do
-			ch := character_at (a_px, a_py)
-			if ch > 0 and then attached hover_card_builder as al_b then
-				i := item_at (a_py)
-				Result := al_b.item ([i, ch])
-				if attached Result as al_card and then not al_card.has_anchor then
-					l_word := word_at (i, ch)
-					l_boxes := text_boxes (i, l_word.lo, l_word.hi)
-					across l_boxes as b loop
-						if b.y <= a_py and a_py < b.y + b.height then
-							al_card.set_anchor (b.x, b.y, b.width, b.height)
-						end
-					end
-					if not al_card.has_anchor and then not l_boxes.is_empty then
-						al_card.set_anchor (l_boxes.first.x, l_boxes.first.y, l_boxes.first.width, l_boxes.first.height)
-					end
-				end
-			end
-		end
-
-	word_at (a_i, a_character: INTEGER): TUPLE [lo, hi: INTEGER]
-			-- The word around character `a_character' of paragraph `a_i', as
-			-- caret offsets: characters `lo' + 1 .. `hi'. A word is a run of
-			-- letters (with their marks) or a run of digits - so a raised
-			-- Strong's number is a word of its own - and a space or a
-			-- punctuation mark is a word of one.
-		require
-			in_range: a_i >= 1 and a_i <= count
-			character_in_text: a_character >= 1 and a_character <= text_of (a_i).count
-		local
-			t: STRING_32
-			k, lo, hi: INTEGER
-		do
-			t := texts.i_th (a_i)
-			k := word_class (t.item (a_character))
-			lo := a_character - 1
-			hi := a_character
-			if k /= 0 then
-				from until lo = 0 or else word_class (t.item (lo)) /= k loop
-					lo := lo - 1
-				end
-				from until hi = t.count or else word_class (t.item (hi + 1)) /= k loop
-					hi := hi + 1
-				end
-			end
-			Result := [lo, hi]
-		ensure
-			holds_it: Result.lo < a_character and a_character <= Result.hi
-			in_text: Result.lo >= 0 and Result.hi <= text_of (a_i).count
-		end
-
-	handle_dwell (a_px, a_py: REAL_64)
-			-- The window says the pointer rested: tell the host which
-			-- character it rested on, if any.
-		local
-			ch: INTEGER
-		do
-			ch := character_at (a_px, a_py)
-			if ch > 0 and then attached on_dwell as al_d then
-				al_d.call (item_at (a_py), ch)
-			end
-		end
-
-	set_hover_point (a_px, a_py: REAL_64)
-			-- Follow the pointer to the character under it.
-		do
-			Precursor (a_px, a_py)
-			follow_hover
-		end
-
-	set_hovered (a_hovered: BOOLEAN)
-			-- Leaving the list leaves the text.
-		do
-			Precursor (a_hovered)
-			if not a_hovered then
-				hover_to (0, 0)
-			end
+			Result := item_at (a_py)
 		end
 
 feature -- Alignment (GW-02)
@@ -723,7 +541,7 @@ feature -- Alignment (GW-02)
 	text_width: REAL_64
 			-- How wide a paragraph's text may run.
 		do
-			Result := (width - Bar_w - 4.0 - gutter_width - 2.0 * item_pad).max (16.0)
+			Result := (width - bar.bar_width - 4.0 - gutter_width - 2.0 * item_pad).max (16.0)
 		ensure
 			positive: Result >= 16.0
 		end
@@ -1077,31 +895,13 @@ feature -- Selection
 
 feature -- Scrolling
 
-	scroll_to (a_y: REAL_64)
-			-- Scroll to `a_y', clamped; `on_scroll' hears a real move.
-		local
-			l_old: REAL_64
-		do
-			l_old := scroll_y
-			scroll_y := a_y.max (0.0).min (max_scroll)
-			if scroll_y /= l_old and then attached on_scroll as al_s then
-				al_s.call (scroll_y)
-			end
-		ensure
-			clamped: scroll_y >= 0.0 and scroll_y <= max_scroll
-		end
-
 	scroll_to_item (a_i: INTEGER)
 			-- Bring paragraph `a_i' into the viewport, once laid out.
 		require
 			in_range: a_i >= 1 and a_i <= count
 		do
 			if is_laid_out and then height > 0.0 then
-				if laid_tops.i_th (a_i) < scroll_y then
-					scroll_to (laid_tops.i_th (a_i))
-				elseif laid_tops.i_th (a_i) + laid_heights.i_th (a_i) > scroll_y + height then
-					scroll_to (laid_tops.i_th (a_i) + laid_heights.i_th (a_i) - height)
-				end
+				scroll_to (stack.scroll_into_view (a_i, scroll_y, height))
 			end
 		ensure
 			visible_once_laid_out: (is_laid_out and height > 0.0) implies
@@ -1221,10 +1021,10 @@ feature -- Layout
 			scroll_y := scroll_y.min (max_scroll)
 			if is_editing and then attached editor as al_ed then
 				i := editing_index
-				ty := y - scroll_y + laid_tops.i_th (i) + item_pad + bands_above.i_th (i)
+				ty := y - scroll_y + stack.top (i) + item_pad + bands_above.i_th (i)
 				al_ed.set_bounds (item_text_x (i) - al_ed.Pad_x, ty - al_ed.Pad_y,
 					text_width + 2.0 * al_ed.Pad_x,
-					laid_heights.i_th (i) - 2.0 * item_pad - bands_above.i_th (i) - bands_below.i_th (i)
+					stack.height (i) - 2.0 * item_pad - bands_above.i_th (i) - bands_below.i_th (i)
 						+ 2.0 * al_ed.Pad_y)
 				al_ed.arrange (a_p)
 			end
@@ -1233,7 +1033,7 @@ feature -- Layout
 	widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET
 		do
 			if contains (a_px, a_py) then
-				if a_px < x + width - Bar_w and then attached editor as al_ed
+				if not bar.contains (a_px, a_py) and then attached editor as al_ed
 					and then al_ed.contains (a_px, a_py)
 				then
 					Result := al_ed
@@ -1251,7 +1051,7 @@ feature -- Drawing
 		local
 			t: SW_THEME
 			i: INTEGER
-			inner_w, top, bx, by, bw, bh, ty, th, track_h, thumb_h, thumb_y: REAL_64
+			inner_w, top, bx, by, bw, bh, ty, th: REAL_64
 			l_wash: NATURAL_32
 		do
 			t := a_p.theme
@@ -1260,18 +1060,18 @@ feature -- Drawing
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			a_p.push_clip (x + 1.0, y + 1.0, width - 2.0, height - 2.0)
-			inner_w := width - Bar_w - 4.0
+			inner_w := width - bar.bar_width - 4.0
 			if count > 0 then
 				from
 					i := first_visible
 				until
 					i > last_visible or i = 0
 				loop
-					top := y - scroll_y + laid_tops.i_th (i)
+					top := y - scroll_y + stack.top (i)
 					bx := x
 					by := top
 					bw := inner_w
-					bh := laid_heights.i_th (i)
+					bh := stack.height (i)
 					l_wash := 0
 					if attached wash_of as al_w then
 						l_wash := al_w.item ([i])
@@ -1323,19 +1123,7 @@ feature -- Drawing
 				end
 			end
 			a_p.pop_clip
-			if max_scroll > 0.0 then
-				track_h := height - 4.0
-				a_p.set_color (t.surface_variant)
-				a_p.rrect_fill (x + width - Bar_w, y + 2.0, Bar_w - 2.0, track_h, 4.0)
-				thumb_h := (height / content_height * track_h).max (24.0)
-				thumb_y := y + 2.0 + (scroll_y / max_scroll) * (track_h - thumb_h)
-				if shows_hover and then hover_px >= x + width - Bar_w then
-					a_p.set_color (t.accent)
-				else
-					a_p.set_color (t.outline)
-				end
-				a_p.rrect_fill (x + width - Bar_w + 1.5, thumb_y, Bar_w - 5.0, thumb_h, 3.0)
-			end
+			draw_bar (a_p)
 		end
 
 feature -- Input
@@ -1344,7 +1132,7 @@ feature -- Input
 			-- Scroll; the text moved under the pointer, so the character
 			-- under it may have changed.
 		do
-			scroll_to (scroll_y - a_delta / 120.0 * Wheel_step)
+			wheel_scrolled (a_delta)
 			if is_hovered then
 				follow_hover
 			end
@@ -1359,9 +1147,7 @@ feature -- Input
 			i: INTEGER
 			keys: SW_KEYS
 		do
-			if a_px >= x + width - Bar_w and max_scroll > 0.0 then
-				scroll_to ((a_py - y) / height * max_scroll)
-				dragging_bar := True
+			if press_bar (a_px, a_py) then
 				Result := True
 			else
 				i := item_at (a_py)
@@ -1387,7 +1173,7 @@ feature -- Input
 			i: INTEGER
 		do
 			i := item_at (a_py)
-			if i > 0 and a_px < x + width - Bar_w then
+			if i > 0 and not bar.contains (a_px, a_py) then
 				select_only (i)
 				if attached on_activate as al_a then
 					al_a.call (i)
@@ -1398,9 +1184,15 @@ feature -- Input
 
 	handle_drag (a_px, a_py: REAL_64)
 		do
-			if dragging_bar and then max_scroll > 0.0 then
-				scroll_to ((a_py - y) / height * max_scroll)
-			end
+			drag_bar (a_py).do_nothing
+		end
+
+	handle_release (a_x, a_y: INTEGER)
+			-- Let go of the scrollbar thumb.
+		do
+			release_bar
+		ensure then
+			released: not bar.is_dragging
 		end
 
 	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
@@ -1454,15 +1246,16 @@ feature -- Input
 
 feature {NONE} -- Measurement
 
-	Wheel_step: REAL_64 = 60.0
+	wheel_line: REAL_64
+			-- One line of body text at the last measure: a wheel notch
+			-- scrolls SW_VSCROLLBAR.Wheel_lines of them.
 
 	texts: ARRAYED_LIST [STRING_32]
 	revisions: ARRAYED_LIST [INTEGER]
 			-- Per paragraph, bumped on every text or band change.
-	laid_revisions: ARRAYED_LIST [INTEGER]
-			-- Per paragraph, the revision its measurement is for.
-	laid_heights: ARRAYED_LIST [REAL_64]
-	laid_tops: ARRAYED_LIST [REAL_64]
+	stack: SW_BLOCK_STACK
+			-- Each paragraph's measured height, the revision it is for,
+			-- and its top.
 	bands_above: ARRAYED_LIST [REAL_64]
 	bands_below: ARRAYED_LIST [REAL_64]
 	geometries: ARRAYED_LIST [SW_TEXT_GEOMETRY]
@@ -1477,16 +1270,13 @@ feature {NONE} -- Measurement
 	laid_width: REAL_64
 	laid_size: INTEGER
 	laid_shaped: BOOLEAN
-	dragging_bar: BOOLEAN
 	edit_backup: STRING_32
 			-- The edited paragraph's text as it stood at `begin_edit'.
 
 	drop_measurements
 			-- Every paragraph measures again on the next frame.
 		do
-			laid_revisions.wipe_out
-			laid_heights.wipe_out
-			laid_tops.wipe_out
+			stack.invalidate
 			geometries.wipe_out
 		ensure
 			dropped: not is_laid_out or count = 0
@@ -1497,16 +1287,18 @@ feature {NONE} -- Measurement
 			-- engine - re-measuring only what changed - then the tops.
 		local
 			i, px: INTEGER
-			tw, top, th: REAL_64
-			want_shaped, all_again: BOOLEAN
+			tw, th: REAL_64
+			want_shaped: BOOLEAN
 		do
+			bar.place (x, y, width, height, a_p.theme)
 			tw := text_width
 			want_shaped := a_p.has_shaping
 			px := (a_p.theme.size_body * a_p.theme.text_scale).rounded.max (1)
-			all_again := tw /= laid_width or px /= laid_size or want_shaped /= laid_shaped
-				or laid_heights.count /= count
-			if all_again then
-				drop_measurements
+			if geometries.count /= count then
+				stack.invalidate
+			end
+			if stack.reset_if_changed (count, tw.out + "|" + px.out + "|" + want_shaped.out) then
+				geometries.wipe_out
 				laid_width := tw
 				laid_size := px
 				laid_shaped := want_shaped
@@ -1515,20 +1307,16 @@ feature {NONE} -- Measurement
 				until
 					i > count
 				loop
-					laid_revisions.extend (-1)
-					laid_heights.extend (1.0)
-					laid_tops.extend (0.0)
 					geometries.extend (create {SW_TEXT_GEOMETRY}.make)
 					i := i + 1
 				end
 			end
-			top := 0.0
 			from
 				i := 1
 			until
 				i > count
 			loop
-				if laid_revisions.i_th (i) /= revisions.i_th (i) or i = editing_index then
+				if stack.needs_measure (i, revisions.i_th (i)) or i = editing_index then
 					if i = editing_index and then attached editor as al_ed then
 						th := al_ed.preferred_height (a_p, tw + 2.0 * al_ed.Pad_x) - 2.0 * al_ed.Pad_y
 					elseif want_shaped and then attached a_p.shaping as al_kit then
@@ -1536,13 +1324,14 @@ feature {NONE} -- Measurement
 					else
 						th := toy_height (a_p, i, tw)
 					end
-					laid_heights.put_i_th ((2.0 * item_pad + bands_above.i_th (i) + th + bands_below.i_th (i)).max (1.0), i)
-					laid_revisions.put_i_th (revisions.i_th (i), i)
+					stack.put_height (i, (2.0 * item_pad + bands_above.i_th (i) + th + bands_below.i_th (i)).max (1.0),
+						revisions.i_th (i))
 				end
-				laid_tops.put_i_th (top, i)
-				top := top + laid_heights.i_th (i) + item_gap
 				i := i + 1
 			end
+			stack.restack (item_gap)
+			wheel_line := px * 1.5
+			place_bar (a_p.theme)
 		ensure
 			laid_out: is_laid_out
 			engine_recorded: laid_shaped = a_p.has_shaping
@@ -1580,66 +1369,8 @@ feature {NONE} -- Measurement
 			-- origin (a_ox, a_oy), in the painter's current colour.
 		require
 			in_range: a_i >= 1 and a_i <= count
-		local
-			g: SW_TEXT_GEOMETRY
-			k, ln: INTEGER
-			ox, oy: REAL_64
 		do
-			g := geometries.i_th (a_i)
-			ox := a_ox + a_dx
-			oy := a_oy + a_dy
-			if g.is_shaped then
-				from
-					k := 1
-				until
-					k > g.layouts.count
-				loop
-					if g.is_aligned then
-						a_p.draw_shaped_layout_aligned (g.layouts.i_th (k), ox, oy + g.para_tops.i_th (k),
-							g.box_width, g.alignment)
-					else
-						a_p.draw_shaped_layout (g.layouts.i_th (k), ox, oy + g.para_tops.i_th (k))
-					end
-					k := k + 1
-				end
-			else
-				a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
-				from
-					k := 1
-				until
-					k > g.count
-				loop
-					if not g.is_break (k) then
-						ln := g.line_of (k)
-						a_p.text (ox + g.x_of (k), oy + g.top_of_line (ln) + g.ascent_of_line (ln),
-							texts.i_th (a_i).substring (k, k))
-					end
-					k := k + 1
-				end
-			end
-		end
-
-	pieces_of (a_text: STRING_32): ARRAYED_LIST [STRING_32]
-			-- `a_text' cut at every LF; an empty text is one empty piece.
-		local
-			i, start: INTEGER
-		do
-			create Result.make (2)
-			start := 1
-			from
-				i := 1
-			until
-				i > a_text.count
-			loop
-				if a_text.item (i) = '%N' then
-					Result.extend (a_text.substring (start, i - 1))
-					start := i + 1
-				end
-				i := i + 1
-			end
-			Result.extend (a_text.substring (start, a_text.count))
-		ensure
-			at_least_one: not Result.is_empty
+			geometries.i_th (a_i).draw (a_p, texts.i_th (a_i), False, a_ox + a_dx, a_oy + a_dy)
 		end
 
 	page_items: INTEGER
@@ -1693,67 +1424,6 @@ feature {NONE} -- Measurement
 			end
 		end
 
-	word_class (c: CHARACTER_32): INTEGER
-			-- 0 a separator (space or punctuation), 1 a digit, 2 a letter,
-			-- a mark or anything else a word is made of.
-		do
-			if c.is_space or else Separators.has (c) then
-				Result := 0
-			elseif c >= '0' and c <= '9' then
-				Result := 1
-			else
-				Result := 2
-			end
-		end
-
-	Separators: STRING_32
-			-- Punctuation that ends a word, Hebrew and Greek included
-			-- (maqaf, paseq, sof pasuq, ano teleia, Greek question mark).
-		once
-			Result := {STRING_32} ".,;:!?%"'()[]{}<>/-"
-			Result.append_code (0x2014)
-			Result.append_code (0x2013)
-			Result.append_code (0x2018)
-			Result.append_code (0x2019)
-			Result.append_code (0x201C)
-			Result.append_code (0x201D)
-			Result.append_code (0x00AB)
-			Result.append_code (0x00BB)
-			Result.append_code (0x00B7)
-			Result.append_code (0x05BE)
-			Result.append_code (0x05C0)
-			Result.append_code (0x05C3)
-			Result.append_code (0x0387)
-			Result.append_code (0x037E)
-		end
-
-	follow_hover
-			-- The character under `hover_px', `hover_py' becomes the hover.
-		local
-			ch: INTEGER
-		do
-			ch := character_at (hover_px, hover_py)
-			if ch > 0 then
-				hover_to (item_at (hover_py), ch)
-			else
-				hover_to (0, 0)
-			end
-		end
-
-	hover_to (a_item, a_character: INTEGER)
-			-- Move the hover; `on_hover' hears a change.
-		do
-			if a_item /= hover_item or else a_character /= hover_character then
-				hover_item := a_item
-				hover_character := a_character
-				if attached on_hover as al_h then
-					al_h.call (a_item, a_character)
-				end
-			end
-		ensure
-			moved: hover_item = a_item and hover_character = a_character
-		end
-
 	drop_editor
 			-- Take the editor down without judging its text.
 		do
@@ -1772,17 +1442,11 @@ invariant
 	parallel_model: revisions.count = count and bands_above.count = count
 		and bands_below.count = count and selected_flags.count = count
 		and marks_list.count = count and styles_list.count = count
-	parallel_measurements: laid_heights.count = laid_tops.count
-		and laid_revisions.count = laid_heights.count
-		and geometries.count = laid_heights.count
-	measurements_never_outrun: laid_heights.count <= count
+	measurements_never_outrun: geometries.count <= count
 	anchor_in_range: selected_index >= 0 and selected_index <= count
 	editing_in_range: editing_index >= 0 and editing_index <= count
 	editor_iff_editing: (editor /= Void) = (editing_index > 0)
-	scroll_non_negative: scroll_y >= 0.0
 	metrics_non_negative: gutter_width >= 0.0 and item_gap >= 0.0 and item_pad >= 0.0
 	viewport_positive: viewport_height > 0.0
-	hover_whole: (hover_item = 0) = (hover_character = 0)
-	dwell_delay_positive: dwell_delay > 0
 
 end

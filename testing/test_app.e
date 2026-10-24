@@ -137,6 +137,7 @@ feature {NONE} -- Test runners
 			run_test (agent list_tests.test_wheel_clamps, "wheel_clamps")
 			run_test (agent list_tests.test_double_click_activates, "double_click_activates")
 			run_test (agent list_tests.test_row_pebble_offer, "row_pebble_offer")
+			run_test (agent list_tests.test_bar_drag_ends_on_release, "list_bar_drag_ends_on_release")
 		end
 
 	run_chrome_tests
@@ -168,6 +169,7 @@ feature {NONE} -- Test runners
 			run_test (agent tree_color_tests.test_flatten_follows_disclosure, "tree_flatten_follows_disclosure")
 			run_test (agent tree_color_tests.test_children_agent_is_lazy_enough, "tree_children_lazy")
 			run_test (agent tree_color_tests.test_selection_is_identity_stable, "tree_selection_identity_stable")
+			run_test (agent tree_color_tests.test_tree_bar_thumb_in_track_and_drags, "tree_bar_thumb_in_track_and_drags")
 			run_test (agent tree_color_tests.test_hsv_to_rgb_known_values, "color_hsv_known_values")
 			run_test (agent tree_color_tests.test_rgb_round_trips, "color_rgb_round_trips")
 			run_test (agent tree_color_tests.test_hex_readout, "color_hex_readout")
@@ -196,6 +198,7 @@ feature {NONE} -- Test runners
 		do
 			create grid_tests
 			run_test (agent grid_tests.test_text_sort_ascending, "grid_text_sort_ascending")
+			run_test (agent grid_tests.test_bar_drag_ends_on_release, "grid_bar_drag_ends_on_release")
 			run_test (agent grid_tests.test_typed_sort_beats_text, "grid_typed_sort_beats_text")
 			run_test (agent grid_tests.test_filter_composes_with_sort, "grid_filter_composes_with_sort")
 			run_test (agent grid_tests.test_selection_survives_resort, "grid_selection_survives_resort")
@@ -252,6 +255,7 @@ feature {NONE} -- Test runners
 			run_test (agent indicator_tests.test_empty_state_action_zone, "empty_state_action_zone")
 			run_test (agent indicator_tests.test_skeleton_draw_smoke, "skeleton_draw_smoke")
 			run_test (agent indicator_tests.test_scroll_wheel_step_programmable, "scroll_wheel_step_programmable")
+			run_test (agent indicator_tests.test_scroll_bar_drag_ends_on_release, "scroll_bar_drag_ends_on_release")
 			run_test (agent indicator_tests.test_scroll_two_axis_clamps, "scroll_two_axis_clamps")
 		end
 
@@ -458,6 +462,7 @@ feature {NONE} -- Test runners
 			run_test (agent chat_scroll_tests.test_scroll_to_clamps_and_updates_stickiness, "scroll_to_clamps_and_updates_stickiness")
 			run_test (agent chat_scroll_tests.test_clamp_survives_content_shrink, "clamp_survives_content_shrink")
 			run_test (agent chat_scroll_tests.test_sticky_transitions, "sticky_transitions")
+			run_test (agent chat_scroll_tests.test_wheel_notch_is_three_lines, "chat_wheel_notch_is_three_lines")
 			run_test (agent chat_scroll_tests.test_thumb_height_and_position, "thumb_height_and_position")
 			run_test (agent chat_scroll_tests.test_scrollbar_visible_only_on_overflow, "scrollbar_visible_only_on_overflow")
 			run_test (agent chat_scroll_tests.test_drag_thumb_scrolls, "drag_thumb_scrolls")
@@ -649,6 +654,8 @@ feature {NONE} -- Test runners
 			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
 			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")
 			run_test (agent paragraph_tests.test_virtualisation_and_hit_test, "paragraphs_virtualisation_and_hit_test")
+			run_test (agent paragraph_tests.test_bar_drag_ends_on_release, "bar_drag_ends_on_release")
+			run_test (agent paragraph_tests.test_block_stack_lookups, "block_stack_lookups")
 			run_test (agent paragraph_tests.test_wheel_clamps, "paragraphs_wheel_clamps")
 			run_test (agent paragraph_tests.test_selection_set_and_anchor, "paragraphs_selection_set_and_anchor")
 			run_test (agent paragraph_tests.test_click_selects_and_keys_move, "paragraphs_click_selects_and_keys_move")

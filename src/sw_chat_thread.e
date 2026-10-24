@@ -224,7 +224,7 @@ feature {NONE} -- Initialization
 			create chip_boxes.make (16)
 			create drawn_quotes.make (16)
 			is_sticky := True
-			scrollbar_width := Scrollbar_w
+			create bar.make
 			last_text_scale := 1.0
 			displayed_revision := -1
 			decor_revision := -1
@@ -883,17 +883,15 @@ feature {NONE} -- Selection support
 
 feature -- Scrollbar
 
-	Scrollbar_w: REAL_64 = 12.0
-			-- Track width at 1x text.
+	bar: SW_VSCROLLBAR
+			-- The scrollbar at the right edge, placed and sized by the
+			-- theme at each `draw' (hit-testing has no painter of its own).
 
 	scrollbar_width: REAL_64
-			-- `Scrollbar_w' times the theme's `text_scale' as of the most
-			-- recent `draw' - cached because hit-testing (`handle_click',
-			-- `handle_drag') has no painter/theme of its own to read
-			-- `text_scale' from. `Scrollbar_w' (1x), set by `make', before
-			-- the first frame - REAL_64 is expanded, so (unlike a
-			-- reference attribute) an `attribute...end' body here would
-			-- never run; `make' is where the honest default lives.
+			-- The column the bar takes, as of the most recent `draw'.
+		do
+			Result := bar.bar_width
+		end
 
 	last_text_scale: REAL_64
 			-- The theme's `text_scale' as of the most recent `draw'; 1.0,
@@ -916,52 +914,41 @@ feature -- Scrollbar
 
 	track_x: REAL_64
 		do
-			Result := x + width - scrollbar_width
+			Result := bar.track_x
 		end
 
 	track_y: REAL_64
 		do
-			Result := y + 2.0
+			Result := bar.track_y
 		end
 
 	track_h: REAL_64
 		do
-			Result := (height - 4.0).max (1.0)
+			Result := bar.track_h
 		end
 
-	Min_thumb_h: REAL_64 = 24.0
-			-- Smallest the thumb ever draws at 1x, so it stays
-			-- grabbable over a very long thread.
-
 	thumb_height: REAL_64
-			-- The thumb's height: the pane's share of the content,
-			-- never smaller than `Min_thumb_h' (scaled) nor larger than
-			-- the track itself.
+			-- The thumb's height, from the bar.
 		do
-			if content_h > 0.0 then
-				Result := height / content_h * track_h
-			end
-			Result := Result.max (Min_thumb_h * last_text_scale).min (track_h)
+			Result := bar.thumb_height
 		ensure
 			fits_track: Result > 0.0 and Result <= track_h
 		end
 
 	thumb_top: REAL_64
-			-- The thumb's Y, from `scroll_y''s fraction of `max_scroll'.
+			-- The thumb's Y for `scroll_y'.
 		do
-			if max_scroll > 0.0 then
-				Result := track_y + (scroll_y / max_scroll) * (track_h - thumb_height)
-			else
-				Result := track_y
-			end
+			Result := bar.thumb_top (scroll_y)
 		ensure
 			within_track: Result >= track_y - 0.001
 				and Result <= track_y + (track_h - thumb_height) + 0.001
 		end
 
 	is_dragging_thumb: BOOLEAN
-			-- Is the pointer holding the thumb down right now? Drives
-			-- the thumb's drag colour and gates `handle_drag'.
+			-- Is the pointer holding the thumb down right now?
+		do
+			Result := bar.is_dragging
+		end
 
 	scroll_to (a_y: REAL_64)
 			-- The one door every scroll-changing entry point uses -
@@ -1054,8 +1041,8 @@ feature -- Drawing
 		do
 			t := a_p.theme
 			probe_painter := a_p
-			scrollbar_width := Scrollbar_w * t.text_scale
 			last_text_scale := t.text_scale
+			bar.place (x, y, width, height, t)
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 				-- the gutter is reserved whether or not the bar draws
@@ -1148,6 +1135,7 @@ feature -- Drawing
 				i := i + 1
 			end
 			content_h := total_h
+			bar.set_extent (height, content_h)
 
 				-- THE FIX: one clamp for the whole frame, against the
 				-- true total - not one per bubble against a running sum.
@@ -1246,17 +1234,7 @@ feature -- Drawing
 			a_p.set_color (t.outline)
 			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
 
-			if scrollbar_visible then
-				a_p.set_color (t.surface_variant)
-				a_p.rrect_fill (track_x, track_y, scrollbar_width - 2.0, track_h, 4.0 * last_text_scale)
-				if is_dragging_thumb then
-					a_p.set_color (t.accent)
-				else
-					a_p.set_color (t.outline)
-				end
-				a_p.rrect_fill (track_x + 1.5, thumb_top, scrollbar_width - 5.0, thumb_height,
-					3.0 * last_text_scale)
-			end
+			bar.draw (a_p, scroll_y, False)
 		end
 
 	refresh_layouts (a_kit: SW_SHAPING; a_inner_width: REAL_64; a_pixel_size: INTEGER;
@@ -1493,7 +1471,7 @@ feature -- Input
 
 	handle_wheel (a_delta: INTEGER): BOOLEAN
 		do
-			scroll_to (scroll_y - a_delta / 120.0 * 48.0)
+			scroll_to (bar.wheel_scroll (scroll_y, a_delta, 20.0 * last_text_scale))
 			Result := True
 		end
 
@@ -1507,15 +1485,8 @@ feature -- Input
 		local
 			hit: TUPLE [message, offset: INTEGER]
 		do
-			if scrollbar_visible and then a_px >= track_x then
-				if a_py >= thumb_top and a_py <= thumb_top + thumb_height then
-					is_dragging_thumb := True
-					drag_grab_offset := a_py - thumb_top
-				elseif a_py < thumb_top then
-					scroll_to (scroll_y - height)
-				else
-					scroll_to (scroll_y + height)
-				end
+			if bar.contains (a_px, a_py) then
+				scroll_to (bar.press (a_py, scroll_y))
 				Result := True
 			else
 				hit := hit_test (a_px, a_py)
@@ -1545,12 +1516,10 @@ feature -- Input
 
 	handle_drag (a_px, a_py: REAL_64)
 		local
-			span: REAL_64
 			hit: TUPLE [message, offset: INTEGER]
 		do
-			if is_dragging_thumb then
-				span := (track_h - thumb_height).max (1.0)
-				scroll_to (((a_py - drag_grab_offset - track_y) / span) * max_scroll)
+			if bar.is_dragging then
+				scroll_to (bar.drag_to (a_py))
 			elseif is_selecting and then sel_message > 0 then
 					-- clamped INTO the anchor's own bubble: dragging away
 					-- runs the selection to that bubble's end, never into
@@ -1562,7 +1531,7 @@ feature -- Input
 
 	handle_release (a_x, a_y: INTEGER)
 		do
-			is_dragging_thumb := False
+			bar.release
 			is_selecting := False
 		end
 
@@ -2343,13 +2312,6 @@ feature {NONE} -- Decoration drawing
 				k := k + 1
 			end
 		end
-
-feature {NONE} -- Drag state
-
-	drag_grab_offset: REAL_64
-			-- Where inside the thumb the press landed, so a drag keeps
-			-- the pointer over the same spot on the thumb instead of
-			-- snapping its top to the cursor.
 
 feature {NONE} -- Frame cache
 

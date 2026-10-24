@@ -101,6 +101,27 @@ feature -- Tests
 			assert ("beyond content offers nothing", l.pebble_at (50.0, 400.0) = Void)
 		end
 
+	test_bar_drag_ends_on_release
+			-- A thumb drag works anywhere down the page and ends when the
+			-- button comes up.
+		local
+			l: SW_LIST
+			l_scroll: REAL_64
+		do
+			create l.make (150.0)
+			l.set_row_count (100)
+			l.set_bounds (0.0, 0.0, 300.0, 150.0)
+			assert ("the press on the thumb is taken", l.handle_click (295.0, 5.0))
+			assert ("the bar is dragging", l.bar.is_dragging)
+			l.handle_drag (100.0, 100.0)
+			assert ("the drag scrolled, off the bar column too", l.scroll_y > 0.0)
+			l.handle_release (100, 100)
+			assert ("released", not l.bar.is_dragging)
+			l_scroll := l.scroll_y
+			l.handle_drag (100.0, 140.0)
+			assert_reals_equal ("a later drag does not scroll", l_scroll, l.scroll_y, 0.0)
+		end
+
 feature {NONE} -- Recording
 
 	activated: INTEGER

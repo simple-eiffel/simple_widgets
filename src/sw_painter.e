@@ -68,8 +68,10 @@ feature -- Type
 				-- GW-04: remembered for the shaped path.
 			font_role := a_role
 			font_bold := a_bold
+			font_size := a_size
 			font_pixel_size := (a_size * theme.text_scale).rounded.max (1)
 		ensure
+			size_kept: font_size = a_size
 			role_kept: font_role = a_role
 			bold_kept: font_bold = a_bold
 			pixel_size_kept: font_pixel_size >= 1
@@ -80,6 +82,10 @@ feature -- Type
 
 	font_bold: BOOLEAN
 			-- Was the last `font' call bold?
+
+	font_size: REAL_64
+			-- The size the last `font' call asked for, before `text_scale'
+			-- (0 before the first): what selects the same font again.
 
 	font_pixel_size: INTEGER
 			-- Pixel size of the last `font' call, through `text_scale'
@@ -284,11 +290,39 @@ feature -- Shaped text (simple_shaping)
 			context_survives: context.is_valid
 		end
 
+	draw_shaped_layout_hooked (a_layout: SHAPED_LAYOUT; a_x, a_y, a_box_width: REAL_64; a_alignment: INTEGER;
+			a_before_run: PROCEDURE [SHAPED_RUN, REAL_64, REAL_64])
+			-- `draw_shaped_layout_aligned', calling `a_before_run' with each
+			-- run, its pen x and its baseline just before the run paints
+			-- (GW-13): the host sets a link's colour there and may draw its
+			-- underline. The colour the hook leaves is the painter's after.
+		require
+			shaping_available: has_shaping
+			alignment_valid: a_alignment >= {SHAPING_CONSTANTS}.Align_start
+				and a_alignment <= {SHAPING_CONSTANTS}.Align_center
+			box_non_negative: a_box_width >= 0.0
+		do
+			if attached shaping as al_shaping then
+				al_shaping.bridge.draw_layout_aligned_with (context, a_layout, a_x, a_y, a_box_width,
+					a_alignment, a_before_run)
+			end
+		ensure
+			context_survives: context.is_valid
+		end
+
 feature -- Shapes
 
 	fill_rect (a_x, a_y, a_w, a_h: REAL_64)
 		do
 			context.rectangle (a_x, a_y, a_w, a_h).fill.do_nothing
+		end
+
+	stroke_rect (a_x, a_y, a_w, a_h: REAL_64)
+			-- A square-cornered outline in the current colour and line
+			-- width: pass half-pixel-snapped coordinates for crispness (a
+			-- table's cell rules, GW-13).
+		do
+			context.rectangle (a_x, a_y, a_w, a_h).stroke.do_nothing
 		end
 
 	rrect_fill (a_x, a_y, a_w, a_h, a_r: REAL_64)
