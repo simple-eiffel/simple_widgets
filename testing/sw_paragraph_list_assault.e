@@ -70,6 +70,27 @@ feature -- Measurement
 			assert_integers_equal ("back to the top", 1, l.first_visible)
 		end
 
+	test_bar_drag_ends_on_release
+			-- A thumb drag ends when the button comes up: a later drag that
+			-- began on a paragraph never scrolls the list.
+		local
+			l: SW_PARAGRAPH_LIST
+			l_scroll: REAL_64
+		do
+			l := filled (60)
+			l.set_bounds (0.0, 0.0, 400.0, 300.0)
+			l.arrange (plain_painter)
+			assert ("overflows", l.max_scroll > 0.0)
+			assert ("the press on the bar is taken", l.handle_click (396.0, 10.0))
+			l.handle_drag (396.0, 150.0)
+			assert ("the drag scrolled", l.scroll_y > 0.0)
+			l.handle_release (396, 150)
+			l_scroll := l.scroll_y
+			assert ("a paragraph press is taken", l.handle_click (50.0, 50.0))
+			l.handle_drag (50.0, 280.0)
+			assert_reals_equal ("a drag from a paragraph does not scroll", l_scroll, l.scroll_y, 0.0)
+		end
+
 	test_wheel_clamps
 		local
 			l: SW_PARAGRAPH_LIST

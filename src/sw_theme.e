@@ -442,6 +442,30 @@ feature -- Spacing (the Vision2 outside/inside model, scaled)
 			scales_with_text: Result = control_pad * text_scale
 		end
 
+	Scrollbar_nominal: REAL_64 = 12.0
+			-- `scrollbar_width' at 1x.
+
+	Thumb_nominal: REAL_64 = 24.0
+			-- `min_thumb' at 1x.
+
+	scrollbar_width: REAL_64
+			-- The column a vertical scrollbar takes (SW_VSCROLLBAR), at the
+			-- current `text_scale': a bigger text gets a bigger target.
+		do
+			Result := Scrollbar_nominal * text_scale
+		ensure
+			scales_with_text: Result = Scrollbar_nominal * text_scale
+		end
+
+	min_thumb: REAL_64
+			-- The shortest a scrollbar thumb ever draws, so it stays
+			-- grabbable over long content.
+		do
+			Result := Thumb_nominal * text_scale
+		ensure
+			scales_with_text: Result = Thumb_nominal * text_scale
+		end
+
 	scaled_line_height: REAL_64
 			-- `line_height' at the current `text_scale': a text row must
 			-- grow with the glyphs standing in it.

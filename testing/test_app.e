@@ -649,6 +649,7 @@ feature {NONE} -- Test runners
 			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
 			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")
 			run_test (agent paragraph_tests.test_virtualisation_and_hit_test, "paragraphs_virtualisation_and_hit_test")
+			run_test (agent paragraph_tests.test_bar_drag_ends_on_release, "bar_drag_ends_on_release")
 			run_test (agent paragraph_tests.test_wheel_clamps, "paragraphs_wheel_clamps")
 			run_test (agent paragraph_tests.test_selection_set_and_anchor, "paragraphs_selection_set_and_anchor")
 			run_test (agent paragraph_tests.test_click_selects_and_keys_move, "paragraphs_click_selects_and_keys_move")

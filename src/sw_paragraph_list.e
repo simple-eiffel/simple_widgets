@@ -78,7 +78,8 @@ inherit
 			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
 			handle_double_click, handle_drag, handle_key, handle_char,
 			accepts_focus, wants_hover_point, cursor_kind, focusables,
-			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
+			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at,
+			handle_release
 		end
 
 create
@@ -106,6 +107,8 @@ feature {NONE} -- Initialization
 			create styles_list.make (16)
 			create geometries.make (16)
 			dwell_delay := 400
+			create bar.make
+			wheel_line := 20.0
 			create mark_painter.make
 			create edit_backup.make_empty
 			create edit_marks_backup.make (0)
@@ -288,7 +291,8 @@ feature -- Status
 
 feature -- Geometry
 
-	Bar_w: REAL_64 = 11.0
+	bar: SW_VSCROLLBAR
+			-- The scrollbar at the right edge.
 
 	band_above (a_i: INTEGER): REAL_64
 		require
@@ -447,7 +451,7 @@ feature -- Geometry
 			in_range: a_i >= 1 and a_i <= count
 		do
 			if gutter_reads_right (a_i) then
-				Result := x + width - Bar_w - 4.0 - gutter_width
+				Result := x + width - bar.bar_width - 4.0 - gutter_width
 			else
 				Result := x
 			end
@@ -723,7 +727,7 @@ feature -- Alignment (GW-02)
 	text_width: REAL_64
 			-- How wide a paragraph's text may run.
 		do
-			Result := (width - Bar_w - 4.0 - gutter_width - 2.0 * item_pad).max (16.0)
+			Result := (width - bar.bar_width - 4.0 - gutter_width - 2.0 * item_pad).max (16.0)
 		ensure
 			positive: Result >= 16.0
 		end
@@ -1233,7 +1237,7 @@ feature -- Layout
 	widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET
 		do
 			if contains (a_px, a_py) then
-				if a_px < x + width - Bar_w and then attached editor as al_ed
+				if not bar.contains (a_px, a_py) and then attached editor as al_ed
 					and then al_ed.contains (a_px, a_py)
 				then
 					Result := al_ed
@@ -1251,7 +1255,7 @@ feature -- Drawing
 		local
 			t: SW_THEME
 			i: INTEGER
-			inner_w, top, bx, by, bw, bh, ty, th, track_h, thumb_h, thumb_y: REAL_64
+			inner_w, top, bx, by, bw, bh, ty, th: REAL_64
 			l_wash: NATURAL_32
 		do
 			t := a_p.theme
@@ -1260,7 +1264,7 @@ feature -- Drawing
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			a_p.push_clip (x + 1.0, y + 1.0, width - 2.0, height - 2.0)
-			inner_w := width - Bar_w - 4.0
+			inner_w := width - bar.bar_width - 4.0
 			if count > 0 then
 				from
 					i := first_visible
@@ -1323,19 +1327,7 @@ feature -- Drawing
 				end
 			end
 			a_p.pop_clip
-			if max_scroll > 0.0 then
-				track_h := height - 4.0
-				a_p.set_color (t.surface_variant)
-				a_p.rrect_fill (x + width - Bar_w, y + 2.0, Bar_w - 2.0, track_h, 4.0)
-				thumb_h := (height / content_height * track_h).max (24.0)
-				thumb_y := y + 2.0 + (scroll_y / max_scroll) * (track_h - thumb_h)
-				if shows_hover and then hover_px >= x + width - Bar_w then
-					a_p.set_color (t.accent)
-				else
-					a_p.set_color (t.outline)
-				end
-				a_p.rrect_fill (x + width - Bar_w + 1.5, thumb_y, Bar_w - 5.0, thumb_h, 3.0)
-			end
+			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
 		end
 
 feature -- Input
@@ -1344,7 +1336,7 @@ feature -- Input
 			-- Scroll; the text moved under the pointer, so the character
 			-- under it may have changed.
 		do
-			scroll_to (scroll_y - a_delta / 120.0 * Wheel_step)
+			scroll_to (bar.wheel_scroll (scroll_y, a_delta, wheel_line))
 			if is_hovered then
 				follow_hover
 			end
@@ -1359,9 +1351,8 @@ feature -- Input
 			i: INTEGER
 			keys: SW_KEYS
 		do
-			if a_px >= x + width - Bar_w and max_scroll > 0.0 then
-				scroll_to ((a_py - y) / height * max_scroll)
-				dragging_bar := True
+			if bar.contains (a_px, a_py) then
+				scroll_to (bar.press (a_py, scroll_y))
 				Result := True
 			else
 				i := item_at (a_py)
@@ -1387,7 +1378,7 @@ feature -- Input
 			i: INTEGER
 		do
 			i := item_at (a_py)
-			if i > 0 and a_px < x + width - Bar_w then
+			if i > 0 and not bar.contains (a_px, a_py) then
 				select_only (i)
 				if attached on_activate as al_a then
 					al_a.call (i)
@@ -1398,9 +1389,17 @@ feature -- Input
 
 	handle_drag (a_px, a_py: REAL_64)
 		do
-			if dragging_bar and then max_scroll > 0.0 then
-				scroll_to ((a_py - y) / height * max_scroll)
+			if bar.is_dragging then
+				scroll_to (bar.drag_to (a_py))
 			end
+		end
+
+	handle_release (a_x, a_y: INTEGER)
+			-- Let go of the scrollbar thumb.
+		do
+			bar.release
+		ensure then
+			released: not bar.is_dragging
 		end
 
 	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
@@ -1454,7 +1453,9 @@ feature -- Input
 
 feature {NONE} -- Measurement
 
-	Wheel_step: REAL_64 = 60.0
+	wheel_line: REAL_64
+			-- One line of body text at the last measure: a wheel notch
+			-- scrolls SW_VSCROLLBAR.Wheel_lines of them.
 
 	texts: ARRAYED_LIST [STRING_32]
 	revisions: ARRAYED_LIST [INTEGER]
@@ -1477,7 +1478,6 @@ feature {NONE} -- Measurement
 	laid_width: REAL_64
 	laid_size: INTEGER
 	laid_shaped: BOOLEAN
-	dragging_bar: BOOLEAN
 	edit_backup: STRING_32
 			-- The edited paragraph's text as it stood at `begin_edit'.
 
@@ -1500,6 +1500,7 @@ feature {NONE} -- Measurement
 			tw, top, th: REAL_64
 			want_shaped, all_again: BOOLEAN
 		do
+			bar.place (x, y, width, height, a_p.theme)
 			tw := text_width
 			want_shaped := a_p.has_shaping
 			px := (a_p.theme.size_body * a_p.theme.text_scale).rounded.max (1)
@@ -1543,6 +1544,8 @@ feature {NONE} -- Measurement
 				top := top + laid_heights.i_th (i) + item_gap
 				i := i + 1
 			end
+			wheel_line := px * 1.5
+			bar.set_extent (height, content_height)
 		ensure
 			laid_out: is_laid_out
 			engine_recorded: laid_shaped = a_p.has_shaping
