@@ -198,6 +198,7 @@ feature {NONE} -- Test runners
 		do
 			create grid_tests
 			run_test (agent grid_tests.test_text_sort_ascending, "grid_text_sort_ascending")
+			run_test (agent grid_tests.test_bar_drag_ends_on_release, "grid_bar_drag_ends_on_release")
 			run_test (agent grid_tests.test_typed_sort_beats_text, "grid_typed_sort_beats_text")
 			run_test (agent grid_tests.test_filter_composes_with_sort, "grid_filter_composes_with_sort")
 			run_test (agent grid_tests.test_selection_survives_resort, "grid_selection_survives_resort")

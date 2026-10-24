@@ -16,7 +16,7 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click, handle_double_click, handle_drag, handle_wheel,
-			handle_key, wants_hover_point, accepts_focus, cursor_kind
+			handle_key, wants_hover_point, accepts_focus, cursor_kind, handle_release
 		end
 
 create
@@ -32,6 +32,7 @@ feature {NONE} -- Initialization
 			create rows.make (32)
 			create columns.make (6)
 			create view.make (32)
+			create bar.make
 			selected_model := 0
 			resizing_column := 0
 		ensure
@@ -48,6 +49,9 @@ feature -- Access
 			-- Model indices surviving the filter, in sort order.
 
 	viewport_height: REAL_64
+
+	bar: SW_VSCROLLBAR
+			-- The vertical scrollbar, under the header at the right edge.
 
 	Header_h: REAL_64 = 30.0
 
@@ -94,14 +98,11 @@ feature -- Access
 				loop
 					l_total_grow := l_total_grow + c.grow
 				end
-				Result := Result + (width - Scroll_gutter - content_width).max (0.0) * columns.i_th (a_i).grow / l_total_grow
+				Result := Result + (width - bar.bar_width - content_width).max (0.0) * columns.i_th (a_i).grow / l_total_grow
 			end
 		ensure
 			at_least_own: Result >= columns.i_th (a_i).width
 		end
-
-	Scroll_gutter: REAL_64 = 10.0
-			-- Width kept clear for the vertical scrollbar when columns grow.
 
 	content_width: REAL_64
 		do
@@ -291,6 +292,8 @@ feature -- Drawing
 			s: STRING_32
 		do
 			t := a_p.theme
+			bar.place (x, y + Header_h, width, height - Header_h, t)
+			sync_bar
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			a_p.push_clip (x, y, width, height)
@@ -368,16 +371,7 @@ feature -- Drawing
 			a_p.set_color (t.outline)
 			a_p.hline (x, y + Header_h - 0.5, width)
 				-- vertical scrollbar
-			if view.count * Row_h > height - Header_h then
-				a_p.set_color (t.surface_variant)
-				a_p.rrect_fill (x + width - 9.0, y + Header_h + 2.0, 7.0, height - Header_h - 4.0, 3.0)
-				a_p.set_color (t.outline)
-				a_p.rrect_fill (x + width - 8.0,
-					y + Header_h + 2.0 + (scroll_y / (view.count * Row_h)) * (height - Header_h - 4.0),
-					5.0,
-					(((height - Header_h) / (view.count * Row_h)) * (height - Header_h - 4.0)).max (20.0),
-					2.5)
-			end
+			bar.draw (a_p, scroll_y, is_hovered and then bar.contains (hover_px, hover_py))
 			a_p.pop_clip
 			a_p.set_color (t.outline)
 			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
@@ -399,7 +393,12 @@ feature -- Input
 		local
 			edge, hc, vr: INTEGER
 		do
-			if is_enabled then
+			sync_bar
+			if is_enabled and then bar.contains (a_px, a_py) then
+				resizing_column := 0
+				scroll_y := bar.press (a_py, scroll_y)
+				Result := True
+			elseif is_enabled then
 				if a_py < y + Header_h then
 					edge := column_edge_at (a_px)
 					if edge > 0 then
@@ -450,7 +449,9 @@ feature -- Input
 			cx: REAL_64
 			i: INTEGER
 		do
-			if resizing_column >= 1 and resizing_column <= columns.count then
+			if bar.is_dragging then
+				scroll_y := bar.drag_to (a_py)
+			elseif resizing_column >= 1 and resizing_column <= columns.count then
 				cx := x - scroll_x
 				from
 					i := 1
@@ -465,6 +466,14 @@ feature -- Input
 			end
 		end
 
+	handle_release (a_x, a_y: INTEGER)
+			-- Let go of the scrollbar thumb.
+		do
+			bar.release
+		ensure then
+			released: not bar.is_dragging
+		end
+
 	handle_wheel (a_delta: INTEGER): BOOLEAN
 		local
 			keys: SW_KEYS
@@ -474,8 +483,8 @@ feature -- Input
 				scroll_x := (scroll_x - a_delta / 120.0 * 60.0)
 					.max (0.0).min ((content_width - width).max (0.0))
 			else
-				scroll_y := (scroll_y - a_delta / 120.0 * Row_h * 3.0)
-					.max (0.0).min (((view.count * Row_h) - (height - Header_h)).max (0.0))
+				sync_bar
+				scroll_y := bar.wheel_scroll (scroll_y, a_delta, Row_h)
 			end
 			Result := True
 		end
@@ -665,8 +674,15 @@ feature {NONE} -- Engine
 				selected_model := 0
 			end
 			scroll_y := scroll_y.max (0.0)
+			sync_bar
 		ensure
 			view_within_rows: view.count <= rows.count
+		end
+
+	sync_bar
+			-- Tell the bar how much the rows show of how much there is.
+		do
+			bar.set_extent ((height - Header_h).max (0.0), view.count * Row_h)
 		end
 
 invariant

@@ -45,6 +45,46 @@ feature {NONE} -- Fixture
 			Result := a_r.size < 50
 		end
 
+feature -- Scrollbar
+
+	test_bar_drag_ends_on_release
+			-- The bar sits under the header; a thumb drag follows the
+			-- pointer anywhere and ends on release.
+		local
+			g: like new_grid
+			i: INTEGER
+			p: SW_PAINTER
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			th: SW_THEME
+			l_scroll: REAL_64
+		do
+			create th.make_light
+			create surf.make (300, 200)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			g := new_grid
+			from i := 1 until i > 60 loop
+				g.add_row ([{STRING_32} "row", i])
+				i := i + 1
+			end
+			g.set_bounds (0.0, 0.0, 300.0, 200.0)
+			g.draw (p)
+			assert ("the bar is needed", g.bar.is_needed)
+			assert ("the bar starts under the header", g.bar.track_y >= {SW_DATA_GRID [TUPLE [name: STRING_32; size: INTEGER]]}.Header_h)
+			assert ("a press on the thumb is taken", g.handle_click (g.bar.track_x + 2.0, g.bar.track_y + 2.0))
+			assert ("the bar is dragging", g.bar.is_dragging)
+			g.handle_drag (100.0, 150.0)
+			assert ("the drag scrolled", g.scroll_y > 0.0)
+			g.handle_release (100, 150)
+			assert ("released", not g.bar.is_dragging)
+			l_scroll := g.scroll_y
+			g.handle_drag (100.0, 190.0)
+			assert_reals_equal ("a later drag does not scroll", l_scroll, g.scroll_y, 0.0)
+			ctx.destroy
+			surf.destroy
+		end
+
 feature -- Sorting
 
 	test_text_sort_ascending
@@ -173,7 +213,7 @@ feature -- Growing columns and the divider cursor
 			g.add_column ((create {SW_GRID_COLUMN [TUPLE [name: STRING_32; size: INTEGER]]}.make ("Name", 120.0, agent name_of)).growing)
 			g.add_column (create {SW_GRID_COLUMN [TUPLE [name: STRING_32; size: INTEGER]]}.make ("Size", 80.0, agent size_text))
 			g.set_bounds (0.0, 0.0, 400.0, 200.0)
-			assert ("grows into the spare width", g.shown_width (1) = 120.0 + (400.0 - g.Scroll_gutter - 200.0))
+			assert ("grows into the spare width", g.shown_width (1) = 120.0 + (400.0 - g.bar.bar_width - 200.0))
 			assert ("fixed column unchanged", g.shown_width (2) = 80.0)
 			g.set_bounds (0.0, 0.0, 150.0, 200.0)
 			assert ("no spare, own width", g.shown_width (1) = 120.0)
