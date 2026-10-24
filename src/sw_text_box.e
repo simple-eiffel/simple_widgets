@@ -763,40 +763,8 @@ feature -- Drawing
 			-- The whole text shifted by (a_dx, a_dy) from its origin, in
 			-- the painter's current colour - what the highlight painter
 			-- redraws through for its effects.
-		local
-			i, ln: INTEGER
-			ox, oy: REAL_64
 		do
-			ox := x + Pad_x + a_dx
-			oy := y + Pad_y + a_dy
-			if geometry.is_shaped then
-				from
-					i := 1
-				until
-					i > geometry.layouts.count
-				loop
-					if geometry.is_aligned then
-						a_p.draw_shaped_layout_aligned (geometry.layouts.i_th (i), ox, oy + geometry.para_tops.i_th (i),
-							geometry.box_width, geometry.alignment)
-					else
-						a_p.draw_shaped_layout (geometry.layouts.i_th (i), ox, oy + geometry.para_tops.i_th (i))
-					end
-					i := i + 1
-				end
-			else
-				a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
-				from
-					i := 1
-				until
-					i > geometry.count
-				loop
-					if not geometry.is_break (i) then
-						ln := geometry.line_of (i)
-						a_p.text (ox + geometry.x_of (i), oy + geometry.top_of_line (ln) + geometry.ascent_of_line (ln), glyph (i))
-					end
-					i := i + 1
-				end
-			end
+			geometry.draw (a_p, text, is_hiding, x + Pad_x + a_dx, y + Pad_y + a_dy)
 		end
 
 feature -- Input

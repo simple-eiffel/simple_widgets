@@ -91,6 +91,43 @@ feature -- Measurement
 			assert_reals_equal ("a drag from a paragraph does not scroll", l_scroll, l.scroll_y, 0.0)
 		end
 
+	test_block_stack_lookups
+			-- Heights 10, 20, 30 with gaps of 5: tops 0, 15, 40. A point in a
+			-- gap is in no item; the visible band and the scroll that shows
+			-- an item come from the tops by binary search; a new key or an
+			-- invalidation drops every measurement.
+		local
+			st: SW_BLOCK_STACK
+		do
+			create st.make
+			assert_true ("a first layout resets", st.reset_if_changed (3, "w400"))
+			assert_true ("every item needs measuring", st.needs_measure (2, 0))
+			st.put_height (1, 10.0, 0)
+			st.put_height (2, 20.0, 0)
+			st.put_height (3, 30.0, 0)
+			st.restack (5.0)
+			assert_reals_equal ("top of 2", 15.0, st.top (2), 0.0)
+			assert_reals_equal ("top of 3", 40.0, st.top (3), 0.0)
+			assert_reals_equal ("content", 70.0, st.content_height, 0.0)
+			assert_integers_equal ("y 0 is item 1", 1, st.item_at (0.0))
+			assert_integers_equal ("y 12 is a gap", 0, st.item_at (12.0))
+			assert_integers_equal ("y 15 is item 2", 2, st.item_at (15.0))
+			assert_integers_equal ("y 69 is item 3", 3, st.item_at (69.0))
+			assert_integers_equal ("y 70 is past the end", 0, st.item_at (70.0))
+			assert_integers_equal ("y -1 is above", 0, st.item_at (-1.0))
+			assert_integers_equal ("scrolled 12: the first reaching below is 2", 2, st.first_visible (12.0))
+			assert_integers_equal ("a 30 tall view from 12 ends at 3", 3, st.last_visible (12.0, 30.0))
+			assert_integers_equal ("a 20 tall view from 12 ends at 2", 2, st.last_visible (12.0, 20.0))
+			assert_reals_equal ("showing 3 in a 20 view scrolls to its top", 40.0, st.scroll_into_view (3, 0.0, 20.0), 0.0)
+			assert_reals_equal ("showing 1 from below scrolls up to it", 0.0, st.scroll_into_view (1, 30.0, 20.0), 0.0)
+			assert_false ("the same key keeps the measurements", st.reset_if_changed (3, "w400"))
+			assert_false ("measured for revision 0", st.needs_measure (3, 0))
+			assert_true ("a new revision re-measures", st.needs_measure (3, 1))
+			st.invalidate
+			assert_true ("invalidated: the same key resets", st.reset_if_changed (3, "w400"))
+			assert_true ("and every item measures again", st.needs_measure (1, 0))
+		end
+
 	test_wheel_clamps
 		local
 			l: SW_PARAGRAPH_LIST

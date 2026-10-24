@@ -190,6 +190,26 @@ feature -- Measurement and layout
 			usable: not Result.is_empty
 		end
 
+	fonts_for_role (a_role, a_pixel_size: INTEGER; a_bold: BOOLEAN): FONT_LIST
+			-- The policy `layout_styled' uses for `a_role' at `a_pixel_size'
+			-- (the small script faces below `small_size_below'), for a host
+			-- that lays text out through SW_TEXT_GEOMETRY.set_fonts (GW-13:
+			-- a document's body in the reading face, its headings in the UI
+			-- face). Shared and cached: never restyle it.
+		require
+			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
+				or a_role = {SW_PAINTER}.Role_mono
+			size_positive: a_pixel_size > 0
+		do
+			if a_pixel_size < small_size_below and then not small_script_faces.is_empty then
+				Result := small_styled_fonts (a_role, a_bold)
+			else
+				Result := styled_fonts (a_role, a_bold)
+			end
+		ensure
+			usable: not Result.is_empty
+		end
+
 	line_height (a_pixel_size: INTEGER): REAL_64
 			-- One line of this kit's primary face at `a_pixel_size': the
 			-- facade's `line_height' under this kit's policy. It is the row
