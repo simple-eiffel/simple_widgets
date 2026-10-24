@@ -137,6 +137,7 @@ feature {NONE} -- Test runners
 			run_test (agent list_tests.test_wheel_clamps, "wheel_clamps")
 			run_test (agent list_tests.test_double_click_activates, "double_click_activates")
 			run_test (agent list_tests.test_row_pebble_offer, "row_pebble_offer")
+			run_test (agent list_tests.test_bar_drag_ends_on_release, "list_bar_drag_ends_on_release")
 		end
 
 	run_chrome_tests

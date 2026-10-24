@@ -19,7 +19,7 @@ inherit
 		redefine
 			widget_at, handle_wheel, handle_click, handle_drag,
 			wants_hover_point, pebble_at, handle_double_click,
-			handle_key, accepts_focus
+			handle_key, accepts_focus, handle_release, set_bounds
 		end
 
 create
@@ -33,6 +33,8 @@ feature {NONE} -- Initialization
 		do
 			viewport_height := a_viewport_height
 			row_height := 30.0
+			create bar.make
+			create bar_theme.make_light
 		ensure
 			kept: viewport_height = a_viewport_height
 		end
@@ -46,6 +48,22 @@ feature -- Access
 	viewport_height: REAL_64
 
 	scroll_y: REAL_64
+
+	bar: SW_VSCROLLBAR
+			-- The scrollbar at the right edge.
+
+	bar_theme: SW_THEME
+			-- The theme the bar was last sized by (before any draw, light).
+
+feature -- Element change (bounds)
+
+	set_bounds (a_x, a_y, a_w, a_h: REAL_64)
+			-- Place the list and its bar.
+		do
+			Precursor (a_x, a_y, a_w, a_h)
+			bar.place (x, y, width, height, bar_theme)
+			bar.set_extent (height, content_height)
+		end
 
 	selected_index: INTEGER
 			-- 1-based selected row; 0 = none.
@@ -84,7 +102,7 @@ feature -- Access
 			r: INTEGER
 		do
 			r := row_at (a_py)
-			if r > 0 and then a_px < x + width - Bar_w and then attached row_pebble as rp then
+			if r > 0 and then not bar.contains (a_px, a_py) and then attached row_pebble as rp then
 				Result := rp.item ([r])
 			else
 				Result := pebble
@@ -135,6 +153,7 @@ feature -- Element change
 				selected_index := 0
 			end
 			scroll_y := scroll_y.min (max_scroll)
+			bar.set_extent (height, content_height)
 		ensure
 			set: row_count = a_n
 			selection_still_valid: selected_index <= a_n
@@ -262,8 +281,6 @@ feature -- Element change
 
 feature -- Layout
 
-	Bar_w: REAL_64 = 11.0
-
 	wants_hover_point: BOOLEAN
 		do
 			Result := True
@@ -281,12 +298,15 @@ feature -- Drawing
 		local
 			t: SW_THEME
 			i: INTEGER
-			ry, inner_w, track_h, thumb_h, thumb_y: REAL_64
+			ry, inner_w: REAL_64
 		do
 			t := a_p.theme
+			bar_theme := t
+			bar.place (x, y, width, height, t)
+			bar.set_extent (height, content_height)
 			scroll_y := scroll_y.min (max_scroll)
 			a_p.push_clip (x, y, width, height)
-			inner_w := width - Bar_w - 4.0
+			inner_w := width - bar.bar_width - 4.0
 			if row_count > 0 and then attached row_renderer as rr then
 				from
 					i := first_visible
@@ -297,7 +317,7 @@ feature -- Drawing
 					if i = selected_index then
 						a_p.set_color (t.wash_accent)
 						a_p.fill_rect (x, ry, inner_w, row_height)
-					elseif shows_hover and then hover_px < x + width - Bar_w
+					elseif shows_hover and then not bar.contains (hover_px, hover_py)
 						and then hover_py >= ry and then hover_py < ry + row_height
 					then
 						a_p.set_color (t.surface_variant)
@@ -308,19 +328,7 @@ feature -- Drawing
 				end
 			end
 			a_p.pop_clip
-			if max_scroll > 0.0 then
-				track_h := height - 4.0
-				a_p.set_color (t.surface_variant)
-				a_p.rrect_fill (x + width - Bar_w, y + 2.0, Bar_w - 2.0, track_h, 4.0)
-				thumb_h := (height / content_height * track_h).max (24.0)
-				thumb_y := y + 2.0 + (scroll_y / max_scroll) * (track_h - thumb_h)
-				if shows_hover and then hover_px >= x + width - Bar_w then
-					a_p.set_color (t.accent)
-				else
-					a_p.set_color (t.outline)
-				end
-				a_p.rrect_fill (x + width - Bar_w + 1.5, thumb_y, Bar_w - 5.0, thumb_h, 3.0)
-			end
+			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
 		end
 
 feature -- Hit testing
@@ -336,8 +344,8 @@ feature -- Input
 
 	handle_wheel (a_delta: INTEGER): BOOLEAN
 		do
-			scroll_y := (scroll_y - a_delta / 120.0 * row_height * 2.0)
-				.max (0.0).min (max_scroll)
+			bar.set_extent (height, content_height)
+			scroll_y := bar.wheel_scroll (scroll_y, a_delta, row_height)
 			Result := True
 		end
 
@@ -345,8 +353,9 @@ feature -- Input
 		local
 			i: INTEGER
 		do
-			if a_px >= x + width - Bar_w and max_scroll > 0.0 then
-				scroll_y := ((a_py - y) / height * max_scroll).max (0.0).min (max_scroll)
+			bar.set_extent (height, content_height)
+			if bar.contains (a_px, a_py) then
+				scroll_y := bar.press (a_py, scroll_y)
 			elseif row_count > 0 then
 				i := row_at (a_py)
 				if i > 0 then
@@ -361,7 +370,7 @@ feature -- Input
 			i: INTEGER
 		do
 			i := row_at (a_py)
-			if i > 0 and a_px < x + width - Bar_w then
+			if i > 0 and not bar.contains (a_px, a_py) then
 				select_row (i)
 				if attached on_activate as a then
 					a.call (i)
@@ -372,9 +381,17 @@ feature -- Input
 
 	handle_drag (a_px, a_py: REAL_64)
 		do
-			if a_px >= x + width - Bar_w and max_scroll > 0.0 then
-				scroll_y := ((a_py - y) / height * max_scroll).max (0.0).min (max_scroll)
+			if bar.is_dragging then
+				scroll_y := bar.drag_to (a_py)
 			end
+		end
+
+	handle_release (a_x, a_y: INTEGER)
+			-- Let go of the scrollbar thumb.
+		do
+			bar.release
+		ensure then
+			released: not bar.is_dragging
 		end
 
 invariant
