@@ -61,7 +61,7 @@ can be hovered and followed.
   Escape and Ctrl+A; the bold word realized at weight 700 and a drag from a
   link selecting without following it; spacing at 1x and 2x; a 300-paragraph
   document; and the Hebrew and Greek gate in both themes (evidence
-  gw13_document_light.png and gw13_document_dark.png). 397 pass.
+  gw13_document_light.png and gw13_document_dark.png). 398 pass.
 
 Editing (notes) is the second half of GW-13.
 
