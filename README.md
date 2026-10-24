@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-397%2F397-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-398%2F398-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -61,8 +61,9 @@ theme, with evidence PNGs in `evidence/`.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 397 contract-assault tests passing at 0.21.0 (`screen_grab_marries_cairo` reads the
-  real desktop and fails in a locked session — environment, not code)
+- 398 contract-assault tests passing at 0.21.0 (`screen_grab_marries_cairo` reads the
+  real desktop and fails while it is unreadable, such as a locked session or a sleeping
+  display — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
   compiled out of release-shaped builds via the devkit override
