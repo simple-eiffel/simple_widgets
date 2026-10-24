@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-383%2F383-brightgreen.svg" alt="383/383 tests">
+            <img src="https://img.shields.io/badge/tests-397%2F397-brightgreen.svg" alt="397/397 tests">
         </div>
     </header>
 
@@ -39,7 +39,7 @@
 
     <main>
         <section id="recent">
-            <h2>Recent additions (0.9.0 - 0.19.0, for simple_bible)</h2>
+            <h2>Recent additions (0.9.0 - 0.21.0, for simple_bible)</h2>
             <table>
                 <tr><th>Version</th><th>What</th></tr>
                 <tr><td><code>0.9.0</code></td><td>Theme tokens for filled controls, status inks and dark mode (GW-28)</td></tr>
@@ -53,8 +53,10 @@
                 <tr><td><code>0.17.0</code></td><td>Pointing at a word, hover/dwell/scroll events, raised Strong's numbers and small-caps LORD (GW-08)</td></tr>
                 <tr><td><code>0.18.0</code></td><td>The hover card: a non-modal widget tree anchored at a word, open while hovered (GW-09)</td></tr>
                 <tr><td><code>0.19.0</code></td><td>The dock: tabbed zones, draggable edges, hide/show/remove, snapshot and restore (GW-05)</td></tr>
+                <tr><td><code>0.20.0</code></td><td>Shared view parts: one scrollbar, and the deferred ancestors for pointing, scrolling and selection</td></tr>
+                <tr><td><code>0.21.0</code></td><td>The rich document view: headings, lists, quotes, tables and links, read in a scrolling column (GW-13, reading)</td></tr>
             </table>
-            <p>Text items are gated on Hebrew and Greek in both themes; 383 tests pass at 0.19.1.</p>
+            <p>Text items are gated on Hebrew and Greek in both themes; 397 tests pass at 0.21.0.</p>
         </section>
 
         <section id="overview">
@@ -166,6 +168,8 @@
                 <tr><td><em>no Vision2 name - a native control owns its own margins</em></td><td><code>SW_THEME.control_inset</code></td><td>11 px</td><td>space between a control's edge and its label</td></tr>
                 <tr><td><code>EV_LAYOUT_CONSTANTS.default_button_height</code></td><td><code>SW_PAINTER.min_control_height</code></td><td>measured</td><td>ascent + descent + 2 &times; <code>control_inset</code></td></tr>
                 <tr><td><code>EV_LAYOUT_CONSTANTS.dialog_unit_to_pixels</code></td><td><code>SW_THEME.text_scale</code></td><td>&times;1.0</td><td>the one knob every token is multiplied by</td></tr>
+                <tr><td><em>no Vision2 name</em></td><td><code>SW_THEME.scrollbar_width</code></td><td>12 px</td><td>the column a vertical scrollbar takes (0.20.0)</td></tr>
+                <tr><td><em>no Vision2 name</em></td><td><code>SW_THEME.min_thumb</code></td><td>24 px</td><td>the shortest a scrollbar thumb draws, so it stays grabbable (0.20.0)</td></tr>
             </table>
             <p><strong>The border is applied once.</strong> <code>SW_WINDOW</code> insets
             its root by <code>theme.border_width</code> on all four sides
@@ -187,6 +191,43 @@
             <code>min_control_height</code> adds the inside inset above and below.
             Measured 1x &rarr; 2x: button 38 &rarr; 75, text box 42 &rarr; 80, check box
             38 &rarr; 75, number box 38 &rarr; 75, label 24 &rarr; 47 px.</p>
+        </section>
+
+        <section id="document-view">
+            <h2>The document view and the shared building blocks</h2>
+            <p><code>SW_DOCUMENT_VIEW</code> (0.21.0) reads a rich document: a
+            commentary, a lexicon entry, a dictionary article or a library document.
+            The model is <code>SW_DOCUMENT</code>, an ordered list of
+            <code>SW_DOC_BLOCK</code>s: paragraphs, headings of three levels, bulleted
+            and numbered items, block quotes, rules and tables. Every text is an
+            <code>SW_RICH_TEXT</code> with inline bold, italic, small capitals,
+            superscript and links that carry a target. The model knows no markup; a host
+            builds it from Markdown or HTML.</p>
+            <p>The view draws links in the theme's <code>ink_accent</code>, calls
+            <code>on_link_click (target)</code> when one is followed, reports
+            <code>on_link_hover</code>, selects across blocks and table cells, and copies
+            with Ctrl+C. Hover cards come from <code>set_hover_card_builder</code>, as in
+            the paragraph list. A Hebrew paragraph sits flush right. Editing is the
+            second half of GW-13 and is not built yet.</p>
+            <h3>Shared building blocks (0.20.0)</h3>
+            <ul>
+                <li><code>SW_TEXT_POINTING</code>, <code>SW_VSCROLLING</code> and
+                <code>SW_TEXT_SELECTION</code> are deferred ancestors. A widget inherits
+                them side by side (Eiffel multiple inheritance), because none of them
+                redefines another's <code>SW_WIDGET</code> features.
+                <code>SW_DOCUMENT_VIEW</code> inherits all three;
+                <code>SW_PARAGRAPH_LIST</code> inherits the first two.</li>
+                <li><code>SW_VSCROLLBAR</code> is the one vertical scrollbar. Lists,
+                paragraph lists, scroll areas, chat threads, trees and data grids all use
+                it. Its drag keeps the grab point and ends on release.</li>
+                <li><code>SW_BLOCK_STACK</code> stacks items of different heights and finds
+                the item under a point by binary search.</li>
+                <li><code>SW_WORD_BOUNDARY</code> is the one definition of what a word
+                is.</li>
+                <li>The theme tokens <code>scrollbar_width</code> (12 px at 1x) and
+                <code>min_thumb</code> (24 px at 1x) size the scrollbar and scale with the
+                text.</li>
+            </ul>
         </section>
 
         <section id="gallery">
@@ -641,7 +682,7 @@
             <p>
                 The library ships a test target that drives the model layer headless - including
                 drawing, via a painter over an offscreen cairo surface - with <em>every assertion
-                live</em> (F_code with contracts kept). 383 tests at 0.19.1 (75 across ten assault sets at first); the suite
+                live</em> (F_code with contracts kept). 397 tests at 0.21.0 (75 across ten assault sets at first); the suite
                 caught three real defects on its first day (a truncation alias in list row math, a
                 clipboard race against history managers, and an ECF namespace clash).
             </p>
