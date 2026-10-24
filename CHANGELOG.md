@@ -21,6 +21,50 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Added (0.21.0 — THE RICH DOCUMENT VIEW; GW-13, reading)
+
+simple_bible shows commentaries, lexicon entries, dictionary articles and
+author-library documents as formatted text, with Scripture references that
+can be hovered and followed.
+
+- **The model.** `SW_DOCUMENT` is an ordered list of `SW_DOC_BLOCK`s:
+  paragraphs, headings (levels 1 to 3), bulleted and numbered items and
+  block quotes (depths 1 to 3), rules and tables (a header row, then rows of
+  cells). Every text is an `SW_RICH_TEXT` with inline bold, italic, small
+  capitals, superscript and links with a target. Overlapping spans are
+  flattened for the shaper (`SW_RICH_TEXT.styles`). Numbered items count
+  within their run (`number_of`); `plain_text` is what Copy gives. The
+  model knows no markup: a host builds it from Markdown or HTML.
+- **The view.** `SW_DOCUMENT_VIEW` inherits SW_TEXT_POINTING, SW_VSCROLLING
+  and SW_TEXT_SELECTION and stacks its blocks on SW_BLOCK_STACK. It sets
+  bold, italic, superscript and small capitals through simple_shaping 0.6.0,
+  draws links in the theme's `ink_accent` over an underline (heavier under
+  the pointer), and gives the hand pointer over a link and the I-beam over
+  text. A press and release on one link calls `on_link_click (target)`;
+  `on_link_hover` hears the link under the pointer change. A selection runs
+  across blocks and table cells (cells of a row copy tab-separated);
+  Ctrl+C, Ctrl+A, Escape, double-click selects a word. Hover cards come from
+  `set_hover_card_builder` as in the paragraph list. Units (a block's text
+  or one table cell) are numbered in reading order: `unit_block`,
+  `unit_row`, `unit_column`, `link_target_at`, `unit_geometry`.
+- **Tables** size each column to its widest cell on one line and shrink
+  them in proportion when the page is narrower; the header row is washed.
+- **Hebrew and Greek.** Every text is laid out with Align_start: a Hebrew
+  paragraph sits flush right, and a Hebrew list item or quote carries its
+  bullet or bar on the right.
+- **Spacing from the theme:** page inset `border_width`, blocks `padding`
+  apart, a level-1 heading `border_width` above, list indent twice
+  `border_width` a level, quote indent `border_width` a level, cells padded
+  by `control_inset` across and half the `padding` down.
+- Tests: span flattening; numbering and plain text; pointing, link hover,
+  hand pointer, link click, selection across blocks and a table row,
+  Escape and Ctrl+A; the bold word realized at weight 700 and a drag from a
+  link selecting without following it; spacing at 1x and 2x; a 300-paragraph
+  document; and the Hebrew and Greek gate in both themes (evidence
+  gw13_document_light.png and gw13_document_dark.png). 397 pass.
+
+Editing (notes) is the second half of GW-13.
+
 ### Changed (0.20.0 — SHARED VIEW PARTS: SCROLLING, POINTING, SELECTION, STACKING)
 
 Larry asked that common code be pushed up the abstraction structure, using

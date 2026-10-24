@@ -1,0 +1,364 @@
+note
+	description: "[
+		Assault on GW-13, the rich document: SW_RICH_TEXT flattening its
+		spans for the shaper, SW_DOCUMENT's blocks, numbering and plain
+		text, and SW_DOCUMENT_VIEW - layout, pointing, links, selection
+		across blocks and cells, spacing from the theme, a long document,
+		and the Hebrew and Greek gate in both themes (evidence
+		gw13_document_light.png and gw13_document_dark.png). Inherits the
+		shaping assault for its scripture fixtures and its kit.
+	]"
+
+class
+	SW_DOCUMENT_ASSAULT
+
+inherit
+	SW_SHAPING_ASSAULT
+
+feature -- The model
+
+	test_gw13_rich_text_flattens_for_the_shaper
+			-- Overlapping spans become one setting per stretch: bold, bold
+			-- italic, italic link, link.
+		local
+			r: SW_RICH_TEXT
+			s: SHAPING_STYLES
+		do
+			create r.make ("abcdefghijklmnop")
+			r.add_bold (1, 8)
+			r.add_italic (5, 8)
+			r.add_link (10, 5, "John 3:16")
+			s := r.styles (1)
+			assert_integers_equal ("bold at 1", 700, s.weight_at (1))
+			assert_false ("not italic at 1", s.is_italic_at (1))
+			assert_true ("bold italic at 6", s.weight_at (6) = 700 and s.is_italic_at (6))
+			assert_true ("italic link at 11", s.weight_at (11) = 0 and s.is_italic_at (11) and s.ink_at (11) = 1)
+			assert_true ("link alone at 14", s.ink_at (14) = 1 and not s.is_italic_at (14))
+			assert_integers_equal ("plain after", 0, s.ink_at (15) + s.weight_at (15))
+			assert_integers_equal ("the link is found", 3, r.link_at (12))
+			assert_true ("its target kept", r.span_target (3).same_string ("John 3:16"))
+			r.set_text ("abcdefghij")
+			assert_integers_equal ("the link past the end was cut to it", 1, r.span_length (3))
+			r.set_text ("abc")
+			assert_integers_equal ("spans past the end went", 1, r.span_count)
+			create r.make ("plain")
+			assert_true ("no spans, no styles", r.styles (1).is_empty)
+		end
+
+	test_gw13_document_numbers_and_plain_text
+			-- Numbered items count within their run and depth; the plain
+			-- text has bullets, numbers and a table's tabs.
+		local
+			d: SW_DOCUMENT
+			t: SW_DOC_BLOCK
+			l_expected: STRING_32
+		do
+			create d.make
+			d.add_heading (1, "Notes").do_nothing
+			d.add_numbered (1, "one").do_nothing
+			d.add_bullet (2, "inner").do_nothing
+			d.add_numbered (1, "two").do_nothing
+			d.add_paragraph ("break").do_nothing
+			d.add_numbered (1, "again").do_nothing
+			d.add_rule
+			t := d.add_table (<<"Word", "Gloss">>)
+			t.add_row (<<"bara", "create">>)
+			assert_integers_equal ("first", 1, d.number_of (2))
+			assert_integers_equal ("a deeper item does not break the run", 2, d.number_of (4))
+			assert_integers_equal ("a paragraph restarts it", 1, d.number_of (6))
+			assert_integers_equal ("not numbered", 0, d.number_of (3))
+			create l_expected.make (80)
+			l_expected.append ("Notes%N1. one%N")
+			l_expected.append_code (0x2022)
+			l_expected.append (" inner%N2. two%Nbreak%N1. again%N%NWord%TGloss%Nbara%Tcreate")
+			assert_strings_equal ("plain text", l_expected, d.plain_text)
+		end
+
+feature -- The view
+
+	test_gw13_view_points_links_and_selects
+			-- A laid-out view answers which unit and character are under a
+			-- point, follows a link on press and release, shows a hand over
+			-- it, and copies a selection across blocks and table cells.
+		local
+			w: SW_WINDOW
+			v: SW_DOCUMENT_VIEW
+			b: TUPLE [x, y, width, height: REAL_64]
+			mx, my: REAL_64
+			l_expected: STRING_32
+		do
+			create w.make ("doc", 0, 0, 700, 500, create {SW_THEME}.make_light)
+			attach_kit (w)
+			v := sample_view
+			v.set_on_link_click (agent note_link)
+			w.set_root (v)
+			w.request_render
+			assert_true ("laid out", v.is_laid_out)
+			assert_integers_equal ("units: four texts and four cells", 8, v.unit_count)
+			assert_integers_equal ("unit 5 is a cell", 5, v.unit_block (5))
+			assert_true ("in row 1, column 1", v.unit_row (5) = 1 and v.unit_column (5) = 1)
+			b := v.text_boxes (2, 0, 1).first
+			assert_integers_equal ("unit 2 under its first letter", 2, v.pointed_item (b.x + 1.0, b.y + 1.0))
+			assert_integers_equal ("its first character", 1, v.character_at (b.x + b.width / 2.0, b.y + b.height / 2.0))
+				-- The link: "John 3:16" at 33 .. 41 of unit 2.
+			b := v.text_boxes (2, 32, 41).first
+			mx := b.x + b.width / 2.0
+			my := b.y + b.height / 2.0
+			v.set_hover_point (mx, my)
+			assert_true ("the hovered link", v.hovered_link.same_string ("John 3:16"))
+			assert_integers_equal ("a hand over it", 2, v.cursor_kind)
+			last_link := Void
+			assert_true ("the press is taken", v.handle_click (mx, my))
+			v.handle_release (mx.truncated_to_integer, my.truncated_to_integer)
+			assert_true ("the release followed the link",
+				attached last_link as al_l and then al_l.same_string ("John 3:16"))
+				-- Selection: from the heading's 3rd character into the
+				-- paragraph, and a table row.
+			v.select_range (1, 2, 2, 3)
+			create l_expected.make_from_string ("mmentary%NFor")
+			assert_strings_equal ("across blocks", l_expected, v.selected_text)
+			v.select_range (7, 0, 8, 6)
+			assert_strings_equal ("a row's cells joined by a tab", {STRING_32} "bara%Tcreate", v.selected_text)
+			v.handle_char (27)
+			assert_false ("Escape clears", v.has_selection)
+			v.handle_char (1)
+			assert_true ("Ctrl+A selects all", v.has_selection and v.anchor_item = 1 and v.caret_item = 8)
+		end
+
+	test_gw13_bold_and_links_reach_the_shaper
+			-- The paragraph's bold word is laid out in a bold face; a press
+			-- and drag selects; the drag never follows a link.
+		local
+			w: SW_WINDOW
+			v: SW_DOCUMENT_VIEW
+			b1: TUPLE [x, y, width, height: REAL_64]
+		do
+			create w.make ("doc", 0, 0, 700, 500, create {SW_THEME}.make_light)
+			attach_kit (w)
+			v := sample_view
+			v.set_on_link_click (agent note_link)
+			w.set_root (v)
+			w.request_render
+			assert_integers_equal ("God is set bold", 700, run_weight (v.unit_geometry (2), 5))
+			assert_integers_equal ("For is not", 400, run_weight (v.unit_geometry (2), 1))
+			last_link := Void
+			b1 := v.text_boxes (2, 32, 33).first
+			assert_true ("press on the link", v.handle_click (b1.x + 1.0, b1.y + 2.0))
+			v.handle_drag (b1.x + 60.0, b1.y + 2.0)
+			v.handle_release ((b1.x + 60.0).truncated_to_integer, (b1.y + 2.0).truncated_to_integer)
+			assert_true ("a drag selects", v.has_selection)
+			assert_true ("and does not follow the link", last_link = Void)
+		end
+
+	test_gw13_spacing_follows_the_theme
+			-- The page inset is border_width, a level-1 list item is indented
+			-- twice that, a heading after the first block takes border_width
+			-- above it; at 2x text all of it doubles.
+		local
+			w1, w2: SW_WINDOW
+			v1, v2: SW_DOCUMENT_VIEW
+			t2: SW_THEME
+		do
+			create w1.make ("doc", 0, 0, 700, 500, create {SW_THEME}.make_light)
+			attach_kit (w1)
+			v1 := sample_view
+			w1.set_root (v1)
+			w1.request_render
+			create t2.make_light
+			t2.set_text_scale (2.0)
+			create w2.make ("doc", 0, 0, 1400, 1000, t2)
+			attach_kit (w2)
+			v2 := sample_view
+			w2.set_root (v2)
+			w2.request_render
+			assert_reals_equal ("the page inset is the border", w1.theme.border_width, v1.content_pad, 0.000_1)
+			assert_reals_equal ("and doubles", 2.0 * v1.content_pad, v2.content_pad, 0.000_1)
+			assert_reals_equal ("a level-1 item is indented two borders",
+				2.0 * w1.theme.border_width, v1.unit_origin_x (3) - v1.x - v1.content_pad, 0.000_1)
+			assert_reals_equal ("the indent doubles",
+				2.0 * (v1.unit_origin_x (3) - v1.x - v1.content_pad), v2.unit_origin_x (3) - v2.x - v2.content_pad, 0.000_1)
+			assert_true ("blocks a padding apart",
+				(v1.block_top (2) - (v1.block_top (1) + v1.block_height (1)) - w1.theme.padding).abs < 0.000_1)
+		end
+
+	test_gw13_long_document_scrolls
+			-- Three hundred paragraphs: only a band is drawn, the end can be
+			-- reached, and the block under a point is found there.
+		local
+			w: SW_WINDOW
+			v: SW_DOCUMENT_VIEW
+			d: SW_DOCUMENT
+			i: INTEGER
+		do
+			create w.make ("doc", 0, 0, 500, 400, create {SW_THEME}.make_light)
+			attach_kit (w)
+			create d.make
+			from i := 1 until i > 300 loop
+				d.add_paragraph ("Paragraph " + i.out + " of a long commentary.").do_nothing
+				i := i + 1
+			end
+			create v.make (400.0)
+			v.set_document (d)
+			w.set_root (v)
+			w.request_render
+			assert_true ("overflows", v.max_scroll > 0.0)
+			assert_integers_equal ("starts at the top", 1, v.first_visible)
+			assert_true ("only a band is visible", v.last_visible < 40)
+			v.scroll_to (v.max_scroll)
+			w.request_render
+			assert_integers_equal ("the end reached", 300, v.last_visible)
+			assert_integers_equal ("the last paragraph under the last text line", 300,
+				v.unit_block (v.pointed_item (v.unit_origin_x (300) + 2.0, v.unit_origin_y (300) + 2.0)))
+			assert_true ("a wheel notch up moves", v.handle_wheel (120) and v.scroll_y < v.max_scroll)
+		end
+
+feature -- Hebrew and Greek, both themes
+
+	test_gw13_document_light
+		do
+			document_gate (create {SW_THEME}.make_light, "gw13_document_light.png")
+		end
+
+	test_gw13_document_dark
+		do
+			document_gate (create {SW_THEME}.make_dark, "gw13_document_dark.png")
+		end
+
+feature {NONE} -- Fixtures
+
+	last_link: detachable STRING_32
+			-- The target the last link click reported.
+
+	note_link (a_target: STRING_32)
+		do
+			last_link := a_target
+		end
+
+	attach_kit (a_window: SW_WINDOW)
+			-- A shaping kit on `a_window', its faces the theme's.
+		local
+			kit: SW_SHAPING
+		do
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (a_window.theme)
+			a_window.set_shaping (kit)
+		end
+
+	sample_view: SW_DOCUMENT_VIEW
+			-- A heading, a paragraph with a bold word and a link, two
+			-- bullets, and a two-by-two table.
+		local
+			d: SW_DOCUMENT
+			r: SW_RICH_TEXT
+			t: SW_DOC_BLOCK
+		do
+			create d.make
+			d.add_heading (1, "Commentary").do_nothing
+			r := d.add_paragraph ("For God so loved the world; see John 3:16 and read on.")
+			r.add_bold (5, 3)
+			r.add_link (33, 9, "John 3:16")
+			d.add_bullet (1, "In the beginning").do_nothing
+			d.add_bullet (1, "the Word").do_nothing
+			t := d.add_table (<<"Word", "Gloss">>)
+			t.add_row (<<"bara", "create">>)
+			create Result.make (480.0)
+			Result.set_document (d)
+		end
+
+	document_gate (a_theme: SW_THEME; a_evidence: STRING)
+			-- A lexicon-style document: a heading, pointed Genesis 1:1 with
+			-- cantillation, polytonic John 1:1, a mixed English and Hebrew
+			-- line with a link, a Hebrew bullet, a quote, a rule and a
+			-- table with Hebrew and Greek cells. The Hebrew reads right to
+			-- left flush right, nothing is skipped, and the evidence PNG is
+			-- written for a person to look at.
+		local
+			w: SW_WINDOW
+			kit: SW_SHAPING
+			v: SW_DOCUMENT_VIEW
+			d: SW_DOCUMENT
+			r: SW_RICH_TEXT
+			t: SW_DOC_BLOCK
+			b: TUPLE [x, y, width, height: REAL_64]
+			path: STRING_32
+		do
+			create w.make ("gw13", 0, 0, 760, 640, a_theme)
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (a_theme)
+			w.set_shaping (kit)
+			create d.make
+			d.add_heading (1, "Genesis 1:1 and John 1:1").do_nothing
+			d.add_paragraph (genesis_1_1_wlc).do_nothing
+			d.add_paragraph (john_1_1_wh).do_nothing
+			r := d.add_paragraph (mixed_english_hebrew)
+			r.add_link (1, 11, "Gen 1:1")
+			r := d.add_paragraph ("In the beginning God created; compare John 1:1 and Proverbs 8:22.")
+			r.add_bold (1, 16)
+			r.add_italic (18, 3)
+			r.add_link (39, 8, "John 1:1")
+			r.add_link (52, 13, "Prov 8:22")
+			d.add_heading (2, "Senses").do_nothing
+			d.add_bullet (1, genesis_first_word).do_nothing
+			d.add_numbered (1, "to create, of God alone").do_nothing
+			d.add_numbered (1, "to shape, to form").do_nothing
+			d.add_quote (1, "The verb is used only of divine activity.").do_nothing
+			d.add_rule
+			t := d.add_table (<<"Hebrew", "Greek", "Gloss">>)
+			t.add_row (<<genesis_first_word, john_first_words, "in the beginning">>)
+			create v.make (640.0)
+			v.set_document (d)
+			w.set_root (v)
+			w.request_render
+			assert_true ("laid out", v.is_laid_out)
+			assert_true ("the Hebrew paragraph reads right to left", v.text_boxes (2, 0, 1).count = 1)
+			b := v.text_boxes (2, 0, 1).first
+			assert_true ("its first letter stands at the right of the page",
+				b.x + b.width > v.x + v.width - v.content_pad - v.bar.bar_width - 40.0)
+			assert_integers_equal ("nothing skipped", 0, kit.bridge.skipped_runs)
+			assert_true ("runs painted", kit.bridge.painted_runs > 20)
+			path := evidence_path (a_evidence)
+			if not path.is_empty then
+				if w.write_frame (path) then
+				end
+			end
+		end
+
+	run_weight (a_geometry: SW_TEXT_GEOMETRY; a_character: INTEGER): INTEGER
+			-- The weight of the glyph run over `a_character' of the first
+			-- layout; 0 when none covers it.
+		do
+			if not a_geometry.layouts.is_empty then
+				across a_geometry.layouts.first.lines as ln loop
+					across ln.runs as rn loop
+						if attached {GLYPH_RUN} rn as al_g and then a_character >= al_g.source_start
+							and then a_character < al_g.source_start + al_g.source_count
+						then
+							Result := al_g.font.weight
+						end
+					end
+				end
+			end
+		end
+
+	john_first_words: STRING_32
+			-- The first two words of John 1:1 (WH), up to the second space.
+		local
+			i, spaces: INTEGER
+		do
+			create Result.make (16)
+			from
+				i := 1
+			until
+				i > john_1_1_wh.count or spaces = 2
+			loop
+				if john_1_1_wh.item (i) = ' ' then
+					spaces := spaces + 1
+				end
+				if spaces < 2 then
+					Result.extend (john_1_1_wh.item (i))
+				end
+				i := i + 1
+			end
+		end
+
+end
