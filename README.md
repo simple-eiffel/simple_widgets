@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-383%2F383-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-397%2F397-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -16,7 +16,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.9.0 - 0.17.0: the simple_bible gap program** (tracker in simple_bible,
+**0.9.0 - 0.21.0: the simple_bible gap program** (tracker in simple_bible,
 `.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
 every text item is gated on Hebrew and Greek in both the light and the dark
 theme, with evidence PNGs in `evidence/`.
@@ -34,6 +34,8 @@ theme, with evidence PNGs in `evidence/`.
 | 0.17.0 | GW-08 | `SW_PARAGRAPH_LIST.character_at` / `text_boxes`; `on_hover`, `on_dwell` (400 ms, window-timed), `on_scroll`; raised Strong's numbers and small-caps LORD through `set_styles` |
 | 0.18.0 | GW-09 | The hover card: `SW_WINDOW.show_hover_card`, non-modal, anchored at a word, open while hovered; `SW_WIDGET.hover_card_at`; `SW_PARAGRAPH_LIST.set_hover_card_builder` and `word_at` |
 | 0.19.0 | GW-05 | The dock: tabbed zones, draggable zone edges and `set_fraction`, hide/show/remove panels by key, `layout_snapshot` / `restore_layout`; spacing from the theme tokens |
+| 0.20.0 | - | Shared view parts: `SW_VSCROLLBAR` for every scrolling widget, the deferred ancestors `SW_TEXT_POINTING`, `SW_VSCROLLING` and `SW_TEXT_SELECTION`, `SW_BLOCK_STACK`, `SW_WORD_BOUNDARY`; theme tokens `scrollbar_width` and `min_thumb` |
+| 0.21.0 | GW-13 | The rich document view (reading): `SW_DOCUMENT_VIEW` over an `SW_DOCUMENT` of `SW_DOC_BLOCK`s and `SW_RICH_TEXT`; headings, lists, quotes, rules and tables; links with `on_link_click` and `on_link_hover`; selection across blocks and cells; Hebrew and Greek gated |
 
 ✅ **ALL SIX WAVES SHIPPED, plus the Studio widgets (0.8.2)** — 114 classes (108 library + 5 devkit + 1 speechkit)
 - 0.8.2: `SW_TEXT_BOX` measures the same whatever was drawn last
@@ -59,7 +61,7 @@ theme, with evidence PNGs in `evidence/`.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 383 contract-assault tests passing at 0.19.1 (`screen_grab_marries_cairo` reads the
+- 397 contract-assault tests passing at 0.21.0 (`screen_grab_marries_cairo` reads the
   real desktop and fails in a locked session — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
@@ -118,6 +120,35 @@ drawn menus (built fresh on every open), menu bar (builder agents), toolbar
 PNG display with contain scaling; a waveform (envelope from a sampler agent,
 playhead, markers, seek); a shell-drop zone (WM_DROPFILES
 through the widget spine to any opted-in control).
+
+**Document view (0.21.0)** — `SW_DOCUMENT_VIEW` reads a rich document:
+commentaries, lexicon entries, dictionary articles and library documents.
+The model is `SW_DOCUMENT`, an ordered list of `SW_DOC_BLOCK`s (paragraphs,
+headings of three levels, bulleted and numbered items, block quotes, rules
+and tables). Every text is an `SW_RICH_TEXT` with inline bold, italic, small
+capitals, superscript and links that carry a target. The model knows no
+markup; a host builds it from Markdown or HTML. The view draws links in the
+theme's `ink_accent`, calls `on_link_click (target)` when one is followed,
+reports `on_link_hover`, selects across blocks and table cells, and copies
+with Ctrl+C. A Hebrew paragraph sits flush right. Editing is the second half
+of GW-13 and is not built yet.
+
+**Shared building blocks (0.20.0)** — the common parts of the scrolling and
+text widgets live once:
+- `SW_TEXT_POINTING`, `SW_VSCROLLING` and `SW_TEXT_SELECTION` are deferred
+  ancestors. A widget inherits them side by side (Eiffel multiple
+  inheritance), because none of them redefines another's `SW_WIDGET`
+  features. Pointing gives the character under the pointer, hover, dwell and
+  hover cards. Scrolling gives the position, the bar, the wheel and the
+  paging keys. Selection gives a selection across items, Copy and Select All.
+  `SW_DOCUMENT_VIEW` inherits all three; `SW_PARAGRAPH_LIST` inherits the
+  first two.
+- `SW_VSCROLLBAR` is the one vertical scrollbar, owned by `SW_LIST`,
+  `SW_PARAGRAPH_LIST`, `SW_SCROLL_AREA`, `SW_CHAT_THREAD`, `SW_TREE` and
+  `SW_DATA_GRID`. Its drag keeps the grab point and ends on release.
+- `SW_BLOCK_STACK` stacks items of different heights and finds the item under
+  a point by binary search.
+- `SW_WORD_BOUNDARY` is the one definition of what a word is.
 
 **Services** — clipboard (Unicode, surrogate-safe, hardened against
 clipboard-history races), modifier keys, ISpellChecker wrapper.
@@ -596,6 +627,11 @@ without touching a layout.
 | *(no Vision2 name — a native control owns its own margins)* | `SW_THEME.control_inset` | 11 px | space between a control's edge and its label |
 | `EV_LAYOUT_CONSTANTS.default_button_height` | `SW_PAINTER.min_control_height` | measured | ascent + descent + 2 × `control_inset` |
 | `EV_LAYOUT_CONSTANTS.dialog_unit_to_pixels` | `SW_THEME.text_scale` | ×1.0 | the one knob every token is multiplied by |
+| *(no Vision2 name)* | `SW_THEME.scrollbar_width` | 12 px | the column a vertical scrollbar takes (0.20.0) |
+| *(no Vision2 name)* | `SW_THEME.min_thumb` | 24 px | the shortest a scrollbar thumb draws, so it stays grabbable (0.20.0) |
+
+The last two tokens size `SW_VSCROLLBAR`, so every scrolling widget draws the
+same bar, and both scale with the text.
 
 **The border is applied once.** `SW_WINDOW` insets its root widget by
 `theme.border_width` on all four sides (`SW_WINDOW.content_border`), and
