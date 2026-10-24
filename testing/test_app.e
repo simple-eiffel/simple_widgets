@@ -650,6 +650,16 @@ feature {NONE} -- Test runners
 			run_test (agent shaped_edit_tests.test_shaped_height_ignores_the_last_font, "textbox_shaped_height_ignores_the_last_font")
 			run_test (agent shaped_edit_tests.test_toy_lines_stack_at_row_height, "textbox_toy_lines_stack_at_row_height")
 			run_test (agent shaped_edit_tests.test_shaped_lines_stack_at_row_height, "textbox_shaped_lines_stack_at_row_height")
+			print ("%N=== GW-13 RICH DOCUMENT ===%N")
+			create document_tests
+			run_test (agent document_tests.test_gw13_rich_text_flattens_for_the_shaper, "gw13_rich_text_flattens_for_the_shaper")
+			run_test (agent document_tests.test_gw13_document_numbers_and_plain_text, "gw13_document_numbers_and_plain_text")
+			run_test (agent document_tests.test_gw13_view_points_links_and_selects, "gw13_view_points_links_and_selects")
+			run_test (agent document_tests.test_gw13_bold_and_links_reach_the_shaper, "gw13_bold_and_links_reach_the_shaper")
+			run_test (agent document_tests.test_gw13_spacing_follows_the_theme, "gw13_spacing_follows_the_theme")
+			run_test (agent document_tests.test_gw13_long_document_scrolls, "gw13_long_document_scrolls")
+			run_test (agent document_tests.test_gw13_document_light, "gw13_document_light")
+			run_test (agent document_tests.test_gw13_document_dark, "gw13_document_dark")
 			create paragraph_tests
 			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
 			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")
@@ -699,6 +709,7 @@ feature {NONE} -- Test runners
 	shaped_edit_tests: SW_SHAPED_EDIT_ASSAULT
 
 	paragraph_tests: SW_PARAGRAPH_LIST_ASSAULT
+	document_tests: SW_DOCUMENT_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.
