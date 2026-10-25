@@ -41,6 +41,12 @@ feature -- Access
 
 	Min_width: REAL_64 = 40.0
 
+	alignment: INTEGER
+			-- How cells sit in the column: a SHAPING_CONSTANTS Align_* code.
+			-- Align_start (the default) is left for left-to-right text and
+			-- RIGHT for right-to-left - a Hebrew line sits flush right with
+			-- nothing asked; Align_right suits numbers.
+
 	grow: REAL_64
 			-- Share of the grid's spare width this column takes when the
 			-- grid is wider than its columns; 0 = its own width only (the
@@ -88,6 +94,29 @@ feature -- Element change
 			key := a_key
 			Result := Current
 		ensure
+			chained: Result = Current
+		end
+
+feature -- Alignment
+
+	set_alignment (a_alignment: INTEGER)
+		require
+			valid: a_alignment >= {SHAPING_CONSTANTS}.Align_start and a_alignment <= {SHAPING_CONSTANTS}.Align_center
+		do
+			alignment := a_alignment
+		ensure
+			set: alignment = a_alignment
+		end
+
+	aligned (a_alignment: INTEGER): like Current
+			-- Fluent `set_alignment'.
+		require
+			valid: a_alignment >= {SHAPING_CONSTANTS}.Align_start and a_alignment <= {SHAPING_CONSTANTS}.Align_center
+		do
+			set_alignment (a_alignment)
+			Result := Current
+		ensure
+			set: alignment = a_alignment
 			chained: Result = Current
 		end
 

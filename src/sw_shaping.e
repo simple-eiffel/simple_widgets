@@ -150,9 +150,16 @@ feature -- Measurement and layout
 			-- generations of `Memo_generation' layouts each: when the newer
 			-- fills it becomes the older and the oldest goes, so scrolling a
 			-- long list never empties the memo at once.
+			--
+			-- A change made on `facade' directly (a font file loaded, the
+			-- default fonts or asset directory set, its cache cleared) moves
+			-- its `policy_revision', and the memo forgets on the next call.
 		local
 			l_key: STRING_32
 		do
+			if facade.policy_revision /= memo_revision then
+				forget_layouts
+			end
 			l_key := memo_key (a_text, a_width_pixels, a_pixel_size, a_role, a_bold)
 			if attached memo.item (l_key) as al_layout then
 				Result := al_layout
@@ -186,14 +193,20 @@ feature -- Measurement and layout
 			-- cells many times over.
 
 	forget_layouts
-			-- Drop what `layout_styled' remembers. The font setters here do
-			-- it themselves; call it after changing `facade''s fonts directly.
+			-- Drop what `layout_styled' remembers. The font setters here and
+			-- any policy change on `facade' (its `policy_revision') do it
+			-- without being asked.
 		do
 			memo.wipe_out
 			older_memo.wipe_out
+			memo_revision := facade.policy_revision
 		ensure
 			forgotten: memo_count = 0
+			in_step: memo_revision = facade.policy_revision
 		end
+
+	memo_revision: INTEGER
+			-- The facade's `policy_revision' the memo's layouts were made under.
 
 	styled_fonts (a_role: INTEGER; a_bold: BOOLEAN): FONT_LIST
 			-- The policy for `a_role' at regular or bold weight: the role's

@@ -1,7 +1,7 @@
 note
 	description: "[
-		A small cache of ONE-LINE shaped layouts, and the cluster
-		arithmetic that goes with them: what the toolkit's CHROME needs
+		ONE-LINE shaped layouts, and the cluster arithmetic that goes
+		with them: what the toolkit's CHROME needs
 		to paint a label through simple_shaping instead of through
 		cairo's toy `show_text'.
 
@@ -15,14 +15,12 @@ note
 		artwork and shapes no complex script. A menu item whose label is
 		an emoji drew as an empty box in every consumer with shaped text on.
 
-		THE CACHE IS BY VALUE. The key is the text and the PIXEL SIZE,
-		and the pixel size is where the theme's `text_scale' already
-		is - `(size * text_scale).rounded' is the number the glyphs are
-		shaped at, so a scale change is a different key by construction
-		and there is nothing extra to remember. A kit swap (a theme
-		swap rebuilds the faces) empties the cache, and `Cap' bounds it
-		so a long-lived menu bar cannot grow one entry per frame under
-		an animated scale.
+		NO CACHE OF ITS OWN (0.28.2). It kept 64 layouts, wiped only when the
+		kit OBJECT changed, and shaped through `layout_for', which ignores
+		the script faces - so a menu could keep a stale layout after a font
+		change and draw Hebrew in another face than `SW_PAINTER.text'. It now
+		shapes through `SW_SHAPING.layout_styled', whose memo follows every
+		font change, and keeps only the cluster arithmetic.
 
 		WHAT IT IS NOT. It does not wrap, it does not elide, and it
 		does not measure a paragraph. SW_CHAT_THREAD keeps its own
@@ -49,57 +47,40 @@ create
 feature {NONE} -- Initialization
 
 	make
-			-- An empty cache.
+			-- Nothing to set up: the layouts come from the kit's memo.
 		do
-			create keys.make (Cap)
-			create layouts.make (Cap)
-		ensure
-			empty: count = 0
 		end
 
 feature -- Access
 
-	count: INTEGER
-			-- How many layouts are remembered.
-		do
-			Result := layouts.count
-		ensure
-			non_negative: Result >= 0
-		end
-
 	layout_of (a_kit: SW_SHAPING; a_text: READABLE_STRING_GENERAL; a_pixel_size: INTEGER): SHAPED_LAYOUT
-			-- `a_text' shaped to ONE unbounded line at `a_pixel_size' -
-			-- from the cache when this pair has been asked for before,
-			-- freshly shaped and remembered when it has not.
+			-- `a_text' shaped to ONE unbounded line at `a_pixel_size', in the
+			-- UI face at regular weight.
 		require
 			size_positive: a_pixel_size > 0
-		local
-			k: STRING_32
-			i: INTEGER
 		do
-			if a_kit /= last_kit then
-					-- A different kit is a different font policy, so every
-					-- layout in hand was shaped under an answer that no
-					-- longer applies.
-				wipe_out
-				last_kit := a_kit
-			end
-			k := key (a_text, a_pixel_size)
-			i := index_of (k)
-			if i > 0 then
-				Result := layouts.i_th (i)
-			else
-				if count >= Cap then
-					wipe_out
-				end
-				Result := a_kit.layout_for (a_text, {SHAPING_CONSTANTS}.No_wrap, a_pixel_size)
-				keys.extend (k)
-				layouts.extend (Result)
-			end
+			Result := layout_styled_of (a_kit, a_text, a_pixel_size, {SW_PAINTER}.Role_ui, False)
 		ensure
 			at_that_size: Result.pixel_size = a_pixel_size
 			unbounded: Result.width_pixels = {SHAPING_CONSTANTS}.No_wrap
-			remembered: is_cached (a_text, a_pixel_size)
+		end
+
+	layout_styled_of (a_kit: SW_SHAPING; a_text: READABLE_STRING_GENERAL; a_pixel_size, a_role: INTEGER;
+			a_bold: BOOLEAN): SHAPED_LAYOUT
+			-- `a_text' shaped to ONE unbounded line at `a_pixel_size' in the
+			-- face of `a_role' - through `SW_SHAPING.layout_styled', the path
+			-- `SW_PAINTER.text' takes, so a menu or a label gets the same
+			-- faces (script faces included) and the same memo, invalidated
+			-- the same way.
+		require
+			size_positive: a_pixel_size > 0
+			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
+				or a_role = {SW_PAINTER}.Role_mono
+		do
+			Result := a_kit.layout_styled (a_text, {SHAPING_CONSTANTS}.No_wrap, a_pixel_size, a_role, a_bold)
+		ensure
+			at_that_size: Result.pixel_size = a_pixel_size
+			unbounded: Result.width_pixels = {SHAPING_CONSTANTS}.No_wrap
 		end
 
 	width_of (a_kit: SW_SHAPING; a_text: READABLE_STRING_GENERAL; a_pixel_size: INTEGER): REAL_64
@@ -112,14 +93,6 @@ feature -- Access
 			Result := layout_of (a_kit, a_text, a_pixel_size).total_width
 		ensure
 			non_negative: Result >= 0.0
-		end
-
-	is_cached (a_text: READABLE_STRING_GENERAL; a_pixel_size: INTEGER): BOOLEAN
-			-- Is this pair remembered right now?
-		require
-			size_positive: a_pixel_size > 0
-		do
-			Result := index_of (key (a_text, a_pixel_size)) > 0
 		end
 
 feature -- Geometry
@@ -207,73 +180,5 @@ feature -- Geometry
 		ensure
 			non_negative: Result.width >= 0.0
 		end
-
-feature -- Removal
-
-	wipe_out
-			-- Forget every layout.
-		do
-			keys.wipe_out
-			layouts.wipe_out
-		ensure
-			empty: count = 0
-		end
-
-feature {NONE} -- Implementation
-
-	keys: ARRAYED_LIST [STRING_32]
-			-- One key per cached layout, parallel to `layouts'.
-
-	layouts: ARRAYED_LIST [SHAPED_LAYOUT]
-			-- The cached layouts, parallel to `keys'.
-
-	last_kit: detachable SW_SHAPING
-			-- The kit every cached layout was shaped by.
-
-	Cap: INTEGER = 64
-			-- How many layouts one cache holds before it starts over.
-			-- A menu bar of a dozen pads at two scales is nowhere near
-			-- it; an animated scale would be, and this is what stops
-			-- that becoming a leak.
-
-	key (a_text: READABLE_STRING_GENERAL; a_pixel_size: INTEGER): STRING_32
-			-- The cache key for `a_text' at `a_pixel_size'. The size
-			-- goes FIRST and is followed by a character no size can
-			-- produce, so no text can ever forge another pair's key.
-		require
-			size_positive: a_pixel_size > 0
-		do
-			create Result.make (a_text.count + 8)
-			Result.append_string_general (a_pixel_size.out)
-			Result.append_character ('|')
-			Result.append_string_general (a_text.to_string_32)
-		ensure
-			not_empty: not Result.is_empty
-		end
-
-	index_of (a_key: READABLE_STRING_32): INTEGER
-			-- 1-based position of `a_key' in `keys'; 0 when absent.
-		local
-			i: INTEGER
-		do
-			from
-				i := 1
-			until
-				i > keys.count or Result /= 0
-			loop
-				if keys.i_th (i).same_string (a_key) then
-					Result := i
-				end
-				i := i + 1
-			end
-		ensure
-			in_range: Result >= 0 and Result <= keys.count
-		end
-
-invariant
-	keys_attached: keys /= Void
-	layouts_attached: layouts /= Void
-	parallel: keys.count = layouts.count
-	bounded: count <= Cap
 
 end
