@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.34.1 - the thirteenth scan, since fc84965: the UI Automation bridge)
+
+Needs simple_shell 1.22.1. Six HIGH findings, each with a test that failed
+with the old behaviour:
+- **Served once the window opens.** `run` renders before the native window
+  exists, so the only publish named no window and polling readers got
+  nothing. `on_shell_open` publishes, and a frame republishes when the
+  served window is not this one (`scan13_a_real_window_is_served_once_it_opens`,
+  on a hidden, offscreen window that closes itself on its first heartbeat).
+- **A reader's request republishes** (event 59): a window renders only on
+  input, so a reader that asked later was served a stale tree
+  (`scan13_a_request_republishes`).
+- **Stable node ids.** Ids were tree positions, so widgets added before a
+  text box shifted its id and a focus request reached the wrong widget.
+  Each widget now has its own `accessible_node_id` for life;
+  `accessible_widget_with_id` finds it (`scan13_ids_survive_an_insert`).
+- **The focus is told once**, not on every publish
+  (`accessible_focus_tellings`; `scan13_the_focus_is_told_once`).
+- **Dialogs, sheets and menus are reachable.** An open sheet's widgets, a
+  dialog (a window node with its message and buttons, `SW_DIALOG.button_bounds`)
+  and a popup menu's items are published; a focus request is refused under a
+  modal dialog or menu (`scan13_a_dialog_is_reachable_and_modal`).
+- **Closed and hidden parts are left out.** A closed accordion section was
+  published with stale bounds, and a dock zone published none of its panels;
+  now open sections and shown panels only (tabbed zone: the active one)
+  (`scan13_closed_and_hidden_parts_are_left_out`).
+- Not done: rows, cells and items drawn inside a widget; bounds are not
+  clipped to scroll areas; no property-changed events; one table per process.
+  Report: `.eiffel-workflow/evidence/design-scan-since-fc84965.md`. 505 pass.
+
 ### Added (0.34.0 - GW-18: dashes, hatches and gradients in SW_PAINTER)
 
 Phase 4 begins. Certainty classes drawn by pattern, never by colour alone.

@@ -20,7 +20,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			widget_at, pebble_at, accepts_pebble, receive_pebble, arrange, handle_click
+			widget_at, pebble_at, accepts_pebble, receive_pebble, arrange, handle_click,
+			accessible_children, accessible_role, default_accessible_name
 		end
 
 	SW_TAB_STRIP
@@ -135,6 +136,49 @@ feature -- Access
 			-- As tall as a title bar.
 		do
 			Result := bar_h
+		end
+
+feature -- Accessibility (GW-14)
+
+	accessible_children: ARRAYED_LIST [SW_WIDGET]
+			-- The panels shown: in a tabbed zone the active one only (scan 13:
+			-- a zone published no panels at all).
+		local
+			mine: ARRAYED_LIST [INTEGER]
+			act: INTEGER
+		do
+			create Result.make (4)
+			mine := host.panels_in (zone_id)
+			if is_tabbed then
+				act := host.active_panel (zone_id)
+				if act > 0 then
+					Result.extend (host.panels.i_th (act).content)
+				end
+			else
+				across
+					mine as m
+				loop
+					Result.extend (host.panels.i_th (m).content)
+				end
+			end
+		end
+
+	accessible_role: INTEGER
+		do
+			if is_tabbed then
+				Result := {SW_ACCESSIBILITY}.Role_tab
+			else
+				Result := {SW_ACCESSIBILITY}.Role_pane
+			end
+		end
+
+	default_accessible_name: STRING_32
+			-- The active panel's title when tabbed, else empty.
+		do
+			create Result.make_empty
+			if is_tabbed and then host.active_panel (zone_id) > 0 then
+				Result := host.panels.i_th (host.active_panel (zone_id)).title.twin
+			end
 		end
 
 feature -- Pebbles

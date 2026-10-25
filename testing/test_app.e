@@ -773,6 +773,12 @@ feature {NONE} -- Test runners
 			run_test (agent uia_tests.test_gw14_scripture_names_are_intact, "gw14_scripture_names_are_intact")
 			run_test (agent uia_tests.test_gw14_focus_is_told_and_requests_are_obeyed, "gw14_focus_is_told_and_requests_are_obeyed")
 			run_test (agent uia_tests.test_gw14_a_given_name_and_switching_off, "gw14_a_given_name_and_switching_off")
+			run_test (agent uia_tests.test_scan13_ids_survive_an_insert, "scan13_ids_survive_an_insert")
+			run_test (agent uia_tests.test_scan13_the_focus_is_told_once, "scan13_the_focus_is_told_once")
+			run_test (agent uia_tests.test_scan13_a_request_republishes, "scan13_a_request_republishes")
+			run_test (agent uia_tests.test_scan13_a_dialog_is_reachable_and_modal, "scan13_a_dialog_is_reachable_and_modal")
+			run_test (agent uia_tests.test_scan13_closed_and_hidden_parts_are_left_out, "scan13_closed_and_hidden_parts_are_left_out")
+			run_test (agent uia_tests.test_scan13_a_real_window_is_served_once_it_opens, "scan13_a_real_window_is_served_once_it_opens")
 			print ("%N=== GW-29 VIRTUAL GRID ===%N")
 			create virtual_grid_tests
 			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_light, "gw29_hundred_thousand_rows_light")

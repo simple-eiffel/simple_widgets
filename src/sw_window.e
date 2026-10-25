@@ -228,37 +228,53 @@ feature -- Accessibility (GW-14)
 		end
 
 	accessible_widgets: ARRAYED_LIST [SW_WIDGET]
-			-- The widgets published last, in tree order: the node id of each
-			-- is its index (node 0 is the window itself).
+			-- The widgets published last, in tree order (node 0, the window
+			-- itself, is not among them).
 		attribute
 			create Result.make (64)
 		end
 
 	accessible_id_of (a_widget: SW_WIDGET): INTEGER
-			-- The node id `a_widget' was published under; 0 when it was not.
+			-- The node id `a_widget' was published under (its own, stable
+			-- `accessible_node_id'); 0 when it was not published last time.
+		do
+			if accessible_widgets.has (a_widget) then
+				Result := a_widget.accessible_node_id
+			end
+		ensure
+			non_negative: Result >= 0
+		end
+
+	accessible_widget_with_id (a_id: INTEGER): detachable SW_WIDGET
+			-- The widget published last under node id `a_id', if any.
 		local
 			i: INTEGER
 		do
 			from
 				i := 1
 			until
-				i > accessible_widgets.count or Result > 0
+				i > accessible_widgets.count or Result /= Void
 			loop
-				if accessible_widgets.i_th (i) = a_widget then
-					Result := i
+				if accessible_widgets.i_th (i).accessible_node_id = a_id then
+					Result := accessible_widgets.i_th (i)
 				end
 				i := i + 1
 			end
-		ensure
-			in_range: Result >= 0 and Result <= accessible_widgets.count
 		end
+
+	accessible_focus_tellings: INTEGER
+			-- How many times UI Automation has been told the focus moved.
 
 	publish_accessibility
 			-- Publish the widget tree: node 0 is the window (named by its
-			-- title), then every laid-out widget below the root in tree order,
-			-- each with its role, name, value, bounds, focusability and
-			-- enablement; then the keyboard focus. The window does this on the
-			-- first frame and on every frame while a client listens.
+			-- title), then every laid-out widget below the root in tree order
+			-- under its own stable id, each with its role, name, value,
+			-- bounds, focusability and enablement; then what floats above the
+			-- root - an open sheet's widgets, a dialog (its title, message and
+			-- buttons) and a popup menu's items (scan 13: none were reachable);
+			-- then the keyboard focus, when it moved. The window publishes when
+			-- it opens, on frames while a client listens, and when a client
+			-- asks (event 59).
 		local
 			l_parents: ARRAYED_LIST [INTEGER]
 			i: INTEGER
@@ -269,25 +285,32 @@ feature -- Accessibility (GW-14)
 			if attached root as al_root then
 				collect_accessible (al_root, 0, l_parents)
 			end
-			accessibility.begin_tree (accessible_widgets.count + 1)
-			accessibility.add_node (0, 0, {SW_ACCESSIBILITY}.Role_pane, title, Void, 0.0, 0.0, win_w, win_h, False, True)
+			if attached sheet as al_sheet then
+				collect_accessible (al_sheet, 0, l_parents)
+			end
+			accessibility.begin_tree (accessible_widgets.count + 1 + floating_node_count)
+			accessibility.add_node (0, 0, {SW_ACCESSIBILITY}.Role_window, title, Void, 0.0, 0.0, win_w, win_h, False, True)
 			from
 				i := 1
 			until
 				i > accessible_widgets.count
 			loop
 				w := accessible_widgets.i_th (i)
-				accessibility.add_node (i, l_parents.i_th (i), w.accessible_role, w.accessible_name, w.accessible_value,
-					w.x, w.y, w.width, w.height, w.accepts_focus, w.is_enabled)
+				accessibility.add_node (w.accessible_node_id, l_parents.i_th (i), w.accessible_role, w.accessible_name,
+					w.accessible_value, w.x, w.y, w.width, w.height, w.accepts_focus, w.is_enabled)
 				i := i + 1
 			end
+			add_floating_nodes
 			accessibility.commit (hwnd)
 			is_accessibility_published := True
-			last_told_focus := Void
 			tell_accessible_focus
 		ensure
 			published: is_accessibility_published
 		end
+
+	Floating_ids: INTEGER = 1_000_000_000
+			-- Node ids from here up name what has no widget: a dialog's parts,
+			-- a popup's items. Widget ids stay far below.
 
 	is_accessibility_published: BOOLEAN
 			-- Has the tree been published at least once?
@@ -581,8 +604,13 @@ feature -- Operation
 
 	on_shell_open
 			-- The native window is up: ground the class brush in the
-			-- theme and note the moment.
+			-- theme and note the moment; publish for screen readers now that
+			-- there is a window to serve (scan 13: the first publish, before
+			-- it existed, named no window).
 		do
+			if is_accessible then
+				publish_accessibility
+			end
 			set_backdrop_rgb (theme.background.to_integer_32)
 			log_line ("sw: session start scale=" + theme.text_scale.out
 				+ " size=" + win_w.out + "x" + win_h.out)
@@ -726,14 +754,19 @@ feature {NONE} -- Dispatch
 				end
 				request_render
 			elseif a_type = {SW_ACCESSIBILITY}.Event_focus_request then
-					-- A screen reader asked to focus node `a_x' (GW-14).
-				if a_x >= 1 and a_x <= accessible_widgets.count
-					and then accessible_widgets.i_th (a_x).accepts_focus
-					and then accessible_widgets.i_th (a_x).is_enabled
+					-- A screen reader asked to focus node `a_x' (GW-14): by its
+					-- stable id, and never under a modal dialog or menu.
+				if dialog = Void and then popup = Void
+					and then attached accessible_widget_with_id (a_x) as al_target
+					and then al_target.accepts_focus and then al_target.is_enabled
 				then
-					give_focus (accessible_widgets.i_th (a_x))
+					give_focus (al_target)
 					request_render
 				end
+			elseif a_type = {SW_ACCESSIBILITY}.Event_refresh_request and then is_accessible then
+					-- A screen reader asked for the tree: republish now, so a
+					-- window that renders only on input is not served stale.
+				publish_accessibility
 			elseif a_type = Event_wake and then attached on_wake as al_wake then
 					-- And a worker's result: a processor called
 					-- SHELL_WAKE.wake (GW-26). A dialog must not hold it back.
@@ -826,7 +859,7 @@ feature {NONE} -- Accessibility internals (GW-14)
 			if a_widget.width > 0.0 and a_widget.height > 0.0 then
 				accessible_widgets.extend (a_widget)
 				a_parents.extend (a_parent)
-				l_id := accessible_widgets.count
+				l_id := a_widget.accessible_node_id
 				across
 					a_widget.accessible_children as al_child
 				loop
@@ -839,7 +872,7 @@ feature {NONE} -- Accessibility internals (GW-14)
 
 	tell_accessible_focus
 			-- When the keyboard focus moved since UI Automation was last told,
-			-- tell it.
+			-- tell it - only then (scan 13: every publish told it again).
 		local
 			l_id: INTEGER
 		do
@@ -849,6 +882,67 @@ feature {NONE} -- Accessibility internals (GW-14)
 					l_id := accessible_id_of (al_focused)
 				end
 				accessibility.focus_changed (l_id)
+				accessible_focus_tellings := accessible_focus_tellings + 1
+			end
+		end
+
+	floating_node_count: INTEGER
+			-- Rows the dialog and the popup will add.
+		do
+			if attached dialog as al_d then
+				Result := Result + 2 + al_d.buttons.count
+			end
+			if attached popup as al_m then
+				Result := Result + 1 + al_m.items.count
+			end
+		end
+
+	add_floating_nodes
+			-- A dialog as a window holding its message and buttons; a popup
+			-- menu as a menu holding its items.
+		local
+			i, l_base: INTEGER
+			l_box: TUPLE [bx, by, bw, bh: REAL_64]
+			cy: REAL_64
+		do
+			if attached dialog as al_d then
+				l_base := Floating_ids
+				accessibility.add_node (l_base, 0, {SW_ACCESSIBILITY}.Role_window, al_d.title, Void,
+					al_d.x, al_d.y, al_d.width, al_d.height, False, True)
+				accessibility.add_node (l_base + 1, l_base, {SW_ACCESSIBILITY}.Role_text, al_d.message, Void,
+					al_d.x, al_d.y, al_d.width, al_d.height, False, True)
+				from
+					i := 1
+				until
+					i > al_d.buttons.count
+				loop
+					l_box := al_d.button_bounds (i)
+					accessibility.add_node (l_base + 1 + i, l_base, {SW_ACCESSIBILITY}.Role_button,
+						al_d.buttons.i_th (i).label, Void, l_box.bx, l_box.by, l_box.bw, l_box.bh, True, True)
+					i := i + 1
+				end
+			end
+			if attached popup as al_m then
+				l_base := Floating_ids + 1000
+				accessibility.add_node (l_base, 0, {SW_ACCESSIBILITY}.Role_menu, "", Void,
+					al_m.x, al_m.y, al_m.width, al_m.height, False, True)
+				cy := al_m.y + al_m.Pad
+				from
+					i := 1
+				until
+					i > al_m.items.count
+				loop
+					if not al_m.items.i_th (i).separator then
+						accessibility.add_node (l_base + i, l_base, {SW_ACCESSIBILITY}.Role_menu_item,
+							al_m.items.i_th (i).label, Void, al_m.x, cy, al_m.width, al_m.row_height (i),
+							False, al_m.items.i_th (i).enabled)
+					else
+						accessibility.add_node (l_base + i, l_base, {SW_ACCESSIBILITY}.Role_separator, "", Void,
+							al_m.x, cy, al_m.width, al_m.row_height (i), False, True)
+					end
+					cy := cy + al_m.row_height (i)
+					i := i + 1
+				end
 			end
 		end
 
@@ -2457,7 +2551,9 @@ feature {NONE} -- Rendering
 		do
 			render_frame
 			if is_accessible then
-				if not is_accessibility_published or else accessibility.clients_listening then
+				if not is_accessibility_published or else accessibility.served_window /= hwnd
+					or else accessibility.clients_listening
+				then
 					publish_accessibility
 				else
 					tell_accessible_focus

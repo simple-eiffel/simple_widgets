@@ -123,7 +123,185 @@ feature -- Naming and switching off
 			assert_false ("and nothing after a frame", w.accessibility.is_serving)
 		end
 
+feature -- Scan 13 (since fc84965)
+
+	test_scan13_ids_survive_an_insert
+			-- HIGH 3: node ids were tree positions, so widgets added before a
+			-- text box shifted its id and a screen reader's focus request
+			-- reached the wrong widget. Ids are the widgets' own now.
+		local
+			w: SW_WINDOW
+			col, inner: SW_COLUMN
+			tx: SW_TEXT_BOX
+			l_id: INTEGER
+		do
+			create w.make ("gw14", 0, 0, 600, 400, create {SW_THEME}.make_light)
+			create col.make
+			create inner.make
+			create tx.make_single_line ("note")
+			col.add (inner).do_nothing
+			col.add (tx).do_nothing
+			w.set_root (col)
+			w.request_render
+			l_id := w.accessible_id_of (tx)
+			inner.add (create {SW_LABEL}.make_ui ("one")).do_nothing
+			inner.add (create {SW_LABEL}.make_ui ("two")).do_nothing
+			w.request_render
+			w.publish_accessibility
+			assert_integers_equal ("the text box keeps its id", l_id, w.accessible_id_of (tx))
+			w.dispatch ({SW_ACCESSIBILITY}.Event_focus_request, l_id, 0)
+			assert_true ("a request by that id focuses the text box", w.focused = tx)
+		end
+
+	test_scan13_the_focus_is_told_once
+			-- HIGH 4: every publish told UI Automation the focus again, so a
+			-- listening reader heard it on every frame.
+		local
+			w: SW_WINDOW
+			col: SW_COLUMN
+			tx: SW_TEXT_BOX
+			l_told: INTEGER
+		do
+			create w.make ("gw14", 0, 0, 600, 400, create {SW_THEME}.make_light)
+			create col.make
+			create tx.make_single_line ("note")
+			col.add (tx).do_nothing
+			w.set_root (col)
+			w.request_render
+			w.give_focus (tx)
+			w.publish_accessibility
+			l_told := w.accessible_focus_tellings
+			w.publish_accessibility
+			w.publish_accessibility
+			assert_integers_equal ("told once, not on every publish", l_told, w.accessible_focus_tellings)
+		end
+
+	test_scan13_a_request_republishes
+			-- HIGH 2: a window renders only on input, so a reader that asked
+			-- later was served a stale tree. A request (event 59) republishes.
+		local
+			w: SW_WINDOW
+			col: SW_COLUMN
+			b: SW_BUTTON
+		do
+			create w.make ("gw14", 0, 0, 600, 400, create {SW_THEME}.make_light)
+			create col.make
+			create b.make ("Search", Void)
+			col.add (b).do_nothing
+			w.set_root (col)
+			w.request_render
+			b.set_accessible_name ("Search the Bible")
+			w.dispatch ({SW_ACCESSIBILITY}.Event_refresh_request, 0, 0)
+			assert_true ("the new name is served", w.accessibility.served_name (row_of (w, b)).same_string ("Search the Bible"))
+		end
+
+	test_scan13_a_dialog_is_reachable_and_modal
+			-- HIGH 5: dialogs, sheets and menus were never published, and a
+			-- focus request was obeyed under a modal dialog.
+		local
+			w: SW_WINDOW
+			col: SW_COLUMN
+			tx: SW_TEXT_BOX
+			d: SW_DIALOG
+		do
+			create w.make ("gw14", 0, 0, 600, 400, create {SW_THEME}.make_light)
+			create col.make
+			create tx.make_single_line ("note")
+			col.add (tx).do_nothing
+			w.set_root (col)
+			w.request_render
+			create d.make ({SW_DIALOG}.Kind_danger, "Delete the note?", "It cannot be undone.")
+			d.add_button ("Delete", True, Void)
+			d.add_button ("Cancel", False, Void)
+			w.show_dialog (d)
+			w.publish_accessibility
+			assert_true ("the dialog is a window", served_has (w, "Delete the note?", {SW_ACCESSIBILITY}.Role_window))
+			assert_true ("its message is read", served_has (w, "It cannot be undone.", {SW_ACCESSIBILITY}.Role_text))
+			assert_true ("Delete is a button", served_has (w, "Delete", {SW_ACCESSIBILITY}.Role_button))
+			assert_true ("Cancel is a button", served_has (w, "Cancel", {SW_ACCESSIBILITY}.Role_button))
+			w.dispatch ({SW_ACCESSIBILITY}.Event_focus_request, tx.accessible_node_id, 0)
+			assert_false ("no focus moves under the dialog", w.focused = tx)
+		end
+
+	test_scan13_closed_and_hidden_parts_are_left_out
+			-- HIGH 6: a closed accordion section was published (with stale
+			-- bounds); a dock zone published none of its panels. Now: open
+			-- sections and shown panels only.
+		local
+			w: SW_WINDOW
+			acc: SW_ACCORDION
+			open_one, closed_one: SW_LABEL
+			dh: SW_DOCK_HOST
+			p1, p2: SW_LABEL
+			l_ids: ARRAYED_LIST [INTEGER]
+		do
+			create w.make ("gw14", 0, 0, 800, 600, create {SW_THEME}.make_light)
+			create acc.make
+			create open_one.make_ui ("open")
+			create closed_one.make_ui ("closed")
+			acc.add_section ("First", open_one)
+			acc.add_section ("Second", closed_one)
+			w.set_root (acc)
+			acc.toggle_section (2)
+			w.request_render
+			assert_true ("open and laid out first", acc.is_section_open (2) and closed_one.height > 0.0)
+			acc.toggle_section (2)
+			w.request_render
+			assert_false ("the second section is closed", acc.is_section_open (2))
+			assert_integers_equal ("a closed section is not published", 0, w.accessible_id_of (closed_one))
+			create p1.make_ui ("Word study")
+			create p2.make_ui ("Search results")
+			create dh.make (create {SW_LABEL}.make_ui ("the document"))
+			create l_ids.make (2)
+			l_ids.extend (dh.add_panel ("Word study", p1, dh.Zone_south))
+			l_ids.extend (dh.add_panel ("Search results", p2, dh.Zone_south))
+			dh.set_tabbed (dh.Zone_south, True)
+			dh.activate_panel (l_ids [2])
+			w.set_root (dh)
+			w.request_render
+			w.publish_accessibility
+			assert_true ("the shown panel is published", w.accessible_id_of (p2) > 0)
+			assert_integers_equal ("the tab behind it is not", 0, w.accessible_id_of (p1))
+		end
+
+	test_scan13_a_real_window_is_served_once_it_opens
+			-- HIGH 1: `run' rendered before the native window existed, so the
+			-- only publish named no window and polling readers got nothing. A
+			-- hidden, offscreen window (never shown) is served once it opens;
+			-- it closes itself on its first heartbeat.
+		local
+			w: SW_WINDOW
+			col: SW_COLUMN
+		do
+			create w.make ("gw14 probe", -3000, -3000, 300, 200, create {SW_THEME}.make_light)
+			w.set_starts_hidden (True)
+			create col.make
+			col.add (create {SW_BUTTON}.make ("Search", Void)).do_nothing
+			w.set_root (col)
+			served_its_window := False
+			w.set_on_tick (agent (a_w: SW_WINDOW)
+				do
+					served_its_window := a_w.hwnd /= default_pointer and then a_w.accessibility.served_window = a_w.hwnd
+					a_w.close
+				end (w))
+			w.run
+			assert_true ("served for its own window once open", served_its_window)
+		end
+
 feature {NONE} -- Fixtures
+
+	served_its_window: BOOLEAN
+
+	served_has (a_window: SW_WINDOW; a_name: STRING; a_role: INTEGER): BOOLEAN
+			-- Is a row named `a_name' of `a_role' served?
+		local
+			r: INTEGER
+		do
+			from r := 1 until r > a_window.accessibility.served_rows or Result loop
+				Result := a_window.accessibility.served_name (r).same_string (a_name) and a_window.accessibility.served_role (r) = a_role
+				r := r + 1
+			end
+		end
 
 	form: TUPLE [col: SW_COLUMN; lb: SW_LABEL; bt: SW_BUTTON; tx, pw: SW_TEXT_BOX; cb: SW_CHECK_BOX; tb: SW_TABS; page_one, page_two: SW_LABEL]
 			-- A column: label, button, text box, password line, check box,

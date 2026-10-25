@@ -16,7 +16,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.9.0 - 0.34.0: the simple_bible gap program** (tracker in simple_bible,
+**0.9.0 - 0.34.1: the simple_bible gap program** (tracker in simple_bible,
 `.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
 every text item is gated on Hebrew and Greek in both the light and the dark
 theme, with evidence PNGs in `evidence/`.
@@ -44,6 +44,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.34.1 | - | The thirteenth scan: screen readers are served once the window opens and on request, with stable ids; dialogs, sheets and menus are reachable; closed and hidden parts are left out |
 | 0.34.0 | GW-18 | SW_PAINTER dashed, dotted and dash-dot strokes; six hatch fills for rectangles, rounded boxes and polygons; gradients and fades |
 | 0.33.0 | GW-14 | Screen readers: every widget gives a UI Automation role, name and value; SW_WINDOW publishes the tree, tells the focus and obeys focus requests (simple_shell 1.22.0) |
 | 0.32.1 | - | The twelfth scan: the animation setting survives a light/dark flip; SW_DIAGRAM holds still when motion is reduced |
@@ -80,7 +81,7 @@ theme, with evidence PNGs in `evidence/`.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 499 contract-assault tests passing at 0.34.0 (`screen_grab_marries_cairo` reads the
+- 505 contract-assault tests passing at 0.34.1 (`screen_grab_marries_cairo` reads the
   real desktop and fails while it is unreadable, such as a locked session or a sleeping
   display — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
