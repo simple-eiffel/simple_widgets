@@ -14,6 +14,9 @@ feature {NONE} -- Initialization
 			-- Assault the toolkit's model layer under full DBC.
 		do
 			print ("simple_widgets contract assault (F_code -keep, all assertions live)%N%N")
+				-- The real keyboard must not steer a test: nothing is held
+				-- unless a test simulates it (SW_KEYS.simulate).
+			(create {SW_KEYS}).simulate (False, False, False)
 			passed := 0
 			failed := 0
 
@@ -653,19 +656,25 @@ feature {NONE} -- Test runners
 			print ("%N=== GW-13 RICH DOCUMENT ===%N")
 			create document_tests
 			run_test (agent document_tests.test_gw13_rich_text_flattens_for_the_shaper, "gw13_rich_text_flattens_for_the_shaper")
-			run_test (agent document_tests.test_gw13_document_numbers_and_plain_text, "gw13_document_numbers_and_plain_text")
 			run_test (agent document_tests.test_gw13_view_points_links_and_selects, "gw13_view_points_links_and_selects")
 			run_test (agent document_tests.test_gw13_bold_and_links_reach_the_shaper, "gw13_bold_and_links_reach_the_shaper")
 			run_test (agent document_tests.test_gw13_spacing_follows_the_theme, "gw13_spacing_follows_the_theme")
 			run_test (agent document_tests.test_gw13_long_document_scrolls, "gw13_long_document_scrolls")
 			run_test (agent document_tests.test_gw13_document_light, "gw13_document_light")
 			run_test (agent document_tests.test_gw13_document_dark, "gw13_document_dark")
+			run_test (agent document_tests.test_gw13_edit_shows_the_source_and_keeps_it, "gw13_edit_shows_the_source_and_keeps_it")
+			run_test (agent document_tests.test_gw13_edit_splits_removes_and_adds, "gw13_edit_splits_removes_and_adds")
+			run_test (agent document_tests.test_gw13_ctrl_click_follows_while_editable, "gw13_ctrl_click_follows_while_editable")
+			run_test (agent document_tests.test_gw13_hebrew_and_greek_are_not_misspelled, "gw13_hebrew_and_greek_are_not_misspelled")
+			run_test (agent document_tests.test_gw13_editing_light, "gw13_editing_light")
+			run_test (agent document_tests.test_gw13_editing_dark, "gw13_editing_dark")
 			create paragraph_tests
 			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
 			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")
 			run_test (agent paragraph_tests.test_virtualisation_and_hit_test, "paragraphs_virtualisation_and_hit_test")
 			run_test (agent paragraph_tests.test_bar_drag_ends_on_release, "bar_drag_ends_on_release")
 			run_test (agent paragraph_tests.test_block_stack_lookups, "block_stack_lookups")
+			run_test (agent paragraph_tests.test_simulated_ctrl_click_toggles, "simulated_ctrl_click_toggles")
 			run_test (agent paragraph_tests.test_wheel_clamps, "paragraphs_wheel_clamps")
 			run_test (agent paragraph_tests.test_selection_set_and_anchor, "paragraphs_selection_set_and_anchor")
 			run_test (agent paragraph_tests.test_click_selects_and_keys_move, "paragraphs_click_selects_and_keys_move")

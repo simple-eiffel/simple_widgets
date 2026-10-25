@@ -128,6 +128,27 @@ feature -- Measurement
 			assert_true ("and every item measures again", st.needs_measure (1, 0))
 		end
 
+	test_simulated_ctrl_click_toggles
+			-- With Ctrl simulated held, a click adds a paragraph to the
+			-- selection; with nothing held, a click selects it alone. The
+			-- physical keyboard plays no part.
+		local
+			l: SW_PARAGRAPH_LIST
+			k: SW_KEYS
+		do
+			create k
+			l := filled (5)
+			l.set_bounds (0.0, 0.0, 400.0, 300.0)
+			l.arrange (plain_painter)
+			assert_true ("plain click", l.handle_click (50.0, l.item_top (2) + 2.0))
+			k.simulate (False, True, False)
+			assert_true ("Ctrl+click", l.handle_click (50.0, l.item_top (4) + 2.0))
+			k.simulate (False, False, False)
+			assert_true ("both selected", l.is_selected (2) and l.is_selected (4))
+			assert_true ("a plain click again", l.handle_click (50.0, l.item_top (3) + 2.0))
+			assert_true ("selects alone", l.is_selected (3) and not l.is_selected (2) and not l.is_selected (4))
+		end
+
 	test_wheel_clamps
 		local
 			l: SW_PARAGRAPH_LIST

@@ -91,6 +91,16 @@ inherit
 			handle_release
 		end
 
+	SW_IN_PLACE_EDITING
+		undefine
+			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
+		redefine
+			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
+			handle_double_click, handle_drag, handle_key, handle_char,
+			accepts_focus, wants_hover_point, cursor_kind, focusables,
+			handle_release
+		end
+
 create
 	make
 
@@ -116,7 +126,6 @@ feature {NONE} -- Initialization
 			init_pointing
 			wheel_line := 20.0
 			create mark_painter.make
-			create edit_backup.make_empty
 			create edit_marks_backup.make (0)
 			text_alignment := {SHAPING_CONSTANTS}.Align_left
 		ensure
@@ -157,23 +166,11 @@ feature -- Access
 			-- The anchor: the paragraph the keyboard moves from and
 			-- the editor opens on; 0 = none.
 
-	editing_index: INTEGER
-			-- The paragraph under the in-place editor; 0 = none.
-
-	editor: detachable SW_TEXT_BOX
-			-- The in-place editor while `is_editing'.
-
 	on_select: detachable PROCEDURE [INTEGER]
 			-- The anchor moved to this paragraph.
 
 	on_activate: detachable PROCEDURE [INTEGER]
 			-- A paragraph was double-clicked.
-
-	on_edit_change: detachable PROCEDURE [INTEGER, STRING_32]
-			-- The editor changed this paragraph's text (live).
-
-	on_edit_commit: detachable PROCEDURE [INTEGER, STRING_32]
-			-- The edit ended and this is the text that stands.
 
 	gutter_renderer: detachable PROCEDURE [SW_PAINTER, INTEGER, REAL_64, REAL_64, REAL_64, REAL_64]
 			-- Draws paragraph `index''s gutter: (painter, index, x, y, width, height).
@@ -230,13 +227,6 @@ feature -- Access
 		end
 
 feature -- Status
-
-	is_editing: BOOLEAN
-		do
-			Result := editing_index > 0
-		ensure
-			definition: Result = (editing_index > 0)
-		end
 
 	is_selected (a_i: INTEGER): BOOLEAN
 		require
@@ -621,7 +611,7 @@ feature -- Element change
 			in_range: a_i >= 1 and a_i <= count
 		do
 			if editing_index = a_i then
-				drop_editor
+				close_editor
 			end
 			texts.go_i_th (a_i)
 			texts.remove
@@ -714,7 +704,7 @@ feature -- Element change
 	wipe_out
 			-- No paragraphs, no selection, no editor.
 		do
-			drop_editor
+			close_editor
 			texts.wipe_out
 			revisions.wipe_out
 			bands_above.wipe_out
@@ -786,20 +776,6 @@ feature -- Element change
 			on_activate := a_action
 		ensure
 			set: on_activate = a_action
-		end
-
-	set_on_edit_change (a_action: PROCEDURE [INTEGER, STRING_32])
-		do
-			on_edit_change := a_action
-		ensure
-			set: on_edit_change = a_action
-		end
-
-	set_on_edit_commit (a_action: PROCEDURE [INTEGER, STRING_32])
-		do
-			on_edit_commit := a_action
-		ensure
-			set: on_edit_commit = a_action
 		end
 
 	set_gutter_renderer (a_r: PROCEDURE [SW_PAINTER, INTEGER, REAL_64, REAL_64, REAL_64, REAL_64])
@@ -916,23 +892,16 @@ feature -- Editing
 		require
 			in_range: a_i >= 1 and a_i <= count
 			not_editing: not is_editing
-		local
-			l_ed: SW_TEXT_BOX
 		do
-			create l_ed.make (texts.i_th (a_i))
-			l_ed.set_parent (Current)
-			l_ed.set_on_change (agent editor_changed)
-			l_ed.set_caret (l_ed.text.count)
-			l_ed.set_marks (marks_list.i_th (a_i))
-			l_ed.set_legend (legend)
-			l_ed.mark_painter.set_floors (mark_painter.min_mark_size, mark_painter.min_effect_size, mark_painter.min_badge_size)
-				-- GW-02: the editor places lines as the list does, so the
-				-- text does not jump sideways when editing begins.
-			l_ed.set_text_alignment (text_alignment)
-			l_ed.set_focused (True)
-			editor := l_ed
-			editing_index := a_i
-			edit_backup := texts.i_th (a_i).twin
+			open_editor (a_i, texts.i_th (a_i))
+			if attached editor as al_ed then
+				al_ed.set_marks (marks_list.i_th (a_i))
+				al_ed.set_legend (legend)
+				al_ed.mark_painter.set_floors (mark_painter.min_mark_size, mark_painter.min_effect_size, mark_painter.min_badge_size)
+					-- GW-02: the editor places lines as the list does, so the
+					-- text does not jump sideways when editing begins.
+				al_ed.set_text_alignment (text_alignment)
+			end
 			edit_marks_backup := marks_list.i_th (a_i).duplicate
 			select_only (a_i)
 		ensure
@@ -945,8 +914,6 @@ feature -- Editing
 	end_edit (a_commit: BOOLEAN)
 			-- Take the editor down: keep its text and tell the host
 			-- (`a_commit'), or restore what stood before.
-		require
-			editing: is_editing
 		local
 			i: INTEGER
 		do
@@ -960,9 +927,8 @@ feature -- Editing
 				marks_list.i_th (i).copy_from (edit_marks_backup)
 				revisions.put_i_th (revisions.i_th (i) + 1, i)
 			end
-			drop_editor
-		ensure
-			done: not is_editing
+			close_editor
+		ensure then
 			restored: not a_commit implies text_of (i_before (old editing_index)).same_string (old edit_backup)
 		end
 
@@ -1022,11 +988,8 @@ feature -- Layout
 			if is_editing and then attached editor as al_ed then
 				i := editing_index
 				ty := y - scroll_y + stack.top (i) + item_pad + bands_above.i_th (i)
-				al_ed.set_bounds (item_text_x (i) - al_ed.Pad_x, ty - al_ed.Pad_y,
-					text_width + 2.0 * al_ed.Pad_x,
-					stack.height (i) - 2.0 * item_pad - bands_above.i_th (i) - bands_below.i_th (i)
-						+ 2.0 * al_ed.Pad_y)
-				al_ed.arrange (a_p)
+				seat_editor (a_p, item_text_x (i), ty, text_width,
+					stack.height (i) - 2.0 * item_pad - bands_above.i_th (i) - bands_below.i_th (i))
 			end
 		end
 
@@ -1201,8 +1164,8 @@ feature -- Input
 		local
 			target: INTEGER
 		do
-			if is_editing and then attached editor as al_ed then
-				al_ed.handle_key (a_vk, a_shift)
+			if editor_key (a_vk, a_shift) then
+					-- The editor's.
 			elseif count > 0 then
 				inspect a_vk
 				when 40 then
@@ -1235,13 +1198,7 @@ feature -- Input
 	handle_char (a_code: INTEGER)
 			-- While editing: Escape cancels, everything else types.
 		do
-			if is_editing and then attached editor as al_ed then
-				if a_code = 27 then
-					end_edit (False)
-				else
-					al_ed.handle_char (a_code)
-				end
-			end
+			editor_char (a_code).do_nothing
 		end
 
 feature {NONE} -- Measurement
@@ -1270,8 +1227,6 @@ feature {NONE} -- Measurement
 	laid_width: REAL_64
 	laid_size: INTEGER
 	laid_shaped: BOOLEAN
-	edit_backup: STRING_32
-			-- The edited paragraph's text as it stood at `begin_edit'.
 
 	drop_measurements
 			-- Every paragraph measures again on the next frame.
@@ -1317,8 +1272,8 @@ feature {NONE} -- Measurement
 				i > count
 			loop
 				if stack.needs_measure (i, revisions.i_th (i)) or i = editing_index then
-					if i = editing_index and then attached editor as al_ed then
-						th := al_ed.preferred_height (a_p, tw + 2.0 * al_ed.Pad_x) - 2.0 * al_ed.Pad_y
+					if i = editing_index and then is_editing then
+						th := editor_text_height (a_p, tw)
 					elseif want_shaped and then attached a_p.shaping as al_kit then
 						th := shaped_height (al_kit, i, tw.floor.max (16), px)
 					else
@@ -1408,33 +1363,12 @@ feature {NONE} -- Measurement
 			Result := a_i
 		end
 
-	editor_changed
-			-- The editor typed: the paragraph follows, its height
-			-- reflows, and the host hears.
-		local
-			i: INTEGER
+	edited (a_i: INTEGER; a_text: STRING_32)
+			-- The editor typed: the paragraph follows and its height
+			-- reflows (SW_IN_PLACE_EDITING tells the host).
 		do
-			if is_editing and then attached editor as al_ed then
-				i := editing_index
-				texts.put_i_th (al_ed.text.twin, i)
-				revisions.put_i_th (revisions.i_th (i) + 1, i)
-				if attached on_edit_change as al_c then
-					al_c.call (i, al_ed.text.twin)
-				end
-			end
-		end
-
-	drop_editor
-			-- Take the editor down without judging its text.
-		do
-			if attached editor as al_ed then
-				al_ed.set_focused (False)
-				al_ed.set_parent (Void)
-			end
-			editor := Void
-			editing_index := 0
-		ensure
-			down: editor = Void and editing_index = 0
+			texts.put_i_th (a_text, a_i)
+			revisions.put_i_th (revisions.i_th (a_i) + 1, a_i)
 		end
 
 invariant
@@ -1445,7 +1379,6 @@ invariant
 	measurements_never_outrun: geometries.count <= count
 	anchor_in_range: selected_index >= 0 and selected_index <= count
 	editing_in_range: editing_index >= 0 and editing_index <= count
-	editor_iff_editing: (editor /= Void) = (editing_index > 0)
 	metrics_non_negative: gutter_width >= 0.0 and item_gap >= 0.0 and item_pad >= 0.0
 	viewport_positive: viewport_height > 0.0
 
