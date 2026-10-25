@@ -92,6 +92,7 @@ feature {NONE} -- Fixtures
 			l_rows: ARRAYED_LIST [SW_TEST_CONC_ROW]
 			l_wheel, l_page: ARRAYED_LIST [REAL_64]
 			l_sort: REAL_64
+			l_checked_wheel, l_checked_page: ARRAYED_LIST [REAL_64]
 			i, l_calls: INTEGER
 			path: STRING_32
 		do
@@ -135,6 +136,23 @@ feature {NONE} -- Fixtures
 				l_page.extend (timed (agent w.request_render))
 				i := i + 1
 			end
+			from
+				create l_checked_wheel.make (10)
+				create l_checked_page.make (10)
+				i := 1
+			until
+				i > 10
+			loop
+				g.handle_wheel (120).do_nothing
+				time_it (agent w.request_render)
+				l_checked_wheel.extend (last_ms)
+				g.handle_key (33, False)
+				time_it (agent w.request_render)
+				l_checked_page.extend (last_ms)
+				i := i + 1
+			end
+			report ("wheel frame with contracts on (median, report only)", median (l_checked_wheel))
+			report ("page-jump frame with contracts on (median, report only)", median (l_checked_page))
 			report ("wheel frame (median)", median (l_wheel))
 			report ("wheel frame (worst)", worst (l_wheel))
 			report ("page-jump frame (median)", median (l_page))

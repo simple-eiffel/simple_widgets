@@ -34,6 +34,28 @@ note
 		class adds no failure mode of its own.
 	]"
 	author: "Larry Rix"
+	contract_cost: "[
+		NOTE TO WHOEVER EDITS THIS NEXT (2026-10-25, simple_widgets 0.28.0 to
+		0.28.2). `layout_styled' is on every widget's draw path, every frame.
+
+		THE MEMO. It keeps two generations of layouts so a string drawn again
+		is one hash lookup. It must never serve a layout made under other
+		fonts: the font setters here call `forget_layouts', and any change on
+		`facade' moves `facade.policy_revision', which `layout_styled' checks
+		first. A new way to change fonts must do one or the other. Labels
+		and menus (SW_SHAPED_TEXT) come through here too, so they get the
+		same faces and the same forgetting.
+
+		CONTRACTS HERE stay O(1) or O(text): this runs per string per frame.
+		simple_shaping's `contract_cost' note says why (27 s for a paragraph
+		under assertions, from model clauses). Frame-budget tests time their
+		steps inside simple_testing's `without_contracts'
+		(SW_VIRTUAL_GRID_ASSAULT); Larry: "Timing needs trump contracts",
+		and keep the critical contracts that get you under the budget.
+		Measured 2026-10-25 with every contract on: a wheel frame of the
+		100,000-row grid 14.8 ms (budget 16.7), a page jump 42.6 ms (every
+		row shaped fresh) - the next contract trim belongs on that path.
+	]"
 
 class
 	SW_SHAPING

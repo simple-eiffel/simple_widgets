@@ -8,6 +8,21 @@ note
 		selected at its new place. Read-only in v1: activation is an
 		agent; editing composes outside (the SHEET lesson).
 	]"
+	performance: "[
+		NOTE TO WHOEVER EDITS THIS NEXT (GW-29, 2026-10-25). The grid holds
+		100,000 rows of shaped text at 60 Hz; SW_VIRTUAL_GRID_ASSAULT times it.
+		Keep these, or that test fails:
+		- Draw touches only the visible rows.
+		- `merge_sort_view' asks each row's key ONCE (`SW_GRID_COLUMN.sort_key')
+		  and merges over SPECIAL arrays; two agent calls a comparison made
+		  100,000 rows take 1.9 s.
+		- `add_row' places one row (filter that row, binary search); a full
+		  `rebuild_view' per added row took 10 s for 2,000 rows.
+		- Cells shape through the painter, whose kit memo makes a redrawn row
+		  free; a page of new rows is the expensive case.
+		Open: Row_h and Header_h are fixed pixels (they do not follow the
+		text scale); `selected_view_position' is a linear scan.
+	]"
 
 class
 	SW_DATA_GRID [G]
