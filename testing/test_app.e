@@ -765,6 +765,7 @@ feature {NONE} -- Test runners
 			run_test (agent strokes_tests.test_gw18_no_style_leaks, "gw18_no_style_leaks")
 			run_test (agent strokes_tests.test_gw18_hatches_stay_inside_and_cross_carries_more, "gw18_hatches_stay_inside_and_cross_carries_more")
 			run_test (agent strokes_tests.test_gw18_gradients_and_fades_run_end_to_end, "gw18_gradients_and_fades_run_end_to_end")
+			run_test (agent strokes_tests.test_scan14_a_huge_hatch_is_bounded, "scan14_a_huge_hatch_is_bounded")
 			run_test (agent strokes_tests.test_gw18_patterns_light, "gw18_patterns_light")
 			run_test (agent strokes_tests.test_gw18_patterns_dark, "gw18_patterns_dark")
 			print ("%N=== GW-14 UI AUTOMATION ===%N")

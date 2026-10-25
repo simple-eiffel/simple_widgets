@@ -119,6 +119,29 @@ feature -- Gradients
 			sf.destroy
 		end
 
+feature -- Scan 14 (since c01e578)
+
+	test_scan14_a_huge_hatch_is_bounded
+			-- HIGH: the dot hatch built one mark per spacing step over the
+			-- whole box, so 5,000 by 5,000 pixels at spacing 4 meant about
+			-- 1.5 million dots before one fill. The marks are bounded now:
+			-- the spacing widens until at most `Max_hatch_marks' fit. Timed
+			-- inside `without_contracts' (timing trumps contracts).
+		local
+			sf: CAIRO_SURFACE
+			p: SW_PAINTER
+		do
+			sf := surface (200, 200)
+			p := painter_on (sf)
+			p.set_color (0x000000)
+			without_contracts (agent time_it (agent p.hatch_rect (0.0, 0.0, 5000.0, 5000.0, Hatch_dots, 4.0)))
+			assert_true ("dots over a huge box: " + last_ms.out + " milliseconds", last_ms < 300.0)
+			assert_true ("the visible corner is still hatched", ink_count (sf, 0, 0, 199, 199) > 100)
+			without_contracts (agent time_it (agent p.hatch_rect (0.0, 0.0, 200000.0, 200000.0, Hatch_cross, 2.0)))
+			assert_true ("cross lines over a vast box: " + last_ms.out + " milliseconds", last_ms < 300.0)
+			sf.destroy
+		end
+
 feature -- Evidence
 
 	test_gw18_patterns_light
@@ -215,6 +238,19 @@ feature {NONE} -- Fixtures
 			end
 			sf.destroy
 		end
+
+	time_it (a_work: PROCEDURE)
+		local
+			clock: SIMPLE_MONOTONIC_CLOCK
+			t0: INTEGER_64
+		do
+			create clock
+			t0 := clock.nanoseconds
+			a_work.call (Void)
+			last_ms := clock.elapsed_nanoseconds (t0) / 1.0e6
+		end
+
+	last_ms: REAL_64
 
 	pixel (a_surface: CAIRO_SURFACE; a_x, a_y: INTEGER): NATURAL_32
 		local

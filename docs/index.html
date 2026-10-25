@@ -39,7 +39,7 @@
 
     <main>
         <section id="recent">
-            <h2>Recent additions (0.9.0 - 0.34.1, for simple_bible)</h2>
+            <h2>Recent additions (0.9.0 - 0.34.2, for simple_bible)</h2>
             <table>
                 <tr><th>Version</th><th>What</th></tr>
                 <tr><td><code>0.9.0</code></td><td>Theme tokens for filled controls, status inks and dark mode (GW-28)</td></tr>
@@ -63,6 +63,7 @@
                 <tr><td><code>0.27.0</code></td><td>The query builder clause tree (GW-12): <code>SW_QUERY_NODE</code> with heirs <code>SW_QUERY_GROUP</code>, <code>SW_QUERY_CONDITION</code> and <code>SW_QUERY_PROXIMITY</code>, typed pickers; the fifth scan's fixes (<code>SW_CHART.draw_chip</code>, a chassis-drawn legend, eight series colors)</td></tr>
                 <tr><td><code>0.28.0</code></td><td>100,000 shaped rows at 60 Hz (GW-29): <code>SW_SHAPING.layout_styled</code> remembers layouts (<code>forget_layouts</code>), <code>SW_GRID_COLUMN.sort_key</code></td></tr>
                 <tr><td><code>0.28.1</code></td><td>The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders</td></tr>
+                <tr><td><code>0.34.2</code></td><td>The fourteenth scan: a hatch over a huge box is bounded (at most 20,000 dots or 2,000 lines)</td></tr>
                 <tr><td><code>0.34.1</code></td><td>The thirteenth scan: screen readers are served once the window opens and on request, with stable ids; dialogs, sheets and menus are reachable; closed and hidden parts are left out</td></tr>
                 <tr><td><code>0.34.0</code></td><td>GW-18: <code>SW_PAINTER</code> dashed, dotted and dash-dot strokes; six hatch fills for rectangles, rounded boxes and polygons; gradients and fades</td></tr>
                 <tr><td><code>0.33.0</code></td><td>GW-14: screen readers: every widget gives a UI Automation role, name and value; <code>SW_WINDOW</code> publishes the tree, tells the focus and obeys focus requests (simple_shell 1.22.0)</td></tr>
@@ -76,7 +77,7 @@
                 <tr><td><code>0.29.0</code></td><td>GW-15: <code>SW_TABS</code> closable tabs (close guard, pinned tabs), drag to reorder, overflow chevron menu, keys for Ctrl+Tab and Ctrl+W; tab geometry shared with the dock through <code>SW_TAB_STRIP</code></td></tr>
                 <tr><td><code>0.28.2</code></td><td>The seventh scan: the layout memo follows <code>facade.policy_revision</code>; labels and menus shape through <code>layout_styled_of</code>, like the painter; <code>SW_DATA_GRID.add_row</code> places one row; per-column alignment; GW-29 timing runs inside <code>without_contracts</code></td></tr>
             </table>
-            <p>Text items are gated on Hebrew and Greek in both themes; 505 tests pass at 0.34.1 (<code>screen_grab_marries_cairo</code> fails only in a locked session).</p>
+            <p>Text items are gated on Hebrew and Greek in both themes; 506 tests pass at 0.34.2 (<code>screen_grab_marries_cairo</code> fails only in a locked session).</p>
         </section>
 
         <section id="overview">
