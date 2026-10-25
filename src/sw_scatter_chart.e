@@ -137,13 +137,7 @@ feature {NONE} -- Drawing
 					chip.append ({STRING_32} ", ")
 					chip.append (label_of (points.i_th (k).vy))
 					chip.append_character (')')
-					a_p.font ({SW_PAINTER}.Role_mono, 11.0, False)
-					a_p.set_color (a_p.theme.surface_variant)
-					a_p.rrect_fill ((sx + 8.0).min (x + width - a_p.advance (chip) - 14.0),
-						(sy - 22.0).max (y + 4.0), a_p.advance (chip) + 10.0, 16.0, 3.0)
-					a_p.set_color (a_p.theme.ink)
-					a_p.text ((sx + 13.0).min (x + width - a_p.advance (chip) - 9.0),
-						(sy - 10.0).max (y + 16.0), chip)
+					draw_chip_beside (a_p, chip, sx, sy)
 				end
 			end
 		end

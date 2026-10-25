@@ -16,7 +16,7 @@ class
 inherit
 	SW_CHART
 		redefine
-			draw_hover
+			draw_hover, legend_names
 		end
 
 create
@@ -162,21 +162,18 @@ feature {NONE} -- Drawing
 			end
 		end
 
-	draw_hover (a_p: SW_PAINTER)
-			-- Legend row first, then the crosshair snapped to the
-			-- first series' nearest sample.
-		local
-			names: ARRAYED_LIST [STRING_32]
+	legend_names: ARRAYED_LIST [STRING_32]
+			-- The series' names (the chassis draws the legend for two or more).
 		do
-			if series.count >= 2 then
-				create names.make (series.count)
-				across
-					series as s
-				loop
-					names.extend (s.name)
-				end
-				draw_legend_row (a_p, names)
+			create Result.make (series.count)
+			across series as s loop
+				Result.extend (s.name)
 			end
+		end
+
+	draw_hover (a_p: SW_PAINTER)
+			-- The crosshair snapped to the first series' nearest sample.
+		do
 			draw_crosshair (a_p)
 		end
 
@@ -215,13 +212,7 @@ feature {NONE} -- Drawing
 					chip := label_of (series.first.pts.i_th (k).vx)
 					chip.append ({STRING_32} ", ")
 					chip.append (label_of (series.first.pts.i_th (k).vy))
-					a_p.font ({SW_PAINTER}.Role_mono, 11.0, False)
-					a_p.set_color (a_p.theme.surface_variant)
-					a_p.rrect_fill ((sx + 8.0).min (x + width - a_p.advance (chip) - 14.0),
-						(sy - 22.0).max (y + 4.0), a_p.advance (chip) + 10.0, 16.0, 3.0)
-					a_p.set_color (a_p.theme.ink)
-					a_p.text ((sx + 13.0).min (x + width - a_p.advance (chip) - 9.0),
-						(sy - 10.0).max (y + 16.0), chip)
+					draw_chip_beside (a_p, chip, sx, sy)
 				end
 			end
 		end

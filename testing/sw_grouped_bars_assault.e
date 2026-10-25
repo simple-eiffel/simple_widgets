@@ -52,9 +52,68 @@ feature -- Grouped bars
 			c.set_emphasized_series (1)
 			w.set_root (c)
 			w.request_render
-			assert_true ("the target keeps its colour", c.series_color (1, w.painter) /= w.theme.ink_soft)
-			assert_true ("the controls go quiet", c.series_color (2, w.painter) = w.theme.ink_soft
-				and c.series_color (3, w.painter) = w.theme.ink_soft)
+			assert_true ("the target keeps its colour", c.series_color (1, w.painter) = w.theme.accent)
+			assert_true ("the controls go quiet: a pale ramp tone, not a text ink",
+				c.series_color (2, w.painter) = w.theme.ramp (2)
+				and c.series_color (3, w.painter) = w.theme.ramp (2)
+				and c.series_color (2, w.painter) /= w.theme.ink_soft)
+		end
+
+	test_gw10_new_series_forget_the_emphasis
+			-- Emphasis names a series by number; new series start without it.
+		local
+			c: SW_BAR_CHART
+		do
+			create c.make
+			c.set_series (<<"a", "b", "c">>)
+			c.set_emphasized_series (3)
+			c.set_series (<<"only">>)
+			assert_integers_equal ("no emphasis on new series", 0, c.emphasized_series)
+		end
+
+	test_gw10_series_colours_stay_apart
+			-- Eight series, eight colours: the fifth is not the first again.
+		local
+			w: SW_WINDOW
+			c: SW_BAR_CHART
+		do
+			create w.make ("bars", 0, 0, 640, 300, create {SW_THEME}.make_light)
+			create c.make
+			w.set_root (c)
+			w.request_render
+			assert_true ("series 5 is not series 1", c.series_color (5, w.painter) /= c.series_color (1, w.painter))
+			assert_true ("series 8 is not series 4", c.series_color (8, w.painter) /= c.series_color (4, w.painter))
+		end
+
+	test_gw10_crowded_chart_keeps_inside
+			-- Five series at 300 wide: the hover chip over the last bar stays
+			-- inside the frame, and the legend gives way to "+n" rather than
+			-- running over the title (evidence gw10_crowded_light.png).
+		local
+			w: SW_WINDOW
+			c: SW_BAR_CHART
+			path: STRING_32
+		do
+			create w.make ("bars", 0, 0, 300, 220, create {SW_THEME}.make_light)
+			create c.make
+			c := c.with_title ("Five series")
+			c.set_series (<<"target", "control 1", "control 2", "control 3", "control 4">>)
+			c.add_group ("Gen", <<12.0, 9.5, 8.0, 7.0, 6.0>>)
+			c.add_group ("Isa", <<31.0, 12.0, 9.0, 8.0, 40.0>>)
+			w.set_root (c)
+			w.request_render
+			c.set_hovered (True)
+			c.set_hover_point (c.bar_left (2, 5) + c.bar_width / 2.0, c.plot_y + c.plot_h - 2.0)
+			w.request_render
+			assert_true ("a chip was drawn", c.last_chip.width > 0.0)
+			assert_true ("the chip stays inside the frame",
+				c.last_chip.x >= c.x and c.last_chip.x + c.last_chip.width <= c.x + c.width
+				and c.last_chip.y >= c.y and c.last_chip.y + c.last_chip.height <= c.y + c.height)
+			path := evidence_path ("gw10_crowded_light.png")
+			if not path.is_empty then
+				if w.write_frame (path) then
+				end
+			end
 		end
 
 feature -- The controls chart, both themes

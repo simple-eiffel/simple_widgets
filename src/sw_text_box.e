@@ -765,9 +765,27 @@ feature -- Input
 	preferred_width (a_p: SW_PAINTER): REAL_64
 			-- A real field's presence, not the content's length: a
 			-- long path must not blow the row apart. Growers stretch
-			-- past this; nothing shrinks below it.
+			-- past this; nothing shrinks below it. 240 unless the host
+			-- asked for another (`set_preferred_text_width').
 		do
-			Result := 240.0
+			if preferred_text_width > 0.0 then
+				Result := preferred_text_width
+			else
+				Result := 240.0
+			end
+		end
+
+	preferred_text_width: REAL_64
+			-- The width the host asked of this field; 0: the default 240.
+
+	set_preferred_text_width (a_width: REAL_64)
+			-- Ask `a_width' of a row (a short word field beside others).
+		require
+			positive: a_width > 0.0
+		do
+			preferred_text_width := a_width
+		ensure
+			set: preferred_text_width = a_width
 		end
 
 	accepts_focus: BOOLEAN

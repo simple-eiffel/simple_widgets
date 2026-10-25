@@ -251,11 +251,7 @@ feature -- Drawing
 					chip.append ({STRING_32} " %/8212/ ")
 				end
 				chip.append (label_of (cell (hr, hc)))
-				a_p.font ({SW_PAINTER}.Role_mono, 11.0, False)
-				a_p.set_color (t.surface_variant)
-				a_p.rrect_fill (x + 10.0, y + height - 24.0, a_p.advance (chip) + 10.0, 17.0, 3.0)
-				a_p.set_color (t.ink)
-				a_p.text (x + 15.0, y + height - 11.0, chip)
+				draw_chip_corner (a_p, chip)
 			end
 			if not title.is_empty then
 				a_p.font ({SW_PAINTER}.Role_ui, t.size_chip, True)

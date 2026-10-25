@@ -136,6 +136,27 @@ feature -- Flow
 			assert_strings_equal ("the new word is laid out", {STRING_32} "new", v.text_of (1))
 		end
 
+	test_gw07_a_click_ends_a_text_selection
+			-- Ctrl+A selects every line's text; a click on a word picks that
+			-- word and ends the text selection, so Ctrl+C copies what is shown.
+		local
+			w: SW_WINDOW
+			v: SW_INTERLINEAR
+			b: TUPLE [x, y, width, height: REAL_64]
+		do
+			create w.make ("il", 0, 0, 900, 400, create {SW_THEME}.make_light)
+			attach_il_kit (w)
+			v := twelve_words (False)
+			w.set_root (v)
+			w.request_render
+			v.handle_char (1)
+			assert_true ("Ctrl+A selected", v.has_selection)
+			b := v.token_box (2)
+			assert_true ("click taken", v.handle_click (b.x + b.width / 2.0, b.y + 4.0))
+			assert_false ("the text selection ended", v.has_selection)
+			assert_integers_equal ("the word picked", 2, v.selected_token)
+		end
+
 feature -- Genesis 1:1, both themes
 
 	test_gw07_interlinear_light
