@@ -93,6 +93,88 @@ feature -- Layout
 			assert_true ("three layers", d.layer_of.i_th (1) = 1 and d.layer_of.i_th (2) = 2 and d.layer_of.i_th (3) = 3)
 		end
 
+feature -- Scan 17 (since 086d3e8)
+
+	test_scan17_crossings_of_long_edges_are_counted
+			-- HIGH 3: only edges between adjacent layers were counted, so long
+			-- edges could cross while the count said 0. A and B each reach X
+			-- and Y two layers on (X and Y sit in layer 3 through P and Q): four
+			-- long edges, at least one crossing whatever the order.
+		local
+			d: SW_DIAGRAM
+			w: SW_WINDOW
+		do
+			create d.make
+			d.add_node ("A").do_nothing
+			d.add_node ("B").do_nothing
+			d.add_node ("P").do_nothing
+			d.add_node ("Q").do_nothing
+			d.add_node ("X").do_nothing
+			d.add_node ("Y").do_nothing
+			d.connect (3, 4)
+			d.connect (4, 5)
+			d.connect (4, 6)
+			d.connect (1, 5)
+			d.connect (1, 6)
+			d.connect (2, 5)
+			d.connect (2, 6)
+			w := window_with (d)
+			assert_true ("X and Y two layers after A and B", d.layer_of.i_th (5) = 3 and d.layer_of.i_th (1) = 1)
+			assert_true ("the unavoidable crossing is counted: " + d.crossing_count.out, d.crossing_count >= 1)
+		end
+
+	test_scan17_a_long_edge_goes_round_the_node_between
+			-- HIGH 1: an edge skipping a layer was one straight segment, through
+			-- whatever stood between. A to B to C, and A to C: the long edge
+			-- bends through a dummy node in B's layer, clear of B.
+		local
+			d: SW_DIAGRAM
+			w: SW_WINDOW
+			r: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
+		do
+			create d.make
+			d.add_node ("A").do_nothing
+			d.add_node ("B").do_nothing
+			d.add_node ("C").do_nothing
+			d.connect (1, 2)
+			d.connect (2, 3)
+			d.connect (1, 3)
+			w := window_with (d)
+			r := d.edge_route (3)
+			assert_integers_equal ("tail, a dummy, head", 3, r.count)
+			assert_true ("the dummy stands in B's layer", r [2].px = d.nodes.i_th (2).px)
+			assert_true ("and clear of B", (r [2].py - d.nodes.i_th (2).py).abs >= 10.0)
+		end
+
+	test_scan17_the_layout_is_cached_and_reproduced
+			-- HIGH 2: the old test compared two fresh diagrams. Drawn again, the
+			-- layout is not redone; forced again, it lands on the same pixels.
+		local
+			w: SW_WINDOW
+			d: SW_DIAGRAM
+			l_before: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
+			i: INTEGER
+			l_same: BOOLEAN
+		do
+			w := window_with (outline)
+			d := diagram_of (w)
+			assert_integers_equal ("laid out once", 1, d.layout_runs)
+			w.request_render
+			w.request_render
+			assert_integers_equal ("not again for frames that change nothing", 1, d.layout_runs)
+			create l_before.make (d.nodes.count)
+			across d.nodes as n loop l_before.extend ([n.px, n.py]) end
+			d.set_layered (True)
+			w.request_render
+			assert_integers_equal ("forced: laid out again", 2, d.layout_runs)
+			l_same := True
+			from i := 1 until i > d.nodes.count loop
+				l_same := l_same and d.nodes.i_th (i).px = l_before [i].px and d.nodes.i_th (i).py = l_before [i].py
+				i := i + 1
+			end
+			assert_true ("on the same pixels", l_same)
+		end
+
 feature -- Evidence
 
 	test_gw23_outline_light

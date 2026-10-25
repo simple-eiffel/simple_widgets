@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.37.2 - the seventeenth scan, since 086d3e8: long edges)
+
+Three HIGH findings in the layered layout, each with a test:
+- **Long edges go round, through dummy nodes** (the Sugiyama method): an
+  edge skipping layers was one straight segment through whatever stood
+  between and took no part in the ordering. It now has a dummy node in
+  every layer it crosses, ordered with the rest, and is drawn through them
+  (`edge_route`; `scan17_a_long_edge_goes_round_the_node_between`).
+- **Crossings of long edges are counted:** `crossing_count` walks the
+  one-layer segments, so a crossing between long edges is no longer
+  reported as 0 (`scan17_crossings_of_long_edges_are_counted` failed on
+  0.37.1). It also no longer reads past a stale list after `connect`.
+- **The cache and the reproduction are proven:** `layout_runs` counts
+  layouts; frames that change nothing do not lay out again, and a forced
+  relayout lands on the same pixels (`scan17_the_layout_is_cached_and_reproduced`).
+  `is_layout_current`.
+- Not done (MEDIUM): labels wider than the widget overflow; a layer taller
+  than the widget; the layout cache misses relabels; the layering could be
+  a headless helper shared with SW_ORG_CHART. Report:
+  `.eiffel-workflow/evidence/design-scan-since-086d3e8.md`. 536 pass.
+
 ### Fixed (0.37.1 - the sixteenth scan, since 3f9242a: the Caspian)
 
 - **Seas inside the land are water.** The generator kept only the land's
