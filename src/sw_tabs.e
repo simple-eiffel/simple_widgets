@@ -545,20 +545,8 @@ feature -- Drawing
 					tw := tab_widths.i_th (i)
 					if tw > 0.0 then
 						tx := tab_lefts.i_th (i)
-						l_ink := t.ink
-						if i = selected_index then
-							a_p.set_color (t.surface)
-							a_p.rrect_fill (tx, y + 4.0, tw, bar_h - 5.0, t.radius)
-							a_p.set_color (t.accent)
-							a_p.fill_rect (tx + 4.0, y + bar_h - 3.0, tw - 8.0, 3.0)
-						elseif shows_hover and then hover_py < y + bar_h
-							and then hover_px >= tx and then hover_px <= tx + tw
-						then
-							a_p.set_color (t.surface_variant)
-							a_p.rrect_fill (tx, y + 4.0, tw, bar_h - 5.0, t.radius)
-						else
-							l_ink := t.ink_muted
-						end
+						l_ink := draw_tab_ground (a_p, i, i = selected_index,
+							shows_hover and then hover_py < y + bar_h and then hover_px >= tx and then hover_px <= tx + tw)
 						if is_dragging and then i = drag_index then
 							a_p.set_color (t.accent)
 							a_p.rrect_stroke (tx + 0.5, y + 4.5, tw - 1.0, bar_h - 6.0, t.radius)

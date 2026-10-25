@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Changed (0.38.3 - one way to paint a tab)
+
+- `SW_TAB_STRIP.draw_tab_ground` paints a tab's ground and answers its
+  label's ink: the selected tab on the surface with an accent underline,
+  a hovered one on the quiet surface, insets and rule from the theme.
+  SW_TABS and SW_DOCK_ZONE both call it, instead of two copies that had
+  drifted (square versus rounded fills, 2 versus 3 pixel underlines).
+  The dock's selected tab now looks like a notebook's. 537 pass; the
+  evidence checked (gw15_tabs, gw05_study_layout).
+
 ### Fixed (0.38.2 - GW-29's budget held in the build it belongs to)
 
 - The 60 Hz assertions of the 100,000-row grid failed about one run in

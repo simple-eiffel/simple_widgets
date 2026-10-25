@@ -350,15 +350,7 @@ feature -- Drawing
 					until
 						i > tab_ids.count
 					loop
-						if tab_ids.i_th (i) = act then
-							a_p.set_color (t.surface)
-							a_p.fill_rect (tab_lefts.i_th (i), y + 1.0, tab_widths.i_th (i), bar_h - 1.0)
-							a_p.set_color (t.accent)
-							a_p.fill_rect (tab_lefts.i_th (i), y + bar_h - 2.0, tab_widths.i_th (i), 2.0)
-							a_p.set_color (t.ink)
-						else
-							a_p.set_color (t.ink_muted)
-						end
+						a_p.set_color (draw_tab_ground (a_p, i, tab_ids.i_th (i) = act, False))
 						a_p.push_clip (tab_lefts.i_th (i), y, tab_widths.i_th (i), bar_h)
 						a_p.text (tab_lefts.i_th (i) + tab_pad, y + bar_text_y, host.panels.i_th (tab_ids.i_th (i)).title)
 						a_p.pop_clip
