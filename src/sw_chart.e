@@ -109,6 +109,9 @@ feature -- Drawing
 			a_p.push_clip (plot_x, plot_y, plot_w, plot_h)
 			draw_data (a_p)
 			a_p.pop_clip
+			if legend_names.count >= 2 then
+				draw_legend_row (a_p, legend_names)
+			end
 			draw_hover (a_p)
 			if not title.is_empty then
 				a_p.font ({SW_PAINTER}.Role_ui, t.size_chip, True)
@@ -142,29 +145,117 @@ feature -- Drawing
 		do
 		end
 
+	legend_names: ARRAYED_LIST [STRING_32]
+			-- The series a legend names; the chassis draws one when there are
+			-- two or more. None by default.
+		do
+			create Result.make (0)
+		end
+
 	draw_legend_row (a_p: SW_PAINTER; a_names: ARRAYED_LIST [STRING_32])
 			-- The shared legend machinery: colour dots + names in a
-			-- right-aligned row inside the frame's top band.
+			-- right-aligned row inside the frame's top band - as many as fit
+			-- beside the title, then "+n" for the rest.
 		local
-			lx: REAL_64
-			i: INTEGER
+			lx, l_floor, l_dot, l_gap, l_width: REAL_64
+			i, l_fit: INTEGER
+			l_more: STRING_32
 		do
-			a_p.font ({SW_PAINTER}.Role_ui, 11.5, False)
-			lx := x + width - Inset_right
-			from
-				i := a_names.count
-			until
-				i < 1
-			loop
-				lx := lx - a_p.advance (a_names.i_th (i))
-				a_p.set_color (a_p.theme.ink_muted)
-				a_p.text (lx, y + 16.0, a_names.i_th (i))
-				lx := lx - 12.0
-				a_p.set_color (series_color (i, a_p))
-				a_p.circle_fill (lx + 4.0, y + 12.0, 4.0)
-				lx := lx - 14.0
-				i := i - 1
+			l_dot := a_p.theme.padding
+			l_gap := a_p.theme.padding * 1.5
+			l_floor := x + Inset_left
+			if not title.is_empty then
+				a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_chip, True)
+				l_floor := l_floor.max (x + 10.0 + a_p.advance (title) + l_gap)
 			end
+			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_chip, False)
+				-- How many fit, from the first.
+			from
+				i := 1
+			until
+				i > a_names.count or else l_width + l_dot + a_p.advance (a_names.i_th (i)) + l_gap
+					> (x + width - Inset_right) - l_floor
+			loop
+				l_width := l_width + l_dot + a_p.advance (a_names.i_th (i)) + l_gap
+				l_fit := i
+				i := i + 1
+			end
+			create l_more.make_empty
+			if l_fit < a_names.count then
+				l_more.append_character ('+')
+				l_more.append_integer (a_names.count - l_fit)
+				l_width := l_width + a_p.advance (l_more)
+			end
+			lx := x + width - Inset_right - l_width
+			from
+				i := 1
+			until
+				i > l_fit
+			loop
+				a_p.set_color (series_color (i, a_p))
+				a_p.circle_fill (lx + l_dot / 2.0, y + 12.0, l_dot / 2.0)
+				lx := lx + l_dot
+				a_p.set_color (a_p.theme.ink_muted)
+				a_p.text (lx + l_dot / 2.0, y + 16.0, a_names.i_th (i))
+				lx := lx + a_p.advance (a_names.i_th (i)) + l_gap
+				i := i + 1
+			end
+			if not l_more.is_empty then
+				a_p.set_color (a_p.theme.ink_muted)
+				a_p.text (lx, y + 16.0, l_more)
+			end
+		end
+
+	draw_chip (a_p: SW_PAINTER; a_text: READABLE_STRING_GENERAL; a_left, a_top: REAL_64)
+			-- A value chip: `a_text' in the mono face at the chip size on the
+			-- surface variant, its box placed at (`a_left', `a_top') but kept
+			-- inside the frame. The one chip every chart draws.
+		local
+			w, h, l_pad, lx, ly, l_edge: REAL_64
+		do
+			a_p.font ({SW_PAINTER}.Role_mono, a_p.theme.size_chip, False)
+			l_pad := a_p.theme.padding * 0.625
+			l_edge := a_p.theme.padding / 2.0
+			w := a_p.advance (a_text) + 2.0 * l_pad
+			h := a_p.text_extent + a_p.theme.padding / 2.0
+			lx := a_left.min (x + width - w - l_edge).max (x + l_edge)
+			ly := a_top.min (y + height - h - l_edge).max (y + l_edge)
+			last_chip := [lx, ly, w, h]
+			a_p.set_color (a_p.theme.surface_variant)
+			a_p.rrect_fill (lx, ly, w, h, 3.0 * a_p.theme.text_scale)
+			a_p.set_color (a_p.theme.ink)
+			a_p.text (lx + l_pad, ly + (h - a_p.text_extent) / 2.0 + a_p.font_ascent, a_text)
+		end
+
+	chip_width (a_p: SW_PAINTER; a_text: READABLE_STRING_GENERAL): REAL_64
+			-- The width `draw_chip' gives `a_text'.
+		do
+			a_p.font ({SW_PAINTER}.Role_mono, a_p.theme.size_chip, False)
+			Result := a_p.advance (a_text) + 2.0 * a_p.theme.padding * 0.625
+		end
+
+	draw_chip_beside (a_p: SW_PAINTER; a_text: READABLE_STRING_GENERAL; a_px, a_py: REAL_64)
+			-- A chip up and to the right of the point (`a_px', `a_py').
+		do
+			draw_chip (a_p, a_text, a_px + a_p.theme.padding, a_py - a_p.theme.padding * 2.75)
+		end
+
+	draw_chip_above (a_p: SW_PAINTER; a_text: READABLE_STRING_GENERAL; a_cx, a_py: REAL_64)
+			-- A chip centred over x `a_cx', above y `a_py'.
+		do
+			draw_chip (a_p, a_text, a_cx - chip_width (a_p, a_text) / 2.0, a_py - a_p.theme.padding * 2.75)
+		end
+
+	draw_chip_corner (a_p: SW_PAINTER; a_text: READABLE_STRING_GENERAL)
+			-- A chip pinned to the bottom-left corner of the frame.
+		do
+			draw_chip (a_p, a_text, x + a_p.theme.padding * 1.25, y + height)
+		end
+
+	last_chip: TUPLE [x, y, width, height: REAL_64]
+			-- The box of the last chip drawn (what a test checks is inside).
+		attribute
+			Result := [0.0, 0.0, 0.0, 0.0]
 		end
 
 feature -- Formatting
@@ -202,17 +293,26 @@ feature -- Formatting
 feature -- Series palette
 
 	series_color (a_index: INTEGER; a_p: SW_PAINTER): NATURAL_32
-			-- The theme's semantic colours, cycling per series.
+			-- The theme's semantic colours, then their strong inks: eight
+			-- apart before they cycle.
 		do
-			inspect a_index \\ 4
+			inspect (a_index - 1) \\ 8 + 1
 			when 1 then
 				Result := a_p.theme.accent
 			when 2 then
 				Result := a_p.theme.success
 			when 3 then
 				Result := a_p.theme.warning
-			else
+			when 4 then
 				Result := a_p.theme.danger
+			when 5 then
+				Result := a_p.theme.ink_accent
+			when 6 then
+				Result := a_p.theme.ink_success
+			when 7 then
+				Result := a_p.theme.ink_warning
+			else
+				Result := a_p.theme.ink_danger
 			end
 		end
 

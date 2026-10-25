@@ -296,6 +296,7 @@ feature -- Input
 			if press_bar (a_px, a_py) then
 				Result := True
 			else
+				clear_selection
 				k := token_at (a_px, a_py)
 				if k > 0 then
 					select_token (k)
@@ -335,14 +336,16 @@ feature -- Input
 		end
 
 	handle_char (a_code: INTEGER)
-			-- Ctrl+C copies the selected word's visible lines; the rest is
-			-- SW_DOC_UNITS' (Ctrl+A, Escape).
+			-- Ctrl+C copies the selected text when there is one (Ctrl+A), else
+			-- the selected word's visible lines; the rest is SW_DOC_UNITS'.
 		local
 			l_text: STRING_32
 			l: INTEGER
 			l_clip: SW_CLIPBOARD
 		do
-			if a_code = 3 and then selected_token > 0 then
+			if a_code = 3 and then has_selection then
+				copy_selection
+			elseif a_code = 3 and then selected_token > 0 then
 				create l_text.make (64)
 				from
 					l := 1

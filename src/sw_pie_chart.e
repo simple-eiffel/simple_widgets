@@ -282,12 +282,7 @@ feature -- Drawing
 					row.append ({STRING_32} " (")
 					row.append (label_of (percent_of (hot)))
 					row.append ({STRING_32} "%%)")
-					a_p.font ({SW_PAINTER}.Role_mono, 11.0, False)
-					a_p.set_color (t.surface_variant)
-					a_p.rrect_fill (x + 10.0, y + height - 24.0,
-						a_p.advance (row) + 10.0, 17.0, 3.0)
-					a_p.set_color (t.ink)
-					a_p.text (x + 15.0, y + height - 11.0, row)
+					draw_chip_corner (a_p, row)
 				end
 			else
 				a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)

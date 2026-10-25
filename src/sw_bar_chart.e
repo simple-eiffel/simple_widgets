@@ -22,7 +22,7 @@ class
 inherit
 	SW_CHART
 		redefine
-			draw_x_axis, draw_hover, series_color
+			draw_x_axis, draw_hover, series_color, legend_names
 		end
 
 create
@@ -143,11 +143,19 @@ feature -- Access
 			end
 		end
 
+	legend_names: ARRAYED_LIST [STRING_32]
+			-- The series' names (the chassis draws the legend for two or more).
+		do
+			Result := series_names
+		end
+
 	series_color (a_index: INTEGER; a_p: SW_PAINTER): NATURAL_32
-			-- A series' colour; quiet for every series but the emphasized one.
+			-- A series' colour; for every series but the emphasized one, a
+			-- pale tone of the theme's ramp (lighter than the emphasized bar,
+			-- not just another hue).
 		do
 			if emphasized_series > 0 and then a_index /= emphasized_series then
-				Result := a_p.theme.ink_soft
+				Result := a_p.theme.ramp (2)
 			else
 				Result := Precursor (a_index, a_p)
 			end
@@ -165,14 +173,17 @@ feature -- Element change
 			across a_names as n loop
 				series_names.extend (n.to_string_32)
 			end
+			emphasized_series := 0
 		ensure
 			counted: series_count = a_names.count
+			no_emphasis: emphasized_series = 0
 		end
 
 	add_group (a_label: READABLE_STRING_GENERAL; a_values: ARRAY [REAL_64])
 			-- A category labelled `a_label', one value per series.
 		require
 			one_per_series: a_values.count = series_count
+			not_negative: across a_values as v all v >= 0.0 end
 		local
 			l: ARRAY [REAL_64]
 			k: INTEGER
@@ -196,6 +207,7 @@ feature -- Element change
 			-- A category with one bar (a single-series chart).
 		require
 			one_series: series_count = 1
+			not_negative: a_value >= 0.0
 		do
 			add_group (a_label, <<a_value>>)
 		ensure
@@ -295,9 +307,6 @@ feature {NONE} -- Drawing
 					c := c + 1
 				end
 			end
-			if series_names.count > 1 then
-				draw_legend_row (a_p, series_names)
-			end
 		end
 
 	draw_hover (a_p: SW_PAINTER)
@@ -321,17 +330,13 @@ feature {NONE} -- Drawing
 						chip.append ({STRING_32} ": ")
 					end
 					chip.append (label_of (value (c, s)))
-					a_p.font ({SW_PAINTER}.Role_mono, a_p.theme.size_chip, False)
-					a_p.set_color (a_p.theme.surface_variant)
-					a_p.rrect_fill (bx + bar_width / 2.0 - a_p.advance (chip) / 2.0 - 5.0,
-						(by - 22.0).max (y + 4.0), a_p.advance (chip) + 10.0, 16.0, 3.0)
-					a_p.set_color (a_p.theme.ink)
-					a_p.text (bx + bar_width / 2.0 - a_p.advance (chip) / 2.0, (by - 10.0).max (y + 16.0), chip)
+					draw_chip_above (a_p, chip, bx + bar_width / 2.0, by)
 				end
 			end
 		end
 
 invariant
 	parallel: values.count = labels.count
+	emphasis_in_range: emphasized_series >= 0 and emphasized_series <= series_count
 
 end
