@@ -23,6 +23,20 @@ note
 		The tab boxes are SW_TAB_STRIP's (SCROLL policy), shared with
 		SW_DOCK_ZONE. Spacing comes from the theme tokens.
 	]"
+	scan_9: "[
+		2026-10-25, the design scan since 760abf1. A note for the future
+		self: (1) the width cap was twenty `control_inset's, and a theme
+		may set that inset to 0, which gave every tab no width - the cap
+		is thirteen label-font boxes now (about the same 220 pixels at
+		1x) and every natural width is at least one pixel; (2) the first
+		placed tab never drops below one pixel, so `arrange''s
+		`selected_shown' holds in a bar too narrow for anything; (3)
+		`close_tab' no longer promises the closed page has no parent,
+		because `on_close' may adopt it elsewhere - it lets go BEFORE
+		the call; (4) a swap involving a tab scrolled off the strip
+		forgets the placement instead of inventing a gap. Guarded by the
+		scan9_* tests in SW_TABS_ASSAULT.
+	]"
 
 class
 	SW_TABS
@@ -412,7 +426,6 @@ feature -- Closing and moving
 			end
 		ensure
 			shrank: pages.count = old pages.count - 1
-			let_go: (old pages.i_th (a_i)).parent = Void
 			others_keep_their_selection: old selected_index /= a_i implies selected_page = old selected_page
 			neighbor_selected: (old selected_index = a_i and not pages.is_empty) implies selected_index = a_i.min (pages.count)
 		end
@@ -710,7 +723,8 @@ feature {NONE} -- Implementation
 
 	natural_widths (a_p: SW_PAINTER): ARRAYED_LIST [REAL_64]
 			-- Each tab's width with room for its label (and close box),
-			-- capped at twenty insets so one long title cannot fill the bar.
+			-- capped at thirteen label-font boxes so one long title cannot
+			-- fill the bar, and never below one pixel.
 		local
 			i: INTEGER
 			l_w: REAL_64
@@ -725,7 +739,7 @@ feature {NONE} -- Implementation
 				if closables.i_th (i) then
 					l_w := l_w + close_size + tab_pad / 2.0
 				end
-				Result.extend (l_w.min (20.0 * tab_pad))
+				Result.extend (l_w.min (13.0 * close_size).max (1.0))
 				i := i + 1
 			end
 		ensure
@@ -787,7 +801,12 @@ feature {NONE} -- Implementation
 			closables.put_i_th (closables.i_th (a_i + 1), a_i)
 			closables.put_i_th (l_closable, a_i + 1)
 			if is_placed then
-				swap_adjacent_boxes (a_i)
+				if is_tab_shown (a_i) and is_tab_shown (a_i + 1) then
+					swap_adjacent_boxes (a_i)
+				else
+						-- a tab off the strip has no gap to keep: place again
+					forget_placement
+				end
 			end
 			if selected_index = a_i then
 				selected_index := a_i + 1

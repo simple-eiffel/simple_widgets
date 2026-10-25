@@ -299,6 +299,86 @@ feature -- Scripture labels in both themes
 			scripture_tabs_gate (create {SW_THEME}.make_dark, "gw15_tabs_dark.png")
 		end
 
+feature -- Scan 9 (since 760abf1)
+
+	test_scan9_a_narrow_bar_still_shows_the_selected_tab
+			-- Scan 9 HIGH 1: in a bar too narrow for the chevron's room, the
+			-- selected tab was given no width and `arrange' broke its own
+			-- postcondition. It keeps at least one pixel.
+		local
+			w: SW_WINDOW
+			tb: SW_TABS
+		do
+			create w.make ("tabs", 0, 0, 30, 200, create {SW_THEME}.make_light)
+			tb := four_tabs
+			tb.select_tab (3)
+			w.set_root (tb)
+			w.request_render
+			assert_true ("placed", tb.is_placed)
+			assert_true ("the selected tab shows", tb.is_tab_shown (3))
+		end
+
+	test_scan9_a_zero_inset_theme_still_shows_tabs
+			-- Scan 9 HIGH 2: the width cap was twenty insets, so a theme with
+			-- no control inset gave every tab no width. The cap follows the
+			-- font now.
+		local
+			w: SW_WINDOW
+			tb: SW_TABS
+			th: SW_THEME
+		do
+			create th.make_light
+			th.set_spacing (th.border_width, th.padding, 0.0)
+			create w.make ("tabs", 0, 0, 900, 200, th)
+			tb := four_tabs
+			w.set_root (tb)
+			w.request_render
+			assert_true ("every tab shows", across 1 |..| 4 as k all tb.is_tab_shown (k) end)
+			assert_true ("with room for its label", tb.tab_widths [1] > tb.close_size)
+		end
+
+	test_scan9_a_close_handler_may_adopt_the_page
+			-- Scan 9 MEDIUM 6: `close_tab' promised the closed page had no
+			-- parent AFTER calling `on_close', so a handler that moved the page
+			-- into another notebook broke the promise.
+		local
+			tb, other: SW_TABS
+		do
+			tb := four_tabs
+			create other.make
+			tb.set_on_close (agent (pg: SW_WIDGET; a_other: SW_TABS) do a_other.add_page ("moved", pg) end (?, other))
+			tb.close_tab (2)
+			assert_integers_equal ("closed", 3, tb.pages.count)
+			assert_true ("adopted by the other notebook", other.pages.count = 1 and then other.pages [1].parent = other)
+		end
+
+	test_scan9_moving_across_hidden_tabs_leaves_no_stale_box
+			-- Scan 9 MEDIUM 7: `move_tab' across a tab scrolled off the strip
+			-- swapped boxes with a made-up gap, leaving a box outside the strip
+			-- until the next arrange. No stale box may answer.
+		local
+			w: SW_WINDOW
+			tb: SW_TABS
+			i: INTEGER
+		do
+			create w.make ("tabs", 0, 0, 360, 300, create {SW_THEME}.make_light)
+			create tb.make
+			from i := 1 until i > 12 loop
+				tb.add_page ({STRING_32} "Genesis " + i.out, create {SW_SPACER}.make)
+				i := i + 1
+			end
+			w.set_root (tb)
+			w.request_render
+			assert_false ("the last is hidden", tb.is_tab_shown (12))
+			tb.move_tab (1, 12)
+			assert_true ("every box answering a hit stands inside the strip",
+				not tb.is_placed or else across 1 |..| 12 as k all
+					not tb.is_tab_shown (k) or else (tb.tab_lefts [k] >= tb.x and tb.tab_lefts [k] + tb.tab_widths [k] <= tb.x + tb.width) end)
+			w.request_render
+			assert_true ("placed again", tb.is_placed)
+			assert_true ("the moved tab is last", tb.labels [12].same_string ("Genesis 1"))
+		end
+
 feature {NONE} -- Fixtures
 
 	changes, moves: INTEGER
