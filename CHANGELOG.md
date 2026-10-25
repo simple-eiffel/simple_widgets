@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.30.0 - GW-16: follow Windows high contrast)
+
+Needs simple_shell 1.20.0.
+- **`SW_THEME.make_high_contrast (window, window_text, highlight,
+  highlight_text, button_face, hotlight)`** paints a theme with a Windows
+  contrast theme's system colors: one ground, one ink for body, soft and
+  muted text alike, outlines and dividers in that ink, the highlight for
+  accent fills, the hotlight for accent-family text, no washes (they take
+  the ground), and a grey ramp from the ground toward black or white. The
+  semantic hues stay, made readable. `is_high_contrast` says so.
+- **Mended, never refused.** A custom palette whose ink fails 4.5:1 gets
+  black or white; text on the highlight likewise; a highlight that is not
+  3:1 on the window gives way to the ink; the selection ground moves from
+  the highlight toward the window until the ink reads on it. The theme is
+  always `is_readable` (postcondition).
+- **`SW_THEME.adopt_metrics_from`**: text scale, spacing, type families and
+  locale, so a contrast theme worn in place of the application's keeps its
+  sizes and faces.
+- **`SW_WINDOW` follows it.** While following Windows
+  (`follow_system_theme`), a contrast theme switched on (event 56) is worn
+  with the light member's metrics, its palette changes are followed, a
+  light/dark flip does not unseat it, and when it is switched off the pair
+  returns. Following that starts while contrast is on starts in it.
+  `is_wearing_high_contrast`. `system_appearance` and
+  `set_system_appearance` let a test stand in for Windows' settings
+  (testing class `SW_TEST_APPEARANCE`).
+- Tests (`SW_HIGH_CONTRAST_ASSAULT`, 6): the four Windows contrast palettes
+  (High Contrast Black and White, Desert, Aquatic) readable with the
+  user's colors kept; unreadable palettes mended; the window following on,
+  palette change, light/dark flip and off; following that starts in
+  contrast; scripture in the black and white palettes (evidence
+  `gw16_contrast_black.png`, `gw16_contrast_white.png`). 465 pass;
+  `screen_grab_marries_cairo` fails only in a locked session.
+
 ### Fixed (0.29.1 - the ninth scan, since 760abf1)
 
 - **A narrow bar shows the selected tab.** In a bar too narrow for any

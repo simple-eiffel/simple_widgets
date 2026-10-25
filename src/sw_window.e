@@ -206,16 +206,43 @@ feature -- Following Windows (GW-27)
 	follow_system_theme (a_light, a_dark: SW_THEME)
 			-- Wear `a_dark' while Windows is set to dark for apps and
 			-- `a_light' otherwise, and switch live when that setting
-			-- flips. A later `set_theme' stops following.
+			-- flips. While a Windows contrast theme is on, wear a theme
+			-- painted with its system colors instead, with `a_light''s
+			-- sizes and faces (GW-16); it is followed live too. A later
+			-- `set_theme' stops following.
 		require
 			light_is_light: not a_light.is_dark
 			dark_is_dark: a_dark.is_dark
 		do
 			system_light := a_light
 			system_dark := a_dark
-			wear_system_theme (appearance.system_prefers_dark)
+			wear_system_appearance
 		ensure
 			following: is_following_system_theme
+		end
+
+	is_wearing_high_contrast: BOOLEAN
+			-- Is the window wearing a theme painted from a Windows contrast
+			-- theme?
+		do
+			Result := theme.is_high_contrast
+		end
+
+	system_appearance: SHELL_APPEARANCE
+			-- Where the window reads Windows' light/dark and contrast
+			-- settings: the shell's own reader unless a test set another.
+		attribute
+			Result := appearance
+		end
+
+	set_system_appearance (a_source: SHELL_APPEARANCE)
+			-- Read Windows' settings from `a_source' from now on. The test
+			-- door: an heir of SHELL_APPEARANCE that answers what a test
+			-- needs proves high contrast without touching Windows.
+		do
+			system_appearance := a_source
+		ensure
+			set: system_appearance = a_source
 		end
 
 	is_following_system_theme: BOOLEAN
@@ -443,8 +470,18 @@ feature {NONE} -- Dispatch
 					-- dialog or popup is open must still reallocate.
 				resize_surface (a_x, a_y)
 			elseif a_type = Event_appearance_changed and then is_following_system_theme then
-					-- And the theme: Windows flipped light/dark (GW-27).
-				wear_system_theme (a_x = 1)
+					-- And the theme: Windows flipped light/dark (GW-27). A
+					-- contrast theme, while on, outranks it (GW-16).
+				if system_appearance.system_high_contrast then
+					wear_system_appearance
+				else
+					wear_system_theme (a_x = 1)
+				end
+				request_render
+			elseif a_type = Event_contrast_changed and then is_following_system_theme then
+					-- And the contrast theme: switched on or off, or its
+					-- palette changed (GW-16).
+				wear_system_appearance
 				request_render
 			elseif a_type = Event_wake and then attached on_wake as al_wake then
 					-- And a worker's result: a processor called
@@ -536,6 +573,43 @@ feature {NONE} -- Theme internals (GW-27)
 		ensure
 			worn: theme = a_theme and painter.theme = a_theme
 			caption_matches: title_bar_is_dark = a_theme.is_dark
+		end
+
+	wear_system_appearance
+			-- Wear what Windows asks for: the contrast theme while one is
+			-- on, else the light or dark member of the followed pair; and
+			-- tell `on_theme_changed'.
+		require
+			following: is_following_system_theme
+		do
+			if system_appearance.system_high_contrast then
+				wear_theme (system_contrast_theme)
+				if attached on_theme_changed as al_told then
+					al_told.call (theme)
+				end
+			else
+				wear_system_theme (system_appearance.system_prefers_dark)
+			end
+		ensure
+			still_following: is_following_system_theme
+			contrast_as_windows: theme.is_high_contrast = system_appearance.system_high_contrast
+		end
+
+	system_contrast_theme: SW_THEME
+			-- A theme painted with the system colors of the Windows contrast
+			-- theme now on, keeping the light member's sizes and faces.
+		local
+			sa: SHELL_APPEARANCE
+		do
+			sa := system_appearance
+			create Result.make_high_contrast (sa.system_color (sa.Color_window), sa.system_color (sa.Color_window_text),
+				sa.system_color (sa.Color_highlight), sa.system_color (sa.Color_highlight_text),
+				sa.system_color (sa.Color_button_face), sa.system_color (sa.Color_hotlight))
+			if attached system_light as al_light then
+				Result.adopt_metrics_from (al_light)
+			end
+		ensure
+			contrast: Result.is_high_contrast
 		end
 
 	wear_system_theme (a_dark: BOOLEAN)

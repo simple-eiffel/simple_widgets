@@ -724,6 +724,14 @@ feature {NONE} -- Test runners
 			run_test (agent tabs_tests.test_scan9_a_zero_inset_theme_still_shows_tabs, "scan9_a_zero_inset_theme_still_shows_tabs")
 			run_test (agent tabs_tests.test_scan9_a_close_handler_may_adopt_the_page, "scan9_a_close_handler_may_adopt_the_page")
 			run_test (agent tabs_tests.test_scan9_moving_across_hidden_tabs_leaves_no_stale_box, "scan9_moving_across_hidden_tabs_leaves_no_stale_box")
+			print ("%N=== GW-16 HIGH CONTRAST ===%N")
+			create contrast_tests
+			run_test (agent contrast_tests.test_gw16_windows_contrast_palettes_are_readable, "gw16_windows_contrast_palettes_are_readable")
+			run_test (agent contrast_tests.test_gw16_an_unreadable_palette_is_mended, "gw16_an_unreadable_palette_is_mended")
+			run_test (agent contrast_tests.test_gw16_window_follows_high_contrast, "gw16_window_follows_high_contrast")
+			run_test (agent contrast_tests.test_gw16_following_starts_in_contrast, "gw16_following_starts_in_contrast")
+			run_test (agent contrast_tests.test_gw16_contrast_black, "gw16_contrast_black")
+			run_test (agent contrast_tests.test_gw16_contrast_white, "gw16_contrast_white")
 			print ("%N=== GW-29 VIRTUAL GRID ===%N")
 			create virtual_grid_tests
 			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_light, "gw29_hundred_thousand_rows_light")
@@ -796,6 +804,7 @@ feature {NONE} -- Test runners
 	virtual_grid_tests: SW_VIRTUAL_GRID_ASSAULT
 	memo_tests: SW_MEMO_ASSAULT
 	tabs_tests: SW_TABS_ASSAULT
+	contrast_tests: SW_HIGH_CONTRAST_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.

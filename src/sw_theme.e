@@ -16,7 +16,7 @@ class
 	SW_THEME
 
 create
-	make_light, make_dark
+	make_light, make_dark, make_high_contrast
 
 feature {NONE} -- Initialization
 
@@ -109,6 +109,77 @@ feature {NONE} -- Initialization
 		ensure
 			dark: is_dark
 			readable: is_readable
+		end
+
+	make_high_contrast (a_window, a_window_text, a_highlight, a_highlight_text, a_button_face, a_hotlight: NATURAL_32)
+			-- A theme painted with a Windows contrast theme's system colors
+			-- (GW-16): one ground (`a_window'), one ink (`a_window_text') for
+			-- body, soft and muted text alike, strong outlines in that ink,
+			-- `a_highlight' for accent fills with `a_highlight_text' on them
+			-- (the ink instead if the highlight is not 3:1 on the window),
+			-- `a_hotlight' for accent-family text, `a_button_face' for the
+			-- quiet control ground. No washes: they all take the ground.
+			-- Every pairing is MENDED rather than refused - a custom palette
+			-- whose ink fails 4.5:1 gets black or white instead, a selection
+			-- ground moves from the highlight toward the window until the ink
+			-- reads on it - so the result is always readable.
+		local
+			l_base: SW_THEME
+		do
+			if luminance (a_window) < 0.5 then
+				create l_base.make_dark
+			else
+				create l_base.make_light
+			end
+			create locale.make_us
+			is_high_contrast := True
+			background := a_window
+			surface := a_window
+			ink := readable_on (a_window_text, a_window)
+			ink_muted := ink
+			ink_soft := ink
+			outline := ink
+			divider := ink
+			neutral := ink
+			if contrast_ratio (ink, a_button_face) >= Body_contrast then
+				surface_variant := a_button_face
+			else
+				surface_variant := a_window
+			end
+				-- accent marks and outlined labels sit on the window too
+			if contrast_ratio (a_highlight, a_window) >= Label_contrast then
+				accent := a_highlight
+			else
+				accent := ink
+			end
+			ink_on_accent := readable_on (a_highlight_text, accent)
+			selection := readable_ground (a_highlight, a_window, ink)
+			ink_accent := readable_on (a_hotlight, a_window)
+				-- the semantic hues stay (Windows gives none), made readable
+			success := l_base.success
+			warning := l_base.warning
+			danger := l_base.danger
+			ink_on_success := readable_on (l_base.ink_on_success, success)
+			ink_on_warning := readable_on (l_base.ink_on_warning, warning)
+			ink_on_danger := readable_on (l_base.ink_on_danger, danger)
+			ink_success := readable_on (l_base.ink_success, a_window)
+			ink_warning := readable_on (l_base.ink_warning, a_window)
+			ink_danger := readable_on (l_base.ink_danger, a_window)
+			wash_accent := a_window
+			wash_success := a_window
+			wash_warning := a_window
+			wash_danger := a_window
+			scrim := l_base.scrim
+			set_contrast_ramp (a_window)
+			init_families
+			set_metrics
+		ensure
+			high_contrast: is_high_contrast
+			one_ground: background = a_window and surface = a_window
+			readable: is_readable
+			ink_kept_when_readable: contrast_ratio (a_window_text, a_window) >= Body_contrast implies ink = a_window_text
+			accent_visible: contrast_ratio (accent, surface) >= Label_contrast
+			dark_follows_the_window: is_dark = (luminance (a_window) < 0.5)
 		end
 
 	init_families
@@ -231,6 +302,9 @@ feature -- Sequential ramp (GW-28)
 
 feature -- Status (GW-28)
 
+	is_high_contrast: BOOLEAN
+			-- Was this theme painted from a Windows contrast theme (GW-16)?
+
 	is_dark: BOOLEAN
 			-- Is this a dark theme? Decided by its surface.
 		do
@@ -345,6 +419,28 @@ feature -- Element change (GW-28)
 			set: ramp (1) = a_1 and ramp (2) = a_2 and ramp (3) = a_3
 				and ramp (4) = a_4 and ramp (5) = a_5
 			moves_away: ramp_moves_away
+		end
+
+feature -- Adopting (GW-16)
+
+	adopt_metrics_from (a_other: SW_THEME)
+			-- Take `a_other''s text scale, spacing, type families and locale,
+			-- so a contrast theme worn in place of an application's own keeps
+			-- its sizes and faces.
+		do
+			text_scale := a_other.text_scale
+			pad := a_other.pad
+			gap := a_other.gap
+			control_pad := a_other.control_pad
+			family_ui := a_other.family_ui.twin
+			family_body := a_other.family_body.twin
+			family_mono := a_other.family_mono.twin
+			locale := a_other.locale
+		ensure
+			scale_taken: text_scale = a_other.text_scale
+			spacing_taken: border_width = a_other.border_width and padding = a_other.padding
+				and control_inset = a_other.control_inset
+			faces_taken: family_ui.same_string (a_other.family_ui) and family_body.same_string (a_other.family_body)
 		end
 
 feature -- Type roles
@@ -587,6 +683,84 @@ feature {NONE} -- Ramp storage (GW-28)
 				and contrast_ratio (ramp_2, surface) < contrast_ratio (ramp_3, surface)
 				and contrast_ratio (ramp_3, surface) < contrast_ratio (ramp_4, surface)
 				and contrast_ratio (ramp_4, surface) < contrast_ratio (ramp_5, surface)
+		end
+
+feature {NONE} -- Contrast mending (GW-16)
+
+	readable_on (a_ink, a_ground: NATURAL_32): NATURAL_32
+			-- `a_ink' when it reads on `a_ground' at body contrast; else black
+			-- or white, whichever reads better (one of them always reaches
+			-- 4.5:1 on any ground).
+		do
+			if contrast_ratio (a_ink, a_ground) >= Body_contrast then
+				Result := a_ink
+			elseif contrast_ratio (0x000000, a_ground) >= contrast_ratio (0xFFFFFF, a_ground) then
+				Result := 0x000000
+			else
+				Result := 0xFFFFFF
+			end
+		ensure
+			readable: contrast_ratio (Result, a_ground) >= Body_contrast
+		end
+
+	readable_ground (a_wanted, a_fallback, a_ink: NATURAL_32): NATURAL_32
+			-- `a_wanted' if `a_ink' reads on it; else the first step from
+			-- `a_wanted' toward `a_fallback' (tenths) on which it does; else
+			-- `a_fallback'.
+		require
+			fallback_readable: contrast_ratio (a_ink, a_fallback) >= Body_contrast
+		local
+			k: INTEGER
+		do
+			Result := a_fallback
+			from
+				k := 10
+			until
+				k < 0 or else contrast_ratio (a_ink, mixed (a_fallback, a_wanted, k / 10.0)) >= Body_contrast
+			loop
+				k := k - 1
+			end
+			if k >= 0 then
+				Result := mixed (a_fallback, a_wanted, k / 10.0)
+			end
+		ensure
+			readable: contrast_ratio (a_ink, Result) >= Body_contrast
+		end
+
+	mixed (a_from, a_to: NATURAL_32; a_t: REAL_64): NATURAL_32
+			-- The color `a_t' of the way from `a_from' to `a_to', per channel.
+		require
+			fraction: a_t >= 0.0 and a_t <= 1.0
+		do
+			Result := (mixed_channel ((a_from |>> 16) & 0xFF, (a_to |>> 16) & 0xFF, a_t) |<< 16)
+				| (mixed_channel ((a_from |>> 8) & 0xFF, (a_to |>> 8) & 0xFF, a_t) |<< 8)
+				| mixed_channel (a_from & 0xFF, a_to & 0xFF, a_t)
+		ensure
+			ends: (a_t = 0.0 implies Result = a_from & 0xFFFFFF) and (a_t = 1.0 implies Result = a_to & 0xFFFFFF)
+		end
+
+	mixed_channel (a_from, a_to: NATURAL_32; a_t: REAL_64): NATURAL_32
+		do
+			Result := (a_from.to_real_64 + (a_to.to_real_64 - a_from.to_real_64) * a_t).rounded.to_natural_32.min (255)
+		end
+
+	set_contrast_ramp (a_ground: NATURAL_32)
+			-- A grey ramp from `a_ground' toward black (light grounds) or
+			-- white (dark grounds): every channel moves the same way, so each
+			-- step stands further from the ground than the last.
+		local
+			l_far: NATURAL_32
+		do
+			if contrast_ratio (0x000000, a_ground) >= contrast_ratio (0xFFFFFF, a_ground) then
+				l_far := 0x000000
+			else
+				l_far := 0xFFFFFF
+			end
+			ramp_1 := mixed (a_ground, l_far, 0.2)
+			ramp_2 := mixed (a_ground, l_far, 0.4)
+			ramp_3 := mixed (a_ground, l_far, 0.6)
+			ramp_4 := mixed (a_ground, l_far, 0.8)
+			ramp_5 := l_far
 		end
 
 feature {NONE} -- Implementation
