@@ -40,6 +40,8 @@ inherit
 
 	SW_CLUSTER_MATH
 
+	SW_MARK_HOST
+
 create
 	make, make_single_line, make_password
 
@@ -54,7 +56,6 @@ feature {NONE} -- Initialization
 			spell_dirty := True
 			create geometry.make
 			create marks.make (text.count)
-			create mark_painter.make
 			layout_width := -1.0
 			text_alignment := {SHAPING_CONSTANTS}.Align_left
 			laid_alignment := text_alignment
@@ -185,13 +186,6 @@ feature -- Highlights
 			-- The data behind the text: spans with reasons, following
 			-- every edit made here.
 
-	legend: detachable SW_MARK_LEGEND
-			-- What a reason looks like; Void paints only spans that
-			-- carry their own mark.
-
-	mark_painter: SW_MARK_PAINTER
-			-- Paints `marks'; set its size floors here.
-
 	set_marks (a_marks: SW_MARKED_TEXT)
 			-- Share `a_marks' (a host keeping the data behind several
 			-- boxes, or a paragraph list seating an editor); it is
@@ -202,13 +196,6 @@ feature -- Highlights
 		ensure
 			shared: marks = a_marks
 			fits: marks.text_count = text.count
-		end
-
-	set_legend (a_legend: detachable SW_MARK_LEGEND)
-		do
-			legend := a_legend
-		ensure
-			set: legend = a_legend
 		end
 
 feature -- Undo and redo (the most-missed feature, landed)

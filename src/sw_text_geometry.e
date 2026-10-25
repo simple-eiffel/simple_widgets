@@ -159,6 +159,27 @@ feature -- Access
 			non_negative: Result >= 0.0
 		end
 
+	natural_width: REAL_64
+			-- The width the text takes laid out on one line: its characters'
+			-- advances, whatever the lines' placement (a table column's
+			-- natural width).
+		local
+			k: INTEGER
+		do
+			from
+				k := 1
+			until
+				k > count
+			loop
+				if not is_break (k) then
+					Result := Result + width_of (k)
+				end
+				k := k + 1
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
 feature -- Alignment (GW-02)
 
 	alignment: INTEGER

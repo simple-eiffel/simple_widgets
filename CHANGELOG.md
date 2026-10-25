@@ -21,6 +21,48 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Added (0.24.0 — PARALLEL TEXT; GW-06; and the ancestors it stands on)
+
+simple_bible's Parallel tab (A02), word diff (A04) and They Chose (I-P06) show
+versions side by side, verse by verse. Larry's rule: extract what a new widget
+would copy before building it, and use multiple inheritance to do it.
+
+- **`SW_PARALLEL_TEXT`.** Rows are canonical verses, columns are versions (up
+  to six, each with a weight, a text scale and an alignment), and each cell is
+  a simple_document `DOC_TEXT`: wrapped, shaped, in its own direction (Hebrew
+  flush right). A row is as tall as its tallest cell; one scroll; the title
+  band stays while the rows scroll; note rows ("LXX 9 = MT 9-10") span every
+  column in muted text. Each cell has its own `SW_MARKED_TEXT`, painted
+  through an `SW_MARK_LEGEND` ("agrees with LXX"). `cell_at`, `on_cell_click`,
+  `scroll_to_row`; selection copies a row's cells with tabs and rows line by
+  line. Spacing from the theme: the page inset is `border_width`, columns are
+  `padding` apart, cells half the `padding` down, the title band the measured
+  label font plus `padding`. Its whole inherit clause is one parent.
+- **`SW_DOC_UNITS`**, lifted from the document view: the units of stacked
+  items (texts and cells, numbered in reading order), the pointing and
+  selection item hooks, `pointed_unit` (an item's one text, or the cell whose
+  box holds the point), `lay_unit`, the run hook for links, code and
+  strikethrough, selection washes, link hover, and the read-only pointer
+  (`unit_press`, `unit_drag`, `unit_release`, `unit_double_click`). The
+  document view went from about 1,370 lines to 876.
+- **Composed bases, for shorter inherit clauses.** The compiler confirmed that
+  every parent bringing a feature the heir redefines needs it listed, so the
+  joining is done once: `SW_STACKED_POINTING` joins pointing, scrolling and the
+  stack, and owns `accepts_focus`, `wants_hover_point` and `preferred_height`;
+  `SW_DOC_UNITS` inherits it and `SW_TEXT_SELECTION`. The paragraph list's
+  inherit clause went from 45 lines to 24, the document view's to 17.
+- **`SW_MARK_HOST`**, a mixin with no parent (so no adaptation anywhere):
+  `legend`, `set_legend`, `mark_painter` for the text box, the paragraph list
+  and the parallel text. `SW_MARK_PAINTER.paint_marked` paints a marked text
+  whole. `SW_DOC_UNIT` has an alignment; `SW_TEXT_GEOMETRY.natural_width`.
+- The second post-merge scan (report `design-scan-since-a808837.md`): no new
+  high findings; the paragraph list's note now says an unchanged edit is not a
+  commit.
+- Tests: rows following their tallest cell, cells hit, clicked and copied,
+  a Hebrew column flush right and a note row, the title band staying while
+  rows scroll, spacing at 1x and 2x, and They Chose in both themes (evidence
+  gw06_parallel_light.png and gw06_parallel_dark.png). 414 pass.
+
 ### Changed (0.23.0 — THE FIRST POST-MERGE SCAN'S HIGH FINDINGS)
 
 The post-merge abstraction scan (simple_bible gap program rule 9;

@@ -35,6 +35,7 @@ feature {NONE} -- Initialization
 			is_bold := a_bold
 			create geometry.make
 			wrap := 16.0
+			alignment := {SHAPING_CONSTANTS}.Align_start
 		ensure
 			block_set: block = a_block
 			content_set: content = a_content
@@ -69,6 +70,10 @@ feature -- Access
 	box_x, box_y, box_w, box_h: REAL_64
 			-- A table cell's box, from the block's content-left and top.
 
+	alignment: INTEGER
+			-- How its lines stand in its wrap (SHAPING_CONSTANTS Align_*;
+			-- Align_start, the default, sets Hebrew flush right).
+
 	is_mirrored: BOOLEAN
 			-- Does it read right to left, so its marker or quote bar stands
 			-- on the right?
@@ -95,6 +100,16 @@ feature -- Element change
 			box_y := a_y
 			box_w := a_w
 			box_h := a_h
+		end
+
+	set_alignment (a_alignment: INTEGER)
+		require
+			valid: a_alignment >= {SHAPING_CONSTANTS}.Align_start
+				and a_alignment <= {SHAPING_CONSTANTS}.Align_center
+		do
+			alignment := a_alignment
+		ensure
+			set: alignment = a_alignment
 		end
 
 	set_mirrored (a_on: BOOLEAN)

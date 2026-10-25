@@ -60,48 +60,19 @@ class
 	SW_DOCUMENT_VIEW
 
 inherit
-	SW_TEXT_POINTING
-		redefine
-			item_text_count,
-			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
-		end
-
-	SW_VSCROLLING
-		undefine
-			dwell_ms, handle_dwell, hover_card_at
+	SW_DOC_UNITS
 		redefine
 			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
-		end
-
-	SW_TEXT_SELECTION
-		undefine
-			dwell_ms, handle_dwell, hover_card_at
-		redefine
-			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at, item_separator
+			handle_release, handle_key, handle_char, cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
 		end
 
 	SW_IN_PLACE_EDITING
 		undefine
-			dwell_ms, handle_dwell, hover_card_at
+			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at,
+			accepts_focus, wants_hover_point
 		redefine
 			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
-		end
-
-	SW_STACKED_ITEMS
-		undefine
-			dwell_ms, handle_dwell, hover_card_at
-		redefine
-			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
+			handle_release, handle_key, handle_char, cursor_kind, sub_widgets, widget_at
 		end
 
 create
@@ -116,10 +87,6 @@ feature {NONE} -- Initialization
 		do
 			viewport_height := a_viewport_height
 			create document.make
-			create block_units.make (16)
-			create units.make (16)
-			create block_first_unit.make (16)
-			create pressed_link.make_empty
 			laid_doc_revision := -1
 			laid_px := 14
 			init_pointing
@@ -132,75 +99,6 @@ feature -- Access
 
 	document: SIMPLE_DOCUMENT
 			-- What is shown.
-
-	unit_count: INTEGER
-			-- Texts laid out: each text block one, each table cell one.
-		do
-			Result := units.count
-		end
-
-	unit_block (a_unit: INTEGER): INTEGER
-			-- The document block unit `a_unit' belongs to.
-		require
-			valid: is_valid_item (a_unit)
-		do
-			Result := units.i_th (a_unit).block
-		end
-
-	unit_row (a_unit: INTEGER): INTEGER
-			-- Its table row; 0 for a block's own text.
-		require
-			valid: is_valid_item (a_unit)
-		do
-			Result := units.i_th (a_unit).row
-		end
-
-	unit_column (a_unit: INTEGER): INTEGER
-			-- Its table column; 0 for a block's own text.
-		require
-			valid: is_valid_item (a_unit)
-		do
-			Result := units.i_th (a_unit).column
-		end
-
-	unit_geometry (a_unit: INTEGER): SW_TEXT_GEOMETRY
-			-- Where unit `a_unit''s characters paint, from its text origin.
-		require
-			valid: is_valid_item (a_unit)
-		do
-			Result := units.i_th (a_unit).geometry
-		end
-
-	link_target_at (a_unit, a_character: INTEGER): detachable STRING_32
-			-- The target of the link over character `a_character' of unit
-			-- `a_unit'; Void for none.
-		require
-			valid: is_valid_item (a_unit)
-		local
-			k: INTEGER
-		do
-			k := units.i_th (a_unit).content.link_at (a_character)
-			if k > 0 then
-				Result := units.i_th (a_unit).content.span_target (k).twin
-			end
-		end
-
-	hovered_link: STRING_32
-			-- The target of the link under the pointer; empty for none.
-		do
-			if hovered_link_span > 0 and then hovered_link_unit <= units.count then
-				Result := units.i_th (hovered_link_unit).content.span_target (hovered_link_span).twin
-			else
-				create Result.make_empty
-			end
-		end
-
-	on_link_click: detachable PROCEDURE [STRING_32]
-			-- A link was clicked: its target.
-
-	on_link_hover: detachable PROCEDURE [STRING_32]
-			-- The link under the pointer changed: its target, or empty
-			-- when the pointer left every link.
 
 	is_laid_out: BOOLEAN
 			-- Do the measurements stand for the document as it is?
@@ -228,23 +126,6 @@ feature -- Access
 			positive: Result > 0.0
 		end
 
-	unit_origin_x (a_unit: INTEGER): REAL_64
-			-- Where unit `a_unit''s text origin is, in window coordinates.
-		require
-			valid: is_valid_item (a_unit)
-		do
-			Result := x + margin + units.i_th (a_unit).dx
-		end
-
-	unit_origin_y (a_unit: INTEGER): REAL_64
-		require
-			valid: is_valid_item (a_unit)
-		do
-			if is_laid_out then
-				Result := block_top (units.i_th (a_unit).block) + units.i_th (a_unit).dy
-			end
-		end
-
 	content_pad: REAL_64
 			-- The page inset, as of the last layout (theme border_width).
 		do
@@ -267,20 +148,6 @@ feature -- Element change
 			set: document = a_document
 			at_top: scroll_y = 0.0
 			nothing_selected: not has_selection
-		end
-
-	set_on_link_click (a_action: detachable PROCEDURE [STRING_32])
-		do
-			on_link_click := a_action
-		ensure
-			set: on_link_click = a_action
-		end
-
-	set_on_link_hover (a_action: detachable PROCEDURE [STRING_32])
-		do
-			on_link_hover := a_action
-		ensure
-			set: on_link_hover = a_action
 		end
 
 	scroll_to_block (a_block: INTEGER)
@@ -386,95 +253,10 @@ feature -- Editing (live preview)
 
 feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 
-	item_count: INTEGER
+	units_left: REAL_64
+			-- The page's left inset.
 		do
-			Result := units.count
-		end
-
-	is_valid_item (a_item: INTEGER): BOOLEAN
-		do
-			Result := a_item >= 1 and a_item <= units.count
-		end
-
-	text_of (a_item: INTEGER): STRING_32
-		do
-			Result := units.i_th (a_item).content.text
-		end
-
-	item_separator (a_item: INTEGER): STRING_32
-			-- A tab between two cells of one table row, else a line feed.
-		do
-			if a_item < units.count and then units.i_th (a_item).is_cell
-				and then units.i_th (a_item + 1).block = units.i_th (a_item).block
-				and then units.i_th (a_item + 1).row = units.i_th (a_item).row
-			then
-				Result := {STRING_32} "%T"
-			else
-				Result := {STRING_32} "%N"
-			end
-		end
-
-	pointed_item (a_px, a_py: REAL_64): INTEGER
-			-- The unit under the point: the block's text, or the table cell
-			-- whose box holds it.
-		local
-			i, k: INTEGER
-			cy, cx: REAL_64
-			l_list: ARRAYED_LIST [SW_DOC_UNIT]
-		do
-			if is_laid_out and then contains (a_px, a_py) and then not bar.contains (a_px, a_py) then
-				cy := a_py - y - margin + scroll_y
-				i := stacked_item_at (a_py)
-				if i > 0 then
-					l_list := block_units.i_th (i)
-					if document.block (i).kind = {DOC_BLOCK}.Kind_table then
-						cx := a_px - x - margin
-						cy := cy - stack.top (i)
-						from
-							k := 1
-						until
-							k > l_list.count or Result > 0
-						loop
-							if cx >= l_list.i_th (k).box_x and cx < l_list.i_th (k).box_x + l_list.i_th (k).box_w
-								and cy >= l_list.i_th (k).box_y and cy < l_list.i_th (k).box_y + l_list.i_th (k).box_h
-							then
-								Result := block_first_unit.i_th (i) + k - 1
-							end
-							k := k + 1
-						end
-					elseif not l_list.is_empty then
-						Result := block_first_unit.i_th (i)
-					end
-				end
-			end
-		end
-
-	item_geometry (a_item: INTEGER): SW_TEXT_GEOMETRY
-			-- Unit `a_item''s geometry (SW_TEXT_POINTING).
-		do
-			Result := units.i_th (a_item).geometry
-		end
-
-	item_origin_x (a_item: INTEGER): REAL_64
-		do
-			Result := unit_origin_x (a_item)
-		end
-
-	item_origin_y (a_item: INTEGER): REAL_64
-		do
-			Result := unit_origin_y (a_item)
-		end
-
-	is_item_pointable (a_item: INTEGER): BOOLEAN
-			-- Units exist only for laid-out blocks (the edited block has
-			-- none).
-		do
-			Result := is_laid_out
-		end
-
-	item_text_count (a_item: INTEGER): INTEGER
-		do
-			Result := units.i_th (a_item).content.count
+			Result := x + margin
 		end
 
 feature -- Scrolling (SW_VSCROLLING)
@@ -493,16 +275,6 @@ feature -- Scrolling (SW_VSCROLLING)
 
 feature -- Layout
 
-	accepts_focus: BOOLEAN
-		do
-			Result := True
-		end
-
-	wants_hover_point: BOOLEAN
-		do
-			Result := True
-		end
-
 	cursor_kind: INTEGER
 			-- A hand over a link, an I-beam over text, else the arrow.
 		do
@@ -510,16 +282,9 @@ feature -- Layout
 				Result := 0
 			elseif editor_has (hover_px, hover_py) then
 				Result := 1
-			elseif hovered_link_span > 0 then
-				Result := 2
-			elseif hover_character > 0 then
-				Result := 1
+			else
+				Result := unit_cursor_kind
 			end
-		end
-
-	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
-		do
-			Result := viewport_height
 		end
 
 	arrange (a_p: SW_PAINTER)
@@ -568,78 +333,40 @@ feature -- Input
 		end
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
-			-- The bar first; then a press on text starts a selection (and
-			-- remembers a link under it); a press elsewhere clears it.
-		local
-			u: INTEGER
+			-- The bar first; then, editable, the live preview's press; else
+			-- a press on text starts a selection (SW_DOC_UNITS).
 		do
-			create pressed_link.make_empty
 			if press_bar (a_px, a_py) then
 				Result := True
 			elseif is_editable then
+				create pressed_link.make_empty
 				Result := editable_click (a_px, a_py)
 			else
-				u := pointed_item (a_px, a_py)
-				if u > 0 then
-					begin_selection (u, offset_at_point (u, a_px, a_py))
-					pressed_link := link_target_at_point (a_px, a_py)
-					Result := True
-				else
-					clear_selection
-					Result := contains (a_px, a_py)
-				end
+				Result := unit_press (a_px, a_py)
 			end
 		end
 
 	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
 			-- Select the word under the pointer.
-		local
-			u, ch: INTEGER
-			w: TUPLE [lo, hi: INTEGER]
 		do
-			ch := character_at (a_px, a_py)
-			if ch > 0 then
-				u := pointed_item (a_px, a_py)
-				w := word_at (u, ch)
-				select_range (u, w.lo, u, w.hi)
-				Result := True
-			end
+			Result := unit_double_click (a_px, a_py)
 		end
 
 	handle_drag (a_px, a_py: REAL_64)
 			-- The thumb follows, or the selection grows to the text under
 			-- the pointer.
-		local
-			u: INTEGER
 		do
-			if not drag_bar (a_py) and then is_selecting then
-				u := pointed_item (a_px, a_py)
-				if u > 0 then
-					extend_selection (u, offset_at_point (u, a_px, a_py))
-				end
+			if not drag_bar (a_py) then
+				unit_drag (a_px, a_py)
 			end
 		end
 
 	handle_release (a_x, a_y: INTEGER)
 			-- Let go of the thumb or end the selection; a click on a link
 			-- (pressed and released on it, nothing selected) follows it.
-		local
-			l_target: STRING_32
 		do
 			release_bar
-			if is_selecting then
-				end_selection
-				if not has_selection and then not pressed_link.is_empty
-					and then link_target_at_point (a_x, a_y).same_string (pressed_link)
-				then
-					l_target := pressed_link.twin
-					clear_selection
-					if attached on_link_click as al_click then
-						al_click.call (l_target)
-					end
-				end
-			end
-			create pressed_link.make_empty
+			unit_release (a_x, a_y)
 		ensure then
 			released: not bar.is_dragging and not is_selecting
 		end
@@ -680,14 +407,14 @@ feature -- Input
 	set_hover_point (a_px, a_py: REAL_64)
 			-- Follow the pointer to the character - and the link - under it.
 		do
-			Precursor {SW_TEXT_POINTING} (a_px, a_py)
+			Precursor {SW_DOC_UNITS} (a_px, a_py)
 			update_link_hover
 		end
 
 	set_hovered (a_hovered: BOOLEAN)
 			-- Leaving the view leaves every link.
 		do
-			Precursor {SW_TEXT_POINTING} (a_hovered)
+			Precursor {SW_DOC_UNITS} (a_hovered)
 			update_link_hover
 		end
 
@@ -698,16 +425,6 @@ feature {NONE} -- Layout implementation
 			-- layout while edited, so there is nothing to do here.
 		do
 		end
-
-	block_units: ARRAYED_LIST [ARRAYED_LIST [SW_DOC_UNIT]]
-			-- Per block, its texts.
-
-	units: ARRAYED_LIST [SW_DOC_UNIT]
-			-- Every text in reading order.
-
-	block_first_unit: ARRAYED_LIST [INTEGER]
-			-- Per block, the number of its first unit (one past the units
-			-- before it, when it has none).
 
 	laid_doc_revision: INTEGER
 			-- The document revision `block_units' were made for.
@@ -720,18 +437,6 @@ feature {NONE} -- Layout implementation
 
 	laid_px: INTEGER
 			-- Body text pixel size at the last layout.
-
-	hovered_link_unit, hovered_link_span: INTEGER
-			-- The link under the pointer: its unit and its span (0, 0).
-
-	pressed_link: STRING_32
-			-- The target of the link the last press landed on.
-
-	doc_styles: SW_DOC_STYLES
-			-- How a DOC_TEXT is set by the shaper.
-		once
-			create Result
-		end
 
 	Quote_bar: REAL_64 = 3.0
 			-- A quote bar's width at 1x.
@@ -811,29 +516,6 @@ feature {NONE} -- Layout implementation
 				al_ed.draw (a_p)
 			else
 				draw_block (a_p, a_i)
-			end
-		end
-
-	number_units
-			-- `units' and `block_first_unit' from the blocks' lists.
-		local
-			i: INTEGER
-		do
-			units.wipe_out
-			block_first_unit.wipe_out
-			from
-				i := 1
-			until
-				i > block_units.count
-			loop
-				block_first_unit.extend (units.count + 1)
-				across block_units.i_th (i) as u loop
-					units.extend (u)
-				end
-				i := i + 1
-			end
-			if anchor_item > units.count or caret_item > units.count then
-				clear_selection
 			end
 		end
 
@@ -941,7 +623,7 @@ feature {NONE} -- Layout implementation
 						r = 1 and b.has_header)
 					u.set_origin (0.0, 0.0, 1_000_000.0)
 					lay_unit (a_p, u).do_nothing
-					l_widths [c] := l_widths [c].max (natural_width (u.geometry) + 2.0 * l_pad_x + 1.0)
+					l_widths [c] := l_widths [c].max (u.geometry.natural_width + 2.0 * l_pad_x + 1.0)
 					l_list.extend (u)
 					c := c + 1
 				end
@@ -989,44 +671,6 @@ feature {NONE} -- Layout implementation
 			across l_heights as h loop
 				Result := Result + h
 			end
-		ensure
-			non_negative: Result >= 0.0
-		end
-
-	natural_width (a_geometry: SW_TEXT_GEOMETRY): REAL_64
-			-- The width of a text laid out on one line: its characters'
-			-- advances, whatever the line's placement.
-		local
-			k: INTEGER
-		do
-			from
-				k := 1
-			until
-				k > a_geometry.count
-			loop
-				if not a_geometry.is_break (k) then
-					Result := Result + a_geometry.width_of (k)
-				end
-				k := k + 1
-			end
-		ensure
-			non_negative: Result >= 0.0
-		end
-
-	lay_unit (a_p: SW_PAINTER; a_unit: SW_DOC_UNIT): REAL_64
-			-- Lay `a_unit' out at its wrap, in its face, with its spans on
-			-- the shaped path; its height.
-		local
-			g: SW_TEXT_GEOMETRY
-		do
-			g := a_unit.geometry
-			g.set_alignment ({SHAPING_CONSTANTS}.Align_start, a_unit.wrap)
-			if a_unit.content.span_count > 0 then
-				g.set_styles (doc_styles.styles_of (a_unit.content))
-			else
-				g.set_styles (Void)
-			end
-			Result := g.lay_out (a_p, a_unit.content.text, a_unit.wrap, a_unit.role, a_unit.size, a_unit.is_bold, False, False)
 		ensure
 			non_negative: Result >= 0.0
 		end
@@ -1133,7 +777,6 @@ feature {NONE} -- Drawing implementation
 			l_unit: SW_DOC_UNIT
 			g: SW_TEXT_GEOMETRY
 			ox, oy, mx: REAL_64
-			l_sel: TUPLE [lo, hi: INTEGER]
 			m: STRING_32
 		do
 			t := a_p.theme
@@ -1141,15 +784,7 @@ feature {NONE} -- Drawing implementation
 			g := l_unit.geometry
 			ox := unit_origin_x (a_unit)
 			oy := unit_origin_y (a_unit)
-			if g.count = l_unit.content.count then
-				l_sel := selection_in (a_unit)
-				if l_sel.lo < l_sel.hi then
-					a_p.set_color (t.selection)
-					across g.segments (l_sel.lo, l_sel.hi) as sg loop
-						a_p.fill_rect (ox + sg.left, oy + g.top_of_line (sg.line), sg.width, g.height_of_line (sg.line))
-					end
-				end
-			end
+			paint_unit_selection (a_p, a_unit, ox, oy)
 			if a_block.is_list_item and then not l_unit.is_cell then
 				if a_block.kind = {DOC_BLOCK}.Kind_bullet then
 					create m.make_empty
@@ -1168,12 +803,7 @@ feature {NONE} -- Drawing implementation
 				end
 				a_p.text (mx, oy + g.ascent_of_line (0), m)
 			end
-			a_p.set_color (unit_ink (t, l_unit))
-			if g.is_shaped and then a_p.has_shaping then
-				g.draw_hooked (a_p, ox, oy, agent paint_run (a_p, a_unit, ?, ?, ?, ?))
-			elseif g.count = l_unit.content.count then
-				g.draw (a_p, l_unit.content.text, False, ox, oy)
-			end
+			draw_unit_text (a_p, a_unit, ox, oy)
 		end
 
 	unit_ink (a_theme: SW_THEME; a_unit: SW_DOC_UNIT): NATURAL_32
@@ -1183,37 +813,6 @@ feature {NONE} -- Drawing implementation
 				Result := a_theme.ink_muted
 			else
 				Result := a_theme.ink
-			end
-		end
-
-	paint_run (a_p: SW_PAINTER; a_unit, a_character: INTEGER; a_run: SHAPED_RUN; a_pen, a_baseline: REAL_64)
-			-- Before a run paints: code over a wash, a link's runs in
-			-- `ink_accent' over an underline (heavier while the pointer is
-			-- on that link), the rest in the unit's ink; a struck run gets
-			-- its line through.
-		local
-			t: SW_THEME
-			l_link, l_flags: INTEGER
-			s: REAL_64
-		do
-			t := a_p.theme
-			s := t.text_scale
-			l_flags := units.i_th (a_unit).content.flags_at (a_character)
-			if l_flags & {DOC_TEXT}.Flag_code /= 0 then
-				a_p.set_color (t.surface_variant)
-				a_p.fill_rect (a_pen, a_baseline - 0.8 * a_run.height, a_run.advance_width, a_run.height)
-			end
-			l_link := units.i_th (a_unit).content.link_at (a_character)
-			if l_link > 0 then
-				a_p.set_color (t.ink_accent)
-				a_p.line (a_pen, a_baseline + 2.0 * s, a_pen + a_run.advance_width, a_baseline + 2.0 * s,
-					if a_unit = hovered_link_unit and l_link = hovered_link_span then 2.0 * s else s end)
-			else
-				a_p.set_color (unit_ink (t, units.i_th (a_unit)))
-			end
-			if l_flags & {DOC_TEXT}.Flag_strike /= 0 then
-				a_p.line (a_pen, a_baseline - 0.3 * a_run.height, a_pen + a_run.advance_width,
-					a_baseline - 0.3 * a_run.height, s)
 			end
 		end
 
@@ -1271,47 +870,7 @@ feature {NONE} -- Input implementation
 			end
 		end
 
-	link_target_at_point (a_px, a_py: REAL_64): STRING_32
-			-- The target of the link under the point; empty for none.
-		local
-			u, ch: INTEGER
-		do
-			create Result.make_empty
-			ch := character_at (a_px, a_py)
-			if ch > 0 then
-				u := pointed_item (a_px, a_py)
-				if attached link_target_at (u, ch) as al_target then
-					Result := al_target
-				end
-			end
-		end
-
-	update_link_hover
-			-- The link under `hover_item', `hover_character' becomes the
-			-- hovered link; `on_link_hover' hears a change.
-		local
-			l_unit, l_span: INTEGER
-		do
-			if hover_item > 0 and then hover_item <= units.count then
-				l_span := units.i_th (hover_item).content.link_at (hover_character)
-				if l_span > 0 then
-					l_unit := hover_item
-				end
-			end
-			if l_unit /= hovered_link_unit or else l_span /= hovered_link_span then
-				hovered_link_unit := l_unit
-				hovered_link_span := l_span
-				if attached on_link_hover as al_h then
-					al_h.call (hovered_link)
-				end
-			end
-		ensure
-			whole: (hovered_link_unit = 0) = (hovered_link_span = 0)
-		end
-
 invariant
 	viewport_positive: viewport_height > 0.0
-	link_whole: (hovered_link_unit = 0) = (hovered_link_span = 0)
-	first_units_per_block: block_first_unit.count <= block_units.count
 
 end
