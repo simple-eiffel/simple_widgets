@@ -201,6 +201,38 @@ feature -- The view
 			assert_reals_equal ("empty is as tall as one letter", l.item_height (2), l.item_height (1), 0.000_1)
 		end
 
+	test_paragraph_spacing_scales
+			-- The paragraph list's gap, padding and gutter scale with the
+			-- text, as the theme's tokens do: at 2x the gap between two
+			-- paragraphs and the text's inset double.
+		local
+			w1, w2: SW_WINDOW
+			l1, l2: SW_PARAGRAPH_LIST
+			t2: SW_THEME
+		do
+			create w1.make ("s1", 0, 0, 600, 400, create {SW_THEME}.make_light)
+			attach_kit (w1)
+			create t2.make_light
+			t2.set_text_scale (2.0)
+			create w2.make ("s2", 0, 0, 1200, 800, t2)
+			attach_kit (w2)
+			create l1.make (380.0)
+			create l2.make (780.0)
+			l1.add ("one")
+			l1.add ("two")
+			l2.add ("one")
+			l2.add ("two")
+			w1.set_root (l1)
+			w2.set_root (l2)
+			w1.request_render
+			w2.request_render
+			assert_reals_equal ("the gap at 1x is the item gap", l1.item_gap,
+				l1.item_top (2) - l1.item_top (1) - l1.item_height (1), 0.000_1)
+			assert_reals_equal ("and doubles at 2x", 2.0 * l1.item_gap,
+				l2.item_top (2) - l2.item_top (1) - l2.item_height (1), 0.000_1)
+			assert_reals_equal ("the text inset doubles", 2.0 * (l1.item_text_x (1) - l1.x), l2.item_text_x (1) - l2.x, 0.000_1)
+		end
+
 feature -- Hebrew and Greek, both themes
 
 	test_gw13_document_light

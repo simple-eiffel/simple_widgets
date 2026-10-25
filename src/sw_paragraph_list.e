@@ -115,6 +115,8 @@ feature {NONE} -- Initialization
 			gutter_width := 28.0
 			item_gap := 8.0
 			item_pad := 8.0
+			laid_scale := 1.0
+			bar_gap := 4.0
 			create texts.make (16)
 			create revisions.make (16)
 			create stack.make
@@ -155,6 +157,8 @@ feature -- Access
 	viewport_height: REAL_64
 
 	gutter_width: REAL_64
+			-- At 1x; drawn `gutter_px' wide, scaled with the text (as the
+			-- theme's spacing tokens are).
 			-- The host-drawn column at every paragraph's left.
 
 	item_gap: REAL_64
@@ -381,7 +385,7 @@ feature -- Geometry
 			-- Where a paragraph's text starts, in window coordinates, with
 			-- the gutter on the left (every paragraph before GW-02).
 		do
-			Result := x + gutter_width + item_pad
+			Result := x + gutter_px + pad_px
 		end
 
 	item_text_x (a_i: INTEGER): REAL_64
@@ -392,7 +396,7 @@ feature -- Geometry
 			in_range: a_i >= 1 and a_i <= count
 		do
 			if gutter_reads_right (a_i) then
-				Result := x + item_pad
+				Result := x + pad_px
 			else
 				Result := text_x
 			end
@@ -407,7 +411,7 @@ feature -- Geometry
 			in_range: a_i >= 1 and a_i <= count
 		do
 			if gutter_reads_right (a_i) then
-				Result := x + width - bar.bar_width - 4.0 - gutter_width
+				Result := x + width - bar.bar_width - bar_gap - gutter_px
 			else
 				Result := x
 			end
@@ -473,7 +477,7 @@ feature -- Pointing (GW-08)
 			in_range: a_i >= 1 and a_i <= count
 		do
 			if is_laid_out then
-				Result := y - scroll_y + stack.top (a_i) + item_pad + bands_above.i_th (a_i)
+				Result := y - scroll_y + stack.top (a_i) + pad_px + bands_above.i_th (a_i)
 			end
 		end
 
@@ -528,7 +532,7 @@ feature -- Alignment (GW-02)
 	text_width: REAL_64
 			-- How wide a paragraph's text may run.
 		do
-			Result := (width - bar.bar_width - 4.0 - gutter_width - 2.0 * item_pad).max (16.0)
+			Result := (width - bar.bar_width - bar_gap - gutter_px - 2.0 * pad_px).max (16.0)
 		ensure
 			positive: Result >= 16.0
 		end
@@ -979,9 +983,9 @@ feature -- Layout
 			scroll_y := scroll_y.min (max_scroll)
 			if is_editing and then attached editor as al_ed then
 				i := editing_index
-				ty := y - scroll_y + stack.top (i) + item_pad + bands_above.i_th (i)
+				ty := y - scroll_y + stack.top (i) + pad_px + bands_above.i_th (i)
 				seat_editor (a_p, item_text_x (i), ty, text_width,
-					stack.height (i) - 2.0 * item_pad - bands_above.i_th (i) - bands_below.i_th (i))
+					stack.height (i) - 2.0 * pad_px - bands_above.i_th (i) - bands_below.i_th (i))
 			end
 		end
 
@@ -1015,7 +1019,7 @@ feature -- Drawing
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			a_p.push_clip (x + 1.0, y + 1.0, width - 2.0, height - 2.0)
-			inner_w := width - bar.bar_width - 4.0
+			inner_w := width - bar.bar_width - bar_gap
 			if count > 0 then
 				from
 					i := first_visible
@@ -1048,16 +1052,16 @@ feature -- Drawing
 						a_p.rrect_stroke (bx + 0.5, by + 0.5, bw - 1.0, bh - 1.0, t.radius)
 					end
 					if attached gutter_renderer as al_g and then gutter_width > 0.0 then
-						al_g.call (a_p, i, item_gutter_x (i), by, gutter_width, bh)
+						al_g.call (a_p, i, item_gutter_x (i), by, gutter_px, bh)
 					end
-					ty := by + item_pad
+					ty := by + pad_px
 					if bands_above.i_th (i) > 0.0 then
 						if attached band_renderer as al_b then
 							al_b.call (a_p, i, True, item_text_x (i), ty, text_width, bands_above.i_th (i))
 						end
 						ty := ty + bands_above.i_th (i)
 					end
-					th := bh - 2.0 * item_pad - bands_above.i_th (i) - bands_below.i_th (i)
+					th := bh - 2.0 * pad_px - bands_above.i_th (i) - bands_below.i_th (i)
 					if i = editing_index and then attached editor as al_ed then
 						al_ed.draw (a_p)
 					else
@@ -1069,7 +1073,7 @@ feature -- Drawing
 						draw_item_text (i, a_p, 0.0, 0.0, item_text_x (i), ty)
 						mark_painter.paint_over (a_p, geometries.i_th (i), marks_list.i_th (i), legend, item_text_x (i), ty,
 							t.size_body * t.text_scale, agent draw_item_text (i, ?, ?, ?, item_text_x (i), ty))
-						ty := by + item_pad + bands_above.i_th (i) + th
+						ty := by + pad_px + bands_above.i_th (i) + th
 					end
 					if bands_below.i_th (i) > 0.0 and then attached band_renderer as al_b2 then
 						al_b2.call (a_p, i, False, item_text_x (i), ty, text_width, bands_below.i_th (i))
@@ -1195,6 +1199,31 @@ feature -- Input
 
 feature {NONE} -- Measurement
 
+	laid_scale: REAL_64
+			-- The theme's `text_scale' at the last measure (1.0 before).
+
+	bar_gap: REAL_64
+			-- Between the items and the scrollbar: half the theme's
+			-- padding at the last measure (4 pixels at 1x).
+
+	gutter_px: REAL_64
+			-- `gutter_width' at the text's scale.
+		do
+			Result := gutter_width * laid_scale
+		end
+
+	gap_px: REAL_64
+			-- `item_gap' at the text's scale.
+		do
+			Result := item_gap * laid_scale
+		end
+
+	pad_px: REAL_64
+			-- `item_pad' at the text's scale.
+		do
+			Result := item_pad * laid_scale
+		end
+
 	wheel_line: REAL_64
 			-- One line of body text at the last measure: a wheel notch
 			-- scrolls SW_VSCROLLBAR.Wheel_lines of them.
@@ -1237,6 +1266,8 @@ feature {NONE} -- Measurement
 			tw, th: REAL_64
 			want_shaped: BOOLEAN
 		do
+			laid_scale := a_p.theme.text_scale
+			bar_gap := a_p.theme.padding / 2.0
 			bar.place (x, y, width, height, a_p.theme)
 			tw := text_width
 			want_shaped := a_p.has_shaping
@@ -1269,12 +1300,12 @@ feature {NONE} -- Measurement
 					else
 						th := laid_text_height (a_p, i, tw)
 					end
-					stack.put_height (i, (2.0 * item_pad + bands_above.i_th (i) + th + bands_below.i_th (i)).max (1.0),
+					stack.put_height (i, (2.0 * pad_px + bands_above.i_th (i) + th + bands_below.i_th (i)).max (1.0),
 						revisions.i_th (i))
 				end
 				i := i + 1
 			end
-			stack.restack (item_gap)
+			stack.restack (gap_px)
 			wheel_line := px * 1.5
 			place_bar (a_p.theme)
 		ensure
