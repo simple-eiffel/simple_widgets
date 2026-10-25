@@ -96,10 +96,17 @@ feature -- Comparison
 	row_less (a, b: G): BOOLEAN
 			-- Does row `a' order before row `b' in this column?
 		do
+			Result := sort_key (a) < sort_key (b)
+		end
+
+	sort_key (a: G): COMPARABLE
+			-- What row `a' sorts by in this column: its typed `key', else its
+			-- rendered text.
+		do
 			if attached key as k then
-				Result := k.item ([a]) < k.item ([b])
+				Result := k.item ([a])
 			else
-				Result := value.item ([a]) < value.item ([b])
+				Result := value.item ([a])
 			end
 		end
 
