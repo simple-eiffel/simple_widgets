@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.34.2 - the fourteenth scan, since c01e578: hatch cost)
+
+- **A huge hatch is bounded.** The clip throws ink away only after every
+  mark is built, so a dot hatch over a 5,000-pixel box was 1.5 million arcs
+  (599 milliseconds; a 200,000-pixel cross hatch longer still). The spacing
+  now widens until at most `Max_hatch_marks` (20,000) dots or
+  `Max_hatch_lines` (2,000) lines fit; boxes the size of a screen are
+  unaffected. Test `scan14_a_huge_hatch_is_bounded` (timed inside
+  `without_contracts`) failed on 0.34.1.
+- Not done (MEDIUM): the colour-channel arithmetic is copied in SW_PAINTER,
+  SW_HEATMAP and SW_THEME; dash lengths scale with the text but the width
+  does not; fractional scales are not snapped to whole pixels; the dash
+  and hatch proportions are literals. Report:
+  `.eiffel-workflow/evidence/design-scan-since-c01e578.md`. 506 pass.
+
 ### Fixed (0.34.1 - the thirteenth scan, since fc84965: the UI Automation bridge)
 
 Needs simple_shell 1.22.1. Six HIGH findings, each with a test that failed

@@ -704,8 +704,21 @@ feature {NONE} -- Strokes, hatches and blends (GW-18)
 			positive_spacing: a_spacing > 0.0
 		local
 			d, k, l_gap: REAL_64
+			m: DOUBLE_MATH
 		do
+				-- Scan 14 (2026-10-25), a note for the future self: the marks
+				-- are bounded - the spacing widens until at most
+				-- `Max_hatch_marks' dots or `Max_hatch_lines' lines fit - because the clip only throws
+				-- ink away after every mark is built, and a dot hatch over a
+				-- 5,000-pixel box was 1.5 million arcs. Guarded by
+				-- scan14_a_huge_hatch_is_bounded.
 			l_gap := a_spacing * theme.text_scale
+			if a_kind = Hatch_dots then
+				create m
+				l_gap := l_gap.max (m.sqrt ((a_w.max (1.0) * a_h.max (1.0)) / Max_hatch_marks))
+			else
+				l_gap := l_gap.max ((a_w.max (0.0) + a_h.max (0.0)) / Max_hatch_lines)
+			end
 			context.set_line_width (theme.text_scale.max (1.0)).do_nothing
 			context.new_path.do_nothing
 			inspect a_kind
@@ -770,6 +783,13 @@ feature {NONE} -- Strokes, hatches and blends (GW-18)
 				context.fill.do_nothing
 			end
 		end
+
+	Max_hatch_marks: REAL_64 = 20000.0
+			-- The most dots one hatch builds.
+
+	Max_hatch_lines: REAL_64 = 2000.0
+			-- The most lines one hatch builds (each spans the box, so they cost
+			-- more than dots; a 4,000-pixel box at spacing 6 needs about 1,300).
 
 	blend_rect (a_x, a_y, a_w, a_h: REAL_64; a_from: NATURAL_32; a_alpha_from: REAL_64; a_to: NATURAL_32; a_alpha_to: REAL_64; a_vertical: BOOLEAN)
 			-- Fill with a linear blend; the gradient is destroyed after use
