@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.34.0 - GW-18: dashes, hatches and gradients in SW_PAINTER)
+
+Phase 4 begins. Certainty classes drawn by pattern, never by colour alone.
+- **Stroke styles** `Stroke_solid`, `Stroke_dashed`, `Stroke_dotted`,
+  `Stroke_dash_dot`: `dashed_line`, `dashed_polyline`,
+  `dashed_rrect_stroke`. Dash lengths grow with the line width and the text
+  scale; dots are round.
+- **Hatch fills** `Hatch_forward` (/), `Hatch_backward` (\), `Hatch_cross`,
+  `Hatch_horizontal`, `Hatch_vertical`, `Hatch_dots`: `hatch_rect`,
+  `hatch_rrect`, `hatch_polygon` (a dispute envelope, a map region), in the
+  current colour, spacing scaled with the text.
+- **Gradients**: `gradient_rect` (one colour to another, across or down) and
+  `fade_rect` (one colour from one strength to another: an uncertain edge).
+  The gradient is destroyed after use.
+- Every call saves and restores the cairo state, so no dash, clip, cap,
+  width or gradient leaks into the next drawing.
+- Two cairo behaviours found by pixel tests and worked around: a
+  zero-length dash in the middle of a pattern draws nothing (the dash-dot
+  dot is a half-unit dash), and many small fills under a rounded clip drew
+  almost nothing (the dots are one path filled once).
+- Tests (`SW_STROKES_ASSAULT`, 6): dashes break where solid does not, dots
+  more often, dash-dot shows its dots; nothing leaks; hatches stay inside
+  (a rectangle, a rounded box, a triangle) and cross carries more ink than
+  one direction; gradients and fades run end to end; a specimen in both
+  themes (evidence `gw18_patterns_light.png`, `gw18_patterns_dark.png`).
+  499 pass.
+
 ### Added (0.33.0 - GW-14, second half: screen readers through UI Automation)
 
 Needs simple_shell 1.22.0.

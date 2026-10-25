@@ -500,6 +500,303 @@ feature -- Paths
 			context.fill.do_nothing
 		end
 
+feature -- Stroke styles (GW-18)
+
+	Stroke_solid: INTEGER = 0
+	Stroke_dashed: INTEGER = 1
+	Stroke_dotted: INTEGER = 2
+	Stroke_dash_dot: INTEGER = 3
+
+	is_stroke_style (a_style: INTEGER): BOOLEAN
+		do
+			Result := a_style >= Stroke_solid and a_style <= Stroke_dash_dot
+		end
+
+	dashed_line (a_x1, a_y1, a_x2, a_y2, a_width: REAL_64; a_style: INTEGER)
+			-- A segment in the current colour, stroked in `a_style' (a
+			-- `Stroke_' constant). Nothing leaks: the dash, cap and width are
+			-- the context's again afterwards.
+		require
+			positive_width: a_width > 0.0
+			known_style: is_stroke_style (a_style)
+		do
+			context.save.do_nothing
+			apply_stroke_style (a_style, a_width)
+			context.new_path.do_nothing
+			context.move_to (a_x1, a_y1).line_to (a_x2, a_y2).do_nothing
+			context.stroke.do_nothing
+			context.restore.do_nothing
+		end
+
+	dashed_polyline (a_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]]; a_width: REAL_64; a_style: INTEGER)
+			-- The open chain through the points, stroked in `a_style'.
+		require
+			enough: a_pts.count >= 2
+			positive_width: a_width > 0.0
+			known_style: is_stroke_style (a_style)
+		local
+			i: INTEGER
+		do
+			context.save.do_nothing
+			apply_stroke_style (a_style, a_width)
+			context.new_path.do_nothing
+			context.move_to (a_pts.first.px, a_pts.first.py).do_nothing
+			from
+				i := 2
+			until
+				i > a_pts.count
+			loop
+				context.line_to (a_pts.i_th (i).px, a_pts.i_th (i).py).do_nothing
+				i := i + 1
+			end
+			context.stroke.do_nothing
+			context.restore.do_nothing
+		end
+
+	dashed_rrect_stroke (a_x, a_y, a_w, a_h, a_r, a_width: REAL_64; a_style: INTEGER)
+			-- A rounded outline stroked in `a_style' (an uncertain range, a
+			-- provisional box).
+		require
+			positive_width: a_width > 0.0
+			known_style: is_stroke_style (a_style)
+		do
+			context.save.do_nothing
+			apply_stroke_style (a_style, a_width)
+			rrect_path (a_x, a_y, a_w, a_h, a_r)
+			context.stroke.do_nothing
+			context.restore.do_nothing
+		end
+
+feature -- Hatch fills (GW-18)
+
+	Hatch_forward: INTEGER = 1
+			-- Lines rising to the right: /
+	Hatch_backward: INTEGER = 2
+			-- Lines falling to the right: \
+	Hatch_cross: INTEGER = 3
+			-- Both diagonals: x
+	Hatch_horizontal: INTEGER = 4
+	Hatch_vertical: INTEGER = 5
+	Hatch_dots: INTEGER = 6
+			-- A grid of dots.
+
+	is_hatch (a_kind: INTEGER): BOOLEAN
+		do
+			Result := a_kind >= Hatch_forward and a_kind <= Hatch_dots
+		end
+
+	hatch_rect (a_x, a_y, a_w, a_h: REAL_64; a_kind: INTEGER; a_spacing: REAL_64)
+			-- Fill the rectangle with hatching of `a_kind' (a `Hatch_'
+			-- constant) in the current colour, lines `a_spacing' apart (scaled
+			-- with the text). Certainty drawn by pattern, never by colour
+			-- alone.
+		require
+			known_kind: is_hatch (a_kind)
+			positive_spacing: a_spacing > 0.0
+		do
+			context.save.do_nothing
+			context.new_path.do_nothing
+			context.rectangle (a_x, a_y, a_w, a_h).do_nothing
+			context.clip.do_nothing
+			draw_hatch (a_x, a_y, a_w, a_h, a_kind, a_spacing)
+			context.restore.do_nothing
+		end
+
+	hatch_rrect (a_x, a_y, a_w, a_h, a_r: REAL_64; a_kind: INTEGER; a_spacing: REAL_64)
+			-- `hatch_rect' inside a rounded rectangle.
+		require
+			known_kind: is_hatch (a_kind)
+			positive_spacing: a_spacing > 0.0
+		do
+			context.save.do_nothing
+			rrect_path (a_x, a_y, a_w, a_h, a_r)
+			context.clip.do_nothing
+			draw_hatch (a_x, a_y, a_w, a_h, a_kind, a_spacing)
+			context.restore.do_nothing
+		end
+
+	hatch_polygon (a_xy: ARRAY [REAL_64]; a_count: INTEGER; a_kind: INTEGER; a_spacing: REAL_64)
+			-- `hatch_rect' inside the polygon of the first `a_count' (x, y)
+			-- pairs of `a_xy' (a dispute envelope, a region of a map).
+		require
+			enough: a_count >= 3
+			fits: a_count * 2 <= a_xy.count
+			known_kind: is_hatch (a_kind)
+			positive_spacing: a_spacing > 0.0
+		local
+			i: INTEGER
+			l_min_x, l_min_y, l_max_x, l_max_y: REAL_64
+		do
+			l_min_x := a_xy [a_xy.lower]
+			l_max_x := l_min_x
+			l_min_y := a_xy [a_xy.lower + 1]
+			l_max_y := l_min_y
+			context.save.do_nothing
+			context.new_path.do_nothing
+			context.move_to (a_xy [a_xy.lower], a_xy [a_xy.lower + 1]).do_nothing
+			from
+				i := 1
+			until
+				i >= a_count
+			loop
+				context.line_to (a_xy [a_xy.lower + i * 2], a_xy [a_xy.lower + i * 2 + 1]).do_nothing
+				l_min_x := l_min_x.min (a_xy [a_xy.lower + i * 2])
+				l_max_x := l_max_x.max (a_xy [a_xy.lower + i * 2])
+				l_min_y := l_min_y.min (a_xy [a_xy.lower + i * 2 + 1])
+				l_max_y := l_max_y.max (a_xy [a_xy.lower + i * 2 + 1])
+				i := i + 1
+			end
+			context.close_path.do_nothing
+			context.clip.do_nothing
+			draw_hatch (l_min_x, l_min_y, l_max_x - l_min_x, l_max_y - l_min_y, a_kind, a_spacing)
+			context.restore.do_nothing
+		end
+
+feature -- Gradients (GW-18)
+
+	gradient_rect (a_x, a_y, a_w, a_h: REAL_64; a_from, a_to: NATURAL_32; a_vertical: BOOLEAN)
+			-- Fill the rectangle with a linear blend from `a_from' to `a_to',
+			-- left to right (or top to bottom when `a_vertical').
+		do
+			blend_rect (a_x, a_y, a_w, a_h, a_from, 1.0, a_to, 1.0, a_vertical)
+		end
+
+	fade_rect (a_x, a_y, a_w, a_h: REAL_64; a_rgb: NATURAL_32; a_alpha_from, a_alpha_to: REAL_64; a_vertical: BOOLEAN)
+			-- Fill the rectangle with `a_rgb' fading from `a_alpha_from' to
+			-- `a_alpha_to' (a date range whose edges are uncertain).
+		require
+			alphas_in_range: a_alpha_from >= 0.0 and a_alpha_from <= 1.0 and a_alpha_to >= 0.0 and a_alpha_to <= 1.0
+		do
+			blend_rect (a_x, a_y, a_w, a_h, a_rgb, a_alpha_from, a_rgb, a_alpha_to, a_vertical)
+		end
+
+feature {NONE} -- Strokes, hatches and blends (GW-18)
+
+	apply_stroke_style (a_style: INTEGER; a_width: REAL_64)
+			-- Set width, dash and cap for `a_style' on the saved context;
+			-- dash lengths grow with the line and with the text.
+		require
+			known_style: is_stroke_style (a_style)
+		local
+			u: REAL_64
+		do
+			u := a_width.max (1.0) * theme.text_scale
+			context.set_line_width (a_width).do_nothing
+			inspect a_style
+			when Stroke_dashed then
+				context.set_dash (<<4.0 * u, 3.0 * u>>, 0.0).do_nothing
+			when Stroke_dotted then
+					-- zero-length dashes with round caps are true dots
+				context.set_line_cap (1).set_dash (<<0.0, 2.5 * u>>, 0.0).do_nothing
+			when Stroke_dash_dot then
+				-- the dot is a short dash: cairo drops a zero-length one mid-pattern
+				context.set_line_cap (1).set_dash (<<5.0 * u, 3.0 * u, 0.5 * u, 3.0 * u>>, 0.0).do_nothing
+			else
+				context.clear_dash.do_nothing
+			end
+		end
+
+	draw_hatch (a_x, a_y, a_w, a_h: REAL_64; a_kind: INTEGER; a_spacing: REAL_64)
+			-- Hatching of `a_kind' across the box, inside whatever clip the
+			-- caller set.
+		require
+			known_kind: is_hatch (a_kind)
+			positive_spacing: a_spacing > 0.0
+		local
+			d, k, l_gap: REAL_64
+		do
+			l_gap := a_spacing * theme.text_scale
+			context.set_line_width (theme.text_scale.max (1.0)).do_nothing
+			context.new_path.do_nothing
+			inspect a_kind
+			when Hatch_forward, Hatch_backward, Hatch_cross then
+				d := a_w + a_h
+				from
+					k := 0.0
+				until
+					k > d
+				loop
+					if a_kind /= Hatch_backward then
+							-- rising: from the bottom edge up to the right
+						context.move_to (a_x + k - a_h, a_y + a_h).line_to (a_x + k, a_y).do_nothing
+					end
+					if a_kind /= Hatch_forward then
+						context.move_to (a_x + k - a_h, a_y).line_to (a_x + k, a_y + a_h).do_nothing
+					end
+					k := k + l_gap
+				end
+				context.stroke.do_nothing
+			when Hatch_horizontal then
+				from
+					k := l_gap / 2.0
+				until
+					k > a_h
+				loop
+					context.move_to (a_x, a_y + k).line_to (a_x + a_w, a_y + k).do_nothing
+					k := k + l_gap
+				end
+				context.stroke.do_nothing
+			when Hatch_vertical then
+				from
+					k := l_gap / 2.0
+				until
+					k > a_w
+				loop
+					context.move_to (a_x + k, a_y).line_to (a_x + k, a_y + a_h).do_nothing
+					k := k + l_gap
+				end
+				context.stroke.do_nothing
+			else
+				from
+					k := l_gap / 2.0
+				until
+					k > a_h
+				loop
+					from
+						d := l_gap / 2.0
+					until
+						d > a_w
+					loop
+							-- one path of sub-paths, filled once (scan of 2026-10-25: one
+							-- fill per dot drew almost nothing under a rounded clip with the
+							-- cairo simple_cairo ships; the line hatches were one path already)
+						context.move_to (a_x + d + (l_gap * 0.22).max (1.0), a_y + k).do_nothing
+						context.arc (a_x + d, a_y + k, (l_gap * 0.22).max (1.0), 0.0, Two_pi).do_nothing
+						context.close_path.do_nothing
+						d := d + l_gap
+					end
+					k := k + l_gap
+				end
+				context.fill.do_nothing
+			end
+		end
+
+	blend_rect (a_x, a_y, a_w, a_h: REAL_64; a_from: NATURAL_32; a_alpha_from: REAL_64; a_to: NATURAL_32; a_alpha_to: REAL_64; a_vertical: BOOLEAN)
+			-- Fill with a linear blend; the gradient is destroyed after use
+			-- (cairo objects have no dispose: scan 11's lesson).
+		local
+			l_g: CAIRO_GRADIENT
+		do
+			if a_vertical then
+				create l_g.make_linear (a_x, a_y, a_x, a_y + a_h)
+			else
+				create l_g.make_linear (a_x, a_y, a_x + a_w, a_y)
+			end
+			l_g.add_stop_rgba (0.0, channel_of (a_from, 16), channel_of (a_from, 8), channel_of (a_from, 0), a_alpha_from).do_nothing
+			l_g.add_stop_rgba (1.0, channel_of (a_to, 16), channel_of (a_to, 8), channel_of (a_to, 0), a_alpha_to).do_nothing
+			context.save.do_nothing
+			context.set_gradient (l_g).do_nothing
+			context.rectangle (a_x, a_y, a_w, a_h).fill.do_nothing
+			context.restore.do_nothing
+			l_g.destroy
+		end
+
+	channel_of (a_rgb: NATURAL_32; a_shift: INTEGER): REAL_64
+			-- One channel of `a_rgb', 0 to 1.
+		do
+			Result := a_rgb.bit_shift_right (a_shift).bit_and (0xFF) / 255.0
+		end
+
 feature -- Ribbons
 
 	ribbon_fill (a_x0, a_y0_top, a_y0_bot, a_x1, a_y1_top, a_y1_bot: REAL_64)

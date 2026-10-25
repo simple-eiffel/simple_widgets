@@ -759,6 +759,14 @@ feature {NONE} -- Test runners
 			run_test (agent motion_tests.test_gw14_window_follows_the_animation_setting, "gw14_window_follows_the_animation_setting")
 			run_test (agent motion_tests.test_scan12_motion_survives_a_light_dark_flip, "scan12_motion_survives_a_light_dark_flip")
 			run_test (agent motion_tests.test_scan12_diagram_holds_still, "scan12_diagram_holds_still")
+			print ("%N=== GW-18 STROKES, HATCHES, GRADIENTS ===%N")
+			create strokes_tests
+			run_test (agent strokes_tests.test_gw18_dashes_break_and_solid_does_not, "gw18_dashes_break_and_solid_does_not")
+			run_test (agent strokes_tests.test_gw18_no_style_leaks, "gw18_no_style_leaks")
+			run_test (agent strokes_tests.test_gw18_hatches_stay_inside_and_cross_carries_more, "gw18_hatches_stay_inside_and_cross_carries_more")
+			run_test (agent strokes_tests.test_gw18_gradients_and_fades_run_end_to_end, "gw18_gradients_and_fades_run_end_to_end")
+			run_test (agent strokes_tests.test_gw18_patterns_light, "gw18_patterns_light")
+			run_test (agent strokes_tests.test_gw18_patterns_dark, "gw18_patterns_dark")
 			print ("%N=== GW-14 UI AUTOMATION ===%N")
 			create uia_tests
 			run_test (agent uia_tests.test_gw14_the_tree_is_published, "gw14_the_tree_is_published")
@@ -840,6 +848,7 @@ feature {NONE} -- Test runners
 	contrast_tests: SW_HIGH_CONTRAST_ASSAULT
 	image_tests: SW_WIDGET_IMAGE_ASSAULT
 	motion_tests: SW_REDUCED_MOTION_ASSAULT
+	strokes_tests: SW_STROKES_ASSAULT
 	uia_tests: SW_ACCESSIBILITY_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
