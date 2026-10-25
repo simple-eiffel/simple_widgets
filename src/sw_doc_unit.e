@@ -17,7 +17,7 @@ create
 
 feature {NONE} -- Initialization
 
-	make (a_block, a_row, a_column: INTEGER; a_content: SW_RICH_TEXT;
+	make (a_block, a_row, a_column: INTEGER; a_content: DOC_TEXT;
 			a_role: INTEGER; a_size: REAL_64; a_bold: BOOLEAN)
 		require
 			block_positive: a_block >= 1
@@ -48,7 +48,7 @@ feature -- Access
 	row, column: INTEGER
 			-- Its cell in a table; 0, 0 for a block's own text.
 
-	content: SW_RICH_TEXT
+	content: DOC_TEXT
 
 	role: INTEGER
 			-- SW_PAINTER.Role_ui or Role_body.

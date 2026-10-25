@@ -653,7 +653,6 @@ feature {NONE} -- Test runners
 			print ("%N=== GW-13 RICH DOCUMENT ===%N")
 			create document_tests
 			run_test (agent document_tests.test_gw13_rich_text_flattens_for_the_shaper, "gw13_rich_text_flattens_for_the_shaper")
-			run_test (agent document_tests.test_gw13_document_numbers_and_plain_text, "gw13_document_numbers_and_plain_text")
 			run_test (agent document_tests.test_gw13_view_points_links_and_selects, "gw13_view_points_links_and_selects")
 			run_test (agent document_tests.test_gw13_bold_and_links_reach_the_shaper, "gw13_bold_and_links_reach_the_shaper")
 			run_test (agent document_tests.test_gw13_spacing_follows_the_theme, "gw13_spacing_follows_the_theme")

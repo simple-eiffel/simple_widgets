@@ -1,6 +1,6 @@
 note
 	description: "[
-		A rich document, read (GW-13): an SW_DOCUMENT's headings,
+		A rich document, read (GW-13): an SIMPLE_DOCUMENT's headings,
 		paragraphs, bulleted and numbered items, block quotes, rules and
 		tables, in a scrolling column - a commentary on the active verse,
 		a lexicon entry, a dictionary article, a note.
@@ -100,7 +100,7 @@ feature {NONE} -- Initialization
 
 feature -- Access
 
-	document: SW_DOCUMENT
+	document: SIMPLE_DOCUMENT
 			-- What is shown.
 
 	viewport_height: REAL_64
@@ -246,7 +246,7 @@ feature -- Access
 
 feature -- Element change
 
-	set_document (a_document: SW_DOCUMENT)
+	set_document (a_document: SIMPLE_DOCUMENT)
 			-- Show `a_document' from its top.
 		do
 			document := a_document
@@ -326,7 +326,7 @@ feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 				i := stack.item_at (cy)
 				if i > 0 then
 					l_list := block_units.i_th (i)
-					if document.block (i).kind = {SW_DOC_BLOCK}.Kind_table then
+					if document.block (i).kind = {DOC_BLOCK}.Kind_table then
 						cx := a_px - x - margin
 						cy := cy - stack.top (i)
 						from
@@ -608,8 +608,11 @@ feature {NONE} -- Layout implementation
 	pressed_link: STRING_32
 			-- The target of the link the last press landed on.
 
-	Link_ink: INTEGER = 1
-			-- The SHAPING_STYLES ink a link is set in.
+	doc_styles: SW_DOC_STYLES
+			-- How a DOC_TEXT is set by the shaper.
+		once
+			create Result
+		end
 
 	Quote_bar: REAL_64 = 3.0
 			-- A quote bar's width at 1x.
@@ -695,7 +698,7 @@ feature {NONE} -- Layout implementation
 		require
 			in_range: a_i >= 1 and a_i <= document.count
 		local
-			b: SW_DOC_BLOCK
+			b: DOC_BLOCK
 			t: SW_THEME
 			u: detachable SW_DOC_UNIT
 			l_above, l_indent: REAL_64
@@ -704,28 +707,32 @@ feature {NONE} -- Layout implementation
 			t := a_p.theme
 			block_units.i_th (a_i).wipe_out
 			inspect b.kind
-			when {SW_DOC_BLOCK}.Kind_heading then
+			when {DOC_BLOCK}.Kind_heading then
 				create u.make (a_i, 0, 0, b.content, {SW_PAINTER}.Role_ui, heading_size (t, b.level), True)
 				if a_i > 1 then
 					l_above := if b.level = 1 then t.border_width else t.padding end
 				end
 				u.set_origin (0.0, l_above, text_w)
 				Result := l_above + lay_unit (a_p, u)
-			when {SW_DOC_BLOCK}.Kind_bullet, {SW_DOC_BLOCK}.Kind_numbered then
+			when {DOC_BLOCK}.Kind_bullet, {DOC_BLOCK}.Kind_numbered then
 				l_indent := b.level * 2.0 * t.border_width
 				create u.make (a_i, 0, 0, b.content, {SW_PAINTER}.Role_body, t.size_body, False)
 				u.set_origin (l_indent, 0.0, (text_w - l_indent).max (16.0))
 				Result := lay_unit (a_p, u)
 				mirror_if_right_to_left (u)
-			when {SW_DOC_BLOCK}.Kind_quote then
+			when {DOC_BLOCK}.Kind_quote then
 				l_indent := b.level * t.border_width
 				create u.make (a_i, 0, 0, b.content, {SW_PAINTER}.Role_body, t.size_body, False)
 				u.set_origin (l_indent, 0.0, (text_w - l_indent).max (16.0))
 				Result := lay_unit (a_p, u)
 				mirror_if_right_to_left (u)
-			when {SW_DOC_BLOCK}.Kind_rule then
+			when {DOC_BLOCK}.Kind_rule then
 				Result := t.border_width
-			when {SW_DOC_BLOCK}.Kind_table then
+			when {DOC_BLOCK}.Kind_code_block then
+				create u.make (a_i, 0, 0, b.content, {SW_PAINTER}.Role_mono, t.size_body, False)
+				u.set_origin (t.control_inset, t.padding / 2.0, (text_w - 2.0 * t.control_inset).max (16.0))
+				Result := lay_unit (a_p, u) + t.padding
+			when {DOC_BLOCK}.Kind_table then
 				Result := measure_table (a_p, a_i)
 			else
 				create u.make (a_i, 0, 0, b.content, {SW_PAINTER}.Role_body, t.size_body, False)
@@ -754,9 +761,9 @@ feature {NONE} -- Layout implementation
 			-- widest cell on one line, shrunk in proportion when the table
 			-- would overrun the page; each row as tall as its tallest cell.
 		require
-			table: document.block (a_i).kind = {SW_DOC_BLOCK}.Kind_table
+			table: document.block (a_i).kind = {DOC_BLOCK}.Kind_table
 		local
-			b: SW_DOC_BLOCK
+			b: DOC_BLOCK
 			t: SW_THEME
 			r, c: INTEGER
 			l_pad_x, l_pad_y, l_total, l_cx, l_cy: REAL_64
@@ -870,7 +877,7 @@ feature {NONE} -- Layout implementation
 				g.set_alignment ({SHAPING_CONSTANTS}.Align_start, a_unit.wrap)
 				g.set_fonts (al_kit.fonts_for_role (a_unit.role, px, a_unit.is_bold))
 				if a_unit.content.span_count > 0 then
-					g.set_styles (a_unit.content.styles (Link_ink))
+					g.set_styles (doc_styles.styles_of (a_unit.content))
 				else
 					g.set_styles (Void)
 				end
@@ -908,7 +915,7 @@ feature {NONE} -- Drawing implementation
 		require
 			in_range: a_i >= 1 and a_i <= document.count
 		local
-			b: SW_DOC_BLOCK
+			b: DOC_BLOCK
 			t: SW_THEME
 			l_top, l_left, s, l_mid: REAL_64
 			k, u: INTEGER
@@ -919,11 +926,11 @@ feature {NONE} -- Drawing implementation
 			l_top := block_top (a_i)
 			l_left := x + margin
 			inspect b.kind
-			when {SW_DOC_BLOCK}.Kind_rule then
+			when {DOC_BLOCK}.Kind_rule then
 				l_mid := (l_top + stack.height (a_i) / 2.0).floor + 0.5
 				a_p.set_color (t.divider)
 				a_p.line (l_left, l_mid, l_left + text_w, l_mid, s)
-			when {SW_DOC_BLOCK}.Kind_quote then
+			when {DOC_BLOCK}.Kind_quote then
 				a_p.set_color (t.accent)
 				from
 					k := 1
@@ -938,8 +945,11 @@ feature {NONE} -- Drawing implementation
 					end
 					k := k + 1
 				end
-			when {SW_DOC_BLOCK}.Kind_table then
+			when {DOC_BLOCK}.Kind_table then
 				draw_table_frame (a_p, a_i, l_left, l_top)
+			when {DOC_BLOCK}.Kind_code_block then
+				a_p.set_color (t.surface_variant)
+				a_p.rrect_fill (l_left, l_top, text_w, stack.height (a_i), t.radius)
 			else
 			end
 			from
@@ -977,7 +987,7 @@ feature {NONE} -- Drawing implementation
 			a_p.stroke_rect (a_left.floor + 0.5, a_top.floor + 0.5, l_w, l_h)
 		end
 
-	draw_unit (a_p: SW_PAINTER; a_unit: INTEGER; a_block: SW_DOC_BLOCK)
+	draw_unit (a_p: SW_PAINTER; a_unit: INTEGER; a_block: DOC_BLOCK)
 			-- Unit `a_unit''s selection wash, list marker and text.
 		local
 			t: SW_THEME
@@ -1002,7 +1012,7 @@ feature {NONE} -- Drawing implementation
 				end
 			end
 			if a_block.is_list_item and then not l_unit.is_cell then
-				if a_block.kind = {SW_DOC_BLOCK}.Kind_bullet then
+				if a_block.kind = {DOC_BLOCK}.Kind_bullet then
 					create m.make_empty
 					m.append_code (0x2022)
 				else
@@ -1030,7 +1040,7 @@ feature {NONE} -- Drawing implementation
 	unit_ink (a_theme: SW_THEME; a_unit: SW_DOC_UNIT): NATURAL_32
 			-- The colour of a unit's plain text: muted in a quote.
 		do
-			if document.block (a_unit.block).kind = {SW_DOC_BLOCK}.Kind_quote then
+			if document.block (a_unit.block).kind = {DOC_BLOCK}.Kind_quote then
 				Result := a_theme.ink_muted
 			else
 				Result := a_theme.ink
@@ -1038,16 +1048,22 @@ feature {NONE} -- Drawing implementation
 		end
 
 	paint_run (a_p: SW_PAINTER; a_unit, a_character: INTEGER; a_run: SHAPED_RUN; a_pen, a_baseline: REAL_64)
-			-- Before a run paints: a link's runs in `ink_accent' over an
-			-- underline (heavier while the pointer is on that link); the
-			-- rest in the unit's ink.
+			-- Before a run paints: code over a wash, a link's runs in
+			-- `ink_accent' over an underline (heavier while the pointer is
+			-- on that link), the rest in the unit's ink; a struck run gets
+			-- its line through.
 		local
 			t: SW_THEME
-			l_link: INTEGER
+			l_link, l_flags: INTEGER
 			s: REAL_64
 		do
 			t := a_p.theme
 			s := t.text_scale
+			l_flags := units.i_th (a_unit).content.flags_at (a_character)
+			if l_flags & {DOC_TEXT}.Flag_code /= 0 then
+				a_p.set_color (t.surface_variant)
+				a_p.fill_rect (a_pen, a_baseline - 0.8 * a_run.height, a_run.advance_width, a_run.height)
+			end
 			l_link := units.i_th (a_unit).content.link_at (a_character)
 			if l_link > 0 then
 				a_p.set_color (t.ink_accent)
@@ -1055,6 +1071,10 @@ feature {NONE} -- Drawing implementation
 					if a_unit = hovered_link_unit and l_link = hovered_link_span then 2.0 * s else s end)
 			else
 				a_p.set_color (unit_ink (t, units.i_th (a_unit)))
+			end
+			if l_flags & {DOC_TEXT}.Flag_strike /= 0 then
+				a_p.line (a_pen, a_baseline - 0.3 * a_run.height, a_pen + a_run.advance_width,
+					a_baseline - 0.3 * a_run.height, s)
 			end
 		end
 
