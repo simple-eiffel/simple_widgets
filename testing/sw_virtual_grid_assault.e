@@ -166,6 +166,8 @@ feature {NONE} -- Fixtures
 			report ("End key", timed (agent g.handle_key (35, False)))
 			assert_integers_equal ("End selects the last row", g.view.last, g.selected_model)
 			report ("frame at the end", timed (agent w.request_render))
+				-- what 500 earlier tests left behind is collected now, not mid-frame
+			(create {MEMORY}).full_collect
 			from
 				create l_wheel.make (30)
 				i := 1
@@ -238,11 +240,17 @@ feature {NONE} -- Fixtures
 		local
 			clock: SIMPLE_MONOTONIC_CLOCK
 			t0: INTEGER_64
+			l_memory: MEMORY
 		do
+				-- no collector pause inside the measured frame (it runs before or
+				-- after; a full suite once put 190 milliseconds into one frame)
+			create l_memory
+			l_memory.collection_off
 			create clock
 			t0 := clock.nanoseconds
 			a_work.call (Void)
 			last_ms := clock.elapsed_nanoseconds (t0) / 1.0e6
+			l_memory.collection_on
 		end
 
 	last_ms: REAL_64

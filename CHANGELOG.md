@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Changed (0.38.4 - exports in their own ancestor; GW-29 timing without collector pauses)
+
+- **`SW_WIDGET_EXPORTING`**: the GW-21 export cluster (`widget_image`,
+  `export_widget_png`, `copy_widget_image`, `export_theme`, `can_export`,
+  `export_margin`, `exports_in_screen_theme`) moved out of SW_WINDOW
+  (3,350 lines, now 3,209) into a deferred ancestor; the window supplies the
+  screen theme, painter, shaping kit and hovered widget. No change for
+  callers.
+- **GW-29 timing**: a full suite once put a 190-millisecond collector pause
+  into one measured frame (page-jump median 66 milliseconds in that run).
+  The test now collects fully before its timed loops and switches
+  collection off for each measured frame. Two full runs: 537 pass, page
+  jump 14.7-15.8 milliseconds.
+
 ### Changed (0.38.3 - one way to paint a tab)
 
 - `SW_TAB_STRIP.draw_tab_ground` paints a tab's ground and answers its
