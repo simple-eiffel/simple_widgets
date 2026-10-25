@@ -143,11 +143,7 @@ feature -- Drawing
 			px := t.size_body * t.text_scale
 			keys := legend.keys
 			a_p.font ({SW_PAINTER}.Role_body, t.size_body, False)
-			if attached a_p.shaping as al_kit then
-				geometry.build_shaped (al_kit, sample, 0, px.rounded.max (1), True)
-			else
-				geometry.build_toy (a_p, sample, 1000.0, True, False)
-			end
+			geometry.lay_out (a_p, sample, 1000.0, 0, t.size_body, False, True, False).do_nothing
 			from
 				i := 1
 			until

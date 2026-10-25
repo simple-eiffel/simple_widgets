@@ -1038,25 +1038,15 @@ feature {NONE} -- Layout implementation
 			-- the shaped path; its height.
 		local
 			g: SW_TEXT_GEOMETRY
-			px: INTEGER
 		do
 			g := a_unit.geometry
-			px := (a_unit.size * a_p.theme.text_scale).rounded.max (1)
-			if a_p.has_shaping and then attached a_p.shaping as al_kit then
-				g.set_alignment ({SHAPING_CONSTANTS}.Align_start, a_unit.wrap)
-				g.set_fonts (al_kit.fonts_for_role (a_unit.role, px, a_unit.is_bold))
-				if a_unit.content.span_count > 0 then
-					g.set_styles (doc_styles.styles_of (a_unit.content))
-				else
-					g.set_styles (Void)
-				end
-				g.build_shaped (al_kit, a_unit.content.text, a_unit.wrap.floor.max (16), px, False)
-				Result := g.content_height.max (al_kit.line_height (px))
+			g.set_alignment ({SHAPING_CONSTANTS}.Align_start, a_unit.wrap)
+			if a_unit.content.span_count > 0 then
+				g.set_styles (doc_styles.styles_of (a_unit.content))
 			else
-				a_p.font (a_unit.role, a_unit.size, a_unit.is_bold)
-				g.build_toy (a_p, a_unit.content.text, a_unit.wrap, False, False)
-				Result := g.content_height.max (a_p.text_extent)
+				g.set_styles (Void)
 			end
+			Result := g.lay_out (a_p, a_unit.content.text, a_unit.wrap, a_unit.role, a_unit.size, a_unit.is_bold, False, False)
 		ensure
 			non_negative: Result >= 0.0
 		end

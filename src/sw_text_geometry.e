@@ -484,6 +484,47 @@ feature -- Caret geometry
 
 feature -- Building
 
+	lay_out (a_p: SW_PAINTER; a_text: READABLE_STRING_32; a_wrap: REAL_64; a_role: INTEGER;
+			a_size: REAL_64; a_bold, a_single_line, a_hidden: BOOLEAN): REAL_64
+			-- Lay `a_text' out by the engine the painter offers - the shaping
+			-- kit (unless `a_hidden') or cairo's toy advances - at `a_size'
+			-- (nominal, before `text_scale') in `a_role''s face (0: the kit's
+			-- own policy on the shaped path, the body face on the toy one),
+			-- wrapping at `a_wrap' unless `a_single_line'; the height it
+			-- takes, never less than one line of the face, so an empty text
+			-- stands as tall as the first character typed into it will make
+			-- it. The alignment and styles set before apply. The one engine
+			-- switch every geometry host shares.
+		require
+			wrap_non_negative: a_wrap >= 0.0
+			size_positive: a_size > 0.0
+			role_known: a_role = 0 or a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
+				or a_role = {SW_PAINTER}.Role_mono
+		local
+			px, wpx: INTEGER
+		do
+			px := (a_size * a_p.theme.text_scale).rounded.max (1)
+			if a_p.has_shaping and then not a_hidden and then attached a_p.shaping as al_kit then
+				if a_role > 0 then
+					set_fonts (al_kit.fonts_for_role (a_role, px, a_bold))
+				else
+					set_fonts (Void)
+				end
+				if not a_single_line then
+					wpx := a_wrap.floor.max (16)
+				end
+				build_shaped (al_kit, a_text, wpx, px, a_single_line)
+				Result := content_height.max (al_kit.line_height (px))
+			else
+				a_p.font (if a_role > 0 then a_role else {SW_PAINTER}.Role_body end, a_size, a_bold)
+				build_toy (a_p, a_text, a_wrap, a_single_line, a_hidden)
+				Result := content_height.max (a_p.text_extent)
+			end
+		ensure
+			one_slot_per_char: count = a_text.count
+			at_least_a_line: Result > 0.0
+		end
+
 	build_toy (a_p: SW_PAINTER; a_text: READABLE_STRING_32; a_wrap: REAL_64;
 			a_single_line, a_hidden: BOOLEAN)
 			-- One slot per character from cairo's advances (the painter's

@@ -1266,10 +1266,8 @@ feature {NONE} -- Measurement
 				if stack.needs_measure (i, revisions.i_th (i)) or i = editing_index then
 					if i = editing_index and then is_editing then
 						th := editor_text_height (a_p, tw)
-					elseif want_shaped and then attached a_p.shaping as al_kit then
-						th := shaped_height (al_kit, i, tw.floor.max (16), px)
 					else
-						th := toy_height (a_p, i, tw)
+						th := laid_text_height (a_p, i, tw)
 					end
 					stack.put_height (i, (2.0 * item_pad + bands_above.i_th (i) + th + bands_below.i_th (i)).max (1.0),
 						revisions.i_th (i))
@@ -1284,29 +1282,15 @@ feature {NONE} -- Measurement
 			engine_recorded: laid_shaped = a_p.has_shaping
 		end
 
-	shaped_height (a_kit: SW_SHAPING; a_i: INTEGER; a_wpx, a_px: INTEGER): REAL_64
-			-- Lay paragraph `a_i' out through the kit into its geometry
-			-- and answer the stacked height.
+	laid_text_height (a_p: SW_PAINTER; a_i: INTEGER; a_w: REAL_64): REAL_64
+			-- Lay paragraph `a_i' out into its geometry (SW_TEXT_GEOMETRY
+			-- .lay_out) and answer the stacked height.
 		require
 			in_range: a_i >= 1 and a_i <= count
-			positive: a_wpx > 0 and a_px > 0
 		do
-			geometries.i_th (a_i).set_alignment (text_alignment, a_wpx.to_double)
+			geometries.i_th (a_i).set_alignment (text_alignment, a_w.floor.max (16).to_double)
 			geometries.i_th (a_i).set_styles (styles_list.i_th (a_i))
-			geometries.i_th (a_i).build_shaped (a_kit, texts.i_th (a_i), a_wpx, a_px, False)
-			Result := geometries.i_th (a_i).content_height
-		ensure
-			non_negative: Result >= 0.0
-		end
-
-	toy_height (a_p: SW_PAINTER; a_i: INTEGER; a_w: REAL_64): REAL_64
-			-- Greedy word wrap on cairo's advances into the geometry.
-		require
-			in_range: a_i >= 1 and a_i <= count
-		do
-			a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
-			geometries.i_th (a_i).build_toy (a_p, texts.i_th (a_i), a_w, False, False)
-			Result := geometries.i_th (a_i).content_height.max (a_p.theme.scaled_line_height)
+			Result := geometries.i_th (a_i).lay_out (a_p, texts.i_th (a_i), a_w, 0, a_p.theme.size_body, False, False, False)
 		ensure
 			positive: Result > 0.0
 		end

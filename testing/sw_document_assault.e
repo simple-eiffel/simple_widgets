@@ -182,6 +182,25 @@ feature -- The view
 			assert_true ("a wheel notch up moves", v.handle_wheel (120) and v.scroll_y < v.max_scroll)
 		end
 
+	test_empty_paragraph_stands_a_line_tall
+			-- On the shaped path an empty paragraph is as tall as one holding
+			-- a single letter, so typing the first character never makes it
+			-- jump (SW_TEXT_GEOMETRY.lay_out floors at one line).
+		local
+			w: SW_WINDOW
+			l: SW_PARAGRAPH_LIST
+		do
+			create w.make ("empty", 0, 0, 500, 300, create {SW_THEME}.make_light)
+			attach_kit (w)
+			create l.make (280.0)
+			l.add ("")
+			l.add ("x")
+			w.set_root (l)
+			w.request_render
+			assert_true ("shaped", l.is_shaped_layout)
+			assert_reals_equal ("empty is as tall as one letter", l.item_height (2), l.item_height (1), 0.000_1)
+		end
+
 feature -- Hebrew and Greek, both themes
 
 	test_gw13_document_light
