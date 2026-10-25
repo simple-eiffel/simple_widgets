@@ -697,6 +697,13 @@ feature {NONE} -- Test runners
 			run_test (agent grouped_bars_tests.test_gw10_emphasis_quiets_the_others, "gw10_emphasis_quiets_the_others")
 			run_test (agent grouped_bars_tests.test_gw10_controls_light, "gw10_controls_light")
 			run_test (agent grouped_bars_tests.test_gw10_controls_dark, "gw10_controls_dark")
+			print ("%N=== GW-12 QUERY BUILDER ===%N")
+			create query_tests
+			run_test (agent query_tests.test_gw12_tree_reads_and_renders, "gw12_tree_reads_and_renders")
+			run_test (agent query_tests.test_gw12_incomplete_and_negated_groups, "gw12_incomplete_and_negated_groups")
+			run_test (agent query_tests.test_gw12_typed_pickers_and_removal, "gw12_typed_pickers_and_removal")
+			run_test (agent query_tests.test_gw12_builder_light, "gw12_builder_light")
+			run_test (agent query_tests.test_gw12_builder_dark, "gw12_builder_dark")
 			create paragraph_tests
 			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
 			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")
@@ -752,6 +759,7 @@ feature {NONE} -- Test runners
 	parallel_tests: SW_PARALLEL_ASSAULT
 	interlinear_tests: SW_INTERLINEAR_ASSAULT
 	grouped_bars_tests: SW_GROUPED_BARS_ASSAULT
+	query_tests: SW_QUERY_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.
