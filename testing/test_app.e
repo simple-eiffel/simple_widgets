@@ -707,6 +707,19 @@ feature {NONE} -- Test runners
 			run_test (agent memo_tests.test_scan7_label_shapes_like_the_painter, "scan7_label_shapes_like_the_painter")
 			run_test (agent memo_tests.test_scan7_rows_added_one_at_a_time, "scan7_rows_added_one_at_a_time")
 			run_test (agent memo_tests.test_scan7_hebrew_column_sits_flush_right, "scan7_hebrew_column_sits_flush_right")
+			print ("%N=== GW-15 TABS ===%N")
+			create tabs_tests
+			run_test (agent tabs_tests.test_gw15_close_selects_the_neighbor, "gw15_close_selects_the_neighbor")
+			run_test (agent tabs_tests.test_gw15_guard_and_pinned_tabs, "gw15_guard_and_pinned_tabs")
+			run_test (agent tabs_tests.test_gw15_close_box_through_the_window, "gw15_close_box_through_the_window")
+			run_test (agent tabs_tests.test_gw15_drag_reorders_through_the_window, "gw15_drag_reorders_through_the_window")
+			run_test (agent tabs_tests.test_gw15_move_tab_keeps_the_selection, "gw15_move_tab_keeps_the_selection")
+			run_test (agent tabs_tests.test_gw15_overflow_keeps_the_selected_tab_whole, "gw15_overflow_keeps_the_selected_tab_whole")
+			run_test (agent tabs_tests.test_gw15_closing_at_the_end_pulls_the_strip_back, "gw15_closing_at_the_end_pulls_the_strip_back")
+			run_test (agent tabs_tests.test_gw15_keys_an_application_binds, "gw15_keys_an_application_binds")
+			run_test (agent tabs_tests.test_gw15_wheel_steps_over_the_strip, "gw15_wheel_steps_over_the_strip")
+			run_test (agent tabs_tests.test_gw15_tabs_light, "gw15_tabs_light")
+			run_test (agent tabs_tests.test_gw15_tabs_dark, "gw15_tabs_dark")
 			print ("%N=== GW-29 VIRTUAL GRID ===%N")
 			create virtual_grid_tests
 			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_light, "gw29_hundred_thousand_rows_light")
@@ -778,6 +791,7 @@ feature {NONE} -- Test runners
 	query_tests: SW_QUERY_ASSAULT
 	virtual_grid_tests: SW_VIRTUAL_GRID_ASSAULT
 	memo_tests: SW_MEMO_ASSAULT
+	tabs_tests: SW_TABS_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.
