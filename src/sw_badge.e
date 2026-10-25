@@ -119,24 +119,48 @@ feature -- Drawing
 			if hides_at_zero and then not is_dot and then count = 0 then
 					-- zero with the policy on: nothing to say
 			else
-				inspect kind
-				when 1 then
-					a_p.set_color (t.accent)
-				when 2 then
-					a_p.set_color (t.success)
-				when 3 then
-					a_p.set_color (t.warning)
-				else
-					a_p.set_color (t.danger)
-				end
+				a_p.set_color (fill_color (t))
 				if is_dot then
 					a_p.circle_fill (x + width / 2.0, y + height / 2.0, 5.0)
 				else
 					a_p.rrect_fill (x, y, width, height, height / 2.0)
 					a_p.font ({SW_PAINTER}.Role_ui, t.size_chip, True)
-					a_p.set_color (t.surface)
+					a_p.set_color (text_color (t))
 					a_p.text (x + (width - a_p.advance (caption)) / 2.0, y + height - 5.0, caption)
 				end
+			end
+		end
+
+feature -- Colours
+
+	fill_color (a_theme: SW_THEME): NATURAL_32
+			-- The badge's ground: its kind's semantic fill.
+		do
+			inspect kind
+			when 1 then
+				Result := a_theme.accent
+			when 2 then
+				Result := a_theme.success
+			when 3 then
+				Result := a_theme.warning
+			else
+				Result := a_theme.danger
+			end
+		end
+
+	text_color (a_theme: SW_THEME): NATURAL_32
+			-- The count drawn on it: the theme's ink for that fill (it wrote
+			-- `surface', unreadable on some fills and every contrast palette).
+		do
+			inspect kind
+			when 1 then
+				Result := a_theme.ink_on_accent
+			when 2 then
+				Result := a_theme.ink_on_success
+			when 3 then
+				Result := a_theme.ink_on_warning
+			else
+				Result := a_theme.ink_on_danger
 			end
 		end
 

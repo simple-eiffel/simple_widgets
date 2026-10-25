@@ -740,6 +740,7 @@ feature {NONE} -- Test runners
 			run_test (agent contrast_tests.test_scan10_accent_reads_as_small_text, "scan10_accent_reads_as_small_text")
 			run_test (agent contrast_tests.test_scan10_a_theme_swap_updates_the_kit_faces, "scan10_a_theme_swap_updates_the_kit_faces")
 			run_test (agent contrast_tests.test_scan10_the_switch_is_read_once, "scan10_the_switch_is_read_once")
+			run_test (agent contrast_tests.test_chips_and_badges_read_in_every_theme, "chips_and_badges_read_in_every_theme")
 			print ("%N=== GW-21 WIDGET IMAGE ===%N")
 			create image_tests
 			run_test (agent image_tests.test_gw21_the_widget_alone_at_scale_in_light, "gw21_the_widget_alone_at_scale_in_light")

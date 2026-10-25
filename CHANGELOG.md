@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.37.3 - chips and badges read in every theme)
+
+- **SW_BADGE** wrote its count in `surface` on the semantic fill and
+  **SW_CHIP** its label in the fill colour on its wash, ignoring the
+  GW-28 tokens made for exactly this: in dark the accent chip read at
+  3.7:1. Badges now use `ink_on_accent` / `ink_on_success` /
+  `ink_on_warning` / `ink_on_danger`, chips `ink_accent` / `ink_success` /
+  `ink_warning` / `ink_danger`; a neutral chip keeps muted ink wherever it
+  reads at 4.5:1 and takes full ink in a contrast palette. The colours are
+  queries now (`fill_color`, `text_color`).
+- Test `chips_and_badges_read_in_every_theme` (every kind, light, dark and
+  the four Windows contrast palettes) failed before the fix. 537 pass.
+- Noted, not changed: GW-29's page-jump frame in the test build (contracts
+  compiled in, switched off) now runs 15-17 milliseconds against the
+  16.7 budget and fails about one run in three - 0.28.2 built from its own
+  commit does the same on this machine today, so it is not a regression;
+  the shipped lean build measured 5.1. The page-jump work is an open
+  performance item.
+
 ### Fixed (0.37.2 - the seventeenth scan, since 086d3e8: long edges)
 
 Three HIGH findings in the layered layout, each with a test:
