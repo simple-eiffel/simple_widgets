@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.37.0 - GW-23: a deterministic layered layout for SW_DIAGRAM)
+
+For clause outlines (C09): the force layout is not reproducible.
+- **`SW_DIAGRAM.set_layered (True)`**: cycles broken by reversing the back
+  edges a depth-first walk in node order finds (`is_reversed`,
+  `back_edge_count`; drawn dashed); layers by longest path (`layer_of`), so
+  every other edge runs left to right (postcondition); each layer ordered
+  by four barycenter sweeps, ties by node id (`order_of`), cutting crossings
+  (`crossing_count`); layers spaced by their widest label, nodes spread and
+  centred down the height. The same graph lays out to the same pixels every
+  time, and only again when the graph or the size changes. Edges start at
+  the end of the tail's label (none runs through a label) and carry
+  arrowheads; dragging is off in this mode. The force layout stays the
+  default.
+- Tests (`SW_LAYERED_DIAGRAM_ASSAULT`, 6): edges left to right; the same
+  pixels for the same graph; a crossing undone; a cycle broken by one edge
+  and laid out; Romans 1:16-17 as an outline with Greek words in both themes
+  (evidence `gw23_outline_light.png`, `gw23_outline_dark.png`). 532 pass.
+
 ### Added (0.36.0 - GW-19: the Atlas - regional map, routes, labels, layers, dark style)
 
 For the Atlas (P14).

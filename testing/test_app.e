@@ -790,6 +790,14 @@ feature {NONE} -- Test runners
 			run_test (agent atlas_tests.test_gw19_labels_from_their_zoom_without_overlap, "gw19_labels_from_their_zoom_without_overlap")
 			run_test (agent atlas_tests.test_gw19_levant_light, "gw19_levant_light")
 			run_test (agent atlas_tests.test_gw19_levant_dark, "gw19_levant_dark")
+			print ("%N=== GW-23 LAYERED DIAGRAM ===%N")
+			create layered_tests
+			run_test (agent layered_tests.test_gw23_edges_run_left_to_right, "gw23_edges_run_left_to_right")
+			run_test (agent layered_tests.test_gw23_the_same_graph_lays_out_the_same, "gw23_the_same_graph_lays_out_the_same")
+			run_test (agent layered_tests.test_gw23_a_crossing_is_undone, "gw23_a_crossing_is_undone")
+			run_test (agent layered_tests.test_gw23_a_cycle_is_broken_and_laid_out, "gw23_a_cycle_is_broken_and_laid_out")
+			run_test (agent layered_tests.test_gw23_outline_light, "gw23_outline_light")
+			run_test (agent layered_tests.test_gw23_outline_dark, "gw23_outline_dark")
 			run_test (agent strokes_tests.test_gw18_patterns_light, "gw18_patterns_light")
 			run_test (agent strokes_tests.test_gw18_patterns_dark, "gw18_patterns_dark")
 			print ("%N=== GW-14 UI AUTOMATION ===%N")
@@ -882,6 +890,7 @@ feature {NONE} -- Test runners
 	strokes_tests: SW_STROKES_ASSAULT
 	timeline_tests: SW_LANE_TIMELINE_ASSAULT
 	atlas_tests: SW_REGIONAL_MAP_ASSAULT
+	layered_tests: SW_LAYERED_DIAGRAM_ASSAULT
 	uia_tests: SW_ACCESSIBILITY_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
