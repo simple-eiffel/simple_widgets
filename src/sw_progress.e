@@ -81,7 +81,11 @@ feature -- Drawing
 			end
 			a_p.set_color (t.outline)
 			a_p.rrect_fill (x, y + height / 2.0 - 4.0, bar_w, 8.0, 3.0)
-			if is_indeterminate then
+			if is_indeterminate and then t.reduces_motion then
+					-- still 'working' (GW-14): the whole track, half strength
+				a_p.set_color_alpha (t.accent, 0.5)
+				a_p.rrect_fill (x, y + height / 2.0 - 4.0, bar_w, 8.0, 3.0)
+			elseif is_indeterminate then
 					-- the travelling band: honest 'working', no number
 				marquee_phase := (marquee_phase + 0.06)
 				if marquee_phase > 1.3 then

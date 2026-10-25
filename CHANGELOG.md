@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.32.0 - GW-14, first half: reduced motion)
+
+Needs simple_shell 1.21.0. (GW-14's other half, the UI Automation bridge,
+is its own item.)
+- **`SW_THEME.reduces_motion`** and `set_reduces_motion`; carried by
+  `adopt_metrics_from`, so a contrast theme and an export keep it.
+- **SW_SKELETON** holds still: no shimmer is drawn and its phase does not
+  advance. **SW_PROGRESS** in indeterminate mode shows the whole track at
+  half strength instead of a travelling band. (Toasts do not move; nothing
+  else in the toolkit animates.)
+- **SW_WINDOW, following Windows**, carries the animation setting into the
+  worn theme (the light, dark or contrast member), live on event 57.
+- Tests (`SW_REDUCED_MOTION_ASSAULT`, 3): the skeleton and the band move
+  between frames and hold still when reduced; the window follows the
+  setting on and off and keeps it in a contrast theme. 487 pass.
+
 ### Fixed (0.31.1 - the eleventh scan, since 02dae89: export memory and edges)
 
 Each fix has a test that failed on 0.31.0:

@@ -350,8 +350,9 @@ feature -- Following Windows (GW-27)
 			-- `a_light' otherwise, and switch live when that setting
 			-- flips. While a Windows contrast theme is on, wear a theme
 			-- painted with its system colors instead, with `a_light''s
-			-- sizes and faces (GW-16); it is followed live too. A later
-			-- `set_theme' stops following.
+			-- sizes and faces (GW-16); it is followed live too. Windows'
+			-- animation setting is followed into the worn theme's
+			-- `reduces_motion' (GW-14). A later `set_theme' stops following.
 		require
 			light_is_light: not a_light.is_dark
 			dark_is_dark: a_dark.is_dark
@@ -625,6 +626,10 @@ feature {NONE} -- Dispatch
 					-- palette changed (GW-16).
 				wear_system_appearance
 				request_render
+			elseif a_type = Event_motion_changed and then is_following_system_theme then
+					-- And the animation setting (GW-14).
+				theme.set_reduces_motion (system_appearance.system_reduces_motion)
+				request_render
 			elseif a_type = Event_wake and then attached on_wake as al_wake then
 					-- And a worker's result: a processor called
 					-- SHELL_WAKE.wake (GW-26). A dialog must not hold it back.
@@ -742,10 +747,18 @@ feature {NONE} -- Theme internals (GW-27)
 			l_contrast := system_appearance.system_high_contrast
 			if l_contrast then
 				wear_theme (system_contrast_theme)
+				theme.set_reduces_motion (system_appearance.system_reduces_motion)
 				if attached on_theme_changed as al_told then
 					al_told.call (theme)
 				end
 			else
+					-- the motion preference first, so `on_theme_changed' sees it
+				if attached system_light as al_light then
+					al_light.set_reduces_motion (system_appearance.system_reduces_motion)
+				end
+				if attached system_dark as al_dark then
+					al_dark.set_reduces_motion (system_appearance.system_reduces_motion)
+				end
 				wear_system_theme (system_appearance.system_prefers_dark)
 			end
 		ensure
