@@ -73,6 +73,14 @@ feature -- Constants
 
 	Op_count: INTEGER = 5
 
+	Distance_box_max: INTEGER = 99
+			-- The distance box's top, unless the question already says more
+			-- (a saved "within 120 words" shows as 120). The tree itself has
+			-- no top.
+
+	Word_field_width: REAL_64 = 120.0
+			-- What a proximity's word field asks of its row (a box asks 240).
+
 	op_name (a_i: INTEGER): STRING_32
 		require
 			known: a_i >= 1 and a_i <= Op_count
@@ -356,14 +364,15 @@ feature {NONE} -- Rows
 			l_words.put (fc)
 			create b1.make_single_line (a_p.first)
 			b1.set_on_change (agent proximity_first_changed (a_p, b1))
-			b1.set_preferred_text_width (120.0)
+			b1.set_preferred_text_width (Word_field_width)
 			l_words.put (b1.growing)
 			l_words.put (create {SW_LABEL}.make_ui ("within"))
-			l_words.put (create {SW_NUMBER_BOX}.make (a_p.distance, 1, 99, agent a_p.set_distance))
+			l_words.put (create {SW_NUMBER_BOX}.make (a_p.distance, 1, a_p.distance.max (Distance_box_max),
+				agent proximity_distance_changed (a_p, ?)))
 			l_words.put (create {SW_LABEL}.make_ui ("words of"))
 			create b2.make_single_line (a_p.second)
 			b2.set_on_change (agent proximity_second_changed (a_p, b2))
-			b2.set_preferred_text_width (120.0)
+			b2.set_preferred_text_width (Word_field_width)
 			l_words.put (b2.growing)
 			create l_order.make ("in order", a_p.is_ordered, Void)
 			l_order.set_on_change (agent proximity_order_changed (a_p, l_order))
@@ -380,7 +389,7 @@ feature {NONE} -- Rows
 			inspect field_kinds.i_th (a_c.field_index.min (fields.count))
 			when Field_choice then
 				create l_combo.make_with_options
-				if attached field_choices.i_th (a_c.field_index) as al_choices then
+				if attached field_choices.i_th (a_c.field_index.min (fields.count)) as al_choices then
 					across al_choices as ch loop
 						l_combo.add_option (ch)
 					end
@@ -508,6 +517,12 @@ feature {NONE} -- Edits from the controls
 	proximity_second_changed (a_p: SW_QUERY_PROXIMITY; a_box: SW_TEXT_BOX)
 		do
 			a_p.set_second (a_box.text)
+			announce
+		end
+
+	proximity_distance_changed (a_p: SW_QUERY_PROXIMITY; a_words: INTEGER)
+		do
+			a_p.set_distance (a_words)
 			announce
 		end
 

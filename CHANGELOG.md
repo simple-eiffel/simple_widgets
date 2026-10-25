@@ -21,6 +21,30 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Fixed (0.28.1 — the sixth scan, since 1d2249f: the proximity's distance)
+
+- Editing a proximity's distance now changes the tree **and** fires
+  `on_change`. The box called `set_distance` directly and never announced,
+  so a host's question label went stale.
+- A question that already says "within 120 words" renders. The distance
+  box's top is now the larger of 99 (`Distance_box_max`) and the distance
+  it shows. It was a fixed 99, so rebuilding the rows broke
+  `SW_NUMBER_BOX.make`'s precondition. The tree has no top.
+- `Word_field_width` names the proximity's 120-pixel word fields, which
+  were two literals. A choice field's lookup is clamped to the field list,
+  like every other field lookup.
+- Before/after tests: `gw12_distance_edit_is_heard` and
+  `gw12_long_distance_preset_renders` failed on the old code and pass now.
+  440 pass. `screen_grab_marries_cairo` fails only in a locked session.
+- Still open from the scan (MEDIUM and LOW, in
+  `.eiffel-workflow/evidence/design-scan-since-1d2249f.md`):
+  - the node heirs repeat the field lookup and the "complete, then
+    negated" skeleton;
+  - a whitespace value counts as complete;
+  - a number field takes any text;
+  - a choice field keeps a value outside its new choices;
+  - SW_MAP still draws its own chip.
+
 ### Added (0.28.0 — 100,000 SHAPED ROWS AT 60 HZ; GW-29)
 
 simple_bible's concordance lists every place a word occurs: 88,444 rows for

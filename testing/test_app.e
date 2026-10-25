@@ -710,6 +710,8 @@ feature {NONE} -- Test runners
 			run_test (agent query_tests.test_gw12_tree_reads_and_renders, "gw12_tree_reads_and_renders")
 			run_test (agent query_tests.test_gw12_incomplete_and_negated_groups, "gw12_incomplete_and_negated_groups")
 			run_test (agent query_tests.test_gw12_typed_pickers_and_removal, "gw12_typed_pickers_and_removal")
+			run_test (agent query_tests.test_gw12_distance_edit_is_heard, "gw12_distance_edit_is_heard")
+			run_test (agent query_tests.test_gw12_long_distance_preset_renders, "gw12_long_distance_preset_renders")
 			run_test (agent query_tests.test_gw12_builder_light, "gw12_builder_light")
 			run_test (agent query_tests.test_gw12_builder_dark, "gw12_builder_dark")
 			create paragraph_tests
