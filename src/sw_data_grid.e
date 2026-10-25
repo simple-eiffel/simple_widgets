@@ -31,7 +31,8 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click, handle_double_click, handle_drag, handle_wheel,
-			handle_key, wants_hover_point, accepts_focus, cursor_kind, handle_release
+			handle_key, wants_hover_point, accepts_focus, cursor_kind, handle_release,
+			accessible_role
 		end
 
 create
@@ -794,6 +795,14 @@ feature {NONE} -- Engine
 			-- Tell the bar how much the rows show of how much there is.
 		do
 			bar.set_extent ((height - Header_h).max (0.0), view.count * Row_h)
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_data_grid
 		end
 
 invariant

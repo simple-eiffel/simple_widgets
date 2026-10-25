@@ -668,6 +668,63 @@ feature -- Input
 		do
 		end
 
+feature -- Accessibility (GW-14)
+
+	accessible_name: STRING_32
+			-- What a screen reader announces for this widget: the name given
+			-- with `set_accessible_name', else `default_accessible_name'.
+		do
+			if attached accessible_name_override as al_name then
+				Result := al_name
+			else
+				Result := default_accessible_name
+			end
+		end
+
+	default_accessible_name: STRING_32
+			-- The widget's own name: its label or text where it has one.
+		do
+			create Result.make_empty
+		end
+
+	accessible_role: INTEGER
+			-- Its UI Automation control type (a {SW_ACCESSIBILITY} `Role_'
+			-- constant): a pane when it holds widgets, else custom. Widgets
+			-- with a standard role redefine it.
+		do
+			if accessible_children.is_empty then
+				Result := {SW_ACCESSIBILITY}.Role_custom
+			else
+				Result := {SW_ACCESSIBILITY}.Role_pane
+			end
+		end
+
+	accessible_value: detachable STRING_32
+			-- Its current value, read-only, when it has one (a text box's
+			-- text, a progress percentage); Void for none.
+		do
+		end
+
+	accessible_children: ARRAYED_LIST [SW_WIDGET]
+			-- The widgets a screen reader can reach below this one: those it
+			-- shows (`sub_widgets' by default; a notebook redefines it to its
+			-- shown page only).
+		do
+			Result := sub_widgets
+		end
+
+	set_accessible_name (a_name: READABLE_STRING_GENERAL)
+			-- Name this widget for screen readers (an icon button, a field
+			-- whose label is drawn beside it).
+		do
+			create accessible_name_override.make_from_string_general (a_name)
+		ensure
+			named: accessible_name.same_string_general (a_name)
+		end
+
+	accessible_name_override: detachable STRING_32
+			-- The name given with `set_accessible_name'.
+
 feature {NONE} -- Implementation
 
 	is_disabled: BOOLEAN

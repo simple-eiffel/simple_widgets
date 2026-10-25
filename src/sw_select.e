@@ -12,7 +12,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click, accepts_focus
+			preferred_width, handle_click, accepts_focus,
+			accessible_role, accessible_value
 		end
 
 create
@@ -202,6 +203,19 @@ feature -- Input
 				pending_menu := m
 				Result := True
 			end
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_combo_box
+		end
+
+	accessible_value: detachable STRING_32
+		do
+			Result := selected_text.twin
 		end
 
 invariant

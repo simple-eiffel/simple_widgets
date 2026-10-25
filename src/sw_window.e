@@ -201,6 +201,97 @@ feature -- Element change
 			not_following: not is_following_system_theme
 		end
 
+feature -- Accessibility (GW-14)
+
+	accessibility: SW_ACCESSIBILITY
+			-- The UI Automation bridge this window publishes through.
+		once ("OBJECT")
+			create Result
+		end
+
+	is_accessible: BOOLEAN
+			-- Does the window publish its widget tree to screen readers? On
+			-- by default: a reader's user cannot turn it on from outside.
+		do
+			Result := not is_accessibility_off
+		end
+
+	set_accessible (a_on: BOOLEAN)
+		do
+			is_accessibility_off := not a_on
+			if not a_on then
+				accessibility.disable
+				accessible_widgets.wipe_out
+			end
+		ensure
+			set: is_accessible = a_on
+		end
+
+	accessible_widgets: ARRAYED_LIST [SW_WIDGET]
+			-- The widgets published last, in tree order: the node id of each
+			-- is its index (node 0 is the window itself).
+		attribute
+			create Result.make (64)
+		end
+
+	accessible_id_of (a_widget: SW_WIDGET): INTEGER
+			-- The node id `a_widget' was published under; 0 when it was not.
+		local
+			i: INTEGER
+		do
+			from
+				i := 1
+			until
+				i > accessible_widgets.count or Result > 0
+			loop
+				if accessible_widgets.i_th (i) = a_widget then
+					Result := i
+				end
+				i := i + 1
+			end
+		ensure
+			in_range: Result >= 0 and Result <= accessible_widgets.count
+		end
+
+	publish_accessibility
+			-- Publish the widget tree: node 0 is the window (named by its
+			-- title), then every laid-out widget below the root in tree order,
+			-- each with its role, name, value, bounds, focusability and
+			-- enablement; then the keyboard focus. The window does this on the
+			-- first frame and on every frame while a client listens.
+		local
+			l_parents: ARRAYED_LIST [INTEGER]
+			i: INTEGER
+			w: SW_WIDGET
+		do
+			accessible_widgets.wipe_out
+			create l_parents.make (64)
+			if attached root as al_root then
+				collect_accessible (al_root, 0, l_parents)
+			end
+			accessibility.begin_tree (accessible_widgets.count + 1)
+			accessibility.add_node (0, 0, {SW_ACCESSIBILITY}.Role_pane, title, Void, 0.0, 0.0, win_w, win_h, False, True)
+			from
+				i := 1
+			until
+				i > accessible_widgets.count
+			loop
+				w := accessible_widgets.i_th (i)
+				accessibility.add_node (i, l_parents.i_th (i), w.accessible_role, w.accessible_name, w.accessible_value,
+					w.x, w.y, w.width, w.height, w.accepts_focus, w.is_enabled)
+				i := i + 1
+			end
+			accessibility.commit (hwnd)
+			is_accessibility_published := True
+			last_told_focus := Void
+			tell_accessible_focus
+		ensure
+			published: is_accessibility_published
+		end
+
+	is_accessibility_published: BOOLEAN
+			-- Has the tree been published at least once?
+
 feature -- Export (GW-21)
 
 	widget_image (a_widget: SW_WIDGET; a_theme: detachable SW_THEME; a_scale: REAL_64): CAIRO_SURFACE
@@ -634,6 +725,15 @@ feature {NONE} -- Dispatch
 					al_told.call (theme)
 				end
 				request_render
+			elseif a_type = {SW_ACCESSIBILITY}.Event_focus_request then
+					-- A screen reader asked to focus node `a_x' (GW-14).
+				if a_x >= 1 and a_x <= accessible_widgets.count
+					and then accessible_widgets.i_th (a_x).accepts_focus
+					and then accessible_widgets.i_th (a_x).is_enabled
+				then
+					give_focus (accessible_widgets.i_th (a_x))
+					request_render
+				end
 			elseif a_type = Event_wake and then attached on_wake as al_wake then
 					-- And a worker's result: a processor called
 					-- SHELL_WAKE.wake (GW-26). A dialog must not hold it back.
@@ -706,6 +806,50 @@ feature -- Dialogs
 			dialog := Void
 		ensure
 			closed: dialog = Void
+		end
+
+feature {NONE} -- Accessibility internals (GW-14)
+
+	is_accessibility_off: BOOLEAN
+			-- Stored inverted: windows publish by default.
+
+	last_told_focus: detachable SW_WIDGET
+			-- The widget UI Automation was last told holds the focus.
+
+	collect_accessible (a_widget: SW_WIDGET; a_parent: INTEGER; a_parents: ARRAYED_LIST [INTEGER])
+			-- Append `a_widget' (under node `a_parent') and, below it, every
+			-- laid-out widget it shows; a widget with no size is skipped with
+			-- its subtree.
+		local
+			l_id: INTEGER
+		do
+			if a_widget.width > 0.0 and a_widget.height > 0.0 then
+				accessible_widgets.extend (a_widget)
+				a_parents.extend (a_parent)
+				l_id := accessible_widgets.count
+				across
+					a_widget.accessible_children as al_child
+				loop
+					collect_accessible (al_child, l_id, a_parents)
+				end
+			end
+		ensure
+			parallel: a_parents.count = accessible_widgets.count
+		end
+
+	tell_accessible_focus
+			-- When the keyboard focus moved since UI Automation was last told,
+			-- tell it.
+		local
+			l_id: INTEGER
+		do
+			if is_accessibility_published and then focused /= last_told_focus then
+				last_told_focus := focused
+				if attached focused as al_focused then
+					l_id := accessible_id_of (al_focused)
+				end
+				accessibility.focus_changed (l_id)
+			end
 		end
 
 feature {NONE} -- Theme internals (GW-27)
@@ -2310,6 +2454,18 @@ feature {NONE} -- Popup lifecycle
 feature {NONE} -- Rendering
 
 	render
+		do
+			render_frame
+			if is_accessible then
+				if not is_accessibility_published or else accessibility.clients_listening then
+					publish_accessibility
+				else
+					tell_accessible_focus
+				end
+			end
+		end
+
+	render_frame
 		do
 				-- R10: while the frame is being dragged, shaped widgets keep
 				-- the layout they have. `busy_ticks' is the toolkit's own

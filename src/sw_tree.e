@@ -15,7 +15,8 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click, handle_double_click, handle_wheel, handle_key,
-			wants_hover_point, accepts_focus, handle_drag, handle_release
+			wants_hover_point, accepts_focus, handle_drag, handle_release,
+			accessible_role
 		end
 
 create
@@ -424,6 +425,14 @@ feature {NONE} -- Engine
 					append_subtree (c, a_depth + 1)
 				end
 			end
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_tree
 		end
 
 invariant

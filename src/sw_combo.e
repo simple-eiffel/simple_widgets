@@ -12,7 +12,8 @@ class
 inherit
 	SW_TEXT_BOX
 		redefine
-			draw, handle_click, preferred_width
+			draw, handle_click, preferred_width,
+			accessible_role
 		end
 
 create
@@ -127,6 +128,14 @@ feature -- Input
 			else
 				Result := Precursor (a_px, a_py)
 			end
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_combo_box
 		end
 
 invariant

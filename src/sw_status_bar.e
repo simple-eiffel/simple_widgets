@@ -22,7 +22,8 @@ inherit
 	SW_WIDGET
 		redefine
 			arrange, widget_at, handle_click, cursor_kind,
-			wants_hover_point, sub_widgets
+			wants_hover_point, sub_widgets,
+			accessible_role
 		end
 
 create
@@ -340,6 +341,14 @@ feature {NONE} -- Implementation
 			end
 		ensure
 			non_negative: Result >= 0.0
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_status_bar
 		end
 
 invariant

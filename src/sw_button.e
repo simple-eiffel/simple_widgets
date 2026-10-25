@@ -20,7 +20,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click
+			preferred_width, handle_click,
+			accessible_role, default_accessible_name
 		end
 
 create
@@ -287,6 +288,19 @@ feature -- Input
 feature {NONE} -- Event backing
 
 	click_event: detachable SW_EVENT [TUPLE]
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_button
+		end
+
+	default_accessible_name: STRING_32
+		do
+			Result := label.twin
+		end
 
 invariant
 	label_attached: label /= Void

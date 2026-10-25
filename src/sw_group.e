@@ -11,7 +11,8 @@ class
 inherit
 	SW_COLUMN
 		redefine
-			draw, arrange, preferred_height, default_padding
+			draw, arrange, preferred_height, default_padding,
+			accessible_role, default_accessible_name
 		end
 
 create
@@ -84,6 +85,19 @@ feature -- Drawing
 			loop
 				c.draw (a_p)
 			end
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_group
+		end
+
+	default_accessible_name: STRING_32
+		do
+			Result := title.twin
 		end
 
 invariant

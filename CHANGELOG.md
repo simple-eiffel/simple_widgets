@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.33.0 - GW-14, second half: screen readers through UI Automation)
+
+Needs simple_shell 1.22.0.
+- **Every widget describes itself**: `accessible_role` (a {SW_ACCESSIBILITY}
+  `Role_` constant; a pane when it holds widgets, else custom),
+  `accessible_name` (its label or text, or one given with
+  `set_accessible_name`), `accessible_value` (read-only) and
+  `accessible_children` (what it shows). Standard roles in SW_BUTTON,
+  SW_LABEL, SW_TEXT_BOX (its text as value, except a masked line, which
+  tells nothing), SW_COMBO, SW_CHECK_BOX and SW_SWITCH (checked / on as
+  value), SW_PROGRESS and SW_SLIDER (a percentage), SW_SELECT, SW_RADIO_GROUP
+  (the chosen option), SW_GROUP (named by its title), SW_TABS (the shown
+  tab as value; only the shown page is reachable), SW_DATA_GRID, SW_LIST,
+  SW_TREE, SW_STATUS_BAR, SW_MENU_BAR, SW_TOOLBAR, SW_IMAGE, SW_SEPARATOR.
+- **SW_WINDOW publishes** the laid-out tree (node 0 is the window, named by
+  its title) on its first frame and on every frame while a UI Automation
+  client listens, tells it when the keyboard focus moves, and obeys a
+  screen reader's focus request (event 58) when the widget takes focus.
+  `is_accessible` is on by default (`set_accessible (False)` stops it);
+  `accessibility`, `accessible_widgets`, `accessible_id_of`,
+  `publish_accessibility`. New facade class `SW_ACCESSIBILITY`.
+- One table per process: with several windows, the last to publish is the
+  one served.
+- Not yet: rows, cells, tab items and menu items drawn inside a widget are
+  not separate elements (a grid is one element); no Toggle, Selection or
+  Invoke patterns; SW_DOCUMENT_VIEW keeps the default role.
+- Tests (`SW_ACCESSIBILITY_ASSAULT`, 4): roles, names, values and parents,
+  the hidden page left out and the masked line silent; pointed Hebrew and
+  polytonic Greek names exact; the focus told and requests obeyed or
+  refused; a given name, and nothing served when switched off. simple_shell
+  proves the same table through a real UI Automation client. 493 pass.
+
 ### Fixed (0.32.1 - the twelfth scan, since 02eec11: motion on every path)
 
 Each fix has a test that failed on 0.32.0:

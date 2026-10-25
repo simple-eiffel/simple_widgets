@@ -12,7 +12,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			handle_click, wants_hover_point
+			handle_click, wants_hover_point,
+			accessible_role
 		end
 
 create
@@ -211,6 +212,14 @@ feature -- Input
 feature {NONE} -- Measurement support
 
 	probe_painter: detachable SW_PAINTER
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_tool_bar
+		end
 
 invariant
 	items_attached: items /= Void
