@@ -8,6 +8,21 @@ note
 		selected at its new place. Read-only in v1: activation is an
 		agent; editing composes outside (the SHEET lesson).
 	]"
+	performance: "[
+		NOTE TO WHOEVER EDITS THIS NEXT (GW-29, 2026-10-25). The grid holds
+		100,000 rows of shaped text at 60 Hz; SW_VIRTUAL_GRID_ASSAULT times it.
+		Keep these, or that test fails:
+		- Draw touches only the visible rows.
+		- `merge_sort_view' asks each row's key ONCE (`SW_GRID_COLUMN.sort_key')
+		  and merges over SPECIAL arrays; two agent calls a comparison made
+		  100,000 rows take 1.9 s.
+		- `add_row' places one row (filter that row, binary search); a full
+		  `rebuild_view' per added row took 10 s for 2,000 rows.
+		- Cells shape through the painter, whose kit memo makes a redrawn row
+		  free; a page of new rows is the expensive case.
+		Open: Row_h and Header_h are fixed pixels (they do not follow the
+		text scale); `selected_view_position' is a linear scan.
+	]"
 
 class
 	SW_DATA_GRID [G]
@@ -150,11 +165,63 @@ feature -- Element change
 		end
 
 	add_row (a_row: G)
+			-- `a_row' at the end of the rows; in the view only when it passes
+			-- the filter, and then at its place in the sort (after equal keys,
+			-- so the sort stays stable) - one comparison per halving, not a
+			-- whole rebuild. 100,000 rows added one at a time took hours.
+		local
+			lo, hi, mid, l_model: INTEGER
+			l_key: COMPARABLE
+			l_column: SW_GRID_COLUMN [G]
 		do
 			rows.extend (a_row)
-			rebuild_view
+			l_model := rows.count
+			if attached filter as f implies f.item ([a_row]) then
+				if sort_column >= 1 and sort_column <= columns.count then
+					l_column := columns.i_th (sort_column)
+					l_key := l_column.sort_key (a_row)
+					from
+						lo := 1
+						hi := view.count + 1
+					until
+						lo >= hi
+					loop
+						mid := (lo + hi) // 2
+						if not is_descending then
+							if l_key < l_column.sort_key (rows.i_th (view.i_th (mid))) then
+								hi := mid
+							else
+								lo := mid + 1
+							end
+						elseif l_column.sort_key (rows.i_th (view.i_th (mid))) < l_key then
+							hi := mid
+						else
+							lo := mid + 1
+						end
+					end
+					if lo > view.count then
+						view.extend (l_model)
+					else
+						view.go_i_th (lo)
+						view.put_left (l_model)
+					end
+				else
+					view.extend (l_model)
+				end
+			end
+			sync_bar
 		ensure
 			grew: rows.count = old rows.count + 1
+			shown_when_it_passes: view.count = old view.count + (if attached filter as f implies f.item ([a_row]) then 1 else 0 end)
+		end
+
+	add_rows (a_rows: ITERABLE [G])
+			-- Every row of `a_rows' at the end, with one filter-and-sort.
+		do
+			across a_rows as r loop
+				rows.extend (r)
+			end
+			rebuild_view
 		end
 
 	set_filter (a_predicate: detachable FUNCTION [G, BOOLEAN])
@@ -325,7 +392,7 @@ feature -- Drawing
 						s := col.value.item ([rows.i_th (view.i_th (i))])
 						a_p.push_clip (cx + 1.0, ry, shown_width (ci) - 2.0, Row_h)
 						a_p.set_color (t.ink)
-						a_p.text (cx + 8.0, ry + Row_h - 8.0, s)
+						a_p.text (cell_left (a_p, s, col.alignment, cx, shown_width (ci)), ry + Row_h - 8.0, s)
 						a_p.pop_clip
 						cx := cx + shown_width (ci)
 						ci := ci + 1
@@ -378,6 +445,37 @@ feature -- Drawing
 		end
 
 feature -- Input
+
+	cell_left (a_p: SW_PAINTER; a_text: READABLE_STRING_32; a_alignment: INTEGER; a_cx, a_width: REAL_64): REAL_64
+			-- Where `a_text' starts in a cell `a_width' wide at `a_cx', by
+			-- `a_alignment'; start and end follow the text's own direction.
+		local
+			l_right, l_slack: REAL_64
+		do
+			l_slack := (a_width - 16.0 - a_p.advance (a_text)).max (0.0)
+			inspect a_alignment
+			when {SHAPING_CONSTANTS}.Align_right then
+				l_right := l_slack
+			when {SHAPING_CONSTANTS}.Align_center then
+				l_right := l_slack / 2.0
+			when {SHAPING_CONSTANTS}.Align_start, {SHAPING_CONSTANTS}.Align_end then
+				if is_right_to_left (a_p, a_text) = (a_alignment = {SHAPING_CONSTANTS}.Align_start) then
+					l_right := l_slack
+				end
+			else
+			end
+			Result := a_cx + 8.0 + l_right
+		end
+
+	is_right_to_left (a_p: SW_PAINTER; a_text: READABLE_STRING_32): BOOLEAN
+			-- Does `a_text' read right to left (its first strong character)?
+			-- Only shaped text knows; the toy path is left to right.
+		do
+			if a_p.takes_shaped_path (a_text) and then attached a_p.shaping as al_kit then
+				Result := al_kit.layout_styled (a_text, 0, a_p.font_pixel_size, a_p.font_role, a_p.font_bold).base_direction
+					= {SHAPING_CONSTANTS}.Direction_rtl
+			end
+		end
 
 	cursor_kind: INTEGER
 			-- Left-right resize arrows over a header divider (where a drag
@@ -552,46 +650,49 @@ feature {NONE} -- Engine
 			-- BOTH directions (the descending insertion sort swapped
 			-- them - caught by a failing assault, 2026-08-23).
 			-- GW-29: each row's key is asked for ONCE, before the merge, not
-			-- twice a comparison - 100,000 rows made 3.4 million agent calls.
+			-- twice a comparison - 100,000 rows made 3.4 million agent calls;
+			-- and the merge runs over SPECIAL arrays, not list calls.
 		require
 			sorting: sort_column >= 1 and sort_column <= columns.count
 		local
-			src, dst, swp: ARRAYED_LIST [INTEGER]
-			stride, lo, mid, hi, a, b: INTEGER
+			src, dst, swp: SPECIAL [INTEGER]
+			n, stride, lo, mid, hi, a, b, w: INTEGER
 			l_keys: SPECIAL [detachable COMPARABLE]
 			l_column: SW_GRID_COLUMN [G]
 		do
 			l_column := columns.i_th (sort_column)
+			n := view.count
 			create l_keys.make_filled (Void, rows.count + 1)
-			across view as mi loop
-				l_keys [mi] := l_column.sort_key (rows.i_th (mi))
+			create src.make_filled (0, n)
+			create dst.make_filled (0, n)
+			from w := 0 until w >= n loop
+				src [w] := view.i_th (w + 1)
+				l_keys [src [w]] := l_column.sort_key (rows.i_th (src [w]))
+				w := w + 1
 			end
-			src := view.twin
-			dst := view.twin
 			from
 				stride := 1
 			until
-				stride >= src.count
+				stride >= n
 			loop
 				from
-					lo := 1
+					lo := 0
 				until
-					lo > src.count
+					lo >= n
 				loop
-					mid := (lo + stride - 1).min (src.count)
-					hi := (lo + 2 * stride - 1).min (src.count)
+					mid := (lo + stride).min (n)
+					hi := (lo + 2 * stride).min (n)
 					a := lo
-					b := mid + 1
-					across
-						lo |..| hi as w
-					loop
-						if b > hi or else (a <= mid and then not key_less (l_keys, src.i_th (b), src.i_th (a))) then
-							dst.put_i_th (src.i_th (a), w)
+					b := mid
+					from w := lo until w >= hi loop
+						if b >= hi or else (a < mid and then not key_less (l_keys, src [b], src [a])) then
+							dst [w] := src [a]
 							a := a + 1
 						else
-							dst.put_i_th (src.i_th (b), w)
+							dst [w] := src [b]
 							b := b + 1
 						end
+						w := w + 1
 					end
 					lo := lo + 2 * stride
 				end
@@ -601,11 +702,12 @@ feature {NONE} -- Engine
 				stride := stride * 2
 			end
 			view.wipe_out
-			across
-				src as mi
-			loop
-				view.extend (mi)
+			from w := 0 until w >= n loop
+				view.extend (src [w])
+				w := w + 1
 			end
+		ensure
+			same_rows: view.count = old view.count
 		end
 
 	page_stride: INTEGER

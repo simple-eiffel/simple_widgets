@@ -26,7 +26,9 @@ note
 		select a word (`on_token_select'); Left and Right move the
 		selection in reading order (mirrored for right to left), Home and
 		End go to the first and last word; `token_at' is the hit test.
-		Ctrl+C copies the selected word's visible lines.
+		Ctrl+C copies the selected text when there is one (Ctrl+A),
+		else the selected word's visible lines; a click ends a text
+		selection.
 
 		SPACING FROM THE THEME: the page inset is `border_width', cells
 		are `padding' apart across and down, and a cell is padded half

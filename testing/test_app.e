@@ -701,6 +701,12 @@ feature {NONE} -- Test runners
 			run_test (agent grouped_bars_tests.test_gw10_crowded_chart_keeps_inside, "gw10_crowded_chart_keeps_inside")
 			run_test (agent grouped_bars_tests.test_gw10_controls_light, "gw10_controls_light")
 			run_test (agent grouped_bars_tests.test_gw10_controls_dark, "gw10_controls_dark")
+			print ("%N=== SCAN 7 ===%N")
+			create memo_tests
+			run_test (agent memo_tests.test_scan7_memo_forgets_when_the_facade_changes, "scan7_memo_forgets_when_the_facade_changes")
+			run_test (agent memo_tests.test_scan7_label_shapes_like_the_painter, "scan7_label_shapes_like_the_painter")
+			run_test (agent memo_tests.test_scan7_rows_added_one_at_a_time, "scan7_rows_added_one_at_a_time")
+			run_test (agent memo_tests.test_scan7_hebrew_column_sits_flush_right, "scan7_hebrew_column_sits_flush_right")
 			print ("%N=== GW-29 VIRTUAL GRID ===%N")
 			create virtual_grid_tests
 			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_light, "gw29_hundred_thousand_rows_light")
@@ -771,6 +777,7 @@ feature {NONE} -- Test runners
 	grouped_bars_tests: SW_GROUPED_BARS_ASSAULT
 	query_tests: SW_QUERY_ASSAULT
 	virtual_grid_tests: SW_VIRTUAL_GRID_ASSAULT
+	memo_tests: SW_MEMO_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.

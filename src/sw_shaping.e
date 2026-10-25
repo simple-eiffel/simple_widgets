@@ -34,6 +34,28 @@ note
 		class adds no failure mode of its own.
 	]"
 	author: "Larry Rix"
+	contract_cost: "[
+		NOTE TO WHOEVER EDITS THIS NEXT (2026-10-25, simple_widgets 0.28.0 to
+		0.28.2). `layout_styled' is on every widget's draw path, every frame.
+
+		THE MEMO. It keeps two generations of layouts so a string drawn again
+		is one hash lookup. It must never serve a layout made under other
+		fonts: the font setters here call `forget_layouts', and any change on
+		`facade' moves `facade.policy_revision', which `layout_styled' checks
+		first. A new way to change fonts must do one or the other. Labels
+		and menus (SW_SHAPED_TEXT) come through here too, so they get the
+		same faces and the same forgetting.
+
+		CONTRACTS HERE stay O(1) or O(text): this runs per string per frame.
+		simple_shaping's `contract_cost' note says why (27 s for a paragraph
+		under assertions, from model clauses). Frame-budget tests time their
+		steps inside simple_testing's `without_contracts'
+		(SW_VIRTUAL_GRID_ASSAULT); Larry: "Timing needs trump contracts",
+		and keep the critical contracts that get you under the budget.
+		Measured 2026-10-25 with every contract on: a wheel frame of the
+		100,000-row grid 14.8 ms (budget 16.7), a page jump 42.6 ms (every
+		row shaped fresh) - the next contract trim belongs on that path.
+	]"
 
 class
 	SW_SHAPING
@@ -150,9 +172,16 @@ feature -- Measurement and layout
 			-- generations of `Memo_generation' layouts each: when the newer
 			-- fills it becomes the older and the oldest goes, so scrolling a
 			-- long list never empties the memo at once.
+			--
+			-- A change made on `facade' directly (a font file loaded, the
+			-- default fonts or asset directory set, its cache cleared) moves
+			-- its `policy_revision', and the memo forgets on the next call.
 		local
 			l_key: STRING_32
 		do
+			if facade.policy_revision /= memo_revision then
+				forget_layouts
+			end
 			l_key := memo_key (a_text, a_width_pixels, a_pixel_size, a_role, a_bold)
 			if attached memo.item (l_key) as al_layout then
 				Result := al_layout
@@ -186,14 +215,20 @@ feature -- Measurement and layout
 			-- cells many times over.
 
 	forget_layouts
-			-- Drop what `layout_styled' remembers. The font setters here do
-			-- it themselves; call it after changing `facade''s fonts directly.
+			-- Drop what `layout_styled' remembers. The font setters here and
+			-- any policy change on `facade' (its `policy_revision') do it
+			-- without being asked.
 		do
 			memo.wipe_out
 			older_memo.wipe_out
+			memo_revision := facade.policy_revision
 		ensure
 			forgotten: memo_count = 0
+			in_step: memo_revision = facade.policy_revision
 		end
+
+	memo_revision: INTEGER
+			-- The facade's `policy_revision' the memo's layouts were made under.
 
 	styled_fonts (a_role: INTEGER; a_bold: BOOLEAN): FONT_LIST
 			-- The policy for `a_role' at regular or bold weight: the role's

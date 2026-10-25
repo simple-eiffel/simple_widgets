@@ -122,9 +122,9 @@ feature -- Shaped text
 		do
 			if takes_shaped_path (a_p) and then attached a_p.shaping as al_kit then
 				if is_wrapping then
-					Result := al_kit.layout_for (text, a_width.floor.max (0), pixel_size (a_p))
+					Result := al_kit.layout_styled (text, a_width.floor.max (0), pixel_size (a_p), role, is_bold)
 				else
-					Result := shaped.layout_of (al_kit, text, pixel_size (a_p))
+					Result := shaped.layout_styled_of (al_kit, text, pixel_size (a_p), role, is_bold)
 				end
 			end
 		ensure

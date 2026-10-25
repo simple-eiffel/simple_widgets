@@ -21,6 +21,51 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Fixed (0.28.2 — the seventh scan, since 24c8a87; timing without contracts; flush-right Hebrew)
+
+- **The layout memo follows the facade.** `SW_SHAPING.layout_styled`
+  forgets its memo when `facade.policy_revision` moves (simple_shaping
+  0.6.2). That happens when a font file is loaded, the default fonts or
+  asset directory are set, or the facade's cache is cleared. Before, a
+  layout made under the old fonts kept being served.
+- **Labels and menus shape like the painter.** `SW_SHAPED_TEXT` kept its
+  own 64-entry cache. It was wiped only when the kit object changed, and it
+  shaped through `layout_for`, which does not apply script faces. So a
+  Hebrew label could use another face than `SW_PAINTER.text` and keep a
+  stale layout after a font change. It now shapes through
+  `layout_styled_of` (role and weight) over the kit's memo and keeps only
+  the cluster arithmetic. `SW_LABEL`, wrapping or not, passes its role and
+  weight.
+- **`SW_DATA_GRID.add_row` places one row.** It tests the filter on that
+  row and puts the row at its sorted place by binary search, after equal
+  keys so the sort stays stable. It used to filter and sort every row on
+  every call. `add_rows` adds many rows with one rebuild.
+- **Per-column alignment.** `SW_GRID_COLUMN.alignment`, set with
+  `set_alignment` or `aligned`, takes the SHAPING_CONSTANTS `Align_*`
+  codes. The default, `Align_start`, follows the text, so a Hebrew line
+  sits flush right with nothing asked. `Align_right` suits numbers.
+- **The grid's merge runs over SPECIAL arrays.** It sorts 100,000 rows in
+  190 milliseconds with contracts off, down from 430.
+- **Timing runs without contracts** (Larry: "Timing needs trump
+  contracts"). The GW-29 test times each measured step inside simple_testing's
+  new `without_contracts`. The 60 Hz budget is now asserted in every build:
+  in the contracts build a wheel frame takes 3.7 milliseconds, a page jump
+  13.6 and a sort 190. The test's set-up and its checks still run under
+  contracts.
+- **Before/after tests** (`SW_MEMO_ASSAULT`):
+  - `scan7_memo_forgets_when_the_facade_changes` failed and now passes.
+  - `scan7_label_shapes_like_the_painter` (with Hebrew and Greek script
+    faces set) failed on the old label code and now passes.
+  - `scan7_rows_added_one_at_a_time`: 2,000 rows added one by one took 10.3
+    seconds and now take 22 milliseconds, in the order a full sort gives.
+  - Added: `scan7_hebrew_column_sits_flush_right`.
+  - 444 pass. `screen_grab_marries_cairo` fails only in a locked session.
+- Open from the scan: the grid's row and header heights are fixed pixels
+  that do not follow the text scale; `SW_TEXT_GEOMETRY` and
+  `SW_CHAT_THREAD` still shape through `layout_for` when no fonts are
+  given; `selected_view_position` is a linear scan (tolerable at 100,000
+  rows).
+
 ### Fixed (0.28.1 — the sixth scan, since 1d2249f: the proximity's distance)
 
 - Editing a proximity's distance now changes the tree **and** fires
