@@ -7,12 +7,18 @@ note
 		times it), and offers a hover card for it (`hover_card_builder'),
 		anchored at its word unless the builder anchored the card.
 
-		A descendant says where its text is, through four features:
+		A descendant says where its text is:
 
 		    pointed_item (x, y)        which of its texts is under a point
-		    character_at (x, y)        which character of it
 		    text_of (item)             that text's characters
-		    text_boxes (item, lo, hi)  where a stretch of it paints
+		    item_geometry (item)       where each character paints
+		    item_origin_x/y (item)     where that geometry's origin is
+		    is_item_pointable (item)   laid out, and not under an editor
+
+		and gets `character_at', `offset_at_point' and `text_boxes' from
+		them - with the guard every caller needs once: a geometry that no
+		longer matches its text (typed into, not yet measured again) is
+		never indexed.
 
 		An "item" is whatever unit the widget numbers: a paragraph of
 		SW_PARAGRAPH_LIST, a block's text or a table cell of
@@ -57,12 +63,82 @@ feature -- Pointing
 			none_or_valid: Result = 0 or else is_valid_item (Result)
 		end
 
-	character_at (a_px, a_py: REAL_64): INTEGER
-			-- The character of `pointed_item' painted under the point; 0
-			-- when the point is on no character.
+	item_geometry (a_item: INTEGER): SW_TEXT_GEOMETRY
+			-- Where item `a_item''s characters paint, from its text origin.
+		require
+			valid_item: is_valid_item (a_item)
+			pointable: is_item_pointable (a_item)
 		deferred
+		end
+
+	item_origin_x (a_item: INTEGER): REAL_64
+			-- Item `a_item''s text origin, in window coordinates.
+		require
+			valid_item: is_valid_item (a_item)
+		deferred
+		end
+
+	item_origin_y (a_item: INTEGER): REAL_64
+		require
+			valid_item: is_valid_item (a_item)
+		deferred
+		end
+
+	is_item_pointable (a_item: INTEGER): BOOLEAN
+			-- Is item `a_item' laid out, with a geometry, and not under an
+			-- editor (which answers for itself)?
+		require
+			valid_item: is_valid_item (a_item)
+		deferred
+		end
+
+	item_text_count (a_item: INTEGER): INTEGER
+			-- Characters in item `a_item' (`text_of''s count; a widget that
+			-- copies in `text_of' answers it without copying).
+		require
+			valid_item: is_valid_item (a_item)
+		do
+			Result := text_of (a_item).count
 		ensure
 			non_negative: Result >= 0
+		end
+
+	is_current (a_item: INTEGER): BOOLEAN
+			-- Can item `a_item''s geometry be indexed: pointable, and built
+			-- from the text as it is now?
+		require
+			valid_item: is_valid_item (a_item)
+		do
+			Result := is_item_pointable (a_item) and then item_geometry (a_item).count = item_text_count (a_item)
+		end
+
+	character_at (a_px, a_py: REAL_64): INTEGER
+			-- The character of `pointed_item' painted under the point; 0
+			-- when the point is on no character (past a line's end, on a
+			-- gutter or between items, or on an item not current).
+		local
+			i: INTEGER
+		do
+			i := pointed_item (a_px, a_py)
+			if i > 0 and then is_current (i) then
+				Result := item_geometry (i).character_at (a_px - item_origin_x (i), a_py - item_origin_y (i))
+			end
+		ensure
+			non_negative: Result >= 0
+			only_over_an_item: Result > 0 implies pointed_item (a_px, a_py) > 0
+		end
+
+	offset_at_point (a_item: INTEGER; a_px, a_py: REAL_64): INTEGER
+			-- The caret offset in item `a_item' nearest the point, 0 .. its
+			-- length; 0 while it is not current.
+		require
+			valid_item: is_valid_item (a_item)
+		do
+			if is_current (a_item) then
+				Result := item_geometry (a_item).offset_at (a_px - item_origin_x (a_item), a_py - item_origin_y (a_item))
+			end
+		ensure
+			in_text: Result >= 0 and Result <= item_text_count (a_item)
 		end
 
 	text_of (a_item: INTEGER): READABLE_STRING_32
@@ -74,11 +150,24 @@ feature -- Pointing
 
 	text_boxes (a_item, a_lo, a_hi: INTEGER): ARRAYED_LIST [TUPLE [x, y, width, height: REAL_64]]
 			-- Window rectangles of item `a_item''s characters `a_lo' + 1 ..
-			-- `a_hi', one per visual line; empty before it is laid out.
+			-- `a_hi', one per visual line: where a hover card anchors and a
+			-- word is ringed. Empty while the item is not current.
 		require
 			valid_item: is_valid_item (a_item)
-			range_valid: a_lo >= 0 and a_lo <= a_hi and a_hi <= text_of (a_item).count
-		deferred
+			range_valid: a_lo >= 0 and a_lo <= a_hi and a_hi <= item_text_count (a_item)
+		local
+			g: SW_TEXT_GEOMETRY
+			ox, oy: REAL_64
+		do
+			create Result.make (1)
+			if is_current (a_item) then
+				g := item_geometry (a_item)
+				ox := item_origin_x (a_item)
+				oy := item_origin_y (a_item)
+				across g.segments (a_lo, a_hi) as sg loop
+					Result.extend ([ox + sg.left, oy + g.top_of_line (sg.line), sg.width, g.height_of_line (sg.line)])
+				end
+			end
 		ensure
 			positive_widths: across Result as b all b.width > 0.0 end
 		end

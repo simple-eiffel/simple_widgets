@@ -62,6 +62,7 @@ class
 inherit
 	SW_TEXT_POINTING
 		redefine
+			item_text_count,
 			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
 			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
 			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
@@ -463,35 +464,32 @@ feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 			end
 		end
 
-	character_at (a_px, a_py: REAL_64): INTEGER
-			-- The character of `pointed_item' under the point; 0 off text.
-		local
-			u: INTEGER
-			l_unit: SW_DOC_UNIT
+	item_geometry (a_item: INTEGER): SW_TEXT_GEOMETRY
+			-- Unit `a_item''s geometry (SW_TEXT_POINTING).
 		do
-			u := pointed_item (a_px, a_py)
-			if u > 0 then
-				l_unit := units.i_th (u)
-				if l_unit.geometry.count = l_unit.content.count then
-					Result := l_unit.geometry.character_at (a_px - unit_origin_x (u), a_py - unit_origin_y (u))
-				end
-			end
+			Result := units.i_th (a_item).geometry
 		end
 
-	text_boxes (a_item, a_lo, a_hi: INTEGER): ARRAYED_LIST [TUPLE [x, y, width, height: REAL_64]]
-		local
-			g: SW_TEXT_GEOMETRY
-			ox, oy: REAL_64
+	item_origin_x (a_item: INTEGER): REAL_64
 		do
-			create Result.make (1)
-			g := units.i_th (a_item).geometry
-			if is_laid_out and then g.count = units.i_th (a_item).content.count then
-				ox := unit_origin_x (a_item)
-				oy := unit_origin_y (a_item)
-				across g.segments (a_lo, a_hi) as sg loop
-					Result.extend ([ox + sg.left, oy + g.top_of_line (sg.line), sg.width, g.height_of_line (sg.line)])
-				end
-			end
+			Result := unit_origin_x (a_item)
+		end
+
+	item_origin_y (a_item: INTEGER): REAL_64
+		do
+			Result := unit_origin_y (a_item)
+		end
+
+	is_item_pointable (a_item: INTEGER): BOOLEAN
+			-- Units exist only for laid-out blocks (the edited block has
+			-- none).
+		do
+			Result := is_laid_out
+		end
+
+	item_text_count (a_item: INTEGER): INTEGER
+		do
+			Result := units.i_th (a_item).content.count
 		end
 
 feature -- Scrolling (SW_VSCROLLING)
@@ -1301,21 +1299,6 @@ feature {NONE} -- Input implementation
 					end
 				end
 			end
-		end
-
-	offset_at_point (a_unit: INTEGER; a_px, a_py: REAL_64): INTEGER
-			-- The caret offset in unit `a_unit' nearest the point.
-		require
-			valid: is_valid_item (a_unit)
-		local
-			l_unit: SW_DOC_UNIT
-		do
-			l_unit := units.i_th (a_unit)
-			if l_unit.geometry.count = l_unit.content.count then
-				Result := l_unit.geometry.offset_at (a_px - unit_origin_x (a_unit), a_py - unit_origin_y (a_unit))
-			end
-		ensure
-			in_text: Result >= 0 and Result <= text_of (a_unit).count
 		end
 
 	link_target_at_point (a_px, a_py: REAL_64): STRING_32

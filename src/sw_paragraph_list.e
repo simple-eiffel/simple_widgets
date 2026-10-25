@@ -75,6 +75,7 @@ class
 inherit
 	SW_TEXT_POINTING
 		redefine
+			item_text_count,
 			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
 			handle_double_click, handle_drag, handle_key, handle_char,
 			accepts_focus, wants_hover_point, cursor_kind, focusables,
@@ -423,23 +424,6 @@ feature -- Geometry
 
 feature -- Pointing (GW-08)
 
-	character_at (a_px, a_py: REAL_64): INTEGER
-			-- With `item_at', the hit test: the character of paragraph
-			-- `item_at (a_py)' painted under window point (`a_px', `a_py').
-			-- 0 when the point is on no character - a gutter, a band, past
-			-- a line's end, between paragraphs - or on the paragraph under
-			-- the in-place editor (the editor answers there).
-		local
-			i: INTEGER
-		do
-			i := item_at (a_py)
-			if i > 0 and then i /= editing_index and then i <= geometries.count then
-				Result := geometries.i_th (i).character_at (a_px - item_text_x (i), a_py - text_top (i))
-			end
-		ensure then
-			only_over_a_paragraph: Result > 0 implies item_at (a_py) > 0
-		end
-
 	caret_offset_at (a_px, a_py: REAL_64): INTEGER
 			-- The caret offset nearest the point in paragraph
 			-- `item_at (a_py)', 0 .. its length; 0 outside every paragraph.
@@ -447,30 +431,40 @@ feature -- Pointing (GW-08)
 			i: INTEGER
 		do
 			i := item_at (a_py)
-			if i > 0 and then i <= geometries.count then
-				Result := geometries.i_th (i).offset_at (a_px - item_text_x (i), a_py - text_top (i))
+			if i > 0 then
+				Result := offset_at_point (i, a_px, a_py)
 			end
 		ensure
 			non_negative: Result >= 0
 		end
 
-	text_boxes (a_i, a_lo, a_hi: INTEGER): ARRAYED_LIST [TUPLE [x, y, width, height: REAL_64]]
-			-- Window rectangles of paragraph `a_i''s characters `a_lo' + 1
-			-- .. `a_hi', one per visual line: where a hover card anchors and
-			-- a word is ringed. Empty before the paragraph is measured.
-		local
-			g: SW_TEXT_GEOMETRY
-			ox, oy: REAL_64
+	item_geometry (a_i: INTEGER): SW_TEXT_GEOMETRY
+			-- Paragraph `a_i''s geometry (SW_TEXT_POINTING).
 		do
-			create Result.make (1)
-			if is_laid_out and then a_i <= geometries.count and then geometries.i_th (a_i).count = texts.i_th (a_i).count then
-				g := geometries.i_th (a_i)
-				ox := item_text_x (a_i)
-				oy := text_top (a_i)
-				across g.segments (a_lo, a_hi) as sg loop
-					Result.extend ([ox + sg.left, oy + g.top_of_line (sg.line), sg.width, g.height_of_line (sg.line)])
-				end
-			end
+			Result := geometries.i_th (a_i)
+		end
+
+	item_origin_x (a_i: INTEGER): REAL_64
+		do
+			Result := item_text_x (a_i)
+		end
+
+	item_origin_y (a_i: INTEGER): REAL_64
+		do
+			Result := text_top (a_i)
+		end
+
+	is_item_pointable (a_i: INTEGER): BOOLEAN
+			-- Measured, and not under the in-place editor (the editor
+			-- answers there).
+		do
+			Result := is_laid_out and then a_i <= geometries.count and then a_i /= editing_index
+		end
+
+	item_text_count (a_i: INTEGER): INTEGER
+			-- Without `text_of''s copy.
+		do
+			Result := texts.i_th (a_i).count
 		end
 
 	text_top (a_i: INTEGER): REAL_64
@@ -490,9 +484,12 @@ feature -- Pointing (GW-08)
 		end
 
 	pointed_item (a_px, a_py: REAL_64): INTEGER
-			-- The paragraph under the point: `item_at (a_py)'.
+			-- The paragraph under the point: `item_at (a_py)', inside the
+			-- list and off its scrollbar.
 		do
-			Result := item_at (a_py)
+			if contains (a_px, a_py) and then not bar.contains (a_px, a_py) then
+				Result := item_at (a_py)
+			end
 		end
 
 feature -- Alignment (GW-02)
