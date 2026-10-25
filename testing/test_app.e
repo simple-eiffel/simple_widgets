@@ -788,6 +788,7 @@ feature {NONE} -- Test runners
 			run_test (agent atlas_tests.test_gw19_galilee_is_water_with_the_regional_layer, "gw19_galilee_is_water_with_the_regional_layer")
 			run_test (agent atlas_tests.test_gw19_rivers_and_routes_on_their_layers, "gw19_rivers_and_routes_on_their_layers")
 			run_test (agent atlas_tests.test_gw19_labels_from_their_zoom_without_overlap, "gw19_labels_from_their_zoom_without_overlap")
+			run_test (agent atlas_tests.test_scan16_the_caspian_is_water, "scan16_the_caspian_is_water")
 			run_test (agent atlas_tests.test_gw19_levant_light, "gw19_levant_light")
 			run_test (agent atlas_tests.test_gw19_levant_dark, "gw19_levant_dark")
 			print ("%N=== GW-23 LAYERED DIAGRAM ===%N")

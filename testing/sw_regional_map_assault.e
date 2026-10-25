@@ -103,6 +103,24 @@ feature -- Regional detail
 			assert_integers_equal ("zoom 128: both", 2, m.drawn_labels.count)
 		end
 
+feature -- Scan 16 (since 3f9242a)
+
+	test_scan16_the_caspian_is_water
+			-- HIGH: the generator kept only the land's outer rings, so the
+			-- Caspian Sea - a hole in the land - drew as land.
+		local
+			w: SW_WINDOW
+			m: SW_MAP
+		do
+			w := map_window (create {SW_THEME}.make_light)
+			m := map_of (w)
+			m.set_view (8.0, 47.0, 41.0)
+			w.request_render
+			assert_true ("the region draws", m.is_region_drawn)
+			assert_true ("the Caspian is water", map_pixel (w, m, 49.5, 41.5) = m.water_color (w.theme))
+			assert_true ("and Persia is land", map_pixel (w, m, 47.0, 34.0) = m.land_color (w.theme))
+		end
+
 feature -- Evidence
 
 	test_gw19_levant_light

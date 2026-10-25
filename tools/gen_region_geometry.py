@@ -31,6 +31,15 @@ def rings_of(geometry):
     return []
 
 
+def holes_of(geometry):
+    """Interior rings: seas inside land (the Caspian)."""
+    if geometry["type"] == "Polygon":
+        return geometry["coordinates"][1:]
+    if geometry["type"] == "MultiPolygon":
+        return [h for p in geometry["coordinates"] for h in p[1:]]
+    return []
+
+
 def lines_of(geometry):
     if geometry["type"] == "LineString":
         return [geometry["coordinates"]]
@@ -118,11 +127,11 @@ def length(line):
     return sum(((line[i][0] - line[i - 1][0]) ** 2 + (line[i][1] - line[i - 1][1]) ** 2) ** 0.5 for i in range(1, len(line)))
 
 
-def polygons(name):
+def polygons(name, take=rings_of):
     d = json.load(open(src / name, encoding="utf-8"))
     result = []
     for f in d["features"]:
-        for r in rings_of(f["geometry"]):
+        for r in take(f["geometry"]):
             c = clip_ring(r)
             c = simplify(c, TOLERANCE, True)
             if len(c) >= 3:
@@ -143,6 +152,7 @@ def rivers():
 
 
 land = polygons("ne_10m_land.geojson")
+holes = polygons("ne_10m_land.geojson", holes_of)
 lakes = polygons("ne_10m_lakes.geojson")
 river_lines = rivers()
 
@@ -151,7 +161,7 @@ def count(rs):
     return sum(len(r) for r in rs)
 
 
-print(f"land {len(land)} rings {count(land)} points; lakes {len(lakes)} rings {count(lakes)} points; "
+print(f"land {len(land)} rings {count(land)} points; holes {len(holes)} rings {count(holes)} points; lakes {len(lakes)} rings {count(lakes)} points; "
       f"rivers {len(river_lines)} lines {count(river_lines)} points")
 if dry:
     sys.exit(0)
@@ -194,7 +204,7 @@ def verbatim(name, text):
 
 sections = []
 decls = []
-for kind, rs in (("land", land), ("lakes", lakes), ("rivers", river_lines)):
+for kind, rs in (("land", land), ("holes", holes), ("lakes", lakes), ("rivers", river_lines)):
     parts = chunks(blob(rs))
     calls = "\n".join(f"\t\t\tparse_block ({kind}_{n}, Result)" for n in range(1, len(parts) + 1))
     sections.append((kind, len(rs), calls))
@@ -208,7 +218,8 @@ header = f'''note
 		clipped to lon {WEST:g}..{EAST:g}, lat {SOUTH:g}..{NORTH:g} and simplified to
 		{TOLERANCE:g} degrees, as data-only Eiffel source produced by
 		tools/gen_region_geometry.py - DO NOT EDIT BY HAND.
-		{len(land)} land rings ({count(land)} points), {len(lakes)} lakes ({count(lakes)} points),
+		{len(land)} land rings ({count(land)} points), {len(holes)} seas inside the land
+		({count(holes)} points: the Caspian), {len(lakes)} lakes ({count(lakes)} points),
 		{len(river_lines)} river lines ({count(river_lines)} points).
 	]"
 
@@ -232,7 +243,8 @@ feature -- Access
 '''
 body = ""
 for kind, n, calls in sections:
-    what = {"land": "Every land ring", "lakes": "Every lake ring", "rivers": "Every river line"}[kind]
+    what = {"land": "Every land ring", "holes": "Every sea inside the land (an interior ring of the land: the Caspian)",
+            "lakes": "Every lake ring", "rivers": "Every river line"}[kind]
     body += f'''
 	{kind}: ARRAYED_LIST [ARRAY [REAL_64]]
 			-- {what} as a flat [lon1, lat1, lon2, ...] array. Parsed once;

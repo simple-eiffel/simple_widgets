@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.37.1 - the sixteenth scan, since 3f9242a: the Caspian)
+
+- **Seas inside the land are water.** The generator kept only the land's
+  outer rings, so the Caspian Sea - an interior ring of the land - drew as
+  land. `tools/gen_region_geometry.py` emits the interior rings as
+  `SW_REGION_GEOMETRY.holes`, which SW_MAP paints as water whatever the lake
+  layer says. Test `scan16_the_caspian_is_water` failed on 0.37.0.
+- Kept as designed (the scan called it HIGH): hiding the lakes layer shows
+  lakes as land - that is what the layer hides; seas inside the land stay
+  water.
+- Not done (MEDIUM): rivers stop just short of the region box; a seam where
+  the 1:10m coast meets the 110m coast; the hover chip still reads the
+  5-degree raster; no culling; the geometry parsers of SW_WORLD_GEOMETRY
+  and SW_REGION_GEOMETRY are copies (a shared ancestor waits for Larry).
+  Report: `.eiffel-workflow/evidence/design-scan-since-3f9242a.md`. 533 pass.
+
 ### Added (0.37.0 - GW-23: a deterministic layered layout for SW_DIAGRAM)
 
 For clause outlines (C09): the force layout is not reproducible.

@@ -16,7 +16,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.9.0 - 0.37.0: the simple_bible gap program** (tracker in simple_bible,
+**0.9.0 - 0.37.1: the simple_bible gap program** (tracker in simple_bible,
 `.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
 every text item is gated on Hebrew and Greek in both the light and the dark
 theme, with evidence PNGs in `evidence/`.
@@ -44,6 +44,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.37.1 | - | The sixteenth scan: seas inside the land (the Caspian) are water |
 | 0.37.0 | GW-23 | `SW_DIAGRAM.set_layered`: a deterministic left-to-right layered layout (cycles broken, longest-path layers, barycenter ordering) for clause outlines |
 | 0.36.0 | GW-19 | `SW_MAP` Atlas: the Mediterranean, Levant and Mesopotamia at 1:10m (`SW_REGION_GEOMETRY`), routes, places labelled at zoom without overlap, layers, a theme-drawn palette for light and dark; zoom to 128 |
 | 0.35.1 | - | The fifteenth scan: disputes bracketed in every lane and never hidden, one-year bars not ticks, year marks aligned, lanes scroll |
@@ -86,7 +87,7 @@ theme, with evidence PNGs in `evidence/`.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 532 contract-assault tests passing at 0.37.0 (`screen_grab_marries_cairo` reads the
+- 533 contract-assault tests passing at 0.37.1 (`screen_grab_marries_cairo` reads the
   real desktop and fails while it is unreadable, such as a locked session or a sleeping
   display — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
