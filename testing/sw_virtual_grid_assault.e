@@ -153,6 +153,11 @@ feature {NONE} -- Fixtures
 			end
 			report ("wheel frame with contracts on (median, report only)", median (l_checked_wheel))
 			report ("page-jump frame with contracts on (median, report only)", median (l_checked_page))
+				-- The guard `without_contracts' would otherwise hide: with every
+				-- contract on, frames must not grow slower as the run goes on
+				-- (simple_shaping 0.6.1: each shaped string cost more than the last).
+			assert_true ("with contracts on, wheel frames do not grow slower",
+				median_of (l_checked_wheel, 6, 10) <= 2.0 * median_of (l_checked_wheel, 1, 5) + 2.0)
 			report ("wheel frame (median)", median (l_wheel))
 			report ("wheel frame (worst)", worst (l_wheel))
 			report ("page-jump frame (median)", median (l_page))

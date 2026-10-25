@@ -59,6 +59,10 @@ but two pieces of this program had kept fixed pixels.
   - `scan7_rows_added_one_at_a_time`: 2,000 rows added one by one took 10.3
     seconds and now take 22 milliseconds, in the order a full sort gives.
   - Added: `scan7_hebrew_column_sits_flush_right`.
+  - The eighth scan (no HIGH findings) noted that timing inside
+    `without_contracts` hid contract cost that grows; the GW-29 test now also
+    asserts that, with every contract on, wheel frames do not grow slower.
+    445 pass.
   - 444 pass. `screen_grab_marries_cairo` fails only in a locked session.
 - Open from the scan: the grid's row and header heights are fixed pixels
   that do not follow the text scale; `SW_TEXT_GEOMETRY` and
