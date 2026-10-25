@@ -34,13 +34,16 @@ deferred class
 inherit
 	SW_STACKED_POINTING
 		redefine
-			item_text_count
+			item_text_count,
+			set_hover_point, set_hovered, handle_wheel, handle_click, handle_double_click,
+			handle_drag, handle_release, handle_key, handle_char, cursor_kind
 		end
 
 	SW_TEXT_SELECTION
 		undefine
-			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at,
-			accepts_focus, wants_hover_point
+			dwell_ms, handle_dwell, hover_card_at, accepts_focus, wants_hover_point,
+			set_hover_point, set_hovered, handle_wheel, handle_click, handle_double_click,
+			handle_drag, handle_release, handle_key, handle_char, cursor_kind
 		redefine
 			item_separator
 		end
@@ -250,6 +253,115 @@ feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 			none_or_valid: Result = 0 or else is_valid_item (Result)
 		end
 
+feature -- Layout bookkeeping
+
+	is_laid_out: BOOLEAN
+			-- Do the units stand for the items as they are?
+		do
+			Result := laid_revision = units_revision and stack.count = stack_count
+				and block_units.count = stack_count
+		end
+
+	units_revision: INTEGER
+			-- Grows when items are added, removed or retuned (a text's own
+			-- changes show in `item_revision').
+		deferred
+		end
+
+	wheel_line: REAL_64
+			-- A line of body text.
+		do
+			Result := laid_px.max (8) * 1.5
+		end
+
+feature -- Input (SW_WIDGET)
+
+	handle_wheel (a_delta: INTEGER): BOOLEAN
+			-- Scroll; the text moved under the pointer.
+		do
+			wheel_scrolled (a_delta)
+			if is_hovered then
+				follow_hover
+				update_link_hover
+			end
+			Result := True
+		end
+
+	handle_click (a_px, a_py: REAL_64): BOOLEAN
+			-- The bar, else a press on text starts a selection.
+		do
+			if press_bar (a_px, a_py) then
+				Result := True
+			else
+				Result := unit_press (a_px, a_py)
+			end
+		end
+
+	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
+		do
+			Result := unit_double_click (a_px, a_py)
+		end
+
+	handle_drag (a_px, a_py: REAL_64)
+			-- The thumb follows, or the selection grows.
+		do
+			if not drag_bar (a_py) then
+				unit_drag (a_px, a_py)
+			end
+		end
+
+	handle_release (a_x, a_y: INTEGER)
+			-- Let go of the thumb or end the selection (a click on a link
+			-- follows it).
+		do
+			release_bar
+			unit_release (a_x, a_y)
+		ensure then
+			released: not bar.is_dragging and not is_selecting
+		end
+
+	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
+			-- PageUp, PageDown, Home, End; Up and Down a line.
+		do
+			if not scroll_key (a_vk) then
+				inspect a_vk
+				when 40 then
+					scroll_to (scroll_y + wheel_line)
+				when 38 then
+					scroll_to (scroll_y - wheel_line)
+				else
+				end
+			end
+		end
+
+	handle_char (a_code: INTEGER)
+			-- Ctrl+C copies, Ctrl+A selects all, Escape clears.
+		do
+			selection_char (a_code).do_nothing
+		end
+
+	cursor_kind: INTEGER
+			-- The arrow over the bar; a hand over a link, an I-beam over text.
+		do
+			if not bar.contains (hover_px, hover_py) then
+				Result := unit_cursor_kind
+			end
+		end
+
+	set_hover_point (a_px, a_py: REAL_64)
+			-- Follow the pointer to the character - and the link - under it.
+		do
+			Precursor {SW_STACKED_POINTING} (a_px, a_py)
+			update_link_hover
+		end
+
+	set_hovered (a_hovered: BOOLEAN)
+			-- Leaving the widget leaves every link.
+		do
+			Precursor {SW_STACKED_POINTING} (a_hovered)
+			update_link_hover
+		end
+
 feature {NONE} -- Reading with the pointer
 
 	unit_press (a_px, a_py: REAL_64): BOOLEAN
@@ -345,12 +457,52 @@ feature {NONE} -- Unit hooks
 		end
 
 	is_on_content (a_px, a_py: REAL_64): BOOLEAN
-			-- Is the point over the units: inside, off the scrollbar?
+			-- Is the point over the units: inside, off the scrollbar, below
+			-- any pinned band?
 		do
 			Result := contains (a_px, a_py) and then not bar.contains (a_px, a_py)
+				and then a_py >= y + pinned_height
 		end
 
 feature {NONE} -- Unit implementation
+
+	laid_revision: INTEGER
+			-- The `units_revision' the units were made for.
+
+	laid_px: INTEGER
+			-- Body text's pixel size at the last layout.
+
+	stack_reset
+			-- Empty unit lists, one per item, for the items as they are.
+		local
+			i: INTEGER
+		do
+			block_units.wipe_out
+			from
+				i := 1
+			until
+				i > stack_count
+			loop
+				block_units.extend (create {ARRAYED_LIST [SW_DOC_UNIT]}.make (1))
+				i := i + 1
+			end
+			laid_revision := units_revision
+			clear_selection
+		end
+
+	measure_units (a_p: SW_PAINTER; a_key: READABLE_STRING_8; a_gap: REAL_64)
+			-- Measure what changed (everything when the items changed),
+			-- restack with `a_gap', and number the units.
+		require
+			gap_non_negative: a_gap >= 0.0
+		do
+			if laid_revision /= units_revision or else block_units.count /= stack_count then
+				stack.invalidate
+			end
+			if measure_stack (a_p, a_key, a_gap) then
+				number_units
+			end
+		end
 
 	block_units: ARRAYED_LIST [ARRAYED_LIST [SW_DOC_UNIT]]
 			-- Per item, its texts.

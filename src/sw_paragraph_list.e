@@ -827,9 +827,7 @@ feature -- Scrolling
 		require
 			in_range: a_i >= 1 and a_i <= count
 		do
-			if is_laid_out and then height > 0.0 then
-				scroll_to (stacked_scroll_for (a_i))
-			end
+			scroll_item_into_view (a_i)
 		ensure
 			visible_once_laid_out: (is_laid_out and height > 0.0) implies
 				(a_i >= first_visible and a_i <= last_visible)

@@ -62,17 +62,16 @@ class
 inherit
 	SW_DOC_UNITS
 		redefine
-			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
+			arrange, handle_click, handle_key, handle_char, cursor_kind, sub_widgets, widget_at
 		end
 
 	SW_IN_PLACE_EDITING
 		undefine
 			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at,
-			accepts_focus, wants_hover_point
+			accepts_focus, wants_hover_point, handle_wheel, handle_double_click,
+			handle_drag, handle_release
 		redefine
-			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, cursor_kind, sub_widgets, widget_at
+			arrange, handle_click, handle_key, handle_char, cursor_kind, sub_widgets, widget_at
 		end
 
 create
@@ -87,8 +86,7 @@ feature {NONE} -- Initialization
 		do
 			viewport_height := a_viewport_height
 			create document.make
-			laid_doc_revision := -1
-			laid_px := 14
+			laid_revision := -1
 			init_pointing
 		ensure
 			kept: viewport_height = a_viewport_height
@@ -99,13 +97,6 @@ feature -- Access
 
 	document: SIMPLE_DOCUMENT
 			-- What is shown.
-
-	is_laid_out: BOOLEAN
-			-- Do the measurements stand for the document as it is?
-		do
-			Result := laid_doc_revision = document.revision and stack.count = document.count
-				and block_units.count = document.count
-		end
 
 	block_top (a_block: INTEGER): REAL_64
 			-- Block `a_block''s top in window coordinates.
@@ -141,7 +132,8 @@ feature -- Element change
 				close_editor
 			end
 			document := a_document
-			laid_doc_revision := -1
+			forget_hover
+			laid_revision := -1
 			scroll_y := 0.0
 			clear_selection
 		ensure
@@ -155,9 +147,7 @@ feature -- Element change
 		require
 			in_range: a_block >= 1 and a_block <= document.count
 		do
-			if is_laid_out and then height > 0.0 then
-				scroll_to (stacked_scroll_for (a_block))
-			end
+			scroll_item_into_view (a_block)
 		end
 
 feature -- Editing (live preview)
@@ -267,23 +257,15 @@ feature -- Scrolling (SW_VSCROLLING)
 			Result := stack.content_height + 2.0 * margin
 		end
 
-	wheel_line: REAL_64
-			-- A line of body text.
-		do
-			Result := (laid_px * 1.5).max (1.0)
-		end
-
 feature -- Layout
 
 	cursor_kind: INTEGER
-			-- A hand over a link, an I-beam over text, else the arrow.
+			-- The I-beam over the box; else SW_DOC_UNITS'.
 		do
-			if bar.contains (hover_px, hover_py) then
-				Result := 0
-			elseif editor_has (hover_px, hover_py) then
+			if not bar.contains (hover_px, hover_py) and then editor_has (hover_px, hover_py) then
 				Result := 1
 			else
-				Result := unit_cursor_kind
+				Result := Precursor {SW_DOC_UNITS}
 			end
 		end
 
@@ -321,54 +303,16 @@ feature -- Drawing
 
 feature -- Input
 
-	handle_wheel (a_delta: INTEGER): BOOLEAN
-			-- Scroll; the text moved under the pointer.
-		do
-			wheel_scrolled (a_delta)
-			if is_hovered then
-				follow_hover
-				update_link_hover
-			end
-			Result := True
-		end
-
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
-			-- The bar first; then, editable, the live preview's press; else
-			-- a press on text starts a selection (SW_DOC_UNITS).
+			-- Editable and off the bar: the live preview's press; else
+			-- SW_DOC_UNITS' (the bar, or a selection).
 		do
-			if press_bar (a_px, a_py) then
-				Result := True
-			elseif is_editable then
+			if is_editable and then not bar.contains (a_px, a_py) then
 				create pressed_link.make_empty
 				Result := editable_click (a_px, a_py)
 			else
-				Result := unit_press (a_px, a_py)
+				Result := Precursor {SW_DOC_UNITS} (a_px, a_py)
 			end
-		end
-
-	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
-			-- Select the word under the pointer.
-		do
-			Result := unit_double_click (a_px, a_py)
-		end
-
-	handle_drag (a_px, a_py: REAL_64)
-			-- The thumb follows, or the selection grows to the text under
-			-- the pointer.
-		do
-			if not drag_bar (a_py) then
-				unit_drag (a_px, a_py)
-			end
-		end
-
-	handle_release (a_x, a_y: INTEGER)
-			-- Let go of the thumb or end the selection; a click on a link
-			-- (pressed and released on it, nothing selected) follows it.
-		do
-			release_bar
-			unit_release (a_x, a_y)
-		ensure then
-			released: not bar.is_dragging and not is_selecting
 		end
 
 	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
@@ -385,14 +329,8 @@ feature -- Input
 				new_paragraph_after ((i + document.count - l_before).max (0).min (document.count))
 			elseif editor_key (a_vk, a_shift) then
 					-- The box's.
-			elseif not scroll_key (a_vk) then
-				inspect a_vk
-				when 40 then
-					scroll_to (scroll_y + wheel_line)
-				when 38 then
-					scroll_to (scroll_y - wheel_line)
-				else
-				end
+			else
+				Precursor {SW_DOC_UNITS} (a_vk, a_shift)
 			end
 		end
 
@@ -400,22 +338,8 @@ feature -- Input
 			-- Ctrl+C copies, Ctrl+A selects all, Escape clears.
 		do
 			if not editor_char (a_code) then
-				selection_char (a_code).do_nothing
+				Precursor {SW_DOC_UNITS} (a_code)
 			end
-		end
-
-	set_hover_point (a_px, a_py: REAL_64)
-			-- Follow the pointer to the character - and the link - under it.
-		do
-			Precursor {SW_DOC_UNITS} (a_px, a_py)
-			update_link_hover
-		end
-
-	set_hovered (a_hovered: BOOLEAN)
-			-- Leaving the view leaves every link.
-		do
-			Precursor {SW_DOC_UNITS} (a_hovered)
-			update_link_hover
 		end
 
 feature {NONE} -- Layout implementation
@@ -426,17 +350,11 @@ feature {NONE} -- Layout implementation
 		do
 		end
 
-	laid_doc_revision: INTEGER
-			-- The document revision `block_units' were made for.
-
 	margin: REAL_64
 			-- The page inset at the last layout.
 
 	text_w: REAL_64
 			-- The width a block's text may run.
-
-	laid_px: INTEGER
-			-- Body text pixel size at the last layout.
 
 	Quote_bar: REAL_64 = 3.0
 			-- A quote bar's width at 1x.
@@ -451,14 +369,7 @@ feature {NONE} -- Layout implementation
 			place_bar (t)
 			text_w := (width - bar.bar_width - 2.0 * margin).max (32.0)
 			laid_px := body_pixel_size (a_p)
-			if laid_doc_revision /= document.revision or else block_units.count /= document.count then
-				stack.invalidate
-			end
-			if measure_stack (a_p, text_w.truncated_to_integer.out + "|" + laid_px.out + "|" + a_p.has_shaping.out,
-				t.padding)
-			then
-				number_units
-			end
+			measure_units (a_p, text_w.truncated_to_integer.out + "|" + laid_px.out + "|" + a_p.has_shaping.out, t.padding)
 			place_bar (t)
 		ensure
 			laid_out: is_laid_out
@@ -467,6 +378,12 @@ feature {NONE} -- Layout implementation
 	stack_count: INTEGER
 		do
 			Result := document.count
+		end
+
+	units_revision: INTEGER
+			-- The document's.
+		do
+			Result := document.revision
 		end
 
 	stack_origin_y: REAL_64
@@ -484,24 +401,6 @@ feature {NONE} -- Layout implementation
 			-- The block under the box follows its typing.
 		do
 			Result := a_i = editing_index
-		end
-
-	stack_reset
-			-- Empty unit lists, one per block, for the document as it is.
-		local
-			i: INTEGER
-		do
-			block_units.wipe_out
-			from
-				i := 1
-			until
-				i > document.count
-			loop
-				block_units.extend (create {ARRAYED_LIST [SW_DOC_UNIT]}.make (1))
-				i := i + 1
-			end
-			laid_doc_revision := document.revision
-			clear_selection
 		end
 
 	measure_item (a_p: SW_PAINTER; a_i: INTEGER): REAL_64

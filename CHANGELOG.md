@@ -21,6 +21,38 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Added (0.25.0 — INTERLINEAR; GW-07; and the third scan's fixes)
+
+- **`SW_INTERLINEAR`** (simple_bible's Interlinear tab, C04): stacked word
+  cells - the surface word, transliteration (italic), pronunciation, gloss,
+  lemma, Strong's number, morphology in English - flowing and wrapping, right
+  to left for Hebrew and left to right for Greek. Any line can be hidden
+  (`set_line_visible`; the surface word always shows). A word that opens a
+  verse carries its label on the reading-start side. A click or Left/Right
+  (in reading order, mirrored right to left), Home and End select a word
+  (`on_token_select`); `token_at`; Ctrl+C copies a word's lines; a rest on a
+  word opens the card `set_hover_card_builder` builds. It inherits
+  `SW_DOC_UNITS` alone: every visible line is a unit and every flowed row a
+  stacked item, so the shaping, scrolling, pointing and hover cards come
+  with it, and only the flow, the word selection and the keys are new.
+- **Third post-merge scan** (`design-scan-since-9cb4b01.md`) found two live
+  defects in the parallel text, both fixed with tests that fail on the old
+  code: a point on the title band named a row hidden under it, and
+  `scroll_to_row` put the row under the band.
+  `SW_STACKED_ITEMS.pinned_height` (a band that does not scroll) fixes both.
+- **`SW_DOC_UNITS` owns its heirs' input** (wheel, click, double-click, drag,
+  release, keys, characters, cursor, hover) and layout bookkeeping
+  (`is_laid_out`, `stack_reset`, `measure_units`, `wheel_line`): the document
+  view redefines 7 of them, the parallel text 4, the interlinear 7.
+  `SW_STACKED_ITEMS.scroll_item_into_view`, `SW_TEXT_POINTING.forget_hover`
+  (hover cleared when content changes).
+- `SW_MARK_PAINTER.paint_marked` is gone: it redrew a mark's text effects in
+  the text's own ink; the parallel text redraws them in the painter's colour.
+- Tests: the band is not content, scroll-to-row below the band, cells flowing
+  and wrapping, lines hidden and shown, words selected by click and keys, and
+  Genesis 1:1 in both themes (evidence gw07_interlinear_light.png and
+  gw07_interlinear_dark.png). 421 pass.
+
 ### Added (0.24.0 — PARALLEL TEXT; GW-06; and the ancestors it stands on)
 
 simple_bible's Parallel tab (A02), word diff (A04) and They Chose (I-P06) show
