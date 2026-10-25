@@ -1151,7 +1151,7 @@ feature {NONE} -- Engine
 			-- is not masked, cairo's toy advances otherwise.
 		local
 			want_shaped: BOOLEAN
-			px, wpx: INTEGER
+			px: INTEGER
 		do
 			want_shaped := a_p.has_shaping and not is_hiding
 			px := body_pixels (a_p)
@@ -1163,20 +1163,11 @@ feature {NONE} -- Engine
 				laid_size := px
 				laid_shaped := want_shaped
 				laid_alignment := text_alignment
-				if want_shaped and then attached a_p.shaping as al_kit then
-					if is_single_line then
-						wpx := 0
-					else
-						wpx := a_wrap.floor.max (16)
-					end
-						-- GW-02: lines placed by `text_alignment' in the
-						-- box the text may fill.
-					geometry.set_alignment (text_alignment, a_wrap.max (0.0))
-					geometry.build_shaped (al_kit, text, wpx, px, is_single_line)
-				else
-					a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
-					geometry.build_toy (a_p, text, a_wrap, is_single_line, is_hiding)
-				end
+					-- GW-02: lines placed by `text_alignment' in the box the
+					-- text may fill.
+				geometry.set_alignment (text_alignment, a_wrap.max (0.0))
+				geometry.lay_out (a_p, text, a_wrap.max (0.0), 0, a_p.theme.size_body, False,
+					is_single_line, is_hiding).do_nothing
 			end
 		ensure
 			laid_out: is_laid_out

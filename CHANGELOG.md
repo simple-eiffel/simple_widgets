@@ -21,6 +21,44 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Changed (0.23.0 — THE FIRST POST-MERGE SCAN'S HIGH FINDINGS)
+
+The post-merge abstraction scan (simple_bible gap program rule 9;
+`/eiffel.design-scan --since`, report in
+`.eiffel-workflow/evidence/design-scan-since-8125771.md`) compared the GW-13 code
+with the whole library and found six high items. Larry: fix them all before
+GW-06. Each is its own commit.
+
+- **A fifth deferred ancestor, `SW_STACKED_ITEMS`**: the block stack, the
+  viewport height, the measuring pass (`measure_stack` over `item_revision`,
+  `is_volatile`, `measure_item`, `stack_reset`), the visible range,
+  `stacked_top`, `stacked_item_at`, `stacked_scroll_for` (the page inset stated
+  once as `stack_origin_y`, where the view subtracted it by hand at four
+  sites) and the draw frame. The paragraph list and the document view inherit
+  it; GW-06 will too.
+- **Editor hosting**: `SW_IN_PLACE_EDITING.editor_sub_widgets` and
+  `widget_or_editor_at`, so a host's `sub_widgets` and `widget_at` are one line.
+- **Pointing in one place**: `character_at`, `offset_at_point` and `text_boxes`
+  are effective in `SW_TEXT_POINTING` over deferred `item_geometry`,
+  `item_origin_x/y` and `is_item_pointable`, with one guard: a geometry that
+  no longer matches its text is never indexed. The paragraph list read stale
+  geometry while a paragraph was being edited (a test fails on the old code,
+  passes now), and its `pointed_item` named a paragraph under the scrollbar.
+- **One layout step**: `SW_TEXT_GEOMETRY.lay_out` holds the shaped-or-toy
+  switch, the role's fonts and the one-line floor for the text box, the
+  paragraph list, the legend and the document view. (The scan suspected an
+  empty shaped paragraph measured short; a test shows it did not, and stays as
+  a guard.)
+- **The paragraph list's spacing scales**: `gutter_width`, `item_gap` and
+  `item_pad` are 1x values drawn at the text's scale, and the gap beside the
+  scrollbar is half the theme's padding. At 1x nothing moves; at 2x the gap no
+  longer stays 4 pixels beside a 24-pixel bar (a test fails on the old code).
+- **One end of an edit**: `SW_IN_PLACE_EDITING.end_edit` is the template;
+  hosts give `keep_item` and `restore_item`. An unchanged edit is not a commit,
+  and the box is down before either runs (the two hosts disagreed on both).
+- Tests: stale geometry never indexed, an empty paragraph a line tall,
+  paragraph spacing scaling at 2x. 407 pass.
+
 ### Added (0.22.0 — LIVE-PREVIEW EDITING; GW-13 complete)
 
 Larry chose live preview for editing notes: the block being edited shows its

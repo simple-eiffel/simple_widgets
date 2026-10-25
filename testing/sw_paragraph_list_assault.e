@@ -149,6 +149,28 @@ feature -- Measurement
 			assert_true ("selects alone", l.is_selected (3) and not l.is_selected (2) and not l.is_selected (4))
 		end
 
+	test_stale_geometry_never_indexed
+			-- While a paragraph is typed into and not yet measured again, its
+			-- old geometry must not answer: a caret offset past the end of the
+			-- shorter text is a lie.
+		local
+			l: SW_PARAGRAPH_LIST
+			b: TUPLE [x, y, width, height: REAL_64]
+			i: INTEGER
+		do
+			l := filled (3)
+			l.set_bounds (0.0, 0.0, 400.0, 300.0)
+			l.arrange (plain_painter)
+			b := l.text_boxes (2, 0, l.text_of (2).count).first
+			l.begin_edit (2)
+			from i := 1 until i > 6 loop
+				l.handle_char (8)
+				i := i + 1
+			end
+			assert_true ("never past the end of the text as it is now",
+				l.caret_offset_at (b.x + b.width - 1.0, b.y + b.height / 2.0) <= l.text_of (2).count)
+		end
+
 	test_wheel_clamps
 		local
 			l: SW_PARAGRAPH_LIST
