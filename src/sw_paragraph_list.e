@@ -80,19 +80,22 @@ inherit
 			item_text_count,
 			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
 			handle_double_click, handle_drag, handle_key, handle_char,
-			accepts_focus, wants_hover_point, cursor_kind, focusables,
+			cursor_kind, focusables,
 			handle_release
 		end
 
 	SW_IN_PLACE_EDITING
 		undefine
-			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
+			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at,
+			accepts_focus, wants_hover_point
 		redefine
 			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
 			handle_double_click, handle_drag, handle_key, handle_char,
-			accepts_focus, wants_hover_point, cursor_kind, focusables,
+			cursor_kind, focusables,
 			handle_release
 		end
+
+	SW_MARK_HOST
 
 create
 	make
@@ -119,7 +122,6 @@ feature {NONE} -- Initialization
 			create geometries.make (16)
 			init_pointing
 			wheel_line := 20.0
-			create mark_painter.make
 			create edit_marks_backup.make (0)
 			text_alignment := {SHAPING_CONSTANTS}.Align_left
 		ensure
@@ -175,12 +177,6 @@ feature -- Access
 	wash_of: detachable FUNCTION [INTEGER, NATURAL_32]
 			-- The colour washing paragraph `index''s box; 0 = none.
 
-	legend: detachable SW_MARK_LEGEND
-			-- What a span's reason looks like, for every paragraph.
-
-	mark_painter: SW_MARK_PAINTER
-			-- Paints the spans; set its size floors here.
-
 	marks_of (a_i: INTEGER): SW_MARKED_TEXT
 			-- The data behind paragraph `a_i': lay spans on it here.
 		require
@@ -189,13 +185,6 @@ feature -- Access
 			Result := marks_list.i_th (a_i)
 		ensure
 			fits: Result.text_count = text_of (a_i).count
-		end
-
-	set_legend (a_legend: detachable SW_MARK_LEGEND)
-		do
-			legend := a_legend
-		ensure
-			set: legend = a_legend
 		end
 
 	styles_of (a_i: INTEGER): SHAPING_STYLES
@@ -907,27 +896,12 @@ feature -- Tooling
 
 feature -- Layout
 
-	accepts_focus: BOOLEAN
-		do
-			Result := True
-		end
-
-	wants_hover_point: BOOLEAN
-		do
-			Result := True
-		end
-
 	cursor_kind: INTEGER
 			-- The I-beam over the editor, the arrow elsewhere.
 		do
 			if is_editing and then attached editor as al_ed and then al_ed.contains (hover_px, hover_py) then
 				Result := 1
 			end
-		end
-
-	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
-		do
-			Result := viewport_height
 		end
 
 	arrange (a_p: SW_PAINTER)

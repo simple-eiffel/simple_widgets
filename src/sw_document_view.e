@@ -63,17 +63,16 @@ inherit
 	SW_DOC_UNITS
 		redefine
 			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
+			handle_release, handle_key, handle_char, cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
 		end
 
 	SW_IN_PLACE_EDITING
 		undefine
-			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
+			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at,
+			accepts_focus, wants_hover_point
 		redefine
 			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, sub_widgets, widget_at
+			handle_release, handle_key, handle_char, cursor_kind, sub_widgets, widget_at
 		end
 
 create
@@ -254,12 +253,6 @@ feature -- Editing (live preview)
 
 feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 
-	pointed_item (a_px, a_py: REAL_64): INTEGER
-			-- The unit under the point (SW_DOC_UNITS).
-		do
-			Result := pointed_unit (a_px, a_py)
-		end
-
 	units_left: REAL_64
 			-- The page's left inset.
 		do
@@ -282,16 +275,6 @@ feature -- Scrolling (SW_VSCROLLING)
 
 feature -- Layout
 
-	accepts_focus: BOOLEAN
-		do
-			Result := True
-		end
-
-	wants_hover_point: BOOLEAN
-		do
-			Result := True
-		end
-
 	cursor_kind: INTEGER
 			-- A hand over a link, an I-beam over text, else the arrow.
 		do
@@ -302,11 +285,6 @@ feature -- Layout
 			else
 				Result := unit_cursor_kind
 			end
-		end
-
-	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
-		do
-			Result := viewport_height
 		end
 
 	arrange (a_p: SW_PAINTER)

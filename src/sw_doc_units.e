@@ -39,7 +39,8 @@ inherit
 
 	SW_TEXT_SELECTION
 		undefine
-			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
+			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at,
+			accepts_focus, wants_hover_point
 		redefine
 			item_separator
 		end
@@ -204,6 +205,12 @@ feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 	item_text_count (a_item: INTEGER): INTEGER
 		do
 			Result := units.i_th (a_item).content.count
+		end
+
+	pointed_item (a_px, a_py: REAL_64): INTEGER
+			-- The unit under the point (`pointed_unit').
+		do
+			Result := pointed_unit (a_px, a_py)
 		end
 
 	pointed_unit (a_px, a_py: REAL_64): INTEGER

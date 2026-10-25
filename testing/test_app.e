@@ -670,6 +670,15 @@ feature {NONE} -- Test runners
 			run_test (agent document_tests.test_gw13_hebrew_and_greek_are_not_misspelled, "gw13_hebrew_and_greek_are_not_misspelled")
 			run_test (agent document_tests.test_gw13_editing_light, "gw13_editing_light")
 			run_test (agent document_tests.test_gw13_editing_dark, "gw13_editing_dark")
+			print ("%N=== GW-06 PARALLEL TEXT ===%N")
+			create parallel_tests
+			run_test (agent parallel_tests.test_gw06_rows_follow_their_tallest_cell, "gw06_rows_follow_their_tallest_cell")
+			run_test (agent parallel_tests.test_gw06_cells_hit_click_and_copy, "gw06_cells_hit_click_and_copy")
+			run_test (agent parallel_tests.test_gw06_hebrew_column_and_note, "gw06_hebrew_column_and_note")
+			run_test (agent parallel_tests.test_gw06_title_band_stays_while_rows_scroll, "gw06_title_band_stays_while_rows_scroll")
+			run_test (agent parallel_tests.test_gw06_spacing_follows_the_theme, "gw06_spacing_follows_the_theme")
+			run_test (agent parallel_tests.test_gw06_parallel_light, "gw06_parallel_light")
+			run_test (agent parallel_tests.test_gw06_parallel_dark, "gw06_parallel_dark")
 			create paragraph_tests
 			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
 			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")
@@ -722,6 +731,7 @@ feature {NONE} -- Test runners
 
 	paragraph_tests: SW_PARAGRAPH_LIST_ASSAULT
 	document_tests: SW_DOCUMENT_ASSAULT
+	parallel_tests: SW_PARALLEL_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.

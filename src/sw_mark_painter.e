@@ -151,6 +151,25 @@ feature -- Painting
 			end
 		end
 
+	paint_marked (a_p: SW_PAINTER; a_geo: SW_TEXT_GEOMETRY; a_marks: SW_MARKED_TEXT;
+			a_legend: detachable SW_MARK_LEGEND; a_ox, a_oy, a_px: REAL_64;
+			a_draw_text: PROCEDURE [SW_PAINTER, REAL_64, REAL_64])
+			-- A marked text whole: the washes under it, the text (drawn by
+			-- `a_draw_text' at no offset), then the effects, boxes and badges
+			-- over it - when the marks fit the geometry; just the text when
+			-- they do not (yet).
+		require
+			size_positive: a_px > 0.0
+		do
+			if a_marks.text_count = a_geo.count then
+				paint_under (a_p, a_geo, a_marks, a_legend, a_ox, a_oy)
+				a_draw_text.call (a_p, 0.0, 0.0)
+				paint_over (a_p, a_geo, a_marks, a_legend, a_ox, a_oy, a_px, a_draw_text)
+			else
+				a_draw_text.call (a_p, 0.0, 0.0)
+			end
+		end
+
 	paint_over (a_p: SW_PAINTER; a_geo: SW_TEXT_GEOMETRY; a_marks: SW_MARKED_TEXT;
 			a_legend: detachable SW_MARK_LEGEND; a_ox, a_oy, a_px: REAL_64;
 			a_draw_text: PROCEDURE [SW_PAINTER, REAL_64, REAL_64])
