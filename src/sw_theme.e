@@ -782,6 +782,8 @@ feature {NONE} -- Contrast mending (GW-16)
 			-- How far a ground must stand from the window to be seen as a
 			-- different ground.
 
+feature -- Blending (public since GW-19: the map palette blends theme colours)
+
 	mixed (a_from, a_to: NATURAL_32; a_t: REAL_64): NATURAL_32
 			-- The color `a_t' of the way from `a_from' to `a_to', per channel.
 		require
@@ -798,6 +800,8 @@ feature {NONE} -- Contrast mending (GW-16)
 		do
 			Result := (a_from.to_real_64 + (a_to.to_real_64 - a_from.to_real_64) * a_t).rounded.to_natural_32.min (255)
 		end
+
+feature {NONE} -- Contrast mending (GW-16, continued)
 
 	set_contrast_ramp (a_ground: NATURAL_32)
 			-- A grey ramp from `a_ground' toward black (light grounds) or
