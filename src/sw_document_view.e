@@ -251,12 +251,6 @@ feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 
 feature -- Scrolling (SW_VSCROLLING)
 
-	scroll_extent: REAL_64
-			-- The stacked blocks and the page inset above and below.
-		do
-			Result := stack.content_height + 2.0 * margin
-		end
-
 feature -- Layout
 
 	cursor_kind: INTEGER
@@ -350,9 +344,6 @@ feature {NONE} -- Layout implementation
 		do
 		end
 
-	margin: REAL_64
-			-- The page inset at the last layout.
-
 	text_w: REAL_64
 			-- The width a block's text may run.
 
@@ -369,7 +360,7 @@ feature {NONE} -- Layout implementation
 			place_bar (t)
 			text_w := (width - bar.bar_width - 2.0 * margin).max (32.0)
 			laid_px := body_pixel_size (a_p)
-			measure_units (a_p, text_w.truncated_to_integer.out + "|" + laid_px.out + "|" + a_p.has_shaping.out, t.padding)
+			measure_units (a_p, layout_key (a_p, text_w), t.padding)
 			place_bar (t)
 		ensure
 			laid_out: is_laid_out

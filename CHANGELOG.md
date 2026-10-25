@@ -21,6 +21,37 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Added (0.26.0 — GROUPED BARS; GW-10; and the fourth scan's fixes)
+
+- **Grouped multi-series bars in `SW_BAR_CHART`** (simple_bible's census
+  controls chart, I-P02: a target word against frequency-matched controls).
+  `set_series` names the series and `add_group (label, values)` adds a
+  category with one value a series; `add_bar` still makes a single-series
+  chart. A group's bars stand side by side a quarter of the theme's padding
+  apart; with several series a legend names them; `series_at` says which bar
+  is under a point and the hover chip names its series and value.
+  `set_emphasized_series` draws the other series in the theme's soft ink so
+  the target stands out by lightness as well as hue, and the legend follows
+  (`series_color` is redefined). Labels use the theme's chip size.
+- **Fourth post-merge scan** (`design-scan-since-f8df023.md`) found five live
+  defects, fixed, three with tests that fail on the old code:
+  - the interlinear's lines below the surface word could not be pointed at
+    (no hover card from a gloss): every line now has its own box;
+  - after `wipe_out` the interlinear could keep the old words, because its
+    revision was a sum that can come back to an old value: it now uses a
+    structure counter that only grows, and checks line edits apart;
+  - a hovered link survived the rows it was in: `SW_DOC_UNITS.forget_hover`
+    forgets it;
+  - the interlinear did not paint its text selection (Ctrl+A selected
+    invisibly), and `wipe_out` and each re-flow kept a stale selection and
+    hover.
+- `margin`, `scroll_extent` and `layout_key` live once in `SW_DOC_UNITS`; the
+  interlinear's scroll-to-word uses `scroll_item_into_view`; a double click
+  selects a word once.
+- Tests: grouped bars hit and domain, emphasis, the controls chart in both
+  themes (evidence gw10_controls_light.png and gw10_controls_dark.png), and
+  the three defect tests. 428 pass.
+
 ### Added (0.25.0 — INTERLINEAR; GW-07; and the third scan's fixes)
 
 - **`SW_INTERLINEAR`** (simple_bible's Interlinear tab, C04): stacked word

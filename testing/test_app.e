@@ -679,6 +679,7 @@ feature {NONE} -- Test runners
 			run_test (agent parallel_tests.test_gw06_spacing_follows_the_theme, "gw06_spacing_follows_the_theme")
 			run_test (agent parallel_tests.test_gw06_band_is_not_content, "gw06_band_is_not_content")
 			run_test (agent parallel_tests.test_gw06_scroll_to_row_shows_it_below_the_band, "gw06_scroll_to_row_shows_it_below_the_band")
+			run_test (agent parallel_tests.test_gw06_wipe_out_forgets_the_hovered_link, "gw06_wipe_out_forgets_the_hovered_link")
 			run_test (agent parallel_tests.test_gw06_parallel_light, "gw06_parallel_light")
 			run_test (agent parallel_tests.test_gw06_parallel_dark, "gw06_parallel_dark")
 			print ("%N=== GW-07 INTERLINEAR ===%N")
@@ -686,8 +687,16 @@ feature {NONE} -- Test runners
 			run_test (agent interlinear_tests.test_gw07_cells_flow_and_wrap, "gw07_cells_flow_and_wrap")
 			run_test (agent interlinear_tests.test_gw07_lines_hide_and_show, "gw07_lines_hide_and_show")
 			run_test (agent interlinear_tests.test_gw07_select_by_click_and_keys, "gw07_select_by_click_and_keys")
+			run_test (agent interlinear_tests.test_gw07_every_line_can_be_pointed_at, "gw07_every_line_can_be_pointed_at")
+			run_test (agent interlinear_tests.test_gw07_new_words_after_wipe_out_are_shown, "gw07_new_words_after_wipe_out_are_shown")
 			run_test (agent interlinear_tests.test_gw07_interlinear_light, "gw07_interlinear_light")
 			run_test (agent interlinear_tests.test_gw07_interlinear_dark, "gw07_interlinear_dark")
+			print ("%N=== GW-10 GROUPED BARS ===%N")
+			create grouped_bars_tests
+			run_test (agent grouped_bars_tests.test_gw10_groups_hit_and_domain, "gw10_groups_hit_and_domain")
+			run_test (agent grouped_bars_tests.test_gw10_emphasis_quiets_the_others, "gw10_emphasis_quiets_the_others")
+			run_test (agent grouped_bars_tests.test_gw10_controls_light, "gw10_controls_light")
+			run_test (agent grouped_bars_tests.test_gw10_controls_dark, "gw10_controls_dark")
 			create paragraph_tests
 			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
 			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")
@@ -742,6 +751,7 @@ feature {NONE} -- Test runners
 	document_tests: SW_DOCUMENT_ASSAULT
 	parallel_tests: SW_PARALLEL_ASSAULT
 	interlinear_tests: SW_INTERLINEAR_ASSAULT
+	grouped_bars_tests: SW_GROUPED_BARS_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.

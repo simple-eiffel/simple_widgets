@@ -129,6 +129,8 @@ feature -- Words
 			structure_revision := structure_revision + 1
 			selected_token := 0
 			scroll_y := 0.0
+			clear_selection
+			forget_hover
 		ensure
 			empty: token_count = 0 and selected_token = 0
 		end
@@ -229,8 +231,8 @@ feature -- Selection of words
 		require
 			valid: a_token >= 1 and a_token <= token_count
 		do
-			if is_laid_out and then height > 0.0 and then a_token <= token_rows.count then
-				scroll_to (stacked_scroll_for (token_rows.i_th (a_token)))
+			if is_laid_out and then a_token <= token_rows.count then
+				scroll_item_into_view (token_rows.i_th (a_token))
 			end
 		end
 
@@ -260,11 +262,6 @@ feature -- Selection of words
 		end
 
 feature -- Scrolling (SW_VSCROLLING)
-
-	scroll_extent: REAL_64
-		do
-			Result := stack.content_height + 2.0 * margin
-		end
 
 feature -- Layout
 
@@ -308,8 +305,9 @@ feature -- Input
 		end
 
 	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
+			-- The press before it already selected the word.
 		do
-			Result := handle_click (a_px, a_py)
+			Result := token_at (a_px, a_py) > 0
 		end
 
 	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
@@ -376,10 +374,10 @@ feature {NONE} -- Model
 			-- Grows when words are added, lines shown or hidden, the
 			-- direction or the surface size changes.
 
-	content_revision: INTEGER
-			-- `structure_revision' and every word's own revision.
+	lines_revision: INTEGER
+			-- Every word's own revision, summed: grows with each line edited
+			-- (within one structure; `structure_revision' covers the rest).
 		do
-			Result := structure_revision
 			across tokens as t loop
 				Result := Result + t.revision
 			end
@@ -388,7 +386,9 @@ feature {NONE} -- Model
 feature {NONE} -- Layout implementation
 
 	laid_key: STRING_8
-	margin, flow_width, cell_pad, gap: REAL_64
+	laid_lines: INTEGER
+			-- `lines_revision' at the last flow.
+	flow_width, cell_pad, gap: REAL_64
 	row_heights: ARRAYED_LIST [REAL_64]
 	token_rows: ARRAYED_LIST [INTEGER]
 	token_lefts, token_widths: ARRAYED_LIST [REAL_64]
@@ -409,12 +409,13 @@ feature {NONE} -- Layout implementation
 			place_bar (t)
 			flow_width := (width - bar.bar_width - 2.0 * margin).max (64.0)
 			laid_px := body_pixel_size (a_p)
-			l_key := flow_width.truncated_to_integer.out + "|" + laid_px.out + "|" + a_p.has_shaping.out
-			if laid_revision /= units_revision or else not laid_key.same_string (l_key)
-				or else block_units.count /= row_heights.count
+			l_key := layout_key (a_p, flow_width)
+			if laid_revision /= units_revision or else laid_lines /= lines_revision
+				or else not laid_key.same_string (l_key) or else block_units.count /= row_heights.count
 			then
 				flow (a_p)
 				laid_key := l_key
+				laid_lines := lines_revision
 				stack.invalidate
 			end
 			measure_stack (a_p, l_key, gap).do_nothing
@@ -430,7 +431,7 @@ feature {NONE} -- Layout implementation
 		local
 			t: SW_THEME
 			k, l, r: INTEGER
-			l_cell_w, l_cell_h, l_x, l_label_w, l_inner, l_left, l_dy: REAL_64
+			l_cell_w, l_cell_h, l_x, l_label_w, l_inner, l_left, l_dy, l_box_top, l_box_bottom: REAL_64
 			l_cells: ARRAYED_LIST [ARRAYED_LIST [SW_DOC_UNIT]]
 			l_widths, l_heights, l_labels: ARRAYED_LIST [REAL_64]
 			u: SW_DOC_UNIT
@@ -522,8 +523,12 @@ feature {NONE} -- Layout implementation
 						l_left := token_lefts.i_th (k) + cell_pad + l_labels.i_th (k) + (l_inner - cu.geometry.natural_width) / 2.0
 					end
 					cu.set_origin (l_left, l_dy, cu.wrap)
+						-- Its own band of the cell: the first line from the cell's
+						-- top, the last to the row's bottom.
+					l_box_top := if @ cu.cursor_index = 1 then 0.0 else l_dy end
 					l_dy := l_dy + cu.geometry.content_height.max (1.0)
-					cu.set_box (token_lefts.i_th (k), 0.0, token_widths.i_th (k), row_heights.i_th (r))
+					l_box_bottom := if @ cu.cursor_index = l_cells.i_th (k).count then row_heights.i_th (r) else l_dy end
+					cu.set_box (token_lefts.i_th (k), l_box_top, token_widths.i_th (k), (l_box_bottom - l_box_top).max (1.0))
 					cu.set_block (r)
 					block_units.i_th (r).extend (cu)
 				end
@@ -531,6 +536,9 @@ feature {NONE} -- Layout implementation
 			end
 			number_units
 			flow_count := flow_count + 1
+				-- The units are new: no selection or hover names an old one.
+			clear_selection
+			forget_hover
 		ensure
 			every_word_placed: token_rows.count = tokens.count
 		end
@@ -573,9 +581,12 @@ feature {NONE} -- Layout implementation
 		end
 
 	units_revision: INTEGER
-			-- The words' structure and every word's lines.
+			-- The words' structure: grows with every word added or removed,
+			-- every line shown or hidden, every turn of direction or size,
+			-- and never comes back to an old value (a sum of the words' own
+			-- revisions could, after `wipe_out').
 		do
-			Result := content_revision
+			Result := structure_revision
 		end
 
 	stack_origin_y: REAL_64
@@ -643,9 +654,11 @@ feature {NONE} -- Drawing implementation
 					l_last_token := l_unit.column
 					if l_last_token = selected_token then
 						a_p.set_color (t.wash_accent)
-						a_p.rrect_fill (units_left + l_unit.box_x, l_top, l_unit.box_w, l_unit.box_h, t.radius)
+						a_p.rrect_fill (units_left + token_lefts.i_th (l_last_token), l_top,
+							token_widths.i_th (l_last_token), stack.height (a_i), t.radius)
 						a_p.set_color (t.accent)
-						a_p.rrect_stroke (units_left + l_unit.box_x + 0.5, l_top + 0.5, l_unit.box_w - 1.0, l_unit.box_h - 1.0, t.radius)
+						a_p.rrect_stroke (units_left + token_lefts.i_th (l_last_token) + 0.5, l_top + 0.5,
+							token_widths.i_th (l_last_token) - 1.0, stack.height (a_i) - 1.0, t.radius)
 					end
 					if not tokens.i_th (l_last_token).verse_label.is_empty then
 						a_p.font ({SW_PAINTER}.Role_ui, t.size_chip, True)
@@ -658,6 +671,7 @@ feature {NONE} -- Drawing implementation
 						a_p.text (l_lx, l_top + cell_pad + a_p.font_ascent, tokens.i_th (l_last_token).verse_label)
 					end
 				end
+				paint_unit_selection (a_p, u, unit_origin_x (u), unit_origin_y (u))
 				draw_unit_text (a_p, u, unit_origin_x (u), unit_origin_y (u))
 				k := k + 1
 			end
