@@ -766,6 +766,16 @@ feature {NONE} -- Test runners
 			run_test (agent strokes_tests.test_gw18_hatches_stay_inside_and_cross_carries_more, "gw18_hatches_stay_inside_and_cross_carries_more")
 			run_test (agent strokes_tests.test_gw18_gradients_and_fades_run_end_to_end, "gw18_gradients_and_fades_run_end_to_end")
 			run_test (agent strokes_tests.test_scan14_a_huge_hatch_is_bounded, "scan14_a_huge_hatch_is_bounded")
+			print ("%N=== GW-17 LANE TIMELINE ===%N")
+			create timeline_tests
+			run_test (agent timeline_tests.test_gw17_years_read_without_a_year_zero, "gw17_years_read_without_a_year_zero")
+			run_test (agent timeline_tests.test_gw17_ticks_fall_on_round_displayed_years, "gw17_ticks_fall_on_round_displayed_years")
+			run_test (agent timeline_tests.test_gw17_axis_labels_are_whole, "gw17_axis_labels_are_whole")
+			run_test (agent timeline_tests.test_gw17_overlaps_stack_and_disputes_stay_together, "gw17_overlaps_stack_and_disputes_stay_together")
+			run_test (agent timeline_tests.test_gw17_semantic_zoom_and_folding, "gw17_semantic_zoom_and_folding")
+			run_test (agent timeline_tests.test_gw17_cursor_wheel_and_tradition, "gw17_cursor_wheel_and_tradition")
+			run_test (agent timeline_tests.test_gw17_timeline_light, "gw17_timeline_light")
+			run_test (agent timeline_tests.test_gw17_timeline_dark, "gw17_timeline_dark")
 			run_test (agent strokes_tests.test_gw18_patterns_light, "gw18_patterns_light")
 			run_test (agent strokes_tests.test_gw18_patterns_dark, "gw18_patterns_dark")
 			print ("%N=== GW-14 UI AUTOMATION ===%N")
@@ -856,6 +866,7 @@ feature {NONE} -- Test runners
 	image_tests: SW_WIDGET_IMAGE_ASSAULT
 	motion_tests: SW_REDUCED_MOTION_ASSAULT
 	strokes_tests: SW_STROKES_ASSAULT
+	timeline_tests: SW_LANE_TIMELINE_ASSAULT
 	uia_tests: SW_ACCESSIBILITY_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
