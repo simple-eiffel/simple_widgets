@@ -41,7 +41,7 @@ feature -- Themes
 			assert_true ("readable", th.is_readable)
 			assert_true ("the ink was replaced", th.ink /= 0x888888)
 			assert_true ("and reads at 4.5:1", th.contrast_ratio (th.ink, th.surface) >= 4.5)
-			assert_true ("the text on accent fills was replaced", th.ink_on_accent /= 0xFFFFFF)
+			assert_true ("the text on accent fills reads", th.contrast_ratio (th.ink_on_accent, th.accent) >= 4.5)
 			assert_true ("a selection ground the ink reads on", th.contrast_ratio (th.ink, th.selection) >= 4.5)
 			create th.make_high_contrast (0x777777, 0x000000, 0x7A7A7A, 0xFFFFFF, 0x777777, 0x000000)
 			assert_true ("a highlight lost in the window is replaced", th.accent /= 0x7A7A7A)
@@ -125,9 +125,130 @@ feature -- Scripture in contrast
 			scripture_contrast_gate (0xFFFFFF, 0x000000, 0x37006E, 0xFFFFFF, 0xFFFFFF, 0x00009F, "gw16_contrast_white.png")
 		end
 
+feature -- Scan 10 (since 053211b)
+
+	test_scan10_selected_rows_show_in_contrast
+			-- HIGH 1: every wash was the window, and eleven widgets paint a
+			-- selected row or selected text with `wash_accent', so selection
+			-- vanished. It stands out now, and the ink reads on it.
+		do
+			across windows_palettes as pl loop
+				assert_true (pl.name + ": the selected-row ground stands out",
+					pl.theme.contrast_ratio (pl.theme.wash_accent, pl.theme.surface) >= 1.3)
+				assert_true (pl.name + ": the ink reads on it",
+					pl.theme.contrast_ratio (pl.theme.ink, pl.theme.wash_accent) >= 4.5)
+			end
+		end
+
+	test_scan10_a_pressed_button_label_reads
+			-- HIGH 2: `outline' was the ink, and a pressed plain button fills
+			-- with `outline' and writes its label in `ink'.
+		do
+			across windows_palettes as pl loop
+				assert_true (pl.name + ": the label reads on the pressed fill",
+					pl.theme.contrast_ratio (pl.theme.ink, pl.theme.outline) >= 4.5)
+			end
+		end
+
+	test_scan10_selection_never_vanishes
+			-- HIGH 3: the selection ground could fall back to the window
+			-- itself; with a highlight lost in the window it takes the
+			-- outline step instead.
+		local
+			th: SW_THEME
+		do
+			create th.make_high_contrast (0x000000, 0xFFFFFF, 0x000000, 0xFFFFFF, 0x000000, 0xFFFF00)
+			assert_true ("the selection stands out", th.contrast_ratio (th.selection, th.surface) >= 1.3)
+			assert_true ("the ink reads on it", th.contrast_ratio (th.ink, th.selection) >= 4.5)
+		end
+
+	test_scan10_disabled_text_looks_disabled
+			-- MEDIUM: muted text was the ink, so a disabled control looked
+			-- live. It fades now and still reads.
+		do
+			across windows_palettes as pl loop
+				assert_true (pl.name + ": muted differs from the ink", pl.theme.ink_muted /= pl.theme.ink)
+				assert_true (pl.name + ": and reads", pl.theme.contrast_ratio (pl.theme.ink_muted, pl.theme.surface) >= 4.5)
+			end
+		end
+
+	test_scan10_hover_shows
+			-- MEDIUM: on High Contrast Black the button face is the window, so
+			-- `surface_variant' (hover fills, tracks) vanished.
+		local
+			th: SW_THEME
+		do
+			create th.make_high_contrast (0x000000, 0xFFFFFF, 0x1AEBFF, 0x000000, 0x000000, 0xFFFF00)
+			assert_true ("hover stands apart", th.contrast_ratio (th.surface_variant, th.surface) > 1.1)
+			assert_true ("the ink reads on it", th.contrast_ratio (th.ink, th.surface_variant) >= 4.5)
+		end
+
+	test_scan10_accent_reads_as_small_text
+			-- MEDIUM: the accent was kept at 3:1, but it is drawn as small
+			-- chip and badge text; a highlight under 4.5:1 gives way to the
+			-- ink.
+		local
+			th: SW_THEME
+		do
+			create th.make_high_contrast (0xFFFFFF, 0x000000, 0x8C8C8C, 0x000000, 0xFFFFFF, 0x00009F)
+			assert_true ("a 3.4:1 highlight is not the accent", th.accent /= 0x8C8C8C)
+			assert_true ("the accent reads as text", th.contrast_ratio (th.accent, th.surface) >= 4.5)
+		end
+
+	test_scan10_a_theme_swap_updates_the_kit_faces
+			-- MEDIUM: wearing a theme never told the shaping kit, so its theme
+			-- faces stayed those of the theme it was set up with.
+		local
+			w: SW_WINDOW
+			kit: SW_SHAPING
+			fake: SW_TEST_APPEARANCE
+			l_light: SW_THEME
+		do
+			create w.make ("scan10", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (w.theme)
+			w.set_shaping (kit)
+			create fake
+			w.set_system_appearance (fake)
+			create l_light.make_light
+			l_light.set_families ("Archivo", "Noto Serif", "IBM Plex Mono")
+			w.follow_system_theme (l_light, create {SW_THEME}.make_dark)
+			assert_true ("the kit's body face follows the theme",
+				attached kit.role_family ({SW_PAINTER}.Role_body) as al_face and then al_face.same_string ("Noto Serif"))
+		end
+
+	test_scan10_the_switch_is_read_once
+			-- MEDIUM: the switch was read again in a postcondition, so a flip
+			-- between the two reads broke the promise. Read once, the window
+			-- wears the answer it read.
+		local
+			w: SW_WINDOW
+			fake: SW_TEST_APPEARANCE
+		do
+			create w.make ("scan10", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			create fake
+			fake.set_palette (0x000000, 0xFFFFFF, 0x1AEBFF, 0x000000, 0x000000, 0xFFFF00)
+			fake.set_high_contrast (True)
+			fake.set_flips_on_read (True)
+			w.set_system_appearance (fake)
+			w.follow_system_theme (create {SW_THEME}.make_light, create {SW_THEME}.make_dark)
+			assert_true ("wears the answer it read: contrast", w.is_wearing_high_contrast)
+		end
+
 feature {NONE} -- Fixtures
 
 	told: INTEGER
+
+	windows_palettes: ARRAYED_LIST [TUPLE [name: STRING; theme: SW_THEME]]
+			-- High Contrast Black and White, Desert and Aquatic as Windows
+			-- paints them.
+		do
+			create Result.make (4)
+			Result.extend (["black", create {SW_THEME}.make_high_contrast (0x000000, 0xFFFFFF, 0x1AEBFF, 0x000000, 0x000000, 0xFFFF00)])
+			Result.extend (["white", create {SW_THEME}.make_high_contrast (0xFFFFFF, 0x000000, 0x37006E, 0xFFFFFF, 0xFFFFFF, 0x00009F)])
+			Result.extend (["desert", create {SW_THEME}.make_high_contrast (0xFFFAEF, 0x3D3D3D, 0x903909, 0xFFF5E3, 0xFFFAEF, 0x1C5E75)])
+			Result.extend (["aquatic", create {SW_THEME}.make_high_contrast (0x202020, 0xFFFFFF, 0x8EE3F0, 0x263B50, 0x202020, 0x75E9FC)])
+		end
 
 	palette_gate (a_name: STRING; a_window, a_text, a_highlight, a_highlight_text, a_face, a_link: NATURAL_32; a_dark: BOOLEAN)
 		local
@@ -138,9 +259,10 @@ feature {NONE} -- Fixtures
 			assert_true (a_name + ": contrast", th.is_high_contrast)
 			assert_true (a_name + ": dark as its window", th.is_dark = a_dark)
 			assert_true (a_name + ": the window kept", th.surface = a_window and th.background = a_window)
-			assert_true (a_name + ": its text kept", th.ink = a_text and th.ink_muted = a_text)
+			assert_true (a_name + ": its text kept", th.ink = a_text and th.ink_soft = a_text)
+			assert_true (a_name + ": muted text reads", th.contrast_ratio (th.ink_muted, a_window) >= 4.5)
 			assert_true (a_name + ": the highlight kept", th.accent = a_highlight)
-			assert_true (a_name + ": outlines in the ink", th.outline = a_text)
+			assert_true (a_name + ": outlines stand out", th.contrast_ratio (th.outline, a_window) >= 1.5)
 		end
 
 	scripture_contrast_gate (a_window, a_text, a_highlight, a_highlight_text, a_face, a_link: NATURAL_32; a_evidence: STRING)

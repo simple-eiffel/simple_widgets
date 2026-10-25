@@ -114,15 +114,24 @@ feature {NONE} -- Initialization
 	make_high_contrast (a_window, a_window_text, a_highlight, a_highlight_text, a_button_face, a_hotlight: NATURAL_32)
 			-- A theme painted with a Windows contrast theme's system colors
 			-- (GW-16): one ground (`a_window'), one ink (`a_window_text') for
-			-- body, soft and muted text alike, strong outlines in that ink,
-			-- `a_highlight' for accent fills with `a_highlight_text' on them
-			-- (the ink instead if the highlight is not 3:1 on the window),
-			-- `a_hotlight' for accent-family text, `a_button_face' for the
-			-- quiet control ground. No washes: they all take the ground.
-			-- Every pairing is MENDED rather than refused - a custom palette
-			-- whose ink fails 4.5:1 gets black or white instead, a selection
-			-- ground moves from the highlight toward the window until the ink
-			-- reads on it - so the result is always readable.
+			-- body and soft text, `a_highlight' for accent fills with
+			-- `a_highlight_text' on them, `a_hotlight' for accent-family
+			-- text. Every pairing is MENDED rather than refused - a custom
+			-- palette whose ink fails 4.5:1 gets black or white instead - so
+			-- the result is always readable.
+			--
+			-- Scan 10 (2026-10-25), a note for the future self: widgets draw
+			-- `ink' on `outline' (a pressed button), on `wash_accent' (a
+			-- selected row or selected text, eleven widgets), on `selection'
+			-- and on `surface_variant' (hover), so each of those grounds must
+			-- keep the ink readable AND stand out from the window. They are
+			-- steps from the window toward the ink or the highlight, the
+			-- furthest a tenth at a time that still keeps the ink at 4.5:1
+			-- (`toward_keeping'). Muted text fades from the ink toward the
+			-- window but stays 4.5:1, so disabled controls look disabled and
+			-- still read. The accent must reach 4.5:1 on the window: it is
+			-- drawn as small chip and badge text. Guarded by the scan10_*
+			-- tests in SW_HIGH_CONTRAST_ASSAULT.
 		local
 			l_base: SW_THEME
 		do
@@ -136,25 +145,42 @@ feature {NONE} -- Initialization
 			background := a_window
 			surface := a_window
 			ink := readable_on (a_window_text, a_window)
-			ink_muted := ink
 			ink_soft := ink
-			outline := ink
-			divider := ink
-			neutral := ink
-			if contrast_ratio (ink, a_button_face) >= Body_contrast then
+			ink_muted := toward_keeping (ink, a_window, a_window, Body_contrast)
+				-- strong lines the ink still reads on (a pressed button fills
+				-- with `outline')
+			outline := toward_keeping (a_window, ink, ink, Body_contrast)
+			divider := outline
+			neutral := outline
+			if a_button_face /= a_window and then contrast_ratio (ink, a_button_face) >= Body_contrast then
 				surface_variant := a_button_face
 			else
-				surface_variant := a_window
+				surface_variant := mixed (a_window, outline, 0.5)
+				if contrast_ratio (ink, surface_variant) < Body_contrast then
+					surface_variant := outline
+				end
 			end
-				-- accent marks and outlined labels sit on the window too
-			if contrast_ratio (a_highlight, a_window) >= Label_contrast then
+				-- accent marks, outlined labels and small chip text sit on
+				-- the window too
+			if contrast_ratio (a_highlight, a_window) >= Body_contrast then
 				accent := a_highlight
 			else
 				accent := ink
 			end
 			ink_on_accent := readable_on (a_highlight_text, accent)
-			selection := readable_ground (a_highlight, a_window, ink)
-			ink_accent := readable_on (a_hotlight, a_window)
+				-- the selected-row ground: toward the highlight while the ink
+				-- reads; if that leaves it lost in the window, the outline step
+			selection := toward_keeping (a_window, a_highlight, ink, Body_contrast)
+			if contrast_ratio (selection, a_window) < Ground_step then
+				selection := outline
+			end
+			if contrast_ratio (a_hotlight, a_window) >= Body_contrast
+				and then contrast_ratio (a_hotlight, selection) >= Body_contrast
+			then
+				ink_accent := a_hotlight
+			else
+				ink_accent := ink
+			end
 				-- the semantic hues stay (Windows gives none), made readable
 			success := l_base.success
 			warning := l_base.warning
@@ -165,7 +191,7 @@ feature {NONE} -- Initialization
 			ink_success := readable_on (l_base.ink_success, a_window)
 			ink_warning := readable_on (l_base.ink_warning, a_window)
 			ink_danger := readable_on (l_base.ink_danger, a_window)
-			wash_accent := a_window
+			wash_accent := selection
 			wash_success := a_window
 			wash_warning := a_window
 			wash_danger := a_window
@@ -178,7 +204,11 @@ feature {NONE} -- Initialization
 			one_ground: background = a_window and surface = a_window
 			readable: is_readable
 			ink_kept_when_readable: contrast_ratio (a_window_text, a_window) >= Body_contrast implies ink = a_window_text
-			accent_visible: contrast_ratio (accent, surface) >= Label_contrast
+			accent_reads: contrast_ratio (accent, surface) >= Body_contrast
+			pressed_label_reads: contrast_ratio (ink, outline) >= Body_contrast
+			selection_reads: contrast_ratio (ink, wash_accent) >= Body_contrast
+				and contrast_ratio (ink, selection) >= Body_contrast
+			hover_reads: contrast_ratio (ink, surface_variant) >= Body_contrast
 			dark_follows_the_window: is_dark = (luminance (a_window) < 0.5)
 		end
 
@@ -424,11 +454,18 @@ feature -- Element change (GW-28)
 feature -- Adopting (GW-16)
 
 	adopt_metrics_from (a_other: SW_THEME)
-			-- Take `a_other''s text scale, spacing, type families and locale,
-			-- so a contrast theme worn in place of an application's own keeps
-			-- its sizes and faces.
+			-- Take `a_other''s text scale, spacing, sizes, type families and
+			-- locale, so a contrast theme worn in place of an application's
+			-- own keeps its sizes and faces.
 		do
 			text_scale := a_other.text_scale
+			radius := a_other.radius
+			button_height := a_other.button_height
+			chip_height := a_other.chip_height
+			size_body := a_other.size_body
+			size_label := a_other.size_label
+			size_chip := a_other.size_chip
+			line_height := a_other.line_height
 			pad := a_other.pad
 			gap := a_other.gap
 			control_pad := a_other.control_pad
@@ -438,6 +475,8 @@ feature -- Adopting (GW-16)
 			locale := a_other.locale
 		ensure
 			scale_taken: text_scale = a_other.text_scale
+			sizes_taken: size_body = a_other.size_body and size_label = a_other.size_label
+				and size_chip = a_other.size_chip and button_height = a_other.button_height
 			spacing_taken: border_width = a_other.border_width and padding = a_other.padding
 				and control_inset = a_other.control_inset
 			faces_taken: family_ui.same_string (a_other.family_ui) and family_body.same_string (a_other.family_body)
@@ -703,29 +742,30 @@ feature {NONE} -- Contrast mending (GW-16)
 			readable: contrast_ratio (Result, a_ground) >= Body_contrast
 		end
 
-	readable_ground (a_wanted, a_fallback, a_ink: NATURAL_32): NATURAL_32
-			-- `a_wanted' if `a_ink' reads on it; else the first step from
-			-- `a_wanted' toward `a_fallback' (tenths) on which it does; else
-			-- `a_fallback'.
+	toward_keeping (a_from, a_to, a_other: NATURAL_32; a_min: REAL_64): NATURAL_32
+			-- The furthest step from `a_from' toward `a_to', in tenths, that
+			-- still stands at least `a_min' from `a_other'; `a_from' itself
+			-- when no step does.
 		require
-			fallback_readable: contrast_ratio (a_ink, a_fallback) >= Body_contrast
+			start_qualifies: contrast_ratio (a_from, a_other) >= a_min
 		local
 			k: INTEGER
 		do
-			Result := a_fallback
 			from
 				k := 10
 			until
-				k < 0 or else contrast_ratio (a_ink, mixed (a_fallback, a_wanted, k / 10.0)) >= Body_contrast
+				k = 0 or else contrast_ratio (mixed (a_from, a_to, k / 10.0), a_other) >= a_min
 			loop
 				k := k - 1
 			end
-			if k >= 0 then
-				Result := mixed (a_fallback, a_wanted, k / 10.0)
-			end
+			Result := mixed (a_from, a_to, k / 10.0)
 		ensure
-			readable: contrast_ratio (a_ink, Result) >= Body_contrast
+			qualifies: contrast_ratio (Result, a_other) >= a_min
 		end
+
+	Ground_step: REAL_64 = 1.3
+			-- How far a ground must stand from the window to be seen as a
+			-- different ground.
 
 	mixed (a_from, a_to: NATURAL_32; a_t: REAL_64): NATURAL_32
 			-- The color `a_t' of the way from `a_from' to `a_to', per channel.
