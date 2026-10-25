@@ -854,7 +854,8 @@ feature -- The pretty map (Natural Earth 110m, generated)
 
 	test_map_draws_real_coastlines
 			-- Pixel truth on the drawn planet: Kansas is land-
-			-- coloured, the mid-Atlantic wears the card surface.
+			-- coloured, the mid-Atlantic water-coloured (the map palette of
+			-- GW-19; before it, land was surface_variant and the sea surface).
 		local
 			th: SW_THEME
 			surf: CAIRO_SURFACE
@@ -881,11 +882,11 @@ feature -- The pretty map (Natural Earth 110m, generated)
 			ay := m.y_of_lat (25.0).rounded
 			land_px := mp.read_natural_32 (ky * surf.stride + kx * 4)
 			sea_px := mp.read_natural_32 (ay * surf.stride + ax * 4)
-			want_land := {NATURAL_32} 0xFF000000 + th.surface_variant
-			want_sea := {NATURAL_32} 0xFF000000 + th.surface
+			want_land := {NATURAL_32} 0xFF000000 + m.land_color (th)
+			want_sea := {NATURAL_32} 0xFF000000 + m.water_color (th)
 			assert_integers_equal ("Kansas wears the land colour",
 				want_land.to_integer_32, land_px.to_integer_32)
-			assert_integers_equal ("the mid-Atlantic wears the surface",
+			assert_integers_equal ("the mid-Atlantic wears the water colour",
 				want_sea.to_integer_32, sea_px.to_integer_32)
 		end
 
@@ -1001,7 +1002,7 @@ feature -- The pretty map (Natural Earth 110m, generated)
 				end
 				k := k + 1
 			end
-			assert_reals_equal ("wheel-in ceils at 16", 16.0, m.effective_zoom, 0.000_1)
+			assert_reals_equal ("wheel-in ceils at the maximum zoom", m.Max_zoom, m.effective_zoom, 0.000_1)
 				-- pan keeps the grab under the hand
 			m.set_view (4.0, 0.0, 0.0)
 			if m.handle_click (m.plot_x + m.plot_w / 2.0, m.plot_y + m.plot_h / 2.0) then

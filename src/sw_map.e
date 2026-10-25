@@ -9,6 +9,15 @@ note
 		grown up: highlight_utc washes the 15-degree band of any UTC
 		offset. Hovering open sea reads out lat/lon - the map answers
 		where you are, always.
+
+		GW-19 (the Atlas): the Mediterranean, the Levant and Mesopotamia at
+		1:10m (SW_REGION_GEOMETRY: land, lakes, rivers) from `Region_zoom'
+		on; routes (`add_route', dashed when uncertain); places labelled
+		from a zoom of their own (`add_place'), a label that would overlap
+		one already placed left out; LAYERS shown or hidden
+		(`set_layer_shown'); and a map palette drawn from the theme -
+		water, land, coast, rivers, routes - that keeps land and water
+		apart in light and dark alike. Zoom reaches 128.
 	]"
 
 class
@@ -119,7 +128,8 @@ feature -- Zoom (the wheel at the pointer; drag pans; double-click resets)
 	view_cy: REAL_64
 			-- Centre latitude of the view window.
 
-	Max_zoom: REAL_64 = 16.0
+	Max_zoom: REAL_64 = 128.0
+			-- 2.8 degrees of longitude across: a Levant valley (GW-19; was 16).
 
 	effective_zoom: REAL_64
 		do
@@ -418,6 +428,124 @@ feature -- Data
 		do
 		end
 
+feature -- Layers (GW-19)
+
+	Layer_region: INTEGER = 1
+			-- The 1:10m Mediterranean, Levant and Mesopotamia.
+	Layer_rivers: INTEGER = 2
+	Layer_lakes: INTEGER = 3
+	Layer_routes: INTEGER = 4
+	Layer_labels: INTEGER = 5
+	Layer_markers: INTEGER = 6
+
+	is_layer_shown (a_layer: INTEGER): BOOLEAN
+		require
+			known: a_layer >= Layer_region and a_layer <= Layer_markers
+		do
+			Result := not hidden_layers.has (a_layer)
+		end
+
+	set_layer_shown (a_layer: INTEGER; a_on: BOOLEAN)
+		require
+			known: a_layer >= Layer_region and a_layer <= Layer_markers
+		do
+			if a_on then
+				hidden_layers.prune_all (a_layer)
+			elseif not hidden_layers.has (a_layer) then
+				hidden_layers.extend (a_layer)
+			end
+		ensure
+			set: is_layer_shown (a_layer) = a_on
+		end
+
+	Region_zoom: REAL_64 = 6.0
+			-- From here on the regional detail replaces the world's coast
+			-- inside the region box.
+
+	is_region_drawn: BOOLEAN
+			-- Will the regional detail draw at this view?
+		do
+			Result := is_layer_shown (Layer_region) and then effective_zoom >= Region_zoom
+				and then view_cx + span_lon / 2.0 >= region.West and then view_cx - span_lon / 2.0 <= region.East
+				and then view_cy + span_lat / 2.0 >= region.South and then view_cy - span_lat / 2.0 <= region.North
+		end
+
+	region: SW_REGION_GEOMETRY
+		once
+			create Result
+		end
+
+feature -- Places and routes (GW-19)
+
+	places: ARRAYED_LIST [TUPLE [label: STRING_32; lat, lon, min_zoom: REAL_64]]
+			-- Labelled places, each labelled from its own zoom on.
+		attribute
+			create Result.make (8)
+		end
+
+	add_place (a_label: READABLE_STRING_GENERAL; a_lat, a_lon, a_min_zoom: REAL_64)
+			-- A place: a dot, and its label from `a_min_zoom' on.
+		require
+			on_the_planet: a_lat >= -90.0 and a_lat <= 90.0 and a_lon >= -180.0 and a_lon <= 180.0
+			zoom_sane: a_min_zoom >= 1.0
+		do
+			places.extend ([create {STRING_32}.make_from_string_general (a_label), a_lat, a_lon, a_min_zoom])
+		ensure
+			added: places.count = old places.count + 1
+		end
+
+	routes: ARRAYED_LIST [TUPLE [name: STRING_32; points: ARRAY [REAL_64]; is_certain: BOOLEAN]]
+			-- Each route as flat [lon1, lat1, lon2, lat2, ...]; an uncertain
+			-- one is dashed.
+		attribute
+			create Result.make (4)
+		end
+
+	add_route (a_name: READABLE_STRING_GENERAL; a_lon_lat: ARRAY [REAL_64]; a_certain: BOOLEAN)
+		require
+			two_points_at_least: a_lon_lat.count >= 4
+			pairs: a_lon_lat.count \\ 2 = 0
+		do
+			routes.extend ([create {STRING_32}.make_from_string_general (a_name), a_lon_lat.twin, a_certain])
+		ensure
+			added: routes.count = old routes.count + 1
+		end
+
+	drawn_labels: ARRAYED_LIST [TUPLE [text: STRING_32; lx, ly, lw, lh: REAL_64]]
+			-- The place labels the last frame drew, none overlapping.
+		attribute
+			create Result.make (8)
+		end
+
+feature -- Map palette (GW-19)
+
+	water_color (a_theme: SW_THEME): NATURAL_32
+			-- The sea: the surface tinted toward the accent.
+		do
+			Result := a_theme.mixed (a_theme.surface, a_theme.accent, 0.2)
+		end
+
+	land_color (a_theme: SW_THEME): NATURAL_32
+			-- The land: the surface itself, so labels in ink read on it.
+		do
+			Result := a_theme.surface
+		end
+
+	coast_color (a_theme: SW_THEME): NATURAL_32
+		do
+			Result := a_theme.mixed (land_color (a_theme), a_theme.ink, 0.3)
+		end
+
+	river_color (a_theme: SW_THEME): NATURAL_32
+		do
+			Result := a_theme.mixed (water_color (a_theme), a_theme.accent, 0.7)
+		end
+
+	route_color (a_theme: SW_THEME): NATURAL_32
+		do
+			Result := a_theme.ink_accent
+		end
+
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
@@ -431,8 +559,16 @@ feature -- Drawing
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			a_p.push_clip (plot_x, plot_y, plot_w, plot_h)
-			a_p.set_color (t.surface_variant)
+			a_p.set_color (water_color (t))
+			a_p.fill_rect (plot_x, plot_y, plot_w, plot_h)
+			a_p.set_color (land_color (t))
 			draw_land (a_p)
+			if is_region_drawn then
+				draw_region (a_p)
+			end
+			if is_layer_shown (Layer_routes) then
+				draw_routes (a_p)
+			end
 			if has_zone then
 				zx := x_of_lon ((zone_offset * 15).to_double - 7.5)
 				a_p.set_color_alpha (t.accent, 0.18)
@@ -444,10 +580,11 @@ feature -- Drawing
 			if shows_hover then
 				hot := marker_at (hover_px, hover_py)
 			end
+			draw_places (a_p)
 			from
 				r := 1
 			until
-				r > markers.count
+				r > markers.count or not is_layer_shown (Layer_markers)
 			loop
 				a_p.set_color (t.accent)
 				a_p.circle_fill (x_of_lon (markers.i_th (r).lon),
@@ -508,6 +645,145 @@ feature {NONE} -- The coarse world
 			-- hot path allocates nothing per frame.
 		once
 			create Result.make_filled (0.0, 1, 2600)
+		end
+
+	hidden_layers: ARRAYED_LIST [INTEGER]
+		attribute
+			create Result.make (2)
+		end
+
+	ring_buf: ARRAY [REAL_64]
+			-- Screen buffer for the regional rings, sized from the longest
+			-- ring in the data (the clipped mainland is 3,266 points; a fixed
+			-- 3,000-point buffer silently skipped it and the Levant drew as sea).
+		local
+			l_most: INTEGER
+		once
+			across region.land as r loop l_most := l_most.max (r.count) end
+			across region.lakes as r loop l_most := l_most.max (r.count) end
+			create Result.make_filled (0.0, 1, l_most.max (2))
+		ensure
+			holds_every_ring: across region.land as r all r.count <= Result.count end
+		end
+
+	draw_ring_list (a_p: SW_PAINTER; a_rings: ARRAYED_LIST [ARRAY [REAL_64]]; a_fill: BOOLEAN; a_width: REAL_64)
+			-- Each ring filled (or each line stroked `a_width' wide) through
+			-- the projection.
+		local
+			k, n: INTEGER
+			l_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
+		do
+			across
+				a_rings as ring
+			loop
+				n := ring.count // 2
+				if a_fill then
+					if n >= 3 and n * 2 <= ring_buf.count then
+						from k := 0 until k >= n loop
+							ring_buf [k * 2 + 1] := x_of_lon (ring [k * 2 + 1])
+							ring_buf [k * 2 + 2] := y_of_lat (ring [k * 2 + 2])
+							k := k + 1
+						end
+						a_p.polygon_fill_flat (ring_buf, n)
+					end
+				elseif n >= 2 then
+					create l_pts.make (n)
+					from k := 0 until k >= n loop
+						l_pts.extend ([x_of_lon (ring [k * 2 + 1]), y_of_lat (ring [k * 2 + 2])])
+						k := k + 1
+					end
+					a_p.polyline (l_pts, a_width)
+				end
+			end
+		end
+
+	draw_region (a_p: SW_PAINTER)
+			-- Inside the region box, water first (the world's coarse coast
+			-- under it is painted over), then the 1:10m land, lakes and rivers.
+		local
+			t: SW_THEME
+			bx: REAL_64
+		do
+			t := a_p.theme
+			bx := x_of_lon (region.West)
+			a_p.set_color (water_color (t))
+			a_p.fill_rect (bx, y_of_lat (region.North), x_of_lon (region.East) - bx, y_of_lat (region.South) - y_of_lat (region.North))
+			a_p.set_color (land_color (t))
+			draw_ring_list (a_p, region.land, True, 1.0)
+			if is_layer_shown (Layer_lakes) then
+				a_p.set_color (water_color (t))
+				draw_ring_list (a_p, region.lakes, True, 1.0)
+			end
+			if is_layer_shown (Layer_rivers) then
+				a_p.set_color (river_color (t))
+				draw_ring_list (a_p, region.rivers, False, (effective_zoom / 24.0).max (1.0).min (2.5))
+			end
+		end
+
+	draw_routes (a_p: SW_PAINTER)
+			-- Each route in the route ink, dashed when uncertain.
+		local
+			t: SW_THEME
+			k, n: INTEGER
+			l_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
+		do
+			t := a_p.theme
+			across
+				routes as rt
+			loop
+				n := rt.points.count // 2
+				create l_pts.make (n)
+				from k := 0 until k >= n loop
+					l_pts.extend ([x_of_lon (rt.points [rt.points.lower + k * 2]), y_of_lat (rt.points [rt.points.lower + k * 2 + 1])])
+					k := k + 1
+				end
+				a_p.set_color (route_color (t))
+				if rt.is_certain then
+					a_p.dashed_polyline (l_pts, 2.0, a_p.Stroke_solid)
+				else
+					a_p.dashed_polyline (l_pts, 2.0, a_p.Stroke_dashed)
+				end
+			end
+		end
+
+	draw_places (a_p: SW_PAINTER)
+			-- Each place's dot; its label from its own zoom on, unless it would
+			-- overlap a label already placed.
+		local
+			t: SW_THEME
+			px, py, lw, lh: REAL_64
+			l_free: BOOLEAN
+		do
+			t := a_p.theme
+			drawn_labels.wipe_out
+			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+			lh := a_p.text_extent
+			across
+				places as pl
+			loop
+				px := x_of_lon (pl.lon)
+				py := y_of_lat (pl.lat)
+				if is_layer_shown (Layer_markers) then
+					a_p.set_color (t.ink)
+					a_p.circle_fill (px, py, 3.0)
+				end
+				if is_layer_shown (Layer_labels) and then effective_zoom >= pl.min_zoom then
+					lw := a_p.advance (pl.label)
+					l_free := True
+					across
+						drawn_labels as d
+					loop
+						if px + 6.0 < d.lx + d.lw and then px + 6.0 + lw > d.lx and then py - lh / 2.0 < d.ly + d.lh and then py + lh / 2.0 > d.ly then
+							l_free := False
+						end
+					end
+					if l_free then
+						drawn_labels.extend ([pl.label, px + 6.0, py - lh / 2.0, lw, lh])
+						a_p.set_color (t.ink)
+						a_p.text (px + 6.0, py - lh / 2.0 + a_p.font_ascent, pl.label)
+					end
+				end
+			end
 		end
 
 	draw_land (a_p: SW_PAINTER)

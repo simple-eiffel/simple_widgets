@@ -782,6 +782,14 @@ feature {NONE} -- Test runners
 			run_test (agent timeline_tests.test_scan15_lanes_below_the_bottom_can_be_reached, "scan15_lanes_below_the_bottom_can_be_reached")
 			run_test (agent timeline_tests.test_gw17_timeline_light, "gw17_timeline_light")
 			run_test (agent timeline_tests.test_gw17_timeline_dark, "gw17_timeline_dark")
+			print ("%N=== GW-19 REGIONAL MAP ===%N")
+			create atlas_tests
+			run_test (agent atlas_tests.test_gw19_land_and_water_stay_apart, "gw19_land_and_water_stay_apart")
+			run_test (agent atlas_tests.test_gw19_galilee_is_water_with_the_regional_layer, "gw19_galilee_is_water_with_the_regional_layer")
+			run_test (agent atlas_tests.test_gw19_rivers_and_routes_on_their_layers, "gw19_rivers_and_routes_on_their_layers")
+			run_test (agent atlas_tests.test_gw19_labels_from_their_zoom_without_overlap, "gw19_labels_from_their_zoom_without_overlap")
+			run_test (agent atlas_tests.test_gw19_levant_light, "gw19_levant_light")
+			run_test (agent atlas_tests.test_gw19_levant_dark, "gw19_levant_dark")
 			run_test (agent strokes_tests.test_gw18_patterns_light, "gw18_patterns_light")
 			run_test (agent strokes_tests.test_gw18_patterns_dark, "gw18_patterns_dark")
 			print ("%N=== GW-14 UI AUTOMATION ===%N")
@@ -873,6 +881,7 @@ feature {NONE} -- Test runners
 	motion_tests: SW_REDUCED_MOTION_ASSAULT
 	strokes_tests: SW_STROKES_ASSAULT
 	timeline_tests: SW_LANE_TIMELINE_ASSAULT
+	atlas_tests: SW_REGIONAL_MAP_ASSAULT
 	uia_tests: SW_ACCESSIBILITY_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
