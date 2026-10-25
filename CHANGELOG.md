@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Changed (0.38.0 - one place for colour arithmetic)
+
+Larry 2026-10-25: "keep going with your recommends" - the extractions the
+scans proposed, each behaviour-preserving on its own branch.
+- New mixin **`SW_COLOR_MATH`**: `channel_fraction`, `luminance`,
+  `contrast_ratio`, `mixed`, `mixed_channel` (clamped). SW_THEME, SW_PAINTER,
+  SW_HEATMAP and SW_COLOR_PICKER inherit it side by side instead of keeping
+  four copies; SW_THEME keeps the same public names through it, so callers
+  are unchanged. The heat map's `blend` (which did not clamp) now calls
+  `mixed`; SW_PAINTER's private `channel_of` is gone. 537 pass.
+
 ### Fixed (0.37.3 - chips and badges read in every theme)
 
 - **SW_BADGE** wrote its count in `surface` on the semantic fill and

@@ -15,6 +15,9 @@ note
 class
 	SW_THEME
 
+inherit
+	SW_COLOR_MATH
+
 create
 	make_light, make_dark, make_high_contrast
 
@@ -696,35 +699,6 @@ feature -- Element change
 			set: family_ui.same_string_general (a_ui)
 		end
 
-feature -- Measurement
-
-	luminance (a_rgb: NATURAL_32): REAL_64
-			-- Relative luminance per WCAG.
-		local
-			r, g, b: REAL_64
-		do
-			r := channel (a_rgb.bit_shift_right (16).bit_and (0xFF))
-			g := channel (a_rgb.bit_shift_right (8).bit_and (0xFF))
-			b := channel (a_rgb.bit_and (0xFF))
-			Result := 0.2126 * r + 0.7152 * g + 0.0722 * b
-		ensure
-			normalised: Result >= 0.0 and Result <= 1.0
-		end
-
-	contrast_ratio (a, b: NATURAL_32): REAL_64
-			-- WCAG contrast ratio between two colours, >= 1.
-		local
-			la, lb, hi, lo: REAL_64
-		do
-			la := luminance (a)
-			lb := luminance (b)
-			hi := la.max (lb)
-			lo := la.min (lb)
-			Result := (hi + 0.05) / (lo + 0.05)
-		ensure
-			at_least_one: Result >= 1.0
-		end
-
 feature {NONE} -- Ramp storage (GW-28)
 
 	ramp_1, ramp_2, ramp_3, ramp_4, ramp_5: NATURAL_32
@@ -782,25 +756,6 @@ feature {NONE} -- Contrast mending (GW-16)
 			-- How far a ground must stand from the window to be seen as a
 			-- different ground.
 
-feature -- Blending (public since GW-19: the map palette blends theme colours)
-
-	mixed (a_from, a_to: NATURAL_32; a_t: REAL_64): NATURAL_32
-			-- The color `a_t' of the way from `a_from' to `a_to', per channel.
-		require
-			fraction: a_t >= 0.0 and a_t <= 1.0
-		do
-			Result := (mixed_channel ((a_from |>> 16) & 0xFF, (a_to |>> 16) & 0xFF, a_t) |<< 16)
-				| (mixed_channel ((a_from |>> 8) & 0xFF, (a_to |>> 8) & 0xFF, a_t) |<< 8)
-				| mixed_channel (a_from & 0xFF, a_to & 0xFF, a_t)
-		ensure
-			ends: (a_t = 0.0 implies Result = a_from & 0xFFFFFF) and (a_t = 1.0 implies Result = a_to & 0xFFFFFF)
-		end
-
-	mixed_channel (a_from, a_to: NATURAL_32; a_t: REAL_64): NATURAL_32
-		do
-			Result := (a_from.to_real_64 + (a_to.to_real_64 - a_from.to_real_64) * a_t).rounded.to_natural_32.min (255)
-		end
-
 feature {NONE} -- Contrast mending (GW-16, continued)
 
 	set_contrast_ramp (a_ground: NATURAL_32)
@@ -820,20 +775,6 @@ feature {NONE} -- Contrast mending (GW-16, continued)
 			ramp_3 := mixed (a_ground, l_far, 0.6)
 			ramp_4 := mixed (a_ground, l_far, 0.8)
 			ramp_5 := l_far
-		end
-
-feature {NONE} -- Implementation
-
-	channel (a_v: NATURAL_32): REAL_64
-		local
-			s: REAL_64
-		do
-			s := a_v / 255.0
-			if s <= 0.03928 then
-				Result := s / 12.92
-			else
-				Result := ((s + 0.055) / 1.055) ^ 2.4
-			end
 		end
 
 invariant

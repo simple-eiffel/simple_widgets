@@ -10,6 +10,9 @@ note
 class
 	SW_PAINTER
 
+inherit
+	SW_COLOR_MATH
+
 create
 	make
 
@@ -396,11 +399,8 @@ feature -- Shapes
 		require
 			alpha_in_range: a_alpha >= 0.0 and a_alpha <= 1.0
 		do
-			context.set_color_rgba (
-				a_rgb.bit_shift_right (16).bit_and (0xFF) / 255.0,
-				a_rgb.bit_shift_right (8).bit_and (0xFF) / 255.0,
-				a_rgb.bit_and (0xFF) / 255.0,
-				a_alpha).do_nothing
+			context.set_color_rgba (channel_fraction (a_rgb, 16), channel_fraction (a_rgb, 8),
+				channel_fraction (a_rgb, 0), a_alpha).do_nothing
 		end
 
 	line (a_x1, a_y1, a_x2, a_y2, a_width: REAL_64)
@@ -802,19 +802,13 @@ feature {NONE} -- Strokes, hatches and blends (GW-18)
 			else
 				create l_g.make_linear (a_x, a_y, a_x + a_w, a_y)
 			end
-			l_g.add_stop_rgba (0.0, channel_of (a_from, 16), channel_of (a_from, 8), channel_of (a_from, 0), a_alpha_from).do_nothing
-			l_g.add_stop_rgba (1.0, channel_of (a_to, 16), channel_of (a_to, 8), channel_of (a_to, 0), a_alpha_to).do_nothing
+			l_g.add_stop_rgba (0.0, channel_fraction (a_from, 16), channel_fraction (a_from, 8), channel_fraction (a_from, 0), a_alpha_from).do_nothing
+			l_g.add_stop_rgba (1.0, channel_fraction (a_to, 16), channel_fraction (a_to, 8), channel_fraction (a_to, 0), a_alpha_to).do_nothing
 			context.save.do_nothing
 			context.set_gradient (l_g).do_nothing
 			context.rectangle (a_x, a_y, a_w, a_h).fill.do_nothing
 			context.restore.do_nothing
 			l_g.destroy
-		end
-
-	channel_of (a_rgb: NATURAL_32; a_shift: INTEGER): REAL_64
-			-- One channel of `a_rgb', 0 to 1.
-		do
-			Result := a_rgb.bit_shift_right (a_shift).bit_and (0xFF) / 255.0
 		end
 
 feature -- Ribbons

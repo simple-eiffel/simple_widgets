@@ -16,6 +16,8 @@ inherit
 			handle_char, accepts_focus
 		end
 
+	SW_COLOR_MATH
+
 create
 	make
 
@@ -155,9 +157,9 @@ feature -- Element change
 		local
 			r, g, b, mx, mn, d, q: REAL_64
 		do
-			r := (a_rgb.bit_shift_right (16).bit_and (0xFF)) / 255.0
-			g := (a_rgb.bit_shift_right (8).bit_and (0xFF)) / 255.0
-			b := (a_rgb.bit_and (0xFF)) / 255.0
+			r := channel_fraction (a_rgb, 16)
+			g := channel_fraction (a_rgb, 8)
+			b := channel_fraction (a_rgb, 0)
 			mx := r.max (g.max (b))
 			mn := r.min (g.min (b))
 			d := mx - mn
