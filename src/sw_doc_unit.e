@@ -94,6 +94,17 @@ feature -- Element change
 			wrap := a_wrap
 		end
 
+	set_block (a_block: INTEGER)
+			-- It stands in item `a_block' (an interlinear's row, known after
+			-- the flow).
+		require
+			block_positive: a_block >= 1
+		do
+			block := a_block
+		ensure
+			set: block = a_block
+		end
+
 	set_box (a_x, a_y, a_w, a_h: REAL_64)
 		do
 			box_x := a_x

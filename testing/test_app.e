@@ -681,6 +681,13 @@ feature {NONE} -- Test runners
 			run_test (agent parallel_tests.test_gw06_scroll_to_row_shows_it_below_the_band, "gw06_scroll_to_row_shows_it_below_the_band")
 			run_test (agent parallel_tests.test_gw06_parallel_light, "gw06_parallel_light")
 			run_test (agent parallel_tests.test_gw06_parallel_dark, "gw06_parallel_dark")
+			print ("%N=== GW-07 INTERLINEAR ===%N")
+			create interlinear_tests
+			run_test (agent interlinear_tests.test_gw07_cells_flow_and_wrap, "gw07_cells_flow_and_wrap")
+			run_test (agent interlinear_tests.test_gw07_lines_hide_and_show, "gw07_lines_hide_and_show")
+			run_test (agent interlinear_tests.test_gw07_select_by_click_and_keys, "gw07_select_by_click_and_keys")
+			run_test (agent interlinear_tests.test_gw07_interlinear_light, "gw07_interlinear_light")
+			run_test (agent interlinear_tests.test_gw07_interlinear_dark, "gw07_interlinear_dark")
 			create paragraph_tests
 			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
 			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")
@@ -734,6 +741,7 @@ feature {NONE} -- Test runners
 	paragraph_tests: SW_PARAGRAPH_LIST_ASSAULT
 	document_tests: SW_DOCUMENT_ASSAULT
 	parallel_tests: SW_PARALLEL_ASSAULT
+	interlinear_tests: SW_INTERLINEAR_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.
