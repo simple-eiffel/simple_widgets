@@ -662,6 +662,12 @@ feature {NONE} -- Test runners
 			run_test (agent document_tests.test_gw13_long_document_scrolls, "gw13_long_document_scrolls")
 			run_test (agent document_tests.test_gw13_document_light, "gw13_document_light")
 			run_test (agent document_tests.test_gw13_document_dark, "gw13_document_dark")
+			run_test (agent document_tests.test_gw13_edit_shows_the_source_and_keeps_it, "gw13_edit_shows_the_source_and_keeps_it")
+			run_test (agent document_tests.test_gw13_edit_splits_removes_and_adds, "gw13_edit_splits_removes_and_adds")
+			run_test (agent document_tests.test_gw13_ctrl_click_follows_while_editable, "gw13_ctrl_click_follows_while_editable")
+			run_test (agent document_tests.test_gw13_hebrew_and_greek_are_not_misspelled, "gw13_hebrew_and_greek_are_not_misspelled")
+			run_test (agent document_tests.test_gw13_editing_light, "gw13_editing_light")
+			run_test (agent document_tests.test_gw13_editing_dark, "gw13_editing_dark")
 			create paragraph_tests
 			run_test (agent paragraph_tests.test_heights_follow_the_text, "paragraphs_heights_follow_the_text")
 			run_test (agent paragraph_tests.test_bands_add_exactly, "paragraphs_bands_add_exactly")

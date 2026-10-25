@@ -194,6 +194,148 @@ feature -- Hebrew and Greek, both themes
 			document_gate (create {SW_THEME}.make_dark, "gw13_document_dark.png")
 		end
 
+feature -- Live preview (editing)
+
+	test_gw13_edit_shows_the_source_and_keeps_it
+			-- A click opens a block's Markdown in the box over it; typing and
+			-- a click on another block keep the edit, read back with its
+			-- spans; Escape drops an edit.
+		local
+			w: SW_WINDOW
+			v: SW_DOCUMENT_VIEW
+			l_heading: STRING_32
+		do
+			create w.make ("edit", 0, 0, 700, 500, create {SW_THEME}.make_light)
+			attach_kit (w)
+			v := notes_view
+			w.set_root (v)
+			w.request_render
+			assert_true ("editable", v.is_editable)
+			assert_true ("the press is taken", v.handle_click (v.x + 40.0, v.block_top (2) + 4.0))
+			assert_true ("editing block 2", v.is_editing and v.editing_index = 2)
+			if attached v.editor as al_ed then
+				assert_strings_equal ("its Markdown", {STRING_32} "In the **beginning** God created; see [John 1:1](John 1:1).", al_ed.text)
+				w.request_render
+				assert_true ("the box sits on the block", (al_ed.y + al_ed.Pad_y - v.block_top (2)).abs < 1.0)
+			end
+			type_into_view (v, " **Amen**")
+			l_heading := v.document.block (1).content.text.twin
+			assert_true ("the next block's press is taken", v.handle_click (v.x + 40.0, v.block_top (1) + 4.0))
+			assert_strings_equal ("the edit kept and read back", {STRING_32} "In the beginning God created; see John 1:1. Amen",
+				v.document.block (2).content.text)
+			assert_true ("Amen is bold", v.document.block (2).content.has_kind_at ({DOC_TEXT}.Kind_bold,
+				v.document.block (2).content.count))
+			assert_true ("the link still a link", v.document.block (2).content.link_count = 1)
+			assert_integers_equal ("one document change", 1, changes)
+			assert_true ("now editing the heading", v.editing_index = 1)
+			type_into_view (v, " changed")
+			v.handle_char (27)
+			assert_false ("Escape ends the edit", v.is_editing)
+			assert_strings_equal ("and drops it", l_heading, v.document.block (1).content.text)
+			assert_integers_equal ("no further change", 1, changes)
+		end
+
+	test_gw13_edit_splits_removes_and_adds
+			-- The source may read as two blocks, or none; Ctrl+Enter keeps the
+			-- edit and opens a paragraph after it; a click below the last
+			-- block opens a new one at the end.
+		local
+			w: SW_WINDOW
+			v: SW_DOCUMENT_VIEW
+			k: SW_KEYS
+			n: INTEGER
+		do
+			create w.make ("edit", 0, 0, 700, 500, create {SW_THEME}.make_light)
+			attach_kit (w)
+			v := notes_view
+			w.set_root (v)
+			w.request_render
+			n := v.document.count
+			v.begin_edit (2)
+			if attached v.editor as al_ed then
+				al_ed.set_text ("## Head%N%NPara one")
+			end
+			v.end_edit (True)
+			assert_integers_equal ("one block became two", n + 1, v.document.count)
+			assert_true ("a level-2 heading", v.document.block (2).kind = {DOC_BLOCK}.Kind_heading and v.document.block (2).level = 2)
+			assert_strings_equal ("then the paragraph", {STRING_32} "Para one", v.document.block (3).content.text)
+			v.begin_edit (3)
+			if attached v.editor as al_ed2 then
+				al_ed2.set_text ("")
+			end
+			v.end_edit (True)
+			assert_integers_equal ("emptied, the block went", n, v.document.count)
+			w.request_render
+			v.begin_edit (2)
+			create k
+			k.simulate (False, True, False)
+			v.handle_key (13, False)
+			k.simulate (False, False, False)
+			assert_integers_equal ("Ctrl+Enter added a paragraph", n + 1, v.document.count)
+			assert_true ("after the edited block, and open", v.is_editing and v.editing_index = 3
+				and v.document.block (3).content.count = 0)
+			v.handle_char (27)
+			w.request_render
+			assert_true ("below the last block", v.handle_click (v.x + 40.0,
+				v.block_top (v.document.count) + v.block_height (v.document.count) + 20.0))
+			assert_integers_equal ("a new paragraph at the end", n + 2, v.document.count)
+			assert_true ("open for editing", v.is_editing and v.editing_index = v.document.count)
+		end
+
+	test_gw13_ctrl_click_follows_while_editable
+			-- While editable a plain click on a link edits its block, and a
+			-- Ctrl+click follows the link.
+		local
+			w: SW_WINDOW
+			v: SW_DOCUMENT_VIEW
+			b: TUPLE [x, y, width, height: REAL_64]
+			k: SW_KEYS
+		do
+			create w.make ("edit", 0, 0, 700, 500, create {SW_THEME}.make_light)
+			attach_kit (w)
+			v := notes_view
+			v.set_on_link_click (agent note_link)
+			w.set_root (v)
+			w.request_render
+			b := v.text_boxes (2, 38, 39).first
+			last_link := Void
+			create k
+			k.simulate (False, True, False)
+			assert_true ("Ctrl+click taken", v.handle_click (b.x + 1.0, b.y + 2.0))
+			k.simulate (False, False, False)
+			assert_true ("the link followed", attached last_link as al_l and then al_l.same_string ("John 1:1"))
+			assert_false ("no edit opened", v.is_editing)
+			assert_true ("a plain click", v.handle_click (b.x + 1.0, b.y + 2.0))
+			assert_true ("edits the block", v.is_editing and v.editing_index = 2)
+		end
+
+	test_gw13_hebrew_and_greek_are_not_misspelled
+			-- The checker reads in a Latin-script language: Hebrew and Greek
+			-- words are never findings, whatever it says of them.
+		local
+			sp: SW_SPELLER
+			t: STRING_32
+		do
+			create sp
+			t := {STRING_32} "teh " + genesis_first_word + {STRING_32} " and " + john_first_words + {STRING_32} " recieve"
+			assert_true ("Hebrew is another script", sp.has_other_script (t, 5, 4 + genesis_first_word.count))
+			assert_false ("English is not", sp.has_other_script (t, 1, 3))
+			assert_false ("nor Latin with marks", sp.has_other_script ({STRING_32} "caf%/233/ na%/239/ve", 1, 10))
+			across sp.misspellings (t) as r loop
+				assert_false ("no finding inside the Hebrew or the Greek", sp.has_other_script (t, r.lo + 1, r.hi))
+			end
+		end
+
+	test_gw13_editing_light
+		do
+			editing_gate (create {SW_THEME}.make_light, "gw13_editing_light.png")
+		end
+
+	test_gw13_editing_dark
+		do
+			editing_gate (create {SW_THEME}.make_dark, "gw13_editing_dark.png")
+		end
+
 feature {NONE} -- Fixtures
 
 	last_link: detachable STRING_32
@@ -306,6 +448,82 @@ feature {NONE} -- Fixtures
 							Result := al_g.font.weight
 						end
 					end
+				end
+			end
+		end
+
+	changes: INTEGER
+			-- Document changes heard.
+
+	note_change
+		do
+			changes := changes + 1
+		end
+
+	notes_view: SW_DOCUMENT_VIEW
+			-- An editable view of a short Markdown note.
+		do
+			changes := 0
+			create Result.make (480.0)
+			Result.set_document ((create {SIMPLE_MARKDOWN}.make).to_document (
+				{STRING_32} "# Notes%N%NIn the **beginning** God created; see [John 1:1](John 1:1).%N%N- one%N- two"))
+			Result.set_codec (create {SW_MARKDOWN_CODEC}.make)
+			Result.set_on_document_change (agent note_change)
+		end
+
+	type_into_view (a_v: SW_DOCUMENT_VIEW; a_text: READABLE_STRING_GENERAL)
+			-- Every character through the view's key door.
+		local
+			i: INTEGER
+		do
+			from i := 1 until i > a_text.count loop
+				a_v.handle_char (a_text.code (i).to_integer_32)
+				i := i + 1
+			end
+		end
+
+	editing_gate (a_theme: SW_THEME; a_evidence: STRING)
+			-- A note with pointed Hebrew and polytonic Greek, its Hebrew
+			-- paragraph open in the box (its Markdown shown, Hebrew and all)
+			-- while the rest stays formatted. Nothing skipped; evidence
+			-- written.
+		local
+			w: SW_WINDOW
+			kit: SW_SHAPING
+			v: SW_DOCUMENT_VIEW
+			d: SIMPLE_DOCUMENT
+			r: DOC_TEXT
+			path: STRING_32
+		do
+			create w.make ("gw13 edit", 0, 0, 760, 520, a_theme)
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (a_theme)
+			w.set_shaping (kit)
+			create d.make
+			d.add_heading (1, "Notes on Genesis 1:1").do_nothing
+			r := d.add_paragraph (genesis_1_1_wlc)
+			r.add_bold (1, 6)
+			r := d.add_paragraph ({STRING_32} "The first word is " + genesis_first_word + {STRING_32} "; John answers it: " + john_first_words + {STRING_32} ".")
+			r.add_italic (19, genesis_first_word.count)
+			r.add_link (r.count - john_first_words.count, john_first_words.count, "John 1:1")
+			d.add_bullet (1, "created, of God alone").do_nothing
+			d.add_quote (1, "In the beginning was the Word.").do_nothing
+			create v.make (520.0)
+			v.set_document (d)
+			v.set_codec (create {SW_MARKDOWN_CODEC}.make)
+			w.set_root (v)
+			w.request_render
+			v.begin_edit (3)
+			w.request_render
+			assert_true ("editing", v.is_editing)
+			if attached v.editor as al_ed then
+				assert_true ("the source shows the italic Hebrew", al_ed.text.has_substring ({STRING_32} "_" + genesis_first_word + {STRING_32} "_"))
+				assert_true ("and the link", al_ed.text.has_substring ("](John 1:1)"))
+			end
+			assert_integers_equal ("nothing skipped", 0, kit.bridge.skipped_runs)
+			path := evidence_path (a_evidence)
+			if not path.is_empty then
+				if w.write_frame (path) then
 				end
 			end
 		end

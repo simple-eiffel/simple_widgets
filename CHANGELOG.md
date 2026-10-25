@@ -21,6 +21,47 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Added (0.22.0 — LIVE-PREVIEW EDITING; GW-13 complete)
+
+Larry chose live preview for editing notes: the block being edited shows its
+Markdown, and every other block stays formatted. He also chose one neutral
+document model, so the model moved out of this library.
+
+- **The model is now simple_document** (`SIMPLE_DOCUMENT`, `DOC_BLOCK`,
+  `DOC_TEXT`; 0.21.0's SW_DOCUMENT, SW_DOC_BLOCK and SW_RICH_TEXT are gone,
+  with no outside users). It adds code blocks, inline code and strikethrough:
+  code blocks draw in the mono face on a wash, inline code on a wash, and a
+  struck run with its line through. `SW_DOC_STYLES` flattens a DOC_TEXT for
+  the shaper, for any widget that draws one.
+- **Live preview.** `SW_DOCUMENT_VIEW.set_codec (codec)` makes the view edit.
+  A click on a block opens a box over it holding the block's source, and a
+  click on another block (or below the last) keeps the edit: the source is
+  read back into one block, several, or none. Escape drops the edit,
+  Ctrl+Enter keeps it and opens a new paragraph after it, and Ctrl+click
+  follows a link. `begin_edit`, `end_edit`, `new_paragraph_after`,
+  `on_edit_commit`, `on_document_change`. The document changes only when an
+  edit is kept.
+- **Codecs.** `SW_DOCUMENT_CODEC` (deferred: a block to source, source to
+  blocks) keeps the view markup-neutral; `SW_MARKDOWN_CODEC` is the shipped
+  one, on simple_markdown 1.1.0's reader and writer (now a dependency).
+- **`SW_IN_PLACE_EDITING`**, a fourth deferred ancestor, lifted from the
+  paragraph list: the box over an item, key and character forwarding with
+  Escape cancelling, live change and commit callbacks, seating. The paragraph
+  list and the document view both inherit it.
+- **`SW_KEYS.simulate`**: the test runner holds no modifier down, so a key
+  held on the real keyboard no longer turns a test's click into a Ctrl+click
+  or Shift+click (two tests had failed at random); a test that needs a
+  modifier simulates it.
+- **The spell checker no longer marks Hebrew or Greek**: `SW_SPELLER` keeps a
+  finding only when its word is written in Latin script.
+- Tests: a block's Markdown in the box, typing kept and read back with its
+  spans, Escape dropping an edit; one edit becoming two blocks, an emptied
+  edit removing its block, Ctrl+Enter, a click below the last block; Ctrl+click
+  following a link while a plain click edits; Hebrew and Greek never
+  misspelled; a simulated Ctrl+click; and the editing gate in both themes
+  (evidence gw13_editing_light.png and gw13_editing_dark.png). 404 pass, four
+  runs in a row before the spell fix.
+
 ### Added (0.21.0 — THE RICH DOCUMENT VIEW; GW-13, reading)
 
 simple_bible shows commentaries, lexicon entries, dictionary articles and

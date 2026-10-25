@@ -5,12 +5,13 @@ note
 		tables, in a scrolling column - a commentary on the active verse,
 		a lexicon entry, a dictionary article, a note.
 
-		WHAT IT IS MADE OF. Three abilities, inherited:
+		WHAT IT IS MADE OF. Four abilities, inherited:
 
 		    SW_TEXT_POINTING   the character under the pointer, dwell,
 		                       hover cards anchored at the word
 		    SW_VSCROLLING      the scroll position, the bar, wheel, keys
 		    SW_TEXT_SELECTION  a selection across blocks, Copy, Select All
+		    SW_IN_PLACE_EDITING the box a block is edited in
 
 		and three helpers: SW_BLOCK_STACK stacks the blocks (binary
 		search, so a long article finds the block under the pointer in a
@@ -28,6 +29,17 @@ note
 		reference, an article key: the host's to follow). `on_link_hover'
 		hears the link under the pointer change; the pointer is a hand
 		over a link and an I-beam over text.
+
+		LIVE PREVIEW (editing). Given a codec (`set_codec', usually
+		SW_MARKDOWN_CODEC) the view edits: a click on a block lays a text
+		box over it holding the block's source (its Markdown), and every
+		other block stays formatted. A click on another block, or below
+		the last, keeps the edit - the source is read back into blocks
+		(one, several, or none) - and opens the next; Escape drops it;
+		Ctrl+Enter keeps it and starts a new paragraph after it; a
+		Ctrl+click on a link follows the link. The document changes only
+		when an edit is kept (`on_edit_commit', `on_document_change').
+		Without a codec the view only reads.
 
 		SPACING FROM THE THEME (Vision2's model). The page is inset by
 		`border_width'; blocks are `padding' apart; a level-1 heading
@@ -52,7 +64,7 @@ inherit
 		redefine
 			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
 			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered
+			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
 		end
 
 	SW_VSCROLLING
@@ -61,7 +73,7 @@ inherit
 		redefine
 			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
 			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered
+			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
 		end
 
 	SW_TEXT_SELECTION
@@ -70,7 +82,16 @@ inherit
 		redefine
 			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
 			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered, item_separator
+			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at, item_separator
+		end
+
+	SW_IN_PLACE_EDITING
+		undefine
+			dwell_ms, handle_dwell, hover_card_at
+		redefine
+			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
+			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
+			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
 		end
 
 create
@@ -247,8 +268,11 @@ feature -- Access
 feature -- Element change
 
 	set_document (a_document: SIMPLE_DOCUMENT)
-			-- Show `a_document' from its top.
+			-- Show `a_document' from its top (an edit under way is dropped).
 		do
+			if is_editing then
+				close_editor
+			end
 			document := a_document
 			laid_doc_revision := -1
 			scroll_y := 0.0
@@ -281,6 +305,104 @@ feature -- Element change
 			if is_laid_out and then height > 0.0 then
 				scroll_to (stack.scroll_into_view (a_block, (scroll_y - margin).max (0.0), height - 2.0 * margin) + margin)
 			end
+		end
+
+feature -- Editing (live preview)
+
+	codec: detachable SW_DOCUMENT_CODEC
+			-- Turns a block into source and back; Void: the view only reads.
+
+	is_editable: BOOLEAN
+		do
+			Result := codec /= Void
+		ensure
+			definition: Result = (codec /= Void)
+		end
+
+	on_document_change: detachable PROCEDURE
+			-- A kept edit changed the document.
+
+	set_codec (a_codec: detachable SW_DOCUMENT_CODEC)
+			-- Edit through `a_codec' (Void: read only; an edit under way is
+			-- dropped).
+		do
+			if is_editing then
+				end_edit (False)
+			end
+			codec := a_codec
+		ensure
+			set: codec = a_codec
+			not_editing: not is_editing
+		end
+
+	set_on_document_change (a_action: detachable PROCEDURE)
+		do
+			on_document_change := a_action
+		ensure
+			set: on_document_change = a_action
+		end
+
+	begin_edit (a_block: INTEGER)
+			-- Lay the box over block `a_block', holding its source.
+		require
+			editable: is_editable
+			not_editing: not is_editing
+			in_range: a_block >= 1 and a_block <= document.count
+		do
+			if attached codec as al_codec then
+				clear_selection
+				open_editor (a_block, al_codec.block_source (document, a_block))
+			end
+		ensure
+			editing: is_editing and editing_index = a_block
+		end
+
+	end_edit (a_commit: BOOLEAN)
+			-- Take the box down. Kept (`a_commit') and changed, its source
+			-- replaces the block - with as many blocks as it reads as.
+		local
+			i: INTEGER
+			l_text: STRING_32
+		do
+			i := editing_index
+			if attached editor as al_ed then
+				l_text := al_ed.text.twin
+			else
+				create l_text.make_empty
+			end
+			close_editor
+			if i <= stack.count then
+				stack.forget (i)
+			end
+			if a_commit and then attached codec as al_codec and then not l_text.same_string (edit_backup) then
+				document.replace (i, al_codec.blocks_from (l_text))
+				if attached on_edit_commit as al_kept then
+					al_kept.call (i, l_text)
+				end
+				if attached on_document_change as al_changed then
+					al_changed.call (Void)
+				end
+			end
+		ensure then
+			unchanged_unless_kept: not a_commit implies document.revision = old document.revision
+		end
+
+	new_paragraph_after (a_block: INTEGER)
+			-- An empty paragraph after block `a_block' (0: at the top),
+			-- opened for editing.
+		require
+			editable: is_editable
+			not_editing: not is_editing
+			in_range: a_block >= 0 and a_block <= document.count
+		do
+			document.insert (create {DOC_BLOCK}.make ({DOC_BLOCK}.Kind_paragraph, 1, {STRING_32} ""), a_block + 1)
+			if attached on_document_change as al_changed then
+				al_changed.call (Void)
+			end
+			begin_edit (a_block + 1)
+		ensure
+			one_more: document.count = old document.count + 1
+			editing_it: is_editing and editing_index = a_block + 1
 		end
 
 feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
@@ -410,6 +532,8 @@ feature -- Layout
 		do
 			if bar.contains (hover_px, hover_py) then
 				Result := 0
+			elseif editor_has (hover_px, hover_py) then
+				Result := 1
 			elseif hovered_link_span > 0 then
 				Result := 2
 			elseif hover_character > 0 then
@@ -423,8 +547,32 @@ feature -- Layout
 		end
 
 	arrange (a_p: SW_PAINTER)
+			-- Measure, then seat the box over the block it edits.
 		do
 			measure (a_p)
+			if is_editing and then editing_index <= document.count then
+				seat_editor (a_p, x + margin, block_top (editing_index), text_w, stack.height (editing_index))
+			end
+		end
+
+	sub_widgets: ARRAYED_LIST [SW_WIDGET]
+		do
+			create Result.make (1)
+			if attached editor as al_ed then
+				Result.extend (al_ed)
+			end
+		end
+
+	widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET
+			-- The box where it stands, else the view.
+		do
+			if contains (a_px, a_py) then
+				if attached editor as al_ed and then not bar.contains (a_px, a_py) and then al_ed.contains (a_px, a_py) then
+					Result := al_ed
+				else
+					Result := Current
+				end
+			end
 		end
 
 feature -- Drawing
@@ -446,7 +594,11 @@ feature -- Drawing
 			until
 				i = 0 or i > l_last
 			loop
-				draw_block (a_p, i)
+				if i = editing_index and then attached editor as al_ed then
+					al_ed.draw (a_p)
+				else
+					draw_block (a_p, i)
+				end
 				i := i + 1
 			end
 			a_p.pop_clip
@@ -475,6 +627,8 @@ feature -- Input
 			create pressed_link.make_empty
 			if press_bar (a_px, a_py) then
 				Result := True
+			elseif is_editable then
+				Result := editable_click (a_px, a_py)
 			else
 				u := pointed_item (a_px, a_py)
 				if u > 0 then
@@ -542,9 +696,20 @@ feature -- Input
 		end
 
 	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
+			-- While editing: Ctrl+Enter keeps the edit and opens a new
+			-- paragraph after it, every other key is the box's. Otherwise
 			-- PageUp, PageDown, Home, End; Up and Down a line.
+		local
+			i, l_before: INTEGER
 		do
-			if not scroll_key (a_vk) then
+			if is_editing and then a_vk = 13 and then (create {SW_KEYS}).control_down then
+				i := editing_index
+				l_before := document.count
+				end_edit (True)
+				new_paragraph_after ((i + document.count - l_before).max (0).min (document.count))
+			elseif editor_key (a_vk, a_shift) then
+					-- The box's.
+			elseif not scroll_key (a_vk) then
 				inspect a_vk
 				when 40 then
 					scroll_to (scroll_y + wheel_line)
@@ -558,7 +723,9 @@ feature -- Input
 	handle_char (a_code: INTEGER)
 			-- Ctrl+C copies, Ctrl+A selects all, Escape clears.
 		do
-			selection_char (a_code).do_nothing
+			if not editor_char (a_code) then
+				selection_char (a_code).do_nothing
+			end
 		end
 
 	set_hover_point (a_px, a_py: REAL_64)
@@ -576,6 +743,12 @@ feature -- Input
 		end
 
 feature {NONE} -- Layout implementation
+
+	edited (a_item: INTEGER; a_text: STRING_32)
+			-- The box typed. The block it covers is measured again at every
+			-- layout while edited, so there is nothing to do here.
+		do
+		end
 
 	stack: SW_BLOCK_STACK
 			-- Where the blocks stand.
@@ -655,7 +828,7 @@ feature {NONE} -- Layout implementation
 				i > document.count
 			loop
 				l_revision := document.block (i).revision
-				if stack.needs_measure (i, l_revision) then
+				if stack.needs_measure (i, l_revision) or i = editing_index then
 					stack.put_height (i, measure_block (a_p, i).max (1.0), l_revision)
 					l_changed := True
 				end
@@ -706,6 +879,10 @@ feature {NONE} -- Layout implementation
 			b := document.block (a_i)
 			t := a_p.theme
 			block_units.i_th (a_i).wipe_out
+			if a_i = editing_index and then is_editing then
+					-- Under the box: its source's height, no units.
+				Result := editor_text_height (a_p, text_w).max (1.0)
+			else
 			inspect b.kind
 			when {DOC_BLOCK}.Kind_heading then
 				create u.make (a_i, 0, 0, b.content, {SW_PAINTER}.Role_ui, heading_size (t, b.level), True)
@@ -741,6 +918,7 @@ feature {NONE} -- Layout implementation
 			end
 			if attached u as al_u then
 				block_units.i_th (a_i).extend (al_u)
+			end
 			end
 		ensure
 			non_negative: Result >= 0.0
@@ -1079,6 +1257,58 @@ feature {NONE} -- Drawing implementation
 		end
 
 feature {NONE} -- Input implementation
+
+	editable_click (a_px, a_py: REAL_64): BOOLEAN
+			-- A press while editable: Ctrl on a link follows it; on a block,
+			-- the edit under way is kept and that block opens; below the
+			-- last block, the last empty paragraph (or a new one) opens.
+		require
+			editable: is_editable
+		local
+			l_target: STRING_32
+			b, e, l_before: INTEGER
+			cy: REAL_64
+			l_below: BOOLEAN
+		do
+			l_target := link_target_at_point (a_px, a_py)
+			if (create {SW_KEYS}).control_down and then not l_target.is_empty then
+				if is_editing then
+					end_edit (True)
+				end
+				if attached on_link_click as al_click then
+					al_click.call (l_target)
+				end
+				Result := True
+			elseif contains (a_px, a_py) then
+				Result := True
+				if is_laid_out then
+					cy := a_py - y - margin + scroll_y
+					b := stack.item_at (cy)
+					l_below := b = 0 and then cy >= stack.content_height
+				end
+				if not (is_editing and then b = editing_index and then b > 0) then
+					if is_editing then
+						e := editing_index
+						l_before := document.count
+						end_edit (True)
+						if b > e then
+							b := b + document.count - l_before
+						end
+					end
+					if l_below then
+						if document.count > 0 and then document.block (document.count).kind = {DOC_BLOCK}.Kind_paragraph
+							and then document.block (document.count).content.count = 0
+						then
+							begin_edit (document.count)
+						else
+							new_paragraph_after (document.count)
+						end
+					elseif b >= 1 and then b <= document.count then
+						begin_edit (b)
+					end
+				end
+			end
+		end
 
 	offset_at_point (a_unit: INTEGER; a_px, a_py: REAL_64): INTEGER
 			-- The caret offset in unit `a_unit' nearest the point.
