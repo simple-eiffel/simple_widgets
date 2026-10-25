@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.38.2 - GW-29's budget held in the build it belongs to)
+
+- The 60 Hz assertions of the 100,000-row grid failed about one run in
+  three in the contract build: switching contracts off at run time does
+  not make that build as fast as the shipped one (page jump 15-18
+  milliseconds there, 5.7-7.9 in the lean build on this machine), and
+  0.28.2 rebuilt from its own commit failed the same way. Following
+  Larry's rule that timing belongs to the shipping build, the lean build
+  (`ec.sh release`, simple_widgets_lean.exe) is held to 16.7 milliseconds
+  and the contract build to twice that, which still catches a gross
+  regression; both report their numbers. `is_lean_build` probes a library
+  precondition (a test-class one cannot tell: the testing cluster runs
+  without assertions). The class note says why, for the next editor.
+- Verified: contract build 6 of 6 runs green; lean build page jump
+  5.7-7.9 milliseconds, wheel 1.7-2.1, 3 of 3 green. 537 pass in the
+  contract build; the lean suite fails only `theme_gw28_unreadable_rejected`,
+  which proves a contract and has none to prove there.
+
 ### Changed (0.38.1 - one parser for generated geometry)
 
 - New deferred **`SW_GEOMETRY_DATA`** (`parse_block`, `flush`, `pending`):
