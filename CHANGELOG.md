@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.31.1 - the eleventh scan, since 02dae89: export memory and edges)
+
+Each fix has a test that failed on 0.31.0:
+- **Exports free their memory.** Cairo contexts and surfaces have no
+  dispose, and `widget_image` never destroyed its context, which also held
+  a reference to the image; `export_widget_png` and `copy_widget_image`
+  never destroyed the image. Forty exports at four times a 600-pixel label
+  grew the process by 440 megabytes. Now the context is destroyed in
+  `widget_image`, the two exporters destroy their image, and the header
+  says the caller of `widget_image` owns and destroys the image
+  (`scan11_exports_free_their_memory`,
+  `scan11_widget_image_frees_its_context`, which read the process's
+  committed memory).
+- **Hover never exports, in the grid and the dock too.** SW_DATA_GRID lit
+  its scrollbar thumb and SW_DOCK_HOST its edges from `is_hovered`, which
+  silencing does not reach; both use `shows_hover`
+  (`scan11_grid_hover_never_exports`).
+- **Fractional edges are opaque.** The ground was a rectangle the widget's
+  size, so a fractional width left the last column half see-through; the
+  whole image is painted (`scan11_fractional_edges_are_opaque`).
+- **Oversized exports are refused by contract.** New `can_export` (laid
+  out, scale 1 to 4, at most `Max_export_side` = 16384 pixels a side) is the
+  precondition of all three export features
+  (`scan11_oversized_export_is_refused`).
+- Not done: state some widgets record while drawing (SW_CHAT_THREAD's
+  scrollbar geometry) is not redrawn after an export in a custom theme; the
+  surface-context-painter setup now appears four times in SW_WINDOW and the
+  export cluster could become its own ancestor (an extraction, waiting for
+  Larry). Report: `.eiffel-workflow/evidence/design-scan-since-02dae89.md`.
+  484 pass.
+
 ### Added (0.31.0 - GW-21: a widget region to PNG and to the clipboard)
 
 For image export of a pane (share-safe exports, Visual Copy later).

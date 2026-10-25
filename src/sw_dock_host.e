@@ -761,7 +761,7 @@ feature -- Drawing
 			south_zone.draw (a_p)
 			center.draw (a_p)
 			e := dragging_edge
-			if e = 0 and then is_hovered then
+			if e = 0 and then shows_hover then
 				e := edge_at (hover_px, hover_py)
 			end
 			if e > 0 then

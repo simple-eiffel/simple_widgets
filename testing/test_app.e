@@ -747,6 +747,11 @@ feature {NONE} -- Test runners
 			run_test (agent image_tests.test_gw21_hover_never_exports, "gw21_hover_never_exports")
 			run_test (agent image_tests.test_gw21_png_reads_back_and_clipboard_takes_it, "gw21_png_reads_back_and_clipboard_takes_it")
 			run_test (agent image_tests.test_gw21_scripture_export, "gw21_scripture_export")
+			run_test (agent image_tests.test_scan11_exports_free_their_memory, "scan11_exports_free_their_memory")
+			run_test (agent image_tests.test_scan11_widget_image_frees_its_context, "scan11_widget_image_frees_its_context")
+			run_test (agent image_tests.test_scan11_grid_hover_never_exports, "scan11_grid_hover_never_exports")
+			run_test (agent image_tests.test_scan11_fractional_edges_are_opaque, "scan11_fractional_edges_are_opaque")
+			run_test (agent image_tests.test_scan11_oversized_export_is_refused, "scan11_oversized_export_is_refused")
 			print ("%N=== GW-29 VIRTUAL GRID ===%N")
 			create virtual_grid_tests
 			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_light, "gw29_hundred_thousand_rows_light")
