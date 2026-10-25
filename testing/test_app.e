@@ -740,6 +740,13 @@ feature {NONE} -- Test runners
 			run_test (agent contrast_tests.test_scan10_accent_reads_as_small_text, "scan10_accent_reads_as_small_text")
 			run_test (agent contrast_tests.test_scan10_a_theme_swap_updates_the_kit_faces, "scan10_a_theme_swap_updates_the_kit_faces")
 			run_test (agent contrast_tests.test_scan10_the_switch_is_read_once, "scan10_the_switch_is_read_once")
+			print ("%N=== GW-21 WIDGET IMAGE ===%N")
+			create image_tests
+			run_test (agent image_tests.test_gw21_the_widget_alone_at_scale_in_light, "gw21_the_widget_alone_at_scale_in_light")
+			run_test (agent image_tests.test_gw21_the_screen_theme_when_asked, "gw21_the_screen_theme_when_asked")
+			run_test (agent image_tests.test_gw21_hover_never_exports, "gw21_hover_never_exports")
+			run_test (agent image_tests.test_gw21_png_reads_back_and_clipboard_takes_it, "gw21_png_reads_back_and_clipboard_takes_it")
+			run_test (agent image_tests.test_gw21_scripture_export, "gw21_scripture_export")
 			print ("%N=== GW-29 VIRTUAL GRID ===%N")
 			create virtual_grid_tests
 			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_light, "gw29_hundred_thousand_rows_light")
@@ -813,6 +820,7 @@ feature {NONE} -- Test runners
 	memo_tests: SW_MEMO_ASSAULT
 	tabs_tests: SW_TABS_ASSAULT
 	contrast_tests: SW_HIGH_CONTRAST_ASSAULT
+	image_tests: SW_WIDGET_IMAGE_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.

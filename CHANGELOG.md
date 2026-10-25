@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.31.0 - GW-21: a widget region to PNG and to the clipboard)
+
+For image export of a pane (share-safe exports, Visual Copy later).
+- **`SW_WINDOW.widget_image (widget, theme, scale)`**: the widget drawn
+  alone onto a new cairo surface, `scale` times its size (1 to 4) with
+  `export_margin` (the theme's `border_width`) all round, so glyphs that
+  overhang the widget's box - a Greek breathing before a capital - stay in
+  the picture. Hover is silenced quietly (no hover event fires) and
+  restored; the widget keeps its place and is laid out again in the screen
+  theme, so hit testing stays right. A focused widget still shows its
+  focus: clearing it would fire focus events.
+- **`export_widget_png (widget, path, scale)`** and
+  **`copy_widget_image (widget, scale)`** (copy-as-image, through
+  SW_CLIPBOARD).
+- **Light by default.** `export_theme` is light with the screen theme's
+  sizes and faces, because exports get pasted into other people's
+  documents; `set_exports_in_screen_theme (True)` keeps the screen theme.
+- Tests (`SW_WIDGET_IMAGE_ASSAULT`, 5): the widget alone at twice its size
+  on the light background from a dark window, which stays dark; the screen
+  theme when asked; hover never exports (same pixels hovered and not, and
+  still hovered after); the PNG reads back at its size and the clipboard
+  takes the image; scripture exported in light and in the screen theme
+  (evidence `gw21_export_light.png`, `gw21_export_screen.png`). 479 pass,
+  none failing (the session was unlocked, so `screen_grab_marries_cairo`
+  passed too).
+
 ### Fixed (0.30.1 - the tenth scan, since 053211b: contrast grounds)
 
 The contrast theme kept every pairing readable on the window but left the
