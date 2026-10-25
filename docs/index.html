@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-404%2F404-brightgreen.svg" alt="404/404 tests">
+            <img src="https://img.shields.io/badge/tests-414%2F414-brightgreen.svg" alt="414/414 tests">
         </div>
     </header>
 
@@ -39,7 +39,7 @@
 
     <main>
         <section id="recent">
-            <h2>Recent additions (0.9.0 - 0.22.0, for simple_bible)</h2>
+            <h2>Recent additions (0.9.0 - 0.24.0, for simple_bible)</h2>
             <table>
                 <tr><th>Version</th><th>What</th></tr>
                 <tr><td><code>0.9.0</code></td><td>Theme tokens for filled controls, status inks and dark mode (GW-28)</td></tr>
@@ -56,8 +56,10 @@
                 <tr><td><code>0.20.0</code></td><td>Shared view parts: one scrollbar, and the deferred ancestors for pointing, scrolling and selection</td></tr>
                 <tr><td><code>0.21.0</code></td><td>The rich document view: headings, lists, quotes, tables and links, read in a scrolling column (GW-13, reading)</td></tr>
                 <tr><td><code>0.22.0</code></td><td>Live-preview editing (GW-13 complete): <code>set_codec</code>, the Markdown codec, the <code>SW_IN_PLACE_EDITING</code> mixin, the model moved to simple_document, code blocks, inline code and strikethrough; the spell checker skips Hebrew and Greek</td></tr>
+                <tr><td><code>0.23.0</code></td><td>The first post-merge abstraction scan's high findings: the deferred ancestor <code>SW_STACKED_ITEMS</code>, editor hosting and one end of an edit, pointing in one place, one layout step, and spacing in the paragraph list that scales with the text</td></tr>
+                <tr><td><code>0.24.0</code></td><td>Parallel text (GW-06): <code>SW_PARALLEL_TEXT</code>, verse rows by version columns; the composed bases <code>SW_STACKED_POINTING</code> and <code>SW_DOC_UNITS</code> and the mixin <code>SW_MARK_HOST</code></td></tr>
             </table>
-            <p>Text items are gated on Hebrew and Greek in both themes; 404 tests pass at 0.22.0.</p>
+            <p>Text items are gated on Hebrew and Greek in both themes; 414 tests pass at 0.24.0.</p>
         </section>
 
         <section id="overview">
@@ -228,14 +230,36 @@
             Hebrew or Greek words.</p>
             <p>Dependencies: besides simple_shell and simple_cairo, the view needs
             simple_document and simple_markdown.</p>
-            <h3>Shared building blocks (0.22.0)</h3>
+            <h3>Parallel text (0.24.0)</h3>
+            <p><code>SW_PARALLEL_TEXT</code> shows versions side by side, verse by verse.
+            Rows are canonical verses and columns are versions (up to six, each with a
+            weight, a text scale and an alignment). Each cell is a <code>DOC_TEXT</code>,
+            wrapped and shaped in its own direction, so a Hebrew column sits flush right.
+            A row is as tall as its tallest cell. There is one scroll, and the column
+            titles stay put while the rows scroll. A note row ("LXX 9 = MT 9-10") spans
+            every column in muted text. Each cell has its own marks, painted through a
+            legend ("agrees with LXX"). <code>cell_at</code> and
+            <code>on_cell_click</code> answer which cell the pointer is on, and
+            <code>scroll_to_row</code> brings a verse into view. Selecting copies a
+            row's cells separated by tabs and the rows one per line. Spacing comes from
+            the theme tokens.</p>
+            <h3>Shared building blocks (0.24.0)</h3>
             <ul>
                 <li><code>SW_TEXT_POINTING</code>, <code>SW_VSCROLLING</code>,
-                <code>SW_TEXT_SELECTION</code> and <code>SW_IN_PLACE_EDITING</code> are deferred ancestors. A widget inherits
-                them side by side (Eiffel multiple inheritance), because none of them
-                redefines another's <code>SW_WIDGET</code> features.
-                <code>SW_DOCUMENT_VIEW</code> inherits all four;
-                <code>SW_PARAGRAPH_LIST</code> inherits pointing, scrolling and editing.</li>
+                <code>SW_TEXT_SELECTION</code>, <code>SW_IN_PLACE_EDITING</code>,
+                <code>SW_STACKED_ITEMS</code> and <code>SW_DOC_UNITS</code> are deferred
+                ancestors. A widget inherits them side by side (Eiffel multiple
+                inheritance), because none of them redefines another's
+                <code>SW_WIDGET</code> features. Two composed bases do the joining once, so
+                each widget names one parent: <code>SW_STACKED_POINTING</code> joins
+                pointing, scrolling and the stack, and <code>SW_DOC_UNITS</code> (the units
+                of stacked texts and cells, lifted from the document view) inherits it
+                together with <code>SW_TEXT_SELECTION</code>.
+                <code>SW_PARALLEL_TEXT</code>'s inherit clause is a single parent.
+                <code>SW_MARK_HOST</code> is a mixin with no parent at all (legend and mark
+                painter), shared by the text box, the paragraph list and the parallel text.
+                <code>SW_DOCUMENT_VIEW</code> and <code>SW_PARAGRAPH_LIST</code> stand on
+                these too.</li>
                 <li><code>SW_VSCROLLBAR</code> is the one vertical scrollbar. Lists,
                 paragraph lists, scroll areas, chat threads, trees and data grids all use
                 it. Its drag keeps the grab point and ends on release.</li>
@@ -701,7 +725,7 @@
             <p>
                 The library ships a test target that drives the model layer headless - including
                 drawing, via a painter over an offscreen cairo surface - with <em>every assertion
-                live</em> (F_code with contracts kept). 404 tests at 0.22.0 (75 across ten assault sets at first); the suite
+                live</em> (F_code with contracts kept). 414 tests at 0.24.0 (75 across ten assault sets at first); the suite
                 caught three real defects on its first day (a truncation alias in list row math, a
                 clipboard race against history managers, and an ECF namespace clash).
             </p>
