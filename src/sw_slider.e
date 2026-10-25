@@ -11,7 +11,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			handle_click, handle_drag, handle_wheel, wants_hover_point
+			handle_click, handle_drag, handle_wheel, wants_hover_point,
+			accessible_role, accessible_value
 		end
 
 create
@@ -176,6 +177,21 @@ feature {NONE} -- Implementation
 			if attached on_change as a then
 				a.call (fraction)
 			end
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_slider
+		end
+
+	accessible_value: detachable STRING_32
+		do
+			create Result.make (5)
+			Result.append_integer ((fraction * 100.0).rounded)
+			Result.append_character ('%%')
 		end
 
 invariant

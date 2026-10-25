@@ -12,7 +12,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width
+			preferred_width,
+			accessible_role
 		end
 
 create
@@ -129,6 +130,14 @@ feature -- Drawing
 				a_p.font ({SW_PAINTER}.Role_ui, t.size_chip, False)
 				a_p.text (x + 8.0, y + height - 8.0, {STRING_32} "image unavailable")
 			end
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_image
 		end
 
 invariant

@@ -27,7 +27,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width
+			preferred_width,
+			accessible_role, default_accessible_name
 		end
 
 create
@@ -365,6 +366,19 @@ feature {NONE} -- Shaped text
 	shaped: SW_SHAPED_TEXT
 			-- The one-line layout cache for the unwrapped label: shaped
 			-- once per text and size, then only looked up.
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_text
+		end
+
+	default_accessible_name: STRING_32
+		do
+			Result := text.twin
+		end
 
 invariant
 	text_attached: text /= Void

@@ -11,7 +11,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click
+			preferred_width, handle_click,
+			accessible_role, default_accessible_name, accessible_value
 		end
 
 create
@@ -158,6 +159,28 @@ feature -- Input
 					a.call
 				end
 				Result := True
+			end
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_check_box
+		end
+
+	default_accessible_name: STRING_32
+		do
+			Result := label.twin
+		end
+
+	accessible_value: detachable STRING_32
+		do
+			if is_checked then
+				Result := {STRING_32} "checked"
+			else
+				Result := {STRING_32} "not checked"
 			end
 		end
 

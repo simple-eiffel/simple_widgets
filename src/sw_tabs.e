@@ -46,7 +46,8 @@ inherit
 		redefine
 			sub_widgets,
 			arrange, widget_at, handle_click, wants_hover_point,
-			handle_drag, handle_release, handle_wheel
+			handle_drag, handle_release, handle_wheel,
+			accessible_role, accessible_value, accessible_children
 		end
 
 	SW_TAB_STRIP
@@ -832,6 +833,30 @@ feature {NONE} -- Implementation
 		do
 			Result := a_label.twin
 			Result.replace_substring_all ({STRING_32} "&", {STRING_32} "&&")
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_tab
+		end
+
+	accessible_value: detachable STRING_32
+		do
+			if selected_index >= 1 and selected_index <= labels.count then
+				Result := labels.i_th (selected_index).twin
+			end
+		end
+
+	accessible_children: ARRAYED_LIST [SW_WIDGET]
+			-- Only the shown page: the others are not on the screen.
+		do
+			create Result.make (1)
+			if attached selected_page as al_page then
+				Result.extend (al_page)
+			end
 		end
 
 invariant

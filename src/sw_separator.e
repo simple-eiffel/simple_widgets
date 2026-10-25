@@ -7,7 +7,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width
+			preferred_width,
+			accessible_role
 		end
 
 create
@@ -82,6 +83,14 @@ feature -- Drawing
 			else
 				a_p.hline (x + 2.0, y + height / 2.0, width - 4.0)
 			end
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_separator
 		end
 
 end

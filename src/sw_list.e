@@ -19,7 +19,8 @@ inherit
 		redefine
 			widget_at, handle_wheel, handle_click, handle_drag,
 			wants_hover_point, pebble_at, handle_double_click,
-			handle_key, accepts_focus, handle_release, set_bounds
+			handle_key, accepts_focus, handle_release, set_bounds,
+			accessible_role
 		end
 
 create
@@ -392,6 +393,14 @@ feature -- Input
 			bar.release
 		ensure then
 			released: not bar.is_dragging
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_list
 		end
 
 invariant

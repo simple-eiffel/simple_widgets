@@ -11,7 +11,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click, wants_hover_point
+			preferred_width, handle_click, wants_hover_point,
+			accessible_role, accessible_value
 		end
 
 create
@@ -258,6 +259,21 @@ feature -- Measurement support
 	probe_painter: detachable SW_PAINTER
 			-- Painter for hit-test measurement; the window's painter,
 			-- remembered at draw time.
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_group
+		end
+
+	accessible_value: detachable STRING_32
+		do
+			if selected_index >= 1 and selected_index <= options.count then
+				Result := options.i_th (selected_index).twin
+			end
+		end
 
 invariant
 	options_attached: options /= Void

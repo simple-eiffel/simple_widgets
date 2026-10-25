@@ -35,7 +35,8 @@ inherit
 		redefine
 			accepts_focus, preferred_width, handle_click, handle_double_click,
 			handle_triple_click, handle_drag, handle_char, handle_key,
-			context_menu, accepts_pebble, receive_pebble, cursor_kind
+			context_menu, accepts_pebble, receive_pebble, cursor_kind,
+			accessible_role, accessible_value
 		end
 
 	SW_CLUSTER_MATH
@@ -1424,6 +1425,22 @@ feature {NONE} -- Engine
 			caret := a_lo + s.count
 			sel_anchor := caret
 			changed
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_edit
+		end
+
+	accessible_value: detachable STRING_32
+		do
+				-- a masked line never tells its text
+			if not is_masked then
+				Result := text.twin
+			end
 		end
 
 invariant

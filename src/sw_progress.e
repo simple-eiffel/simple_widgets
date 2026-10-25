@@ -10,6 +10,9 @@ class
 
 inherit
 	SW_WIDGET
+		redefine
+			accessible_role, accessible_value
+		end
 
 create
 	make
@@ -105,6 +108,25 @@ feature -- Drawing
 				a_p.font ({SW_PAINTER}.Role_mono, t.size_label, False)
 				a_p.set_color (t.ink_muted)
 				a_p.text (x + bar_w + 10.0, y + height - 5.0, cap)
+			end
+		end
+
+
+feature -- Accessibility (GW-14)
+
+	accessible_role: INTEGER
+		do
+			Result := {SW_ACCESSIBILITY}.Role_progress_bar
+		end
+
+	accessible_value: detachable STRING_32
+		do
+			if is_indeterminate then
+				Result := {STRING_32} "working"
+			else
+				create Result.make (5)
+				Result.append_integer ((fraction * 100.0).rounded)
+				Result.append_character ('%%')
 			end
 		end
 
