@@ -627,8 +627,12 @@ feature {NONE} -- Dispatch
 				wear_system_appearance
 				request_render
 			elseif a_type = Event_motion_changed and then is_following_system_theme then
-					-- And the animation setting (GW-14).
-				theme.set_reduces_motion (system_appearance.system_reduces_motion)
+					-- And the animation setting (GW-14), onto every followed
+					-- theme so a later light/dark flip wears it too (scan 12).
+				apply_motion_preference
+				if attached on_theme_changed as al_told then
+					al_told.call (theme)
+				end
 				request_render
 			elseif a_type = Event_wake and then attached on_wake as al_wake then
 					-- And a worker's result: a processor called
@@ -747,22 +751,42 @@ feature {NONE} -- Theme internals (GW-27)
 			l_contrast := system_appearance.system_high_contrast
 			if l_contrast then
 				wear_theme (system_contrast_theme)
-				theme.set_reduces_motion (system_appearance.system_reduces_motion)
+				apply_motion_preference
 				if attached on_theme_changed as al_told then
 					al_told.call (theme)
 				end
 			else
 					-- the motion preference first, so `on_theme_changed' sees it
-				if attached system_light as al_light then
-					al_light.set_reduces_motion (system_appearance.system_reduces_motion)
-				end
-				if attached system_dark as al_dark then
-					al_dark.set_reduces_motion (system_appearance.system_reduces_motion)
-				end
+				apply_motion_preference
 				wear_system_theme (system_appearance.system_prefers_dark)
 			end
 		ensure
 			still_following: is_following_system_theme
+		end
+
+	apply_motion_preference
+			-- Windows' animation setting, read ONCE, onto both followed themes
+			-- and the one worn (a contrast theme is neither). Scan 12, a note
+			-- for the future self: event 57 used to set only the worn theme,
+			-- so a later light/dark flip (event 53, which only swaps themes)
+			-- wore the other member with a stale setting. Every path that
+			-- applies the setting comes through here.
+		require
+			following: is_following_system_theme
+		local
+			l_still: BOOLEAN
+		do
+			l_still := system_appearance.system_reduces_motion
+			if attached system_light as al_light then
+				al_light.set_reduces_motion (l_still)
+			end
+			if attached system_dark as al_dark then
+				al_dark.set_reduces_motion (l_still)
+			end
+			theme.set_reduces_motion (l_still)
+		ensure
+			worn_agrees: attached system_light as al_l implies al_l.reduces_motion = theme.reduces_motion
+			pair_agrees: attached system_dark as al_d implies al_d.reduces_motion = theme.reduces_motion
 		end
 
 	system_contrast_theme: SW_THEME

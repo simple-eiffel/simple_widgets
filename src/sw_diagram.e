@@ -98,6 +98,7 @@ feature -- Element change
 				120.0 + ring * m.sine (ang),
 				0.0, 0.0, False])
 			Result := nodes.count
+			is_at_rest := False
 		ensure
 			grew: nodes.count = old nodes.count + 1
 			id_is_last: Result = nodes.count
@@ -110,6 +111,7 @@ feature -- Element change
 			no_self_loop: a_from /= a_to
 		do
 			edges.extend ([a_from, a_to])
+			is_at_rest := False
 		ensure
 			grew: edges.count = old edges.count + 1
 		end
@@ -126,6 +128,7 @@ feature -- Element change
 			known: a_node >= 1 and a_node <= nodes.count
 		do
 			nodes.i_th (a_node).pinned := True
+			is_at_rest := False
 		ensure
 			held: nodes.i_th (a_node).pinned
 		end
@@ -135,11 +138,57 @@ feature -- Element change
 			known: a_node >= 1 and a_node <= nodes.count
 		do
 			nodes.i_th (a_node).pinned := False
+			is_at_rest := False
 		ensure
 			free: not nodes.i_th (a_node).pinned
 		end
 
 feature -- Physics
+
+	is_at_rest: BOOLEAN
+			-- Has `settle' brought the layout to rest since the nodes, edges,
+			-- pins or size last changed?
+
+	settle
+			-- Reduced motion (scan 12): instead of one step a frame, relax the
+			-- layout to rest at once (at most `Settle_steps' steps), then
+			-- hold still until something changes.
+		local
+			k: INTEGER
+		do
+			if not is_at_rest or else rest_width /= width or else rest_height /= height then
+				from
+					relax_step
+					k := 1
+				until
+					k >= Settle_steps or else top_speed < Rest_speed
+				loop
+					relax_step
+					k := k + 1
+				end
+				is_at_rest := True
+				rest_width := width
+				rest_height := height
+			end
+		ensure
+			at_rest: is_at_rest
+		end
+
+	top_speed: REAL_64
+			-- The fastest node's speed, summed over both axes.
+		do
+			across
+				nodes as n
+			loop
+				Result := Result.max (n.vx.abs + n.vy.abs)
+			end
+		end
+
+	Settle_steps: INTEGER = 400
+			-- The most steps one `settle' takes.
+
+	Rest_speed: REAL_64 = 0.01
+			-- Below this every node counts as still.
 
 	relax_step
 			-- One tick: repulsion, springs, centre gravity, damping,
@@ -220,7 +269,11 @@ feature -- Drawing
 			nx, ny: REAL_64
 		do
 			t := a_p.theme
-			relax_step
+			if t.reduces_motion then
+				settle
+			else
+				relax_step
+			end
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			if shows_hover then
@@ -292,8 +345,14 @@ feature -- Input
 				nodes.i_th (drag_index).vx := 0.0
 				nodes.i_th (drag_index).vy := 0.0
 				nodes.i_th (drag_index).pinned := True
+				is_at_rest := False
 			end
 		end
+
+feature {NONE} -- Rest
+
+	rest_width, rest_height: REAL_64
+			-- The size the layout last came to rest at.
 
 feature -- Data
 
