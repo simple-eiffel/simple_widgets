@@ -757,6 +757,8 @@ feature {NONE} -- Test runners
 			run_test (agent motion_tests.test_gw14_skeleton_holds_still, "gw14_skeleton_holds_still")
 			run_test (agent motion_tests.test_gw14_progress_band_holds_still, "gw14_progress_band_holds_still")
 			run_test (agent motion_tests.test_gw14_window_follows_the_animation_setting, "gw14_window_follows_the_animation_setting")
+			run_test (agent motion_tests.test_scan12_motion_survives_a_light_dark_flip, "scan12_motion_survives_a_light_dark_flip")
+			run_test (agent motion_tests.test_scan12_diagram_holds_still, "scan12_diagram_holds_still")
 			print ("%N=== GW-29 VIRTUAL GRID ===%N")
 			create virtual_grid_tests
 			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_light, "gw29_hundred_thousand_rows_light")

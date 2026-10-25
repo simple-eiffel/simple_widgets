@@ -66,7 +66,65 @@ feature -- Following Windows
 			assert_true ("and still held", w.theme.reduces_motion)
 		end
 
+feature -- Scan 12 (since 02eec11)
+
+	test_scan12_motion_survives_a_light_dark_flip
+			-- HIGH: event 57 set the flag on the worn theme only, so after
+			-- animation was turned back on, a light/dark flip wore the other
+			-- member still holding still.
+		local
+			w: SW_WINDOW
+			fake: SW_TEST_APPEARANCE
+		do
+			create w.make ("scan12", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			create fake
+			fake.set_reduces_motion (True)
+			w.set_system_appearance (fake)
+			w.follow_system_theme (create {SW_THEME}.make_light, create {SW_THEME}.make_dark)
+			fake.set_reduces_motion (False)
+			w.dispatch (w.Event_motion_changed, 0, 0)
+			fake.set_dark (True)
+			w.dispatch (w.Event_appearance_changed, 1, 0)
+			assert_true ("dark now", w.theme.is_dark)
+			assert_false ("and moving, as Windows asks", w.theme.reduces_motion)
+			fake.set_reduces_motion (True)
+			w.dispatch (w.Event_motion_changed, 1, 0)
+			fake.set_dark (False)
+			w.dispatch (w.Event_appearance_changed, 0, 0)
+			assert_false ("light again", w.theme.is_dark)
+			assert_true ("and still, as Windows asks", w.theme.reduces_motion)
+		end
+
+	test_scan12_diagram_holds_still
+			-- MEDIUM: SW_DIAGRAM took one relaxation step on every draw, so
+			-- it drifted even when the theme reduced motion. Reduced, it
+			-- settles at once and then holds still.
+		local
+			d1, d2: SW_DIAGRAM
+		do
+			d1 := ring_diagram
+			assert_true ("the layout drifts", frames_differ (d1, False))
+			d2 := ring_diagram
+			assert_false ("held still", frames_differ (d2, True))
+		end
+
 feature {NONE} -- Frames
+
+	ring_diagram: SW_DIAGRAM
+			-- Six nodes in a ring, fresh from their seeds (not yet relaxed).
+		local
+			i: INTEGER
+		do
+			create Result.make
+			from i := 1 until i > 6 loop
+				Result.add_node ("n" + i.out).do_nothing
+				i := i + 1
+			end
+			from i := 1 until i > 6 loop
+				Result.connect (i, i \\ 6 + 1)
+				i := i + 1
+			end
+		end
 
 	frames_differ (a_widget: SW_WIDGET; a_still: BOOLEAN): BOOLEAN
 			-- Do two consecutive frames of `a_widget' differ, with the theme

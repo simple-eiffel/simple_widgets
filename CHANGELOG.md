@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.32.1 - the twelfth scan, since 02eec11: motion on every path)
+
+Each fix has a test that failed on 0.32.0:
+- **The animation setting survives a light/dark flip.** Event 57 set
+  `reduces_motion` on the worn theme only, and a light/dark flip only swaps
+  themes, so the other member was worn with a stale setting (animation
+  turned back on, then dark: still held). One `apply_motion_preference`
+  now reads the setting once and sets both followed themes and the worn
+  one; following, contrast changes and event 57 all go through it, and
+  event 57 tells `on_theme_changed` (`scan12_motion_survives_a_light_dark_flip`).
+- **SW_DIAGRAM holds still.** It took one relaxation step on every draw,
+  even when motion was reduced. Reduced, it now `settle`s: relaxes to rest
+  at once (at most 400 steps) and holds still until nodes, edges, pins or
+  its size change (`scan12_diagram_holds_still`).
+- Not done: a window that sets its own theme (not following Windows) does
+  not learn the animation setting; following Windows overwrites the
+  application's own `reduces_motion` on the followed themes, which are the
+  application's objects (both documented). simple_shell's scan (no HIGH)
+  noted the PowerShell cross-check fails rather than skips where
+  PowerShell is locked down. Reports:
+  `.eiffel-workflow/evidence/design-scan-since-02eec11.md`, and simple_shell's
+  `design-scan-since-6064bb3.md`. 489 pass.
+
 ### Added (0.32.0 - GW-14, first half: reduced motion)
 
 Needs simple_shell 1.21.0. (GW-14's other half, the UI Automation bridge,
