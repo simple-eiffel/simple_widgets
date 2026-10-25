@@ -153,6 +153,49 @@ feature -- Layout
 			assert_true ("the band about doubles", v2.header_height > 1.8 * v1.header_height)
 		end
 
+	test_gw06_band_is_not_content
+			-- The title band hides the rows scrolled under it: a point on the
+			-- band names no cell.
+		local
+			w: SW_WINDOW
+			v: SW_PARALLEL_TEXT
+		do
+			create w.make ("band", 0, 0, 600, 300, create {SW_THEME}.make_light)
+			attach_parallel_kit (w)
+			v := long_parallel
+			w.set_root (v)
+			w.request_render
+			v.scroll_to (120.0)
+			w.request_render
+			assert_true ("scrolled", v.scroll_y > 0.0)
+			assert_integers_equal ("no cell under the band", 0, v.cell_at (v.x + 80.0, v.y + v.header_height / 2.0).row)
+		end
+
+	test_gw06_scroll_to_row_shows_it_below_the_band
+			-- Scrolling to a row puts it below the band, and row 1 is at the
+			-- very top.
+		local
+			w: SW_WINDOW
+			v: SW_PARALLEL_TEXT
+		do
+			create w.make ("band", 0, 0, 600, 300, create {SW_THEME}.make_light)
+			attach_parallel_kit (w)
+			v := long_parallel
+			w.set_root (v)
+			w.request_render
+			v.scroll_to (v.max_scroll)
+			w.request_render
+			v.scroll_to_row (1)
+			w.request_render
+			assert_reals_equal ("row 1 at the top", 0.0, v.scroll_y, 0.000_1)
+			v.scroll_to (0.0)
+			w.request_render
+			v.scroll_to_row (40)
+			w.request_render
+			assert_true ("row 40 below the band", v.stacked_top (40) >= v.y + v.header_height - 0.5)
+			assert_true ("and inside the view", v.stacked_top (40) + 1.0 < v.y + v.height)
+		end
+
 feature -- They Chose, both themes
 
 	test_gw06_parallel_light
@@ -182,6 +225,20 @@ feature {NONE} -- Fixtures
 			create kit.make_with_assets (shaping_assets)
 			kit.set_theme_faces (a_window.theme)
 			a_window.set_shaping (kit)
+		end
+
+	long_parallel: SW_PARALLEL_TEXT
+			-- Two columns, sixty rows.
+		local
+			i: INTEGER
+		do
+			create Result.make (300.0)
+			Result.add_column ("A").do_nothing
+			Result.add_column ("B").do_nothing
+			from i := 1 until i > 60 loop
+				Result.set_cell (Result.add_row (i.out), 1, "Verse text " + i.out)
+				i := i + 1
+			end
 		end
 
 	three_columns: SW_PARALLEL_TEXT

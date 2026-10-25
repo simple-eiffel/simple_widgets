@@ -40,8 +40,7 @@ class
 inherit
 	SW_DOC_UNITS
 		redefine
-			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, cursor_kind, set_hover_point, set_hovered
+			arrange, handle_click, handle_release, pinned_height
 		end
 
 	SW_MARK_HOST
@@ -64,8 +63,6 @@ feature {NONE} -- Initialization
 			create rows.make (64)
 			create column_lefts.make (Max_columns)
 			create column_widths.make (Max_columns)
-			laid_rows_revision := -1
-			laid_px := 14
 			init_pointing
 		ensure
 			kept: viewport_height = a_viewport_height
@@ -258,6 +255,7 @@ feature -- Rows
 			rows_revision := rows_revision + 1
 			scroll_y := 0.0
 			clear_selection
+			forget_hover
 		ensure
 			empty: row_count = 0
 		end
@@ -292,9 +290,7 @@ feature -- Rows
 		require
 			valid: a_row >= 1 and a_row <= row_count
 		do
-			if is_laid_out and then height > 0.0 then
-				scroll_to (stacked_scroll_for (a_row))
-			end
+			scroll_item_into_view (a_row)
 		end
 
 	header_height: REAL_64
@@ -321,13 +317,6 @@ feature -- Rows
 			Result := column_widths.i_th (a_column)
 		end
 
-	is_laid_out: BOOLEAN
-			-- Do the measurements stand for the rows as they are?
-		do
-			Result := laid_rows_revision = rows_revision and stack.count = rows.count
-				and block_units.count = rows.count
-		end
-
 feature -- Scrolling (SW_VSCROLLING)
 
 	scroll_extent: REAL_64
@@ -336,20 +325,7 @@ feature -- Scrolling (SW_VSCROLLING)
 			Result := stack.content_height + stack_origin_y + margin
 		end
 
-	wheel_line: REAL_64
-			-- A line of body text.
-		do
-			Result := (laid_px * 1.5).max (1.0)
-		end
-
 feature -- Layout
-
-	cursor_kind: INTEGER
-		do
-			if not bar.contains (hover_px, hover_py) then
-				Result := unit_cursor_kind
-			end
-		end
 
 	arrange (a_p: SW_PAINTER)
 		do
@@ -373,47 +349,19 @@ feature -- Drawing
 
 feature -- Input
 
-	handle_wheel (a_delta: INTEGER): BOOLEAN
-		do
-			wheel_scrolled (a_delta)
-			if is_hovered then
-				follow_hover
-				update_link_hover
-			end
-			Result := True
-		end
-
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
-			-- The bar, else a press on a cell starts a selection.
+			-- Remember the cell pressed (a click on it is heard at release).
 		do
-			pressed_cell := [0, 0]
-			if press_bar (a_px, a_py) then
-				Result := True
-			else
-				pressed_cell := cell_at (a_px, a_py)
-				Result := unit_press (a_px, a_py)
-			end
-		end
-
-	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
-		do
-			Result := unit_double_click (a_px, a_py)
-		end
-
-	handle_drag (a_px, a_py: REAL_64)
-		do
-			if not drag_bar (a_py) then
-				unit_drag (a_px, a_py)
-			end
+			pressed_cell := cell_at (a_px, a_py)
+			Result := Precursor {SW_DOC_UNITS} (a_px, a_py)
 		end
 
 	handle_release (a_x, a_y: INTEGER)
-			-- Let go; a press and release on one cell, nothing selected, is
-			-- a click on it.
+			-- A press and release on one cell, nothing selected, is a click
+			-- on it.
 		local
 			l_cell: TUPLE [row, column: INTEGER]
 		do
-			release_bar
 			if is_selecting and then not has_selection and then pressed_cell.row > 0 then
 				l_cell := cell_at (a_x, a_y)
 				if l_cell.row = pressed_cell.row and l_cell.column = pressed_cell.column
@@ -422,42 +370,8 @@ feature -- Input
 					al_click.call (l_cell.row, l_cell.column)
 				end
 			end
-			unit_release (a_x, a_y)
 			pressed_cell := [0, 0]
-		ensure then
-			released: not bar.is_dragging and not is_selecting
-		end
-
-	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
-			-- PageUp, PageDown, Home, End; Up and Down a line.
-		do
-			if not scroll_key (a_vk) then
-				inspect a_vk
-				when 40 then
-					scroll_to (scroll_y + wheel_line)
-				when 38 then
-					scroll_to (scroll_y - wheel_line)
-				else
-				end
-			end
-		end
-
-	handle_char (a_code: INTEGER)
-			-- Ctrl+C copies, Ctrl+A selects all, Escape clears.
-		do
-			selection_char (a_code).do_nothing
-		end
-
-	set_hover_point (a_px, a_py: REAL_64)
-		do
-			Precursor {SW_DOC_UNITS} (a_px, a_py)
-			update_link_hover
-		end
-
-	set_hovered (a_hovered: BOOLEAN)
-		do
-			Precursor {SW_DOC_UNITS} (a_hovered)
-			update_link_hover
+			Precursor {SW_DOC_UNITS} (a_x, a_y)
 		end
 
 feature {NONE} -- Model
@@ -478,9 +392,7 @@ feature {NONE} -- Model
 
 feature {NONE} -- Layout implementation
 
-	laid_rows_revision: INTEGER
 	margin, gutter_w, columns_w, cell_pad: REAL_64
-	laid_px: INTEGER
 	column_lefts, column_widths: ARRAYED_LIST [REAL_64]
 
 	measure (a_p: SW_PAINTER)
@@ -519,12 +431,7 @@ feature {NONE} -- Layout implementation
 			end
 			laid_px := body_pixel_size (a_p)
 			l_key := columns_w.truncated_to_integer.out + "|" + laid_px.out + "|" + a_p.has_shaping.out
-			if laid_rows_revision /= rows_revision or else block_units.count /= rows.count then
-				stack.invalidate
-			end
-			if measure_stack (a_p, l_key, 0.0) then
-				number_units
-			end
+			measure_units (a_p, l_key, 0.0)
 			place_bar (t)
 		ensure
 			laid_out: is_laid_out
@@ -559,6 +466,17 @@ feature {NONE} -- Layout implementation
 			Result := header_height
 		end
 
+	pinned_height: REAL_64
+			-- The title band does not scroll.
+		do
+			Result := header_height
+		end
+
+	units_revision: INTEGER
+		do
+			Result := rows_revision
+		end
+
 	item_revision (a_i: INTEGER): INTEGER
 		do
 			Result := rows.i_th (a_i).revision
@@ -567,24 +485,6 @@ feature {NONE} -- Layout implementation
 	is_volatile (a_i: INTEGER): BOOLEAN
 			-- Nothing is edited in place here.
 		do
-		end
-
-	stack_reset
-			-- An empty unit list per row, for the rows as they are.
-		local
-			i: INTEGER
-		do
-			block_units.wipe_out
-			from
-				i := 1
-			until
-				i > rows.count
-			loop
-				block_units.extend (create {ARRAYED_LIST [SW_DOC_UNIT]}.make (column_count.max (1)))
-				i := i + 1
-			end
-			laid_rows_revision := rows_revision
-			clear_selection
 		end
 
 	measure_item (a_p: SW_PAINTER; a_i: INTEGER): REAL_64
@@ -681,17 +581,25 @@ feature {NONE} -- Drawing implementation
 				oy := unit_origin_y (u)
 				l_marks := rows.i_th (a_i).cell_marks (l_unit.column.max (1))
 				paint_unit_selection (a_p, u, ox, oy)
-				mark_painter.paint_marked (a_p, l_unit.geometry, l_marks, legend, ox, oy,
-					l_unit.size * t.text_scale, agent redraw_unit (u, ?, ?, ?, ox, oy))
+				if l_marks.text_count = l_unit.geometry.count then
+					mark_painter.paint_under (a_p, l_unit.geometry, l_marks, legend, ox, oy)
+				end
+				draw_unit_text (a_p, u, ox, oy)
+				if l_marks.text_count = l_unit.geometry.count then
+					mark_painter.paint_over (a_p, l_unit.geometry, l_marks, legend, ox, oy,
+						l_unit.size * t.text_scale, agent redraw_unit (u, ?, ?, ?, ox, oy))
+				end
 				k := k + 1
 			end
 		end
 
 	redraw_unit (a_unit: INTEGER; a_p: SW_PAINTER; a_dx, a_dy, a_ox, a_oy: REAL_64)
-			-- Unit `a_unit''s text shifted by (`a_dx', `a_dy'): what a mark's
-			-- text effects draw through.
+			-- Unit `a_unit''s text shifted by (`a_dx', `a_dy') in the
+			-- painter's CURRENT colour: what a mark's text effects draw
+			-- through (no run hook, so a link's ink does not override the
+			-- effect's).
 		do
-			draw_unit_text (a_p, a_unit, a_ox + a_dx, a_oy + a_dy)
+			units.i_th (a_unit).geometry.draw (a_p, units.i_th (a_unit).content.text, False, a_ox + a_dx, a_oy + a_dy)
 		end
 
 	draw_header (a_p: SW_PAINTER)

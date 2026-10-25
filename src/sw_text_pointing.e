@@ -236,6 +236,15 @@ feature -- Pointing
 			set: hover_card_builder = a_builder
 		end
 
+	forget_hover
+			-- The content changed: nothing is under the pointer until it
+			-- moves (`on_hover' hears the change).
+		do
+			hover_to (0, 0)
+		ensure
+			no_hover: hover_item = 0 and hover_character = 0
+		end
+
 feature -- Window protocol
 
 	dwell_ms: INTEGER

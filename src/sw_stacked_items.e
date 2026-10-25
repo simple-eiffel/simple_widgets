@@ -72,6 +72,15 @@ feature -- Stack
 		deferred
 		end
 
+	pinned_height: REAL_64
+			-- A band at the top that does not scroll (column titles): the
+			-- items scrolled under it are hidden, so it is never an item and
+			-- an item shown is shown below it. 0 by default.
+		do
+		ensure
+			non_negative: Result >= 0.0
+		end
+
 	first_visible: INTEGER
 			-- The first item in the viewport; 0 when none.
 		do
@@ -108,9 +117,9 @@ feature -- Stack
 
 	stacked_item_at (a_py: REAL_64): INTEGER
 			-- The item whose box holds window y `a_py'; 0 outside the widget,
-			-- before layout, or between items.
+			-- on the pinned band, before layout, or between items.
 		do
-			if is_laid_out and then a_py >= y and then a_py < y + height then
+			if is_laid_out and then a_py >= y + pinned_height and then a_py < y + height then
 				Result := stack.item_at (a_py - y - stack_origin_y + scroll_y)
 			end
 		ensure
@@ -119,15 +128,15 @@ feature -- Stack
 
 	stacked_scroll_for (a_i: INTEGER): REAL_64
 			-- The scroll position nearest `scroll_y' that shows item `a_i'
-			-- whole (its top, when it is taller than the view), in the
-			-- coordinates `scroll_y' counts in (the origin included).
+			-- whole below the pinned band (its top, when it is taller than
+			-- the view), in the coordinates `scroll_y' counts in.
 		require
 			in_range: a_i >= 1 and a_i <= stack.count
 		local
 			l_top, l_bottom: REAL_64
 		do
-			l_top := stack_origin_y + stack.top (a_i)
-			l_bottom := l_top + stack.height (a_i)
+			l_top := stack_origin_y + stack.top (a_i) - pinned_height
+			l_bottom := stack_origin_y + stack.top (a_i) + stack.height (a_i)
 			Result := scroll_y
 			if l_bottom - Result > height then
 				Result := l_bottom - height
@@ -138,6 +147,22 @@ feature -- Stack
 			Result := Result.max (0.0)
 		ensure
 			non_negative: Result >= 0.0
+		end
+
+	scroll_to (a_y: REAL_64)
+			-- Scroll to `a_y' (SW_VSCROLLING's).
+		deferred
+		end
+
+	scroll_item_into_view (a_i: INTEGER)
+			-- Bring item `a_i' into view, below any pinned band, once laid
+			-- out.
+		require
+			in_range: a_i >= 1 and a_i <= stack_count
+		do
+			if is_laid_out and then height > 0.0 and then a_i <= stack.count then
+				scroll_to (stacked_scroll_for (a_i))
+			end
 		end
 
 	body_pixel_size (a_p: SW_PAINTER): INTEGER

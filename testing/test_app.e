@@ -677,6 +677,8 @@ feature {NONE} -- Test runners
 			run_test (agent parallel_tests.test_gw06_hebrew_column_and_note, "gw06_hebrew_column_and_note")
 			run_test (agent parallel_tests.test_gw06_title_band_stays_while_rows_scroll, "gw06_title_band_stays_while_rows_scroll")
 			run_test (agent parallel_tests.test_gw06_spacing_follows_the_theme, "gw06_spacing_follows_the_theme")
+			run_test (agent parallel_tests.test_gw06_band_is_not_content, "gw06_band_is_not_content")
+			run_test (agent parallel_tests.test_gw06_scroll_to_row_shows_it_below_the_band, "gw06_scroll_to_row_shows_it_below_the_band")
 			run_test (agent parallel_tests.test_gw06_parallel_light, "gw06_parallel_light")
 			run_test (agent parallel_tests.test_gw06_parallel_dark, "gw06_parallel_dark")
 			create paragraph_tests
