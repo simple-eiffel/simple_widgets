@@ -14,6 +14,9 @@ feature {NONE} -- Initialization
 			-- Assault the toolkit's model layer under full DBC.
 		do
 			print ("simple_widgets contract assault (F_code -keep, all assertions live)%N%N")
+				-- The real keyboard must not steer a test: nothing is held
+				-- unless a test simulates it (SW_KEYS.simulate).
+			(create {SW_KEYS}).simulate (False, False, False)
 			passed := 0
 			failed := 0
 
@@ -665,6 +668,7 @@ feature {NONE} -- Test runners
 			run_test (agent paragraph_tests.test_virtualisation_and_hit_test, "paragraphs_virtualisation_and_hit_test")
 			run_test (agent paragraph_tests.test_bar_drag_ends_on_release, "bar_drag_ends_on_release")
 			run_test (agent paragraph_tests.test_block_stack_lookups, "block_stack_lookups")
+			run_test (agent paragraph_tests.test_simulated_ctrl_click_toggles, "simulated_ctrl_click_toggles")
 			run_test (agent paragraph_tests.test_wheel_clamps, "paragraphs_wheel_clamps")
 			run_test (agent paragraph_tests.test_selection_set_and_anchor, "paragraphs_selection_set_and_anchor")
 			run_test (agent paragraph_tests.test_click_selects_and_keys_move, "paragraphs_click_selects_and_keys_move")
