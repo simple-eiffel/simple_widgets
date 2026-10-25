@@ -190,6 +190,151 @@ feature -- Layout
 			assert_true ("the year under the pointer stays", (tl.year_at (px) - l_year).abs < 1.0)
 		end
 
+feature -- Scan 15 (since c9d5571)
+
+	test_scan15_a_dispute_across_lanes_is_enveloped_in_each
+			-- H1: one envelope box per dispute kept only the last lane's, so
+			-- the positions in the other lanes stood unbracketed.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			l1, l2, d: INTEGER
+			p1, p2: SW_TIMELINE_ITEM
+		do
+			create w.make ("gw17", 0, 0, 900, 400, create {SW_THEME}.make_light)
+			create tl.make
+			l1 := tl.add_lane ("Rome", "Bible world")
+			l2 := tl.add_lane ("Church", "Church")
+			d := tl.add_dispute ("Crucifixion", 29, 34)
+			p1 := tl.add_position (d, l1, "AD 30", 30, 30, 1)
+			p2 := tl.add_position (d, l2, "AD 33", 33, 33, 1)
+			tl.set_view (0.0, 60.0)
+			w.set_root (tl)
+			w.request_render
+			assert_true ("the Rome position is enveloped", enveloped (tl, p1))
+			assert_true ("the Church position is enveloped", enveloped (tl, p2))
+		end
+
+	test_scan15_a_one_year_bar_is_not_a_tick
+			-- H2: a one-year item of class B (Qarqar, fixed to the year) was
+			-- drawn as class A's tick, claiming a day it does not have.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			l: INTEGER
+			qarqar: SW_TIMELINE_ITEM
+		do
+			create w.make ("gw17", 0, 0, 900, 300, create {SW_THEME}.make_light)
+			create tl.make
+			l := tl.add_lane ("Israel and Judah", "Bible world")
+			qarqar := tl.add_item (l, "Qarqar", -852, -852, 2)
+			tl.set_view (-1000.0, 0.0)
+			w.set_root (tl)
+			w.request_render
+			assert_false ("class B is a bar, not a tick", qarqar.is_point)
+			assert_true ("wide enough to read as a bar", tl.item_boxes [qarqar.id].bw >= 6.0)
+		end
+
+	test_scan15_a_dispute_never_loses_a_position
+			-- H3: positions were shown one by one, so at millennium scale a
+			-- dispute of detail positions vanished. Disputes are drawn, not
+			-- hidden: all positions show while the envelope is on the view.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			l, d: INTEGER
+			p1, p2: SW_TIMELINE_ITEM
+		do
+			create w.make ("gw17", 0, 0, 900, 300, create {SW_THEME}.make_light)
+			create tl.make
+			l := tl.add_lane ("Rome", "Bible world")
+			d := tl.add_dispute ("Crucifixion", 29, 34)
+			p1 := tl.add_position (d, l, "AD 30", 30, 30, 1)
+			p2 := tl.add_position (d, l, "AD 33", 33, 33, 1)
+			p1.set_importance (p1.Importance_detail)
+			p2.set_importance (p2.Importance_detail)
+			tl.set_view (-3000.0, 2000.0)
+			w.set_root (tl)
+			w.request_render
+			assert_true ("both positions show at millennium scale", tl.is_item_shown (p1) and tl.is_item_shown (p2))
+		end
+
+	test_scan15_a_tick_stands_where_the_cursor_stands
+			-- H4: a tick stood at the start of its year, the cursor and the
+			-- axis at its middle - 200 pixels apart at a two-year view.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			l: INTEGER
+			ev: SW_TIMELINE_ITEM
+		do
+			create w.make ("gw17", 0, 0, 900, 300, create {SW_THEME}.make_light)
+			create tl.make
+			l := tl.add_lane ("Rome", "Bible world")
+			ev := tl.add_item (l, "Ides of March", 10, 10, 1)
+			tl.set_view (9.0, 11.0)
+			tl.set_cursor (10)
+			w.set_root (tl)
+			w.request_render
+			assert_true ("the tick at the cursor",
+				((tl.item_boxes [ev.id].bx + tl.item_boxes [ev.id].bw / 2.0) - tl.year_x (10.5)).abs < 1.5)
+		end
+
+	test_scan15_preferred_height_counts_rows_and_headers
+			-- H5: the preferred height counted one row per lane, not the
+			-- stacked rows and the group headers, so lanes fell off the bottom.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			l1, l2: INTEGER
+		do
+			create w.make ("gw17", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			create tl.make
+			l1 := tl.add_lane ("Rome", "Bible world")
+			l2 := tl.add_lane ("Church", "Church")
+			tl.add_item (l1, "Augustus", -26, 14, 2).do_nothing
+			tl.add_item (l1, "Herod", -36, -3, 2).do_nothing
+			tl.add_item (l1, "Tiberius", 14, 37, 2).do_nothing
+			tl.add_item (l1, "Varus", -6, 9, 2).do_nothing
+			tl.add_item (l2, "Pentecost", 30, 33, 6).do_nothing
+			tl.set_view (-60.0, 60.0)
+			w.set_root (tl)
+			w.request_render
+			assert_true ("tall enough for every row: " + tl.preferred_height (w.painter, tl.width).out + " against " + (tl.lane_tops [l2] + tl.lane_heights [l2] - tl.y).out,
+				tl.preferred_height (w.painter, tl.width) >= tl.lane_tops [l2] + tl.lane_heights [l2] - tl.y)
+		end
+
+	test_scan15_lanes_below_the_bottom_can_be_reached
+			-- H5: with no vertical scroll, lanes past the widget's height could
+			-- not be reached. The timeline scrolls under a bar; the wheel still
+			-- zooms; Page Down and the bar reach the last lane.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			i, l: INTEGER
+		do
+			create w.make ("gw17", 0, 0, 900, 240, create {SW_THEME}.make_light)
+			create tl.make
+			from i := 1 until i > 30 loop
+				l := tl.add_lane ("Lane " + i.out, "Group " + ((i - 1) // 5).out)
+				tl.add_item (l, "event " + i.out, i * 10, i * 10 + 5, 2).do_nothing
+				i := i + 1
+			end
+			tl.set_view (0.0, 320.0)
+			w.set_root (tl)
+			w.request_render
+			assert_true ("more than fits", tl.max_scroll > 0.0)
+			assert_true ("the last lane starts below the bottom", tl.lane_tops [30] > tl.y + tl.height)
+			from i := 1 until i > 40 loop
+				tl.handle_key (34, False)
+				i := i + 1
+			end
+			w.request_render
+			assert_true ("scrolled to the end", tl.scroll_y = tl.max_scroll)
+			assert_true ("the last lane is in view",
+				tl.lane_tops [30] >= tl.y + tl.axis_h and tl.lane_tops [30] + tl.lane_heights [30] <= tl.y + tl.height + 0.5)
+		end
+
 feature -- Evidence
 
 	test_gw17_timeline_light
@@ -203,6 +348,21 @@ feature -- Evidence
 		end
 
 feature {NONE} -- Fixtures
+
+	enveloped (a_tl: SW_LANE_TIMELINE; a_item: SW_TIMELINE_ITEM): BOOLEAN
+			-- Is `a_item''s box inside some envelope box?
+		local
+			b: TUPLE [bx, by, bw, bh: REAL_64]
+		do
+			b := a_tl.item_boxes [a_item.id]
+			across
+				a_tl.envelope_boxes as e
+			loop
+				if b.bx >= e.ex and b.bx + b.bw <= e.ex + e.ew and b.by >= e.ey and b.by + b.bh <= e.ey + e.eh then
+					Result := True
+				end
+			end
+		end
 
 	pilot (a_theme: SW_THEME; a_name: STRING)
 			-- A few pilot rows (11-timeline-pilot): every certainty class, a
