@@ -115,23 +115,8 @@ feature -- Drawing
 			fg, bg: NATURAL_32
 		do
 			t := a_p.theme
-			inspect kind
-			when 1 then
-				fg := t.accent
-				bg := t.wash_accent
-			when 2 then
-				fg := t.success
-				bg := t.wash_success
-			when 3 then
-				fg := t.warning
-				bg := t.wash_warning
-			when 4 then
-				fg := t.danger
-				bg := t.wash_danger
-			else
-				fg := t.ink_muted
-				bg := t.surface_variant
-			end
+			fg := text_color (t)
+			bg := fill_color (t)
 			a_p.set_color (bg)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			if is_removable then
@@ -150,6 +135,55 @@ feature -- Drawing
 			a_p.set_color (fg)
 			a_p.font ({SW_PAINTER}.Role_mono, t.size_chip, False)
 			a_p.text (x + 8.0, y + height - 6.0, label)
+		end
+
+feature -- Colours
+
+	fill_color (a_theme: SW_THEME): NATURAL_32
+			-- The chip's ground: its kind's wash.
+		do
+			inspect kind
+			when 1 then
+				Result := a_theme.wash_accent
+			when 2 then
+				Result := a_theme.wash_success
+			when 3 then
+				Result := a_theme.wash_warning
+			when 4 then
+				Result := a_theme.wash_danger
+			else
+				Result := a_theme.surface_variant
+			end
+		end
+
+	text_color (a_theme: SW_THEME): NATURAL_32
+			-- The label, the outline and the remove cross: the theme's strong
+			-- ink for that wash (it drew the fill colour itself, under 4.5:1 on
+			-- the wash in dark).
+		do
+			inspect kind
+			when 1 then
+				Result := a_theme.ink_accent
+			when 2 then
+				Result := a_theme.ink_success
+			when 3 then
+				Result := a_theme.ink_warning
+			when 4 then
+				Result := a_theme.ink_danger
+			else
+				Result := neutral_text_color (a_theme)
+			end
+		end
+
+	neutral_text_color (a_theme: SW_THEME): NATURAL_32
+			-- A neutral chip's text: muted where muted ink reads on its ground,
+			-- else full ink (a contrast palette promises only the ink there).
+		do
+			if a_theme.contrast_ratio (a_theme.ink_muted, a_theme.surface_variant) >= a_theme.Body_contrast then
+				Result := a_theme.ink_muted
+			else
+				Result := a_theme.ink
+			end
 		end
 
 invariant

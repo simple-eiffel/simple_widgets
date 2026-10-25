@@ -235,6 +235,40 @@ feature -- Scan 10 (since 053211b)
 			assert_true ("wears the answer it read: contrast", w.is_wearing_high_contrast)
 		end
 
+feature -- Chips and badges
+
+	test_chips_and_badges_read_in_every_theme
+			-- Every kind of chip and badge draws its text at 4.5:1 on its
+			-- ground, in light, dark and the four Windows contrast palettes
+			-- (the GW-16 scan: badges wrote `surface' on the fill and chips the
+			-- fill colour on its wash, ignoring the ink-on-fill tokens).
+		local
+			l_themes: ARRAYED_LIST [TUPLE [name: STRING; theme: SW_THEME]]
+			chip: SW_CHIP
+			badge: SW_BADGE
+			k: INTEGER
+		do
+			create l_themes.make (6)
+			l_themes.extend (["light", create {SW_THEME}.make_light])
+			l_themes.extend (["dark", create {SW_THEME}.make_dark])
+			l_themes.append (windows_palettes)
+			across l_themes as th loop
+				from k := 0 until k > 4 loop
+					create chip.make ("x", k)
+					assert_true (th.name + " chip " + k.out + ": " + th.theme.contrast_ratio (chip.text_color (th.theme), chip.fill_color (th.theme)).out,
+						th.theme.contrast_ratio (chip.text_color (th.theme), chip.fill_color (th.theme)) >= 4.5)
+					k := k + 1
+				end
+				from k := 0 until k > 3 loop
+					create badge.make_count (3)
+					badge.set_kind (k)
+					assert_true (th.name + " badge " + k.out + ": " + th.theme.contrast_ratio (badge.text_color (th.theme), badge.fill_color (th.theme)).out,
+						th.theme.contrast_ratio (badge.text_color (th.theme), badge.fill_color (th.theme)) >= 4.5)
+					k := k + 1
+				end
+			end
+		end
+
 feature {NONE} -- Fixtures
 
 	told: INTEGER
