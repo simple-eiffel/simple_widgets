@@ -11,12 +11,14 @@ class
 inherit
 	SHELL_APPEARANCE
 		redefine
-			system_prefers_dark, system_high_contrast, system_color
+			system_prefers_dark, system_high_contrast, system_color, system_reduces_motion
 		end
 
 feature -- Access
 
 	system_prefers_dark: BOOLEAN
+
+	system_reduces_motion: BOOLEAN
 
 	system_high_contrast: BOOLEAN
 			-- The switch as set; with `flips_on_read', every read turns it
@@ -61,6 +63,11 @@ feature -- Element change
 	set_high_contrast (a_on: BOOLEAN)
 		do
 			high_contrast_value := a_on
+		end
+
+	set_reduces_motion (a_on: BOOLEAN)
+		do
+			system_reduces_motion := a_on
 		end
 
 	set_flips_on_read (a_on: BOOLEAN)

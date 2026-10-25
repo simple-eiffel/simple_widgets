@@ -335,6 +335,18 @@ feature -- Status (GW-28)
 	is_high_contrast: BOOLEAN
 			-- Was this theme painted from a Windows contrast theme (GW-16)?
 
+	reduces_motion: BOOLEAN
+			-- Should widgets hold still - no shimmer, no travelling bands
+			-- (GW-14)? Set by the application, or live by a window following
+			-- Windows' animation setting.
+
+	set_reduces_motion (a_on: BOOLEAN)
+		do
+			reduces_motion := a_on
+		ensure
+			set: reduces_motion = a_on
+		end
+
 	is_dark: BOOLEAN
 			-- Is this a dark theme? Decided by its surface.
 		do
@@ -454,11 +466,13 @@ feature -- Element change (GW-28)
 feature -- Adopting (GW-16)
 
 	adopt_metrics_from (a_other: SW_THEME)
-			-- Take `a_other''s text scale, spacing, sizes, type families and
-			-- locale, so a contrast theme worn in place of an application's
-			-- own keeps its sizes and faces.
+			-- Take `a_other''s text scale, spacing, sizes, type families,
+			-- locale and motion preference, so a contrast theme worn in place
+			-- of an application's own keeps its sizes and faces and holds
+			-- still if it did.
 		do
 			text_scale := a_other.text_scale
+			reduces_motion := a_other.reduces_motion
 			radius := a_other.radius
 			button_height := a_other.button_height
 			chip_height := a_other.chip_height
@@ -475,6 +489,7 @@ feature -- Adopting (GW-16)
 			locale := a_other.locale
 		ensure
 			scale_taken: text_scale = a_other.text_scale
+			motion_taken: reduces_motion = a_other.reduces_motion
 			sizes_taken: size_body = a_other.size_body and size_label = a_other.size_label
 				and size_chip = a_other.size_chip and button_height = a_other.button_height
 			spacing_taken: border_width = a_other.border_width and padding = a_other.padding

@@ -752,6 +752,11 @@ feature {NONE} -- Test runners
 			run_test (agent image_tests.test_scan11_grid_hover_never_exports, "scan11_grid_hover_never_exports")
 			run_test (agent image_tests.test_scan11_fractional_edges_are_opaque, "scan11_fractional_edges_are_opaque")
 			run_test (agent image_tests.test_scan11_oversized_export_is_refused, "scan11_oversized_export_is_refused")
+			print ("%N=== GW-14 REDUCED MOTION ===%N")
+			create motion_tests
+			run_test (agent motion_tests.test_gw14_skeleton_holds_still, "gw14_skeleton_holds_still")
+			run_test (agent motion_tests.test_gw14_progress_band_holds_still, "gw14_progress_band_holds_still")
+			run_test (agent motion_tests.test_gw14_window_follows_the_animation_setting, "gw14_window_follows_the_animation_setting")
 			print ("%N=== GW-29 VIRTUAL GRID ===%N")
 			create virtual_grid_tests
 			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_light, "gw29_hundred_thousand_rows_light")
@@ -826,6 +831,7 @@ feature {NONE} -- Test runners
 	tabs_tests: SW_TABS_ASSAULT
 	contrast_tests: SW_HIGH_CONTRAST_ASSAULT
 	image_tests: SW_WIDGET_IMAGE_ASSAULT
+	motion_tests: SW_REDUCED_MOTION_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.
