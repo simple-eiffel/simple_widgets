@@ -661,6 +661,7 @@ feature {NONE} -- The coarse world
 		once
 			across region.land as r loop l_most := l_most.max (r.count) end
 			across region.lakes as r loop l_most := l_most.max (r.count) end
+			across region.holes as r loop l_most := l_most.max (r.count) end
 			create Result.make_filled (0.0, 1, l_most.max (2))
 		ensure
 			holds_every_ring: across region.land as r all r.count <= Result.count end
@@ -710,6 +711,10 @@ feature {NONE} -- The coarse world
 			a_p.fill_rect (bx, y_of_lat (region.North), x_of_lon (region.East) - bx, y_of_lat (region.South) - y_of_lat (region.North))
 			a_p.set_color (land_color (t))
 			draw_ring_list (a_p, region.land, True, 1.0)
+				-- seas inside the land (the Caspian): water, whatever the lake layer
+				-- says (scan 16: the outer rings alone drew them as land)
+			a_p.set_color (water_color (t))
+			draw_ring_list (a_p, region.holes, True, 1.0)
 			if is_layer_shown (Layer_lakes) then
 				a_p.set_color (water_color (t))
 				draw_ring_list (a_p, region.lakes, True, 1.0)
