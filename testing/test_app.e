@@ -720,6 +720,10 @@ feature {NONE} -- Test runners
 			run_test (agent tabs_tests.test_gw15_wheel_steps_over_the_strip, "gw15_wheel_steps_over_the_strip")
 			run_test (agent tabs_tests.test_gw15_tabs_light, "gw15_tabs_light")
 			run_test (agent tabs_tests.test_gw15_tabs_dark, "gw15_tabs_dark")
+			run_test (agent tabs_tests.test_scan9_a_narrow_bar_still_shows_the_selected_tab, "scan9_a_narrow_bar_still_shows_the_selected_tab")
+			run_test (agent tabs_tests.test_scan9_a_zero_inset_theme_still_shows_tabs, "scan9_a_zero_inset_theme_still_shows_tabs")
+			run_test (agent tabs_tests.test_scan9_a_close_handler_may_adopt_the_page, "scan9_a_close_handler_may_adopt_the_page")
+			run_test (agent tabs_tests.test_scan9_moving_across_hidden_tabs_leaves_no_stale_box, "scan9_moving_across_hidden_tabs_leaves_no_stale_box")
 			print ("%N=== GW-29 VIRTUAL GRID ===%N")
 			create virtual_grid_tests
 			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_light, "gw29_hundred_thousand_rows_light")

@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.29.1 - the ninth scan, since 760abf1)
+
+- **A narrow bar shows the selected tab.** In a bar too narrow for any
+  room beside the chevron, the selected tab got no width and `arrange`
+  broke its own `selected_shown` postcondition. The first placed tab now
+  keeps at least one pixel (`SW_TAB_STRIP.place_tabs_scrolling`, new
+  postcondition `first_has_width`).
+- **A theme with no control inset shows its tabs.** The width cap was
+  twenty `control_inset`s, and `set_spacing` allows an inset of 0, which
+  gave every tab no width. The cap is thirteen label-font boxes (about
+  the same 220 pixels at 1x), and every natural width is at least one
+  pixel.
+- **A close handler may adopt the page.** `close_tab` promised the closed
+  page had no parent after calling `on_close`, so a handler that moved the
+  page into another notebook broke the promise. The page is let go before
+  the call, and the promise is gone.
+- **No stale box after moving across hidden tabs.** `move_tab` across a
+  tab scrolled off the strip swapped boxes with a made-up gap, leaving a
+  box outside the strip until the next arrange. Such a swap now forgets
+  the placement; `swap_adjacent_boxes` requires both tabs shown.
+- Tests (before/after; all four failed on 0.29.0):
+  `scan9_a_narrow_bar_still_shows_the_selected_tab`,
+  `scan9_a_zero_inset_theme_still_shows_tabs`,
+  `scan9_a_close_handler_may_adopt_the_page`,
+  `scan9_moving_across_hidden_tabs_leaves_no_stale_box`. 459 pass;
+  `screen_grab_marries_cairo` fails only in a locked session.
+- Not done (the scan's extraction candidates wait for Larry's word):
+  tab measuring and drawing move into `SW_TAB_STRIP` for both SW_TABS
+  and SW_DOCK_ZONE (they have drifted: strip height and fill insets
+  differ); the remaining fixed pixel insets in tab drawing become theme
+  tokens. Report: `.eiffel-workflow/evidence/design-scan-since-760abf1.md`.
+
 ### Added (0.29.0 - GW-15: closable, reorderable tabs with an overflow menu)
 
 For many Bible tabs (`Ctrl+W` in the GUI specification).

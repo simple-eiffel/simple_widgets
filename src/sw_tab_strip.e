@@ -161,7 +161,9 @@ feature -- Placement
 			-- SCROLL: from tab `a_first', tabs side by side at their natural
 			-- widths with `a_gap' between, as many as fit whole in `a_room';
 			-- the tabs before `a_first' and after the last that fits get no
-			-- width. Tab `a_first' is always placed, cut to the room.
+			-- width. Tab `a_first' is always placed, cut to the room but
+			-- never below one pixel (scan 9: a bar too narrow for any room
+			-- once gave the selected tab no width at all).
 		require
 			first_in_range: a_naturals.is_empty or else (a_first >= 1 and a_first <= a_naturals.count)
 			room_non_negative: a_room >= 0.0
@@ -184,7 +186,7 @@ feature -- Placement
 					and then (i = a_first or else l_x + a_naturals.i_th (i) <= a_left + a_room)
 				then
 					tab_lefts.extend (l_x)
-					tab_widths.extend (a_naturals.i_th (i).min (a_room))
+					tab_widths.extend (a_naturals.i_th (i).min (a_room).max (1.0))
 					l_x := l_x + a_naturals.i_th (i) + a_gap
 					last_placed := i
 				else
@@ -197,6 +199,7 @@ feature -- Placement
 		ensure
 			one_box_per_tab: tab_lefts.count = a_naturals.count and tab_widths.count = a_naturals.count
 			first_placed: not a_naturals.is_empty implies last_placed >= a_first
+			first_has_width: not a_naturals.is_empty implies tab_widths.i_th (a_first) > 0.0
 		end
 
 	forget_placement
@@ -218,6 +221,7 @@ feature -- Placement
 			-- tab several places in one pointer move).
 		require
 			both_placed: a_i >= 1 and a_i < tab_widths.count
+			both_shown: tab_widths.i_th (a_i) > 0.0 and tab_widths.i_th (a_i + 1) > 0.0
 		local
 			l_gap, l_w: REAL_64
 		do
