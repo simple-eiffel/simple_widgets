@@ -16,7 +16,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.9.0 - 0.38.2: the simple_bible gap program** (tracker in simple_bible,
+**0.9.0 - 0.38.3: the simple_bible gap program** (tracker in simple_bible,
 `.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
 every text item is gated on Hebrew and Greek in both the light and the dark
 theme, with evidence PNGs in `evidence/`.
@@ -44,6 +44,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.38.3 | - | `SW_TAB_STRIP.draw_tab_ground`: notebooks and dock tabs paint tabs one way |
 | 0.38.2 | - | GW-29's 60 Hz budget held in the lean (shipped) build; the contract build guards at twice the budget |
 | 0.38.1 | - | `SW_GEOMETRY_DATA`: one parser for the generated world and region geometry |
 | 0.38.0 | - | `SW_COLOR_MATH`: one place for channels, luminance, contrast and blending (was four copies) |

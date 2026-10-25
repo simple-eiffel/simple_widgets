@@ -6,9 +6,12 @@ note
 		natural widths overflow (SW_DOCK_ZONE). SCROLL puts tabs at their
 		natural widths from a first one, as many as fit whole, and gives
 		the rest no width (SW_TABS, whose overflow menu reaches them).
-		The heir measures and draws; this class only knows boxes. One box
-		per tab, in tab order, filled by `place_tabs_shrinking' or
-		`place_tabs_scrolling' during arrange.
+		The heir measures; this class knows the boxes and paints each tab's
+		ground the same way for every heir (`draw_tab_ground', pushed up
+		2026-10-25 when SW_TABS and SW_DOCK_ZONE had drifted to two
+		different fills and underlines). One box per tab, in tab order,
+		filled by `place_tabs_shrinking' or `place_tabs_scrolling' during
+		arrange.
 	]"
 
 deferred class
@@ -118,6 +121,37 @@ feature -- Access
 			end
 		ensure
 			keeps: Result >= 1 and Result <= a_keep
+		end
+
+feature -- Painting
+
+	draw_tab_ground (a_p: SW_PAINTER; a_i: INTEGER; a_selected, a_hovered: BOOLEAN): NATURAL_32
+			-- Paint tab `a_i''s ground - the selected tab on the surface with
+			-- an accent underline, a hovered one on the quiet surface - and
+			-- answer the ink its label takes. Insets come from the theme.
+		require
+			placed: a_i >= 1 and a_i <= tab_widths.count
+			shown: tab_widths.i_th (a_i) > 0.0
+		local
+			t: SW_THEME
+			l_inset, l_rule: REAL_64
+		do
+			t := a_p.theme
+			l_inset := t.padding / 2.0
+			l_rule := (t.border_width / 4.0).max (2.0)
+			if a_selected then
+				a_p.set_color (t.surface)
+				a_p.rrect_fill (tab_lefts.i_th (a_i), strip_top + l_inset, tab_widths.i_th (a_i), strip_height - l_inset - 1.0, t.radius)
+				a_p.set_color (t.accent)
+				a_p.fill_rect (tab_lefts.i_th (a_i) + l_inset, strip_top + strip_height - l_rule, (tab_widths.i_th (a_i) - 2.0 * l_inset).max (1.0), l_rule)
+				Result := t.ink
+			elseif a_hovered then
+				a_p.set_color (t.surface_variant)
+				a_p.rrect_fill (tab_lefts.i_th (a_i), strip_top + l_inset, tab_widths.i_th (a_i), strip_height - l_inset - 1.0, t.radius)
+				Result := t.ink
+			else
+				Result := t.ink_muted
+			end
 		end
 
 feature -- Placement
