@@ -19,6 +19,8 @@ inherit
 			draw
 		end
 
+	SW_COLOR_MATH
+
 create
 	make
 
@@ -129,18 +131,8 @@ feature -- Access
 			-- Channel-wise interpolation between two 0xRRGGBB colours.
 		require
 			unit: a_fraction >= 0.0 and a_fraction <= 1.0
-		local
-			r1, g1, b1, r2, g2, b2: INTEGER
 		do
-			r1 := a_from.bit_shift_right (16).bit_and (0xFF).to_integer_32
-			g1 := a_from.bit_shift_right (8).bit_and (0xFF).to_integer_32
-			b1 := a_from.bit_and (0xFF).to_integer_32
-			r2 := a_to.bit_shift_right (16).bit_and (0xFF).to_integer_32
-			g2 := a_to.bit_shift_right (8).bit_and (0xFF).to_integer_32
-			b2 := a_to.bit_and (0xFF).to_integer_32
-			Result := ((r1 + ((r2 - r1).to_double * a_fraction).rounded).to_natural_32.bit_shift_left (16))
-				.bit_or ((g1 + ((g2 - g1).to_double * a_fraction).rounded).to_natural_32.bit_shift_left (8))
-				.bit_or ((b1 + ((b2 - b1).to_double * a_fraction).rounded).to_natural_32)
+			Result := mixed (a_from, a_to, a_fraction)
 		end
 
 feature -- Element change
