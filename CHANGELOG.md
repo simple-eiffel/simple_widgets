@@ -21,6 +21,58 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Added (0.27.0 — QUERY BUILDER CLAUSE TREE; GW-12; and the fifth scan's fixes)
+
+- **`SW_QUERY_BUILDER` builds a clause tree** (simple_bible's Search
+  Builder and Census criteria). The deferred `SW_QUERY_NODE` has three heirs:
+  `SW_QUERY_GROUP` (children joined ALL or ANY, nested to any depth),
+  `SW_QUERY_CONDITION` (field, operator, value) and `SW_QUERY_PROXIMITY`
+  (two words within n words of each other, `NEAR/n` in either order or
+  `BEFORE/n` in order). Any node can be negated (NOT).
+- The engine reads `root`. `expression` is the question as the reader
+  reads it. `query_text` is an SQL-shaped rendering for display only and is
+  never executed. Incomplete nodes are left out of both.
+- **Typed value pickers.** `set_field_choices` gives a field a picker of
+  codes (morphology, for one). `set_field_suggester` makes a field a lemma
+  whose picker follows the typing. A text or number field keeps a box.
+- **Controls carry their node.** Each group is framed with an ALL/ANY switch
+  and a "not" check box and ends in "+ condition", "+ group" and "+ near".
+  Every row has "not" and remove. An edit goes straight to the tree, and
+  `on_change` hears every change.
+- The first builder's flat calls (`add_clause`, `set_clause`,
+  `set_join_all`, `query_text`) still work on the root group.
+- `SW_TEXT_BOX.set_preferred_text_width`: a field can ask for less than
+  the default 240 (the proximity's word fields ask for 120).
+- Tests: `gw12_tree_reads_and_renders`,
+  `gw12_incomplete_and_negated_groups`, `gw12_typed_pickers_and_removal`,
+  and `gw12_builder_light`/`_dark` (evidence).
+
+### Fixed (0.27.0 — the fifth scan, since 7504574)
+
+- **One chart chip.** `SW_CHART.draw_chip` (with `draw_chip_beside`,
+  `draw_chip_above` and `draw_chip_corner`) replaces the chip that bar,
+  line, scatter, pie and heat map each drew themselves. It uses the theme's
+  chip size and padding and is kept inside the frame. The bar chart's chip
+  had no clamp before.
+- **The chassis draws the legend** from `legend_names` (bar and line
+  redefine it). `draw_legend_row` keeps clear of the title and ends in "+n"
+  when the names do not fit. Five series at 300 wide ran over the title
+  before.
+- `series_color` gives eight distinct colors before cycling (it was four,
+  so series 5 matched series 1).
+- `SW_BAR_CHART`: `set_series` clears the emphasis (an invariant keeps it
+  in range). Values must not be negative. The quiet series use the theme's
+  pale `ramp (2)` instead of `ink_soft`, a near-black text ink that made the
+  controls darker than the emphasized bar.
+- `SW_INTERLINEAR`: a click ends a text selection, and Ctrl+C copies the
+  text selection when there is one. Ctrl+A then Ctrl+C copied a single word
+  before.
+- Before/after tests: `gw10_new_series_forget_the_emphasis`,
+  `gw10_series_colours_stay_apart` and `gw07_a_click_ends_a_text_selection`
+  failed on the old code and pass now. Also added:
+  `gw10_crowded_chart_keeps_inside` (evidence `gw10_crowded_light.png`).
+  436 pass. `screen_grab_marries_cairo` fails only when the desktop cannot be read.
+
 ### Added (0.26.0 — GROUPED BARS; GW-10; and the fourth scan's fixes)
 
 - **Grouped multi-series bars in `SW_BAR_CHART`** (simple_bible's census
