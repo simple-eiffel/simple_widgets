@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-414%2F414-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-440%2F441-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -16,7 +16,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.9.0 - 0.24.0: the simple_bible gap program** (tracker in simple_bible,
+**0.9.0 - 0.28.2: the simple_bible gap program** (tracker in simple_bible,
 `.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
 every text item is gated on Hebrew and Greek in both the light and the dark
 theme, with evidence PNGs in `evidence/`.
@@ -39,6 +39,12 @@ theme, with evidence PNGs in `evidence/`.
 | 0.22.0 | GW-13 | Live-preview editing, GW-13 complete: `SW_DOCUMENT_VIEW.set_codec`, `SW_DOCUMENT_CODEC` and `SW_MARKDOWN_CODEC`, the `SW_IN_PLACE_EDITING` mixin, the model moved to simple_document (`SIMPLE_DOCUMENT`, `DOC_BLOCK`, `DOC_TEXT`), `SW_DOC_STYLES`, code blocks, inline code and strikethrough, `SW_KEYS.simulate` for tests; `SW_SPELLER` skips Hebrew and Greek |
 | 0.23.0 | - | The first post-merge abstraction scan's high findings: the fifth deferred ancestor `SW_STACKED_ITEMS`, editor hosting and one end of an edit in `SW_IN_PLACE_EDITING`, pointing in one place, one layout step (`SW_TEXT_GEOMETRY.lay_out`), and the paragraph list's spacing scales with the text |
 | 0.24.0 | GW-06 | Parallel text: `SW_PARALLEL_TEXT` (verse rows by version columns); the composed bases `SW_STACKED_POINTING` and `SW_DOC_UNITS` lifted from the document view, and the parentless mixin `SW_MARK_HOST` |
+| 0.25.0 | GW-07 | Interlinear: `SW_INTERLINEAR` (stacked word cells, right to left for Hebrew); the third post-merge scan's fixes, and `SW_DOC_UNITS` owns its heirs' input |
+| 0.26.0 | GW-10 | Grouped bars: `SW_BAR_CHART.set_series`, `add_group`, `series_at`, `set_emphasized_series`; the fourth scan's fixes |
+| 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
+| 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
+| 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.28.2 | - | The seventh scan: the layout memo follows `facade.policy_revision`; labels and menus shape like the painter; `SW_DATA_GRID.add_row` places one row; per-column alignment; GW-29 timing runs inside `without_contracts` |
 
 ✅ **ALL SIX WAVES SHIPPED, plus the Studio widgets (0.8.2)** — 114 classes (108 library + 5 devkit + 1 speechkit)
 - 0.8.2: `SW_TEXT_BOX` measures the same whatever was drawn last
@@ -64,7 +70,7 @@ theme, with evidence PNGs in `evidence/`.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 414 contract-assault tests passing at 0.24.0 (`screen_grab_marries_cairo` reads the
+- 444 contract-assault tests passing at 0.28.2 (`screen_grab_marries_cairo` reads the
   real desktop and fails while it is unreadable, such as a locked session or a sleeping
   display — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
@@ -161,7 +167,95 @@ which cell the pointer is on, and `scroll_to_row` brings a verse into view.
 Selecting copies a row's cells separated by tabs and the rows one per line.
 Spacing comes from the theme tokens.
 
-**Shared building blocks (0.24.0)** — the common parts of the scrolling and
+**Interlinear (0.25.0)** — `SW_INTERLINEAR` shows a text as stacked word
+cells: the surface word, transliteration (italic), pronunciation, gloss,
+lemma, Strong's number and morphology in English. Cells flow and wrap, right
+to left for Hebrew and left to right for Greek. `set_line_visible` hides any
+line except the surface word. A word that opens a verse carries its label on
+the reading-start side. A click, Left and Right (in reading order, mirrored
+right to left), Home and End select a word (`on_token_select`); `token_at`
+names the word under a point; Ctrl+C copies a word's lines; a rest on a word
+opens the card that `set_hover_card_builder` builds. It inherits
+`SW_DOC_UNITS` alone, so only the flow, the word selection and the keys are
+new. A click ends a text selection, and Ctrl+C copies that selection when
+there is one.
+
+![Interlinear, Genesis 1:1, light theme](evidence/gw07_interlinear_light.png)
+![Interlinear, Genesis 1:1, dark theme](evidence/gw07_interlinear_dark.png)
+
+**Grouped bars (0.26.0)** — `SW_BAR_CHART.set_series` names the series and
+`add_group (label, values)` adds a category with one value for each series;
+`add_bar` still makes a single-series chart. A group's bars stand side by side
+a quarter of the theme's padding apart, and with several series a legend names
+them. `series_at` says which bar is under a point, and the hover chip names its
+series and value. `set_emphasized_series` draws the other series in the theme's
+pale ink so the target stands out by lightness as well as hue. Values must not
+be negative, and `set_series` clears the emphasis.
+
+![Grouped bars, light theme](evidence/gw10_controls_light.png)
+![Grouped bars, dark theme](evidence/gw10_controls_dark.png)
+![A crowded chart stays inside its frame](evidence/gw10_crowded_light.png)
+
+**Charts share a chassis (0.27.0)** — `SW_CHART.draw_chip` (with
+`draw_chip_beside`, `draw_chip_above` and `draw_chip_corner`) is the one hover
+chip for the bar, line, scatter, pie and heat map charts. It uses the theme's
+chip size and padding and stays inside the frame. The chassis draws the legend
+from `legend_names`, keeps it clear of the title, and ends it in "+n" when the
+names do not fit. `series_color` gives eight distinct colors before it cycles.
+
+**Query builder (0.27.0)** — `SW_QUERY_BUILDER` builds a clause tree. The
+deferred `SW_QUERY_NODE` has three heirs: `SW_QUERY_GROUP` (children joined
+ALL or ANY, nested to any depth), `SW_QUERY_CONDITION` (field, operator,
+value) and `SW_QUERY_PROXIMITY` (two words within n words of each other,
+`NEAR/n` in either order or `BEFORE/n` in order). Any node can be negated. The
+engine reads `root`. `expression` is the question as a reader reads it, and
+`query_text` is an SQL-shaped rendering for display only, never executed.
+Incomplete nodes are left out of both. `set_field_choices` gives a field a
+picker of codes, and `set_field_suggester` makes a field a lemma whose picker
+follows the typing; a text or number field keeps a box. Each group is framed
+with an ALL/ANY switch and a "not" check box and ends in "+ condition",
+"+ group" and "+ near". An edit goes straight to the tree, and `on_change`
+hears every change, including a proximity's distance (0.28.1). The first
+builder's flat calls (`add_clause`, `set_clause`, `set_join_all`) still work on
+the root group. `SW_TEXT_BOX.set_preferred_text_width` lets a field ask for
+less than the default 240 pixels.
+
+![Query builder, light theme](evidence/gw12_builder_light.png)
+![Query builder, dark theme](evidence/gw12_builder_dark.png)
+
+**One hundred thousand rows (0.28.0)** — `SW_DATA_GRID` draws only the rows in
+view, and the concordance case (88,444 rows for the Greek article) was
+measured with 100,000 rows of shaped Hebrew and Greek cells. The defect was in
+simple_shaping 0.6.1: its layout cache's contracts rebuilt a whole model on
+every call. In this library, `SW_SHAPING.layout_styled` (which every widget's
+`SW_PAINTER.text` calls) keeps two generations of 1,024 layouts, so a string
+drawn again is one hash lookup. The font setters clear that memory, and
+`forget_layouts` is there for changes made on `facade` directly.
+`SW_GRID_COLUMN.sort_key` gives each row's key once per sort instead of two
+agent calls per comparison. Measured:
+- Lean build (`ec.sh release`, the shipping configuration): wheel frame 1.5
+  milliseconds median, page jump 5.1 milliseconds, sort 175 milliseconds,
+  against a 16.7 millisecond frame.
+- Contracts-on build (`ec.sh test`), with every contract on: wheel frame 14.8
+  milliseconds, page jump 42.6 milliseconds (0.28.2; the lean build is 1.5
+  and 5.1). The GW-29 test times only the measured step inside
+  simple_testing's `without_contracts`, with contracts switched off for that
+  step: wheel frame 3.7 milliseconds, page jump 13.6 milliseconds. It asserts
+  the 60 Hz budget in every build. The grid's merge runs over SPECIAL arrays,
+  and 100,000 rows sort in about 190 milliseconds.
+
+The grid also gained (0.28.2) `SW_DATA_GRID.add_row`, which places one row by
+binary search instead of filtering and sorting every row, and `add_rows` for
+many rows with one rebuild; and per-column alignment through
+`SW_GRID_COLUMN.alignment`, `set_alignment` and `aligned`. The default,
+`Align_start`, follows the text, so a Hebrew line sits flush right.
+
+The test runner takes `SW_ONLY=<part of a test name>` to run only those tests.
+
+![100,000 rows, light theme](evidence/gw29_grid_light.png)
+![100,000 rows, dark theme](evidence/gw29_grid_dark.png)
+
+**Shared building blocks (0.25.0)** — the common parts of the scrolling and
 text widgets live once:
 - `SW_TEXT_POINTING`, `SW_VSCROLLING`, `SW_TEXT_SELECTION`,
   `SW_IN_PLACE_EDITING`, `SW_STACKED_ITEMS` and `SW_DOC_UNITS` are deferred
@@ -179,8 +273,11 @@ text widgets live once:
   Editing in place gives the box laid over an item, key and character
   forwarding with Escape cancelling, and the change and commit callbacks.
   Stacked items gives the block stack, the measuring pass, the visible range
-  and the draw frame. `SW_DOCUMENT_VIEW` and `SW_PARAGRAPH_LIST` stand on
-  these.
+  and the draw frame. `SW_DOCUMENT_VIEW`, `SW_PARAGRAPH_LIST`, `SW_PARALLEL_TEXT` and
+  `SW_INTERLINEAR` stand on these. `SW_DOC_UNITS` also owns its heirs' input
+  (wheel, click, double click, drag, keys, hover) and layout bookkeeping, and
+  `SW_STACKED_ITEMS.pinned_height` keeps a band that does not scroll out of the
+  content.
 - `SW_VSCROLLBAR` is the one vertical scrollbar, owned by `SW_LIST`,
   `SW_PARAGRAPH_LIST`, `SW_SCROLL_AREA`, `SW_CHAT_THREAD`, `SW_TREE` and
   `SW_DATA_GRID`. Its drag keeps the grab point and ends on release.
