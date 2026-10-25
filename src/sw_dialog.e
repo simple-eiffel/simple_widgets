@@ -218,6 +218,24 @@ feature -- Interaction
 				and then a_py >= y and then a_py <= y + height
 		end
 
+feature -- Accessibility (GW-14)
+
+	button_bounds (a_i: INTEGER): TUPLE [bx, by, bw, bh: REAL_64]
+			-- Where button `a_i' was last drawn; the whole card when it has
+			-- not been.
+		require
+			in_range: a_i >= 1 and a_i <= buttons.count
+		do
+			Result := [x, y, width, height]
+			across
+				zones as z
+			loop
+				if z.idx = a_i then
+					Result := [z.zx, z.zy, z.zw, z.zh]
+				end
+			end
+		end
+
 feature -- Spacing (the dialog card's own border and button minimums)
 
 	border_width (a_p: SW_PAINTER): REAL_64

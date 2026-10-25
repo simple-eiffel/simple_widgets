@@ -725,7 +725,30 @@ feature -- Accessibility (GW-14)
 	accessible_name_override: detachable STRING_32
 			-- The name given with `set_accessible_name'.
 
+	accessible_node_id: INTEGER
+			-- This widget's node id for UI Automation: given once, the first
+			-- time it is published, and kept for its life - so a screen
+			-- reader's reference survives widgets added before it (scan 13:
+			-- ids were tree positions and shifted).
+		do
+			if accessible_node_id_cache = 0 then
+				accessible_node_id_counter.put (accessible_node_id_counter.item + 1)
+				accessible_node_id_cache := accessible_node_id_counter.item
+			end
+			Result := accessible_node_id_cache
+		ensure
+			positive: Result > 0
+		end
+
 feature {NONE} -- Implementation
+
+	accessible_node_id_cache: INTEGER
+
+	accessible_node_id_counter: CELL [INTEGER]
+			-- The last node id given, process-wide.
+		once ("PROCESS")
+			create Result.put (0)
+		end
 
 	is_disabled: BOOLEAN
 			-- Stored inverted so a fresh widget is enabled by default.

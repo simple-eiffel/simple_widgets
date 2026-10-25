@@ -12,7 +12,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			sub_widgets,
+			sub_widgets, accessible_children,
 			arrange, widget_at, handle_click, wants_hover_point
 		end
 
@@ -120,6 +120,20 @@ feature -- Element change
 		end
 
 feature -- Tooling
+
+	accessible_children: ARRAYED_LIST [SW_WIDGET]
+			-- Only the open sections' contents: a closed one is not on the
+			-- screen (scan 13: it was published with stale bounds).
+		do
+			create Result.make (sections.count)
+			across
+				sections as s
+			loop
+				if s.is_open then
+					Result.extend (s.content)
+				end
+			end
+		end
 
 	sub_widgets: ARRAYED_LIST [SW_WIDGET]
 		do
