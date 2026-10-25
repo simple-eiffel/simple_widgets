@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.30.1 - the tenth scan, since 053211b: contrast grounds)
+
+The contrast theme kept every pairing readable on the window but left the
+grounds widgets actually draw ink on unchecked. Each fix has a test that
+failed on 0.30.0:
+- **Selected rows show.** Every wash was the window, and eleven widgets
+  paint a selected row or selected text with `wash_accent`. It is now the
+  selection ground, a step toward the highlight that stands out from the
+  window and keeps the ink at 4.5:1 (`scan10_selected_rows_show_in_contrast`).
+- **A pressed button's label reads.** `outline` was the ink, and a pressed
+  plain button fills with `outline` under an ink label. Outlines are now
+  the furthest step from the window toward the ink that keeps the ink at
+  4.5:1 (`scan10_a_pressed_button_label_reads`).
+- **Selection never vanishes.** With a highlight lost in the window the
+  selection fell back to the window; it takes the outline step instead
+  (`scan10_selection_never_vanishes`).
+- **Disabled text looks disabled.** Muted text was the ink; it fades
+  toward the window and still reads at 4.5:1
+  (`scan10_disabled_text_looks_disabled`).
+- **Hover shows.** On High Contrast Black the button face is the window,
+  so `surface_variant` vanished; it is half the outline step
+  (`scan10_hover_shows`).
+- **The accent reads as small text.** It was kept at 3:1 but is drawn as
+  chip and badge text; it now needs 4.5:1 or gives way to the ink
+  (`scan10_accent_reads_as_small_text`).
+- **A theme swap reaches the shaping kit.** `SW_WINDOW.wear_theme` now
+  calls `set_theme_faces` when the type families change
+  (`scan10_a_theme_swap_updates_the_kit_faces`); `SW_SHAPING.role_family`
+  is public.
+- **The switch is read once.** `wear_system_appearance` read the switch
+  again in a postcondition, so a flip in between broke the promise
+  (`scan10_the_switch_is_read_once`).
+- `adopt_metrics_from` also takes the radius, the control heights, the
+  type sizes and the line height (no setter can make two themes differ in
+  these today, so no test can fail on 0.30.0).
+- New postconditions on `make_high_contrast`: `accent_reads`,
+  `pressed_label_reads`, `selection_reads`, `hover_reads`. A class note
+  in `make_high_contrast` says why, for the next editor.
+- Not done: SW_BADGE and SW_CHIP draw text on semantic fills without the
+  `ink_on_*` tokens (a widget fix, not the theme's); the duplicated color
+  blend in SW_HEATMAP. Report:
+  `.eiffel-workflow/evidence/design-scan-since-053211b.md`. 473 pass;
+  `screen_grab_marries_cairo` fails only in a locked session.
+
 ### Added (0.30.0 - GW-16: follow Windows high contrast)
 
 Needs simple_shell 1.20.0.

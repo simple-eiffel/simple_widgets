@@ -487,8 +487,11 @@ feature {NONE} -- Per-role policies (GW-04)
 	ui_family, body_family, mono_family: detachable STRING_32
 			-- The theme's faces, once `set_theme_faces' has run.
 
+feature -- Theme faces
+
 	role_family (a_role: INTEGER): detachable STRING_32
 			-- The theme face for `a_role', or Void before `set_theme_faces'.
+			-- Public since scan 10, so a test can see a theme swap reach it.
 		do
 			inspect a_role
 			when 2 then Result := body_family

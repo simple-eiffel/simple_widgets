@@ -19,6 +19,18 @@ feature -- Access
 	system_prefers_dark: BOOLEAN
 
 	system_high_contrast: BOOLEAN
+			-- The switch as set; with `flips_on_read', every read turns it
+			-- (a Windows flip arriving between two reads).
+		do
+			Result := high_contrast_value
+			if flips_on_read then
+				high_contrast_value := not high_contrast_value
+			end
+		end
+
+	high_contrast_value: BOOLEAN
+
+	flips_on_read: BOOLEAN
 
 	system_color (a_index: INTEGER): NATURAL_32
 		do
@@ -48,7 +60,12 @@ feature -- Element change
 
 	set_high_contrast (a_on: BOOLEAN)
 		do
-			system_high_contrast := a_on
+			high_contrast_value := a_on
+		end
+
+	set_flips_on_read (a_on: BOOLEAN)
+		do
+			flips_on_read := a_on
 		end
 
 	set_palette (a_window, a_window_text, a_highlight, a_highlight_text, a_button_face, a_hotlight: NATURAL_32)

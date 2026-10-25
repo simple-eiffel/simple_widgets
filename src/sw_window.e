@@ -563,9 +563,20 @@ feature {NONE} -- Theme internals (GW-27)
 			-- The pair `follow_system_theme' chooses between.
 
 	wear_theme (a_theme: SW_THEME)
-			-- Put `a_theme' on: tokens, painter, backdrop brush, caption.
+			-- Put `a_theme' on: tokens, painter, backdrop brush, caption,
+			-- and - when its type families differ from the theme it replaces
+			-- - the shaping kit's theme faces (scan 10: they stayed stale).
+		local
+			l_old: SW_THEME
 		do
+			l_old := theme
 			theme := a_theme
+			if attached shaping as al_kit and then (not l_old.family_ui.same_string (a_theme.family_ui)
+				or not l_old.family_body.same_string (a_theme.family_body)
+				or not l_old.family_mono.same_string (a_theme.family_mono))
+			then
+				al_kit.set_theme_faces (a_theme)
+			end
 			create painter.make (ctx, a_theme)
 			painter.set_shaping (shaping)
 			set_backdrop_rgb (a_theme.background.to_integer_32)
@@ -579,10 +590,15 @@ feature {NONE} -- Theme internals (GW-27)
 			-- Wear what Windows asks for: the contrast theme while one is
 			-- on, else the light or dark member of the followed pair; and
 			-- tell `on_theme_changed'.
+			-- The switch is read ONCE (scan 10: reading it again could see a
+			-- flip in between and wear one answer while promising another).
 		require
 			following: is_following_system_theme
+		local
+			l_contrast: BOOLEAN
 		do
-			if system_appearance.system_high_contrast then
+			l_contrast := system_appearance.system_high_contrast
+			if l_contrast then
 				wear_theme (system_contrast_theme)
 				if attached on_theme_changed as al_told then
 					al_told.call (theme)
@@ -592,7 +608,6 @@ feature {NONE} -- Theme internals (GW-27)
 			end
 		ensure
 			still_following: is_following_system_theme
-			contrast_as_windows: theme.is_high_contrast = system_appearance.system_high_contrast
 		end
 
 	system_contrast_theme: SW_THEME

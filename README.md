@@ -16,7 +16,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.9.0 - 0.30.0: the simple_bible gap program** (tracker in simple_bible,
+**0.9.0 - 0.30.1: the simple_bible gap program** (tracker in simple_bible,
 `.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
 every text item is gated on Hebrew and Greek in both the light and the dark
 theme, with evidence PNGs in `evidence/`.
@@ -44,6 +44,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.30.1 | - | The tenth scan: in a contrast theme selected rows, pressed buttons, hover and disabled text all show and read; a theme swap reaches the shaping kit |
 | 0.30.0 | GW-16 | Follow Windows high contrast: `SW_THEME.make_high_contrast` from the system colors (mended, always readable), worn by a window following Windows, live (simple_shell 1.20.0) |
 | 0.29.1 | - | The ninth scan: a narrow bar and a zero-inset theme still show tabs; a close handler may adopt the page; no stale tab box after moving across hidden tabs |
 | 0.29.0 | GW-15 | `SW_TABS`: closable tabs (close guard, pinned tabs), drag to reorder, overflow chevron menu, keys for Ctrl+Tab and Ctrl+W; tab geometry shared with the dock through `SW_TAB_STRIP` |
@@ -73,7 +74,7 @@ theme, with evidence PNGs in `evidence/`.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 465 contract-assault tests passing at 0.30.0 (`screen_grab_marries_cairo` reads the
+- 473 contract-assault tests passing at 0.30.1 (`screen_grab_marries_cairo` reads the
   real desktop and fails while it is unreadable, such as a locked session or a sleeping
   display — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
