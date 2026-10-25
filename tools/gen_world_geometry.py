@@ -78,6 +78,9 @@ eiffel = f'''note
 class
 \tSW_WORLD_GEOMETRY
 
+inherit
+\tSW_GEOMETRY_DATA
+
 feature -- Access
 
 \tpolygons: ARRAYED_LIST [ARRAY [REAL_64]]
@@ -86,84 +89,9 @@ feature -- Access
 \t\tonce
 \t\t\tcreate Result.make ({len(rings)})
 {feature_calls}
+\t\t\tflush (Result)
 \t\tensure
 \t\t\tmany_rings: Result.count >= 100
-\t\tend
-
-feature {{NONE}} -- Parsing
-
-\tparse_block (a_data: STRING; a_acc: ARRAYED_LIST [ARRAY [REAL_64]])
-\t\t\t-- Rings separated by ';', numbers by whitespace; a block
-\t\t\t-- boundary can fall mid-ring, so an unterminated tail is
-\t\t\t-- carried in `pending' for the next block.
-\t\tlocal
-\t\t\ti, n: INTEGER
-\t\t\tc: CHARACTER
-\t\t\ttok: STRING
-\t\t\tvals: ARRAYED_LIST [REAL_64]
-\t\tdo
-\t\t\tvals := pending
-\t\t\tcreate tok.make (12)
-\t\t\tn := a_data.count
-\t\t\tfrom
-\t\t\t\ti := 1
-\t\t\tuntil
-\t\t\t\ti > n
-\t\t\tloop
-\t\t\t\tc := a_data.item (i)
-\t\t\t\tif c = ';' then
-\t\t\t\t\tif not tok.is_empty then
-\t\t\t\t\t\tvals.extend (tok.to_double)
-\t\t\t\t\t\ttok.wipe_out
-\t\t\t\t\tend
-\t\t\t\t\tflush_ring (vals, a_acc)
-\t\t\t\telseif c = ' ' or c = '%\\N' or c = '%\\T' or c = '%\\R' then
-\t\t\t\t\tif not tok.is_empty then
-\t\t\t\t\t\tvals.extend (tok.to_double)
-\t\t\t\t\t\ttok.wipe_out
-\t\t\t\t\tend
-\t\t\t\telse
-\t\t\t\t\ttok.extend (c)
-\t\t\t\tend
-\t\t\t\ti := i + 1
-\t\t\tend
-\t\t\tif not tok.is_empty then
-\t\t\t\tvals.extend (tok.to_double)
-\t\t\tend
-\t\t\tif is_last_block (a_data) then
-\t\t\t\tflush_ring (vals, a_acc)
-\t\t\tend
-\t\tend
-
-\tis_last_block (a_data: STRING): BOOLEAN
-\t\tdo
-\t\t\tResult := a_data = data_{len(chunks)}
-\t\tend
-
-\tflush_ring (a_vals: ARRAYED_LIST [REAL_64]; a_acc: ARRAYED_LIST [ARRAY [REAL_64]])
-\t\tlocal
-\t\t\tarr: ARRAY [REAL_64]
-\t\t\tk: INTEGER
-\t\tdo
-\t\t\tif a_vals.count >= 6 then
-\t\t\t\tcreate arr.make_filled (0.0, 1, a_vals.count)
-\t\t\t\tfrom
-\t\t\t\t\tk := 1
-\t\t\t\tuntil
-\t\t\t\t\tk > a_vals.count
-\t\t\t\tloop
-\t\t\t\t\tarr [k] := a_vals.i_th (k)
-\t\t\t\t\tk := k + 1
-\t\t\t\tend
-\t\t\t\ta_acc.extend (arr)
-\t\t\tend
-\t\t\ta_vals.wipe_out
-\t\tend
-
-\tpending: ARRAYED_LIST [REAL_64]
-\t\t\t-- Numbers of a ring split across block boundaries.
-\t\tonce
-\t\t\tcreate Result.make (2600)
 \t\tend
 
 feature {{NONE}} -- Generated data (Natural Earth 110m, public domain)

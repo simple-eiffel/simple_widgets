@@ -16,7 +16,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.9.0 - 0.38.0: the simple_bible gap program** (tracker in simple_bible,
+**0.9.0 - 0.38.1: the simple_bible gap program** (tracker in simple_bible,
 `.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
 every text item is gated on Hebrew and Greek in both the light and the dark
 theme, with evidence PNGs in `evidence/`.
@@ -44,6 +44,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.38.1 | - | `SW_GEOMETRY_DATA`: one parser for the generated world and region geometry |
 | 0.38.0 | - | `SW_COLOR_MATH`: one place for channels, luminance, contrast and blending (was four copies) |
 | 0.37.3 | - | Chips and badges draw their text with the ink-on-fill tokens: readable in light, dark and every contrast palette |
 | 0.37.2 | - | The seventeenth scan: long edges in the layered layout go round through dummy nodes, and their crossings count |
