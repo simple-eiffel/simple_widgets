@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-398%2F398-brightgreen.svg" alt="398/398 tests">
+            <img src="https://img.shields.io/badge/tests-404%2F404-brightgreen.svg" alt="404/404 tests">
         </div>
     </header>
 
@@ -39,7 +39,7 @@
 
     <main>
         <section id="recent">
-            <h2>Recent additions (0.9.0 - 0.21.0, for simple_bible)</h2>
+            <h2>Recent additions (0.9.0 - 0.22.0, for simple_bible)</h2>
             <table>
                 <tr><th>Version</th><th>What</th></tr>
                 <tr><td><code>0.9.0</code></td><td>Theme tokens for filled controls, status inks and dark mode (GW-28)</td></tr>
@@ -55,8 +55,9 @@
                 <tr><td><code>0.19.0</code></td><td>The dock: tabbed zones, draggable edges, hide/show/remove, snapshot and restore (GW-05)</td></tr>
                 <tr><td><code>0.20.0</code></td><td>Shared view parts: one scrollbar, and the deferred ancestors for pointing, scrolling and selection</td></tr>
                 <tr><td><code>0.21.0</code></td><td>The rich document view: headings, lists, quotes, tables and links, read in a scrolling column (GW-13, reading)</td></tr>
+                <tr><td><code>0.22.0</code></td><td>Live-preview editing (GW-13 complete): <code>set_codec</code>, the Markdown codec, the <code>SW_IN_PLACE_EDITING</code> mixin, the model moved to simple_document, code blocks, inline code and strikethrough; the spell checker skips Hebrew and Greek</td></tr>
             </table>
-            <p>Text items are gated on Hebrew and Greek in both themes; 398 tests pass at 0.21.0.</p>
+            <p>Text items are gated on Hebrew and Greek in both themes; 404 tests pass at 0.22.0.</p>
         </section>
 
         <section id="overview">
@@ -195,28 +196,46 @@
 
         <section id="document-view">
             <h2>The document view and the shared building blocks</h2>
-            <p><code>SW_DOCUMENT_VIEW</code> (0.21.0) reads a rich document: a
+            <p><code>SW_DOCUMENT_VIEW</code> (0.22.0) reads and edits a rich document: a
             commentary, a lexicon entry, a dictionary article or a library document.
-            The model is <code>SW_DOCUMENT</code>, an ordered list of
-            <code>SW_DOC_BLOCK</code>s: paragraphs, headings of three levels, bulleted
-            and numbered items, block quotes, rules and tables. Every text is an
-            <code>SW_RICH_TEXT</code> with inline bold, italic, small capitals,
-            superscript and links that carry a target. The model knows no markup; a host
-            builds it from Markdown or HTML.</p>
+            The model lives in <a href="https://github.com/simple-eiffel/simple_document">simple_document</a>:
+            <code>SIMPLE_DOCUMENT</code>, an ordered list of <code>DOC_BLOCK</code>s
+            (paragraphs, headings of three levels, bulleted and numbered items, block
+            quotes, code blocks, rules and tables). Every text is a <code>DOC_TEXT</code>
+            with inline bold, italic, small capitals, superscript, inline code,
+            strikethrough and links that carry a target. <code>SW_DOCUMENT</code>,
+            <code>SW_DOC_BLOCK</code> and <code>SW_RICH_TEXT</code> no longer exist.
+            <code>SW_DOC_STYLES</code> flattens a <code>DOC_TEXT</code> for the shaper.
+            The model knows no markup; a codec turns it into source and back.</p>
             <p>The view draws links in the theme's <code>ink_accent</code>, calls
             <code>on_link_click (target)</code> when one is followed, reports
             <code>on_link_hover</code>, selects across blocks and table cells, and copies
             with Ctrl+C. Hover cards come from <code>set_hover_card_builder</code>, as in
-            the paragraph list. A Hebrew paragraph sits flush right. Editing is the
-            second half of GW-13 and is not built yet.</p>
-            <h3>Shared building blocks (0.20.0)</h3>
+            the paragraph list. A Hebrew paragraph sits flush right.</p>
+            <h3>Live-preview editing (0.22.0)</h3>
+            <p>Give the view a codec with <code>set_codec</code> (usually
+            <code>SW_MARKDOWN_CODEC</code>, built on
+            <a href="https://github.com/simple-eiffel/simple_markdown">simple_markdown</a>)
+            and it edits. Click a block and a box opens over it holding the block's
+            Markdown. Every other block stays formatted. Click elsewhere to keep the
+            edit. Escape drops it. Ctrl+Enter keeps it and opens a new paragraph.
+            Ctrl+click follows a link. The document changes only when an edit is kept.
+            <code>SW_DOCUMENT_CODEC</code> is the deferred class a host can effect for
+            another markup.</p>
+            <p>Two small changes came with it. <code>SW_KEYS.simulate</code> fixes the
+            modifier state for tests, so a key held on the real keyboard cannot turn a
+            test's click into a Ctrl+click. <code>SW_SPELLER</code> no longer marks
+            Hebrew or Greek words.</p>
+            <p>Dependencies: besides simple_shell and simple_cairo, the view needs
+            simple_document and simple_markdown.</p>
+            <h3>Shared building blocks (0.22.0)</h3>
             <ul>
-                <li><code>SW_TEXT_POINTING</code>, <code>SW_VSCROLLING</code> and
-                <code>SW_TEXT_SELECTION</code> are deferred ancestors. A widget inherits
+                <li><code>SW_TEXT_POINTING</code>, <code>SW_VSCROLLING</code>,
+                <code>SW_TEXT_SELECTION</code> and <code>SW_IN_PLACE_EDITING</code> are deferred ancestors. A widget inherits
                 them side by side (Eiffel multiple inheritance), because none of them
                 redefines another's <code>SW_WIDGET</code> features.
-                <code>SW_DOCUMENT_VIEW</code> inherits all three;
-                <code>SW_PARAGRAPH_LIST</code> inherits the first two.</li>
+                <code>SW_DOCUMENT_VIEW</code> inherits all four;
+                <code>SW_PARAGRAPH_LIST</code> inherits pointing, scrolling and editing.</li>
                 <li><code>SW_VSCROLLBAR</code> is the one vertical scrollbar. Lists,
                 paragraph lists, scroll areas, chat threads, trees and data grids all use
                 it. Its drag keeps the grab point and ends on release.</li>
@@ -682,7 +701,7 @@
             <p>
                 The library ships a test target that drives the model layer headless - including
                 drawing, via a painter over an offscreen cairo surface - with <em>every assertion
-                live</em> (F_code with contracts kept). 398 tests at 0.21.0 (75 across ten assault sets at first); the suite
+                live</em> (F_code with contracts kept). 404 tests at 0.22.0 (75 across ten assault sets at first); the suite
                 caught three real defects on its first day (a truncation alias in list row math, a
                 clipboard race against history managers, and an ECF namespace clash).
             </p>
