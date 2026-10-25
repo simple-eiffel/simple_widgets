@@ -102,6 +102,16 @@ inherit
 			handle_release
 		end
 
+	SW_STACKED_ITEMS
+		undefine
+			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
+		redefine
+			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
+			handle_double_click, handle_drag, handle_key, handle_char,
+			accepts_focus, wants_hover_point, cursor_kind, focusables,
+			handle_release
+		end
+
 create
 	make
 
@@ -119,7 +129,6 @@ feature {NONE} -- Initialization
 			bar_gap := 4.0
 			create texts.make (16)
 			create revisions.make (16)
-			create stack.make
 			create bands_above.make (16)
 			create bands_below.make (16)
 			create selected_flags.make (16)
@@ -153,8 +162,6 @@ feature -- Access
 		do
 			Result := texts.i_th (a_i).twin
 		end
-
-	viewport_height: REAL_64
 
 	gutter_width: REAL_64
 			-- At 1x; drawn `gutter_px' wide, scaled with the text (as the
@@ -345,40 +352,12 @@ feature -- Geometry
 
 	item_at (a_py: REAL_64): INTEGER
 			-- The paragraph under window y `a_py'; 0 outside every box
-			-- (SW_BLOCK_STACK: a binary search).
+			-- (SW_STACKED_ITEMS: a binary search).
 		do
-			if is_laid_out and then a_py >= y and then a_py < y + height then
-				Result := stack.item_at (a_py - y + scroll_y)
-			end
+			Result := stacked_item_at (a_py)
 		ensure
 			in_range: Result >= 0 and Result <= count
 			nothing_above: a_py < y implies Result = 0
-		end
-
-	first_visible: INTEGER
-			-- The first paragraph intersecting the viewport; 0 when empty.
-		do
-			if is_laid_out then
-				Result := stack.first_visible (scroll_y)
-			end
-		ensure
-			in_range: Result >= 0 and Result <= count
-		end
-
-	last_visible: INTEGER
-			-- The last paragraph intersecting the viewport; 0 when empty.
-		local
-			vh: REAL_64
-		do
-			if is_laid_out then
-				vh := height
-				if vh <= 0.0 then
-					vh := viewport_height
-				end
-				Result := stack.last_visible (scroll_y, vh)
-			end
-		ensure
-			ordered: Result >= first_visible
 		end
 
 	text_x: REAL_64
@@ -477,7 +456,7 @@ feature -- Pointing (GW-08)
 			in_range: a_i >= 1 and a_i <= count
 		do
 			if is_laid_out then
-				Result := y - scroll_y + stack.top (a_i) + pad_px + bands_above.i_th (a_i)
+				Result := stacked_top (a_i) + pad_px + bands_above.i_th (a_i)
 			end
 		end
 
@@ -878,7 +857,7 @@ feature -- Scrolling
 			in_range: a_i >= 1 and a_i <= count
 		do
 			if is_laid_out and then height > 0.0 then
-				scroll_to (stack.scroll_into_view (a_i, scroll_y, height))
+				scroll_to (stacked_scroll_for (a_i))
 			end
 		ensure
 			visible_once_laid_out: (is_laid_out and height > 0.0) implies
@@ -932,10 +911,7 @@ feature -- Tooling
 
 	sub_widgets: ARRAYED_LIST [SW_WIDGET]
 		do
-			create Result.make (1)
-			if attached editor as al_ed then
-				Result.extend (al_ed)
-			end
+			Result := editor_sub_widgets
 		end
 
 	focusables (a_acc: ARRAYED_LIST [SW_WIDGET])
@@ -983,106 +959,93 @@ feature -- Layout
 			scroll_y := scroll_y.min (max_scroll)
 			if is_editing and then attached editor as al_ed then
 				i := editing_index
-				ty := y - scroll_y + stack.top (i) + pad_px + bands_above.i_th (i)
+				ty := stacked_top (i) + pad_px + bands_above.i_th (i)
 				seat_editor (a_p, item_text_x (i), ty, text_width,
 					stack.height (i) - 2.0 * pad_px - bands_above.i_th (i) - bands_below.i_th (i))
 			end
 		end
 
 	widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET
+			-- The editor where it stands (off the bar), else the list.
 		do
-			if contains (a_px, a_py) then
-				if not bar.contains (a_px, a_py) and then attached editor as al_ed
-					and then al_ed.contains (a_px, a_py)
-				then
-					Result := al_ed
-				else
-					Result := Current
-				end
-			end
+			Result := widget_or_editor_at (a_px, a_py, not bar.contains (a_px, a_py))
 		end
 
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
-			-- Only the paragraphs inside the viewport: wash, ring,
-			-- gutter, bands, text (or the editor over it), then the bar.
+			-- Only the paragraphs inside the viewport, then the bar.
+		do
+			measure (a_p)
+			scroll_y := scroll_y.min (max_scroll)
+			begin_frame (a_p)
+			draw_visible (a_p)
+			end_frame (a_p)
+			draw_bar (a_p)
+		end
+
+	draw_stacked_item (a_p: SW_PAINTER; a_i: INTEGER)
+			-- One paragraph: wash, ring, gutter, bands, text (or the editor
+			-- over it).
 		local
 			t: SW_THEME
-			i: INTEGER
 			inner_w, top, bx, by, bw, bh, ty, th: REAL_64
 			l_wash: NATURAL_32
 		do
 			t := a_p.theme
-			measure (a_p)
-			scroll_y := scroll_y.min (max_scroll)
-			a_p.set_color (t.surface)
-			a_p.rrect_fill (x, y, width, height, t.radius)
-			a_p.push_clip (x + 1.0, y + 1.0, width - 2.0, height - 2.0)
 			inner_w := width - bar.bar_width - bar_gap
-			if count > 0 then
-				from
-					i := first_visible
-				until
-					i > last_visible or i = 0
-				loop
-					top := y - scroll_y + stack.top (i)
-					bx := x
-					by := top
-					bw := inner_w
-					bh := stack.height (i)
-					l_wash := 0
-					if attached wash_of as al_w then
-						l_wash := al_w.item ([i])
-					end
-					if l_wash /= 0 then
-						a_p.set_color (l_wash)
-						a_p.rrect_fill (bx, by, bw, bh, t.radius)
-					elseif selected_flags.i_th (i) then
-						a_p.set_color (t.wash_accent)
-						a_p.rrect_fill (bx, by, bw, bh, t.radius)
-					end
-					if i = selected_index then
-						a_p.set_color (t.accent)
-						a_p.set_line_width (2.0)
-						a_p.rrect_stroke (bx + 1.0, by + 1.0, bw - 2.0, bh - 2.0, t.radius)
-						a_p.set_line_width (1.0)
-					elseif selected_flags.i_th (i) then
-						a_p.set_color (t.accent)
-						a_p.rrect_stroke (bx + 0.5, by + 0.5, bw - 1.0, bh - 1.0, t.radius)
-					end
-					if attached gutter_renderer as al_g and then gutter_width > 0.0 then
-						al_g.call (a_p, i, item_gutter_x (i), by, gutter_px, bh)
-					end
-					ty := by + pad_px
-					if bands_above.i_th (i) > 0.0 then
-						if attached band_renderer as al_b then
-							al_b.call (a_p, i, True, item_text_x (i), ty, text_width, bands_above.i_th (i))
-						end
-						ty := ty + bands_above.i_th (i)
-					end
-					th := bh - 2.0 * pad_px - bands_above.i_th (i) - bands_below.i_th (i)
-					if i = editing_index and then attached editor as al_ed then
-						al_ed.draw (a_p)
-					else
-						if marks_list.i_th (i).text_count /= geometries.i_th (i).count then
-							marks_list.i_th (i).clamp_to (geometries.i_th (i).count)
-						end
-						mark_painter.paint_under (a_p, geometries.i_th (i), marks_list.i_th (i), legend, item_text_x (i), ty)
-						a_p.set_color (t.ink)
-						draw_item_text (i, a_p, 0.0, 0.0, item_text_x (i), ty)
-						mark_painter.paint_over (a_p, geometries.i_th (i), marks_list.i_th (i), legend, item_text_x (i), ty,
-							t.size_body * t.text_scale, agent draw_item_text (i, ?, ?, ?, item_text_x (i), ty))
-						ty := by + pad_px + bands_above.i_th (i) + th
-					end
-					if bands_below.i_th (i) > 0.0 and then attached band_renderer as al_b2 then
-						al_b2.call (a_p, i, False, item_text_x (i), ty, text_width, bands_below.i_th (i))
-					end
-					i := i + 1
-				end
+			top := stacked_top (a_i)
+			bx := x
+			by := top
+			bw := inner_w
+			bh := stack.height (a_i)
+			l_wash := 0
+			if attached wash_of as al_w then
+				l_wash := al_w.item ([a_i])
 			end
-			a_p.pop_clip
-			draw_bar (a_p)
+			if l_wash /= 0 then
+				a_p.set_color (l_wash)
+				a_p.rrect_fill (bx, by, bw, bh, t.radius)
+			elseif selected_flags.i_th (a_i) then
+				a_p.set_color (t.wash_accent)
+				a_p.rrect_fill (bx, by, bw, bh, t.radius)
+			end
+			if a_i = selected_index then
+				a_p.set_color (t.accent)
+				a_p.set_line_width (2.0)
+				a_p.rrect_stroke (bx + 1.0, by + 1.0, bw - 2.0, bh - 2.0, t.radius)
+				a_p.set_line_width (1.0)
+			elseif selected_flags.i_th (a_i) then
+				a_p.set_color (t.accent)
+				a_p.rrect_stroke (bx + 0.5, by + 0.5, bw - 1.0, bh - 1.0, t.radius)
+			end
+			if attached gutter_renderer as al_g and then gutter_width > 0.0 then
+				al_g.call (a_p, a_i, item_gutter_x (a_i), by, gutter_px, bh)
+			end
+			ty := by + pad_px
+			if bands_above.i_th (a_i) > 0.0 then
+				if attached band_renderer as al_b then
+					al_b.call (a_p, a_i, True, item_text_x (a_i), ty, text_width, bands_above.i_th (a_i))
+				end
+				ty := ty + bands_above.i_th (a_i)
+			end
+			th := bh - 2.0 * pad_px - bands_above.i_th (a_i) - bands_below.i_th (a_i)
+			if a_i = editing_index and then attached editor as al_ed then
+				al_ed.draw (a_p)
+			else
+				if marks_list.i_th (a_i).text_count /= geometries.i_th (a_i).count then
+					marks_list.i_th (a_i).clamp_to (geometries.i_th (a_i).count)
+				end
+				mark_painter.paint_under (a_p, geometries.i_th (a_i), marks_list.i_th (a_i), legend, item_text_x (a_i), ty)
+				a_p.set_color (t.ink)
+				draw_item_text (a_i, a_p, 0.0, 0.0, item_text_x (a_i), ty)
+				mark_painter.paint_over (a_p, geometries.i_th (a_i), marks_list.i_th (a_i), legend, item_text_x (a_i), ty,
+					t.size_body * t.text_scale, agent draw_item_text (a_i, ?, ?, ?, item_text_x (a_i), ty))
+				ty := by + pad_px + bands_above.i_th (a_i) + th
+			end
+			if bands_below.i_th (a_i) > 0.0 and then attached band_renderer as al_b2 then
+				al_b2.call (a_p, a_i, False, item_text_x (a_i), ty, text_width, bands_below.i_th (a_i))
+			end
 		end
 
 feature -- Input
@@ -1231,9 +1194,6 @@ feature {NONE} -- Measurement
 	texts: ARRAYED_LIST [STRING_32]
 	revisions: ARRAYED_LIST [INTEGER]
 			-- Per paragraph, bumped on every text or band change.
-	stack: SW_BLOCK_STACK
-			-- Each paragraph's measured height, the revision it is for,
-			-- and its top.
 	bands_above: ARRAYED_LIST [REAL_64]
 	bands_below: ARRAYED_LIST [REAL_64]
 	geometries: ARRAYED_LIST [SW_TEXT_GEOMETRY]
@@ -1261,56 +1221,81 @@ feature {NONE} -- Measurement
 	measure (a_p: SW_PAINTER)
 			-- Every paragraph's height at the current width, size and
 			-- engine - re-measuring only what changed - then the tops.
-		local
-			i, px: INTEGER
-			tw, th: REAL_64
-			want_shaped: BOOLEAN
 		do
 			laid_scale := a_p.theme.text_scale
 			bar_gap := a_p.theme.padding / 2.0
 			bar.place (x, y, width, height, a_p.theme)
-			tw := text_width
-			want_shaped := a_p.has_shaping
-			px := (a_p.theme.size_body * a_p.theme.text_scale).rounded.max (1)
+			measure_width := text_width
+			measure_shaped := a_p.has_shaping
+			measure_px := body_pixel_size (a_p)
 			if geometries.count /= count then
 				stack.invalidate
 			end
-			if stack.reset_if_changed (count, tw.out + "|" + px.out + "|" + want_shaped.out) then
-				geometries.wipe_out
-				laid_width := tw
-				laid_size := px
-				laid_shaped := want_shaped
-				from
-					i := 1
-				until
-					i > count
-				loop
-					geometries.extend (create {SW_TEXT_GEOMETRY}.make)
-					i := i + 1
-				end
-			end
+			measure_stack (a_p, measure_width.out + "|" + measure_px.out + "|" + measure_shaped.out, gap_px).do_nothing
+			wheel_line := measure_px * 1.5
+			place_bar (a_p.theme)
+		ensure
+			laid_out: is_laid_out
+			engine_recorded: laid_shaped = a_p.has_shaping
+		end
+
+	measure_width: REAL_64
+	measure_px: INTEGER
+	measure_shaped: BOOLEAN
+			-- The width, size and engine of the pass under way.
+
+	stack_count: INTEGER
+		do
+			Result := count
+		end
+
+	stack_origin_y: REAL_64
+			-- The list has no page inset.
+		do
+		end
+
+	item_revision (a_i: INTEGER): INTEGER
+		do
+			Result := revisions.i_th (a_i)
+		end
+
+	is_volatile (a_i: INTEGER): BOOLEAN
+			-- The paragraph under the editor follows its typing.
+		do
+			Result := a_i = editing_index
+		end
+
+	stack_reset
+			-- A fresh geometry per paragraph, for this width, size and engine.
+		local
+			i: INTEGER
+		do
+			geometries.wipe_out
+			laid_width := measure_width
+			laid_size := measure_px
+			laid_shaped := measure_shaped
 			from
 				i := 1
 			until
 				i > count
 			loop
-				if stack.needs_measure (i, revisions.i_th (i)) or i = editing_index then
-					if i = editing_index and then is_editing then
-						th := editor_text_height (a_p, tw)
-					else
-						th := laid_text_height (a_p, i, tw)
-					end
-					stack.put_height (i, (2.0 * pad_px + bands_above.i_th (i) + th + bands_below.i_th (i)).max (1.0),
-						revisions.i_th (i))
-				end
+				geometries.extend (create {SW_TEXT_GEOMETRY}.make)
 				i := i + 1
 			end
-			stack.restack (gap_px)
-			wheel_line := px * 1.5
-			place_bar (a_p.theme)
-		ensure
-			laid_out: is_laid_out
-			engine_recorded: laid_shaped = a_p.has_shaping
+		end
+
+	measure_item (a_p: SW_PAINTER; a_i: INTEGER): REAL_64
+			-- The paragraph's box: padding, bands and its text (the editor's
+			-- while editing).
+		local
+			th: REAL_64
+		do
+			if a_i = editing_index and then is_editing then
+				th := editor_text_height (a_p, measure_width)
+			else
+				th := laid_text_height (a_p, a_i, measure_width)
+			end
+			Result := (2.0 * pad_px + bands_above.i_th (a_i) + th + bands_below.i_th (a_i)).max (1.0)
 		end
 
 	laid_text_height (a_p: SW_PAINTER; a_i: INTEGER; a_w: REAL_64): REAL_64

@@ -225,6 +225,33 @@ feature {NONE} -- Editing pieces
 			Result := attached editor as al_ed and then al_ed.contains (a_px, a_py)
 		end
 
+	editor_sub_widgets: ARRAYED_LIST [SW_WIDGET]
+			-- The box, while it is up: what a host's `sub_widgets' answers.
+		do
+			create Result.make (1)
+			if attached editor as al_ed then
+				Result.extend (al_ed)
+			end
+		ensure
+			box_iff_editing: (Result.count = 1) = is_editing
+		end
+
+	widget_or_editor_at (a_px, a_py: REAL_64; a_box_allowed: BOOLEAN): detachable SW_WIDGET
+			-- What a host's `widget_at' answers: the box where it stands
+			-- (when `a_box_allowed': not over a scrollbar, say), else the
+			-- host itself, inside it; Void outside.
+		do
+			if contains (a_px, a_py) then
+				if a_box_allowed and then attached editor as al_ed and then al_ed.contains (a_px, a_py) then
+					Result := al_ed
+				else
+					Result := Current
+				end
+			end
+		ensure
+			void_outside: not contains (a_px, a_py) implies Result = Void
+		end
+
 invariant
 	editor_iff_editing: (editor /= Void) = (editing_index > 0)
 

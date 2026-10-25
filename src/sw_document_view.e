@@ -95,6 +95,15 @@ inherit
 			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
 		end
 
+	SW_STACKED_ITEMS
+		undefine
+			dwell_ms, handle_dwell, hover_card_at
+		redefine
+			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
+			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
+			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
+		end
+
 create
 	make
 
@@ -107,7 +116,6 @@ feature {NONE} -- Initialization
 		do
 			viewport_height := a_viewport_height
 			create document.make
-			create stack.make
 			create block_units.make (16)
 			create units.make (16)
 			create block_first_unit.make (16)
@@ -124,9 +132,6 @@ feature -- Access
 
 	document: SIMPLE_DOCUMENT
 			-- What is shown.
-
-	viewport_height: REAL_64
-			-- The height asked of a layout.
 
 	unit_count: INTEGER
 			-- Texts laid out: each text block one, each table cell one.
@@ -210,7 +215,7 @@ feature -- Access
 			in_range: a_block >= 1 and a_block <= document.count
 			laid_out: is_laid_out
 		do
-			Result := y + margin - scroll_y + stack.top (a_block)
+			Result := stacked_top (a_block)
 		end
 
 	block_height (a_block: INTEGER): REAL_64
@@ -238,26 +243,6 @@ feature -- Access
 			if is_laid_out then
 				Result := block_top (units.i_th (a_unit).block) + units.i_th (a_unit).dy
 			end
-		end
-
-	first_visible: INTEGER
-			-- The first block in the viewport; 0 when empty.
-		do
-			if is_laid_out then
-				Result := stack.first_visible (scroll_y - margin)
-			end
-		ensure
-			in_range: Result >= 0 and Result <= document.count
-		end
-
-	last_visible: INTEGER
-			-- The last block in the viewport; 0 when empty.
-		do
-			if is_laid_out then
-				Result := stack.last_visible (scroll_y - margin, height)
-			end
-		ensure
-			in_range: Result >= 0 and Result <= document.count
 		end
 
 	content_pad: REAL_64
@@ -304,7 +289,7 @@ feature -- Element change
 			in_range: a_block >= 1 and a_block <= document.count
 		do
 			if is_laid_out and then height > 0.0 then
-				scroll_to (stack.scroll_into_view (a_block, (scroll_y - margin).max (0.0), height - 2.0 * margin) + margin)
+				scroll_to (stacked_scroll_for (a_block))
 			end
 		end
 
@@ -439,7 +424,7 @@ feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 		do
 			if is_laid_out and then contains (a_px, a_py) and then not bar.contains (a_px, a_py) then
 				cy := a_py - y - margin + scroll_y
-				i := stack.item_at (cy)
+				i := stacked_item_at (a_py)
 				if i > 0 then
 					l_list := block_units.i_th (i)
 					if document.block (i).kind = {DOC_BLOCK}.Kind_table then
@@ -548,51 +533,24 @@ feature -- Layout
 
 	sub_widgets: ARRAYED_LIST [SW_WIDGET]
 		do
-			create Result.make (1)
-			if attached editor as al_ed then
-				Result.extend (al_ed)
-			end
+			Result := editor_sub_widgets
 		end
 
 	widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET
-			-- The box where it stands, else the view.
+			-- The box where it stands (off the bar), else the view.
 		do
-			if contains (a_px, a_py) then
-				if attached editor as al_ed and then not bar.contains (a_px, a_py) and then al_ed.contains (a_px, a_py) then
-					Result := al_ed
-				else
-					Result := Current
-				end
-			end
+			Result := widget_or_editor_at (a_px, a_py, not bar.contains (a_px, a_py))
 		end
 
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
 			-- The page, the visible blocks, the bar.
-		local
-			t: SW_THEME
-			i, l_last: INTEGER
 		do
-			t := a_p.theme
 			measure (a_p)
-			a_p.set_color (t.surface)
-			a_p.rrect_fill (x, y, width, height, t.radius)
-			a_p.push_clip (x + 1.0, y + 1.0, width - 2.0, height - 2.0)
-			l_last := last_visible
-			from
-				i := first_visible
-			until
-				i = 0 or i > l_last
-			loop
-				if i = editing_index and then attached editor as al_ed then
-					al_ed.draw (a_p)
-				else
-					draw_block (a_p, i)
-				end
-				i := i + 1
-			end
-			a_p.pop_clip
+			begin_frame (a_p)
+			draw_visible (a_p)
+			end_frame (a_p)
 			draw_bar (a_p)
 		end
 
@@ -741,9 +699,6 @@ feature {NONE} -- Layout implementation
 		do
 		end
 
-	stack: SW_BLOCK_STACK
-			-- Where the blocks stand.
-
 	block_units: ARRAYED_LIST [ARRAYED_LIST [SW_DOC_UNIT]]
 			-- Per block, its texts.
 
@@ -785,53 +740,78 @@ feature {NONE} -- Layout implementation
 			-- Measure what changed, restack, number the units, seat the bar.
 		local
 			t: SW_THEME
-			i, l_revision: INTEGER
-			l_key: STRING_8
-			l_reset, l_changed: BOOLEAN
 		do
 			t := a_p.theme
 			margin := t.border_width
 			place_bar (t)
 			text_w := (width - bar.bar_width - 2.0 * margin).max (32.0)
-			laid_px := (t.size_body * t.text_scale).rounded.max (1)
-			l_key := text_w.truncated_to_integer.out + "|" + laid_px.out + "|" + a_p.has_shaping.out
-			l_reset := stack.reset_if_changed (document.count, l_key)
-			if l_reset or else laid_doc_revision /= document.revision or else block_units.count /= document.count then
-				block_units.wipe_out
-				from
-					i := 1
-				until
-					i > document.count
-				loop
-					block_units.extend (create {ARRAYED_LIST [SW_DOC_UNIT]}.make (1))
-					if not l_reset then
-						stack.forget (i)
-					end
-					i := i + 1
-				end
-				laid_doc_revision := document.revision
-				clear_selection
-				l_changed := True
+			laid_px := body_pixel_size (a_p)
+			if laid_doc_revision /= document.revision or else block_units.count /= document.count then
+				stack.invalidate
 			end
-			from
-				i := 1
-			until
-				i > document.count
-			loop
-				l_revision := document.block (i).revision
-				if stack.needs_measure (i, l_revision) or i = editing_index then
-					stack.put_height (i, measure_block (a_p, i).max (1.0), l_revision)
-					l_changed := True
-				end
-				i := i + 1
-			end
-			stack.restack (t.padding)
-			if l_changed then
+			if measure_stack (a_p, text_w.truncated_to_integer.out + "|" + laid_px.out + "|" + a_p.has_shaping.out,
+				t.padding)
+			then
 				number_units
 			end
 			place_bar (t)
 		ensure
 			laid_out: is_laid_out
+		end
+
+	stack_count: INTEGER
+		do
+			Result := document.count
+		end
+
+	stack_origin_y: REAL_64
+			-- The page inset.
+		do
+			Result := margin
+		end
+
+	item_revision (a_i: INTEGER): INTEGER
+		do
+			Result := document.block (a_i).revision
+		end
+
+	is_volatile (a_i: INTEGER): BOOLEAN
+			-- The block under the box follows its typing.
+		do
+			Result := a_i = editing_index
+		end
+
+	stack_reset
+			-- Empty unit lists, one per block, for the document as it is.
+		local
+			i: INTEGER
+		do
+			block_units.wipe_out
+			from
+				i := 1
+			until
+				i > document.count
+			loop
+				block_units.extend (create {ARRAYED_LIST [SW_DOC_UNIT]}.make (1))
+				i := i + 1
+			end
+			laid_doc_revision := document.revision
+			clear_selection
+		end
+
+	measure_item (a_p: SW_PAINTER; a_i: INTEGER): REAL_64
+		do
+			Result := measure_block (a_p, a_i)
+		end
+
+	draw_stacked_item (a_p: SW_PAINTER; a_i: INTEGER)
+			-- The box over the edited block, else the block.
+		do
+			if a_i = editing_index and then attached editor as al_ed then
+				al_ed.draw (a_p)
+			else
+				draw_block (a_p, a_i)
+			end
 		end
 
 	number_units
