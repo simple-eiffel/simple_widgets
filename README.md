@@ -7,7 +7,7 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-404%2F404-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-414%2F414-brightgreen.svg)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
@@ -16,7 +16,7 @@ Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
 
-**0.9.0 - 0.22.0: the simple_bible gap program** (tracker in simple_bible,
+**0.9.0 - 0.24.0: the simple_bible gap program** (tracker in simple_bible,
 `.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
 every text item is gated on Hebrew and Greek in both the light and the dark
 theme, with evidence PNGs in `evidence/`.
@@ -37,6 +37,8 @@ theme, with evidence PNGs in `evidence/`.
 | 0.20.0 | - | Shared view parts: `SW_VSCROLLBAR` for every scrolling widget, the deferred ancestors `SW_TEXT_POINTING`, `SW_VSCROLLING` and `SW_TEXT_SELECTION`, `SW_BLOCK_STACK`, `SW_WORD_BOUNDARY`; theme tokens `scrollbar_width` and `min_thumb` |
 | 0.21.0 | GW-13 | The rich document view (reading): `SW_DOCUMENT_VIEW` over an `SW_DOCUMENT` of `SW_DOC_BLOCK`s and `SW_RICH_TEXT`; headings, lists, quotes, rules and tables; links with `on_link_click` and `on_link_hover`; selection across blocks and cells; Hebrew and Greek gated |
 | 0.22.0 | GW-13 | Live-preview editing, GW-13 complete: `SW_DOCUMENT_VIEW.set_codec`, `SW_DOCUMENT_CODEC` and `SW_MARKDOWN_CODEC`, the `SW_IN_PLACE_EDITING` mixin, the model moved to simple_document (`SIMPLE_DOCUMENT`, `DOC_BLOCK`, `DOC_TEXT`), `SW_DOC_STYLES`, code blocks, inline code and strikethrough, `SW_KEYS.simulate` for tests; `SW_SPELLER` skips Hebrew and Greek |
+| 0.23.0 | - | The first post-merge abstraction scan's high findings: the fifth deferred ancestor `SW_STACKED_ITEMS`, editor hosting and one end of an edit in `SW_IN_PLACE_EDITING`, pointing in one place, one layout step (`SW_TEXT_GEOMETRY.lay_out`), and the paragraph list's spacing scales with the text |
+| 0.24.0 | GW-06 | Parallel text: `SW_PARALLEL_TEXT` (verse rows by version columns); the composed bases `SW_STACKED_POINTING` and `SW_DOC_UNITS` lifted from the document view, and the parentless mixin `SW_MARK_HOST` |
 
 ✅ **ALL SIX WAVES SHIPPED, plus the Studio widgets (0.8.2)** — 114 classes (108 library + 5 devkit + 1 speechkit)
 - 0.8.2: `SW_TEXT_BOX` measures the same whatever was drawn last
@@ -62,7 +64,7 @@ theme, with evidence PNGs in `evidence/`.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 404 contract-assault tests passing at 0.22.0 (`screen_grab_marries_cairo` reads the
+- 414 contract-assault tests passing at 0.24.0 (`screen_grab_marries_cairo` reads the
   real desktop and fails while it is unreadable, such as a locked session or a sleeping
   display — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
@@ -147,18 +149,38 @@ block's Markdown; every other block stays formatted. Click elsewhere to keep
 the edit. Escape drops it. Ctrl+Enter keeps it and opens a new paragraph.
 Ctrl+click follows a link. The document changes only when an edit is kept.
 
-**Shared building blocks (0.22.0)** — the common parts of the scrolling and
+**Parallel text (0.24.0)** — `SW_PARALLEL_TEXT` shows versions side by side,
+verse by verse. Rows are canonical verses and columns are versions (up to
+six, each with a weight, a text scale and an alignment). Each cell is a
+`DOC_TEXT`, wrapped and shaped in its own direction, so a Hebrew column sits
+flush right. A row is as tall as its tallest cell. There is one scroll, and
+the column titles stay put while the rows scroll. A note row ("LXX 9 = MT
+9-10") spans every column in muted text. Each cell has its own marks, painted
+through a legend ("agrees with LXX"). `cell_at` and `on_cell_click` answer
+which cell the pointer is on, and `scroll_to_row` brings a verse into view.
+Selecting copies a row's cells separated by tabs and the rows one per line.
+Spacing comes from the theme tokens.
+
+**Shared building blocks (0.24.0)** — the common parts of the scrolling and
 text widgets live once:
-- `SW_TEXT_POINTING`, `SW_VSCROLLING`, `SW_TEXT_SELECTION` and
-  `SW_IN_PLACE_EDITING` are deferred ancestors. A widget inherits them side
-  by side (Eiffel multiple inheritance), because none of them redefines
-  another's `SW_WIDGET` features. Pointing gives the character under the pointer, hover, dwell and
+- `SW_TEXT_POINTING`, `SW_VSCROLLING`, `SW_TEXT_SELECTION`,
+  `SW_IN_PLACE_EDITING`, `SW_STACKED_ITEMS` and `SW_DOC_UNITS` are deferred
+  ancestors. A widget inherits them side by side (Eiffel multiple
+  inheritance), because none of them redefines another's `SW_WIDGET`
+  features. Two composed bases do the joining once, so each widget names one
+  parent: `SW_STACKED_POINTING` joins pointing, scrolling and the stack, and
+  `SW_DOC_UNITS` (the units of stacked texts and cells, lifted from the
+  document view) inherits it together with `SW_TEXT_SELECTION`.
+  `SW_PARALLEL_TEXT`'s inherit clause is a single parent. `SW_MARK_HOST` is a
+  mixin with no parent at all (legend and mark painter), shared by the text
+  box, the paragraph list and the parallel text. Pointing gives the character under the pointer, hover, dwell and
   hover cards. Scrolling gives the position, the bar, the wheel and the
   paging keys. Selection gives a selection across items, Copy and Select All.
   Editing in place gives the box laid over an item, key and character
   forwarding with Escape cancelling, and the change and commit callbacks.
-  `SW_DOCUMENT_VIEW` inherits all four; `SW_PARAGRAPH_LIST` inherits
-  pointing, scrolling and editing.
+  Stacked items gives the block stack, the measuring pass, the visible range
+  and the draw frame. `SW_DOCUMENT_VIEW` and `SW_PARAGRAPH_LIST` stand on
+  these.
 - `SW_VSCROLLBAR` is the one vertical scrollbar, owned by `SW_LIST`,
   `SW_PARAGRAPH_LIST`, `SW_SCROLL_AREA`, `SW_CHAT_THREAD`, `SW_TREE` and
   `SW_DATA_GRID`. Its drag keeps the grab point and ends on release.
