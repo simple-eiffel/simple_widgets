@@ -35,8 +35,10 @@ note
 		was painted: nothing jumps. While it is up, the item's text
 		follows every keystroke (so its height reflows live) and the
 		host hears `on_edit_change'; Escape cancels and restores;
-		`end_edit (True)' - or a click on another paragraph - commits
-		through `on_edit_commit'. The list forwards keys to the editor
+		`end_edit (True)' - or a click on another paragraph - keeps the
+		edit, and the host hears `on_edit_commit' when the text changed
+		(an unchanged edit is not a commit: SW_IN_PLACE_EDITING's one
+		`end_edit'). The list forwards keys to the editor
 		while the list itself holds focus, so typing works the instant
 		the edit begins; a click inside the editor moves the window's
 		focus onto it and the keys then arrive directly.
