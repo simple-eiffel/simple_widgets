@@ -18,7 +18,7 @@
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
             <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
-            <img src="https://img.shields.io/badge/tests-414%2F414-brightgreen.svg" alt="414/414 tests">
+            <img src="https://img.shields.io/badge/tests-440%2F441-brightgreen.svg" alt="440/441 tests">
         </div>
     </header>
 
@@ -39,7 +39,7 @@
 
     <main>
         <section id="recent">
-            <h2>Recent additions (0.9.0 - 0.24.0, for simple_bible)</h2>
+            <h2>Recent additions (0.9.0 - 0.28.2, for simple_bible)</h2>
             <table>
                 <tr><th>Version</th><th>What</th></tr>
                 <tr><td><code>0.9.0</code></td><td>Theme tokens for filled controls, status inks and dark mode (GW-28)</td></tr>
@@ -58,8 +58,14 @@
                 <tr><td><code>0.22.0</code></td><td>Live-preview editing (GW-13 complete): <code>set_codec</code>, the Markdown codec, the <code>SW_IN_PLACE_EDITING</code> mixin, the model moved to simple_document, code blocks, inline code and strikethrough; the spell checker skips Hebrew and Greek</td></tr>
                 <tr><td><code>0.23.0</code></td><td>The first post-merge abstraction scan's high findings: the deferred ancestor <code>SW_STACKED_ITEMS</code>, editor hosting and one end of an edit, pointing in one place, one layout step, and spacing in the paragraph list that scales with the text</td></tr>
                 <tr><td><code>0.24.0</code></td><td>Parallel text (GW-06): <code>SW_PARALLEL_TEXT</code>, verse rows by version columns; the composed bases <code>SW_STACKED_POINTING</code> and <code>SW_DOC_UNITS</code> and the mixin <code>SW_MARK_HOST</code></td></tr>
+                <tr><td><code>0.25.0</code></td><td>Interlinear (GW-07): <code>SW_INTERLINEAR</code>, stacked word cells; the third scan's fixes; <code>SW_DOC_UNITS</code> owns its heirs' input</td></tr>
+                <tr><td><code>0.26.0</code></td><td>Grouped bars (GW-10): <code>set_series</code>, <code>add_group</code>, <code>series_at</code>, <code>set_emphasized_series</code>; the fourth scan's fixes</td></tr>
+                <tr><td><code>0.27.0</code></td><td>The query builder clause tree (GW-12): <code>SW_QUERY_NODE</code> with heirs <code>SW_QUERY_GROUP</code>, <code>SW_QUERY_CONDITION</code> and <code>SW_QUERY_PROXIMITY</code>, typed pickers; the fifth scan's fixes (<code>SW_CHART.draw_chip</code>, a chassis-drawn legend, eight series colors)</td></tr>
+                <tr><td><code>0.28.0</code></td><td>100,000 shaped rows at 60 Hz (GW-29): <code>SW_SHAPING.layout_styled</code> remembers layouts (<code>forget_layouts</code>), <code>SW_GRID_COLUMN.sort_key</code></td></tr>
+                <tr><td><code>0.28.1</code></td><td>The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders</td></tr>
+                <tr><td><code>0.28.2</code></td><td>The seventh scan: the layout memo follows <code>facade.policy_revision</code>; labels and menus shape through <code>layout_styled_of</code>, like the painter; <code>SW_DATA_GRID.add_row</code> places one row; per-column alignment; GW-29 timing runs inside <code>without_contracts</code></td></tr>
             </table>
-            <p>Text items are gated on Hebrew and Greek in both themes; 414 tests pass at 0.24.0.</p>
+            <p>Text items are gated on Hebrew and Greek in both themes; 444 tests pass at 0.28.2 (<code>screen_grab_marries_cairo</code> fails only in a locked session).</p>
         </section>
 
         <section id="overview">
@@ -243,7 +249,63 @@
             <code>scroll_to_row</code> brings a verse into view. Selecting copies a
             row's cells separated by tabs and the rows one per line. Spacing comes from
             the theme tokens.</p>
-            <h3>Shared building blocks (0.24.0)</h3>
+            <h3>Interlinear (0.25.0)</h3>
+            <p><code>SW_INTERLINEAR</code> shows a text as stacked word cells: the surface
+            word, transliteration (italic), pronunciation, gloss, lemma, Strong's number
+            and morphology in English. Cells flow and wrap, right to left for Hebrew and
+            left to right for Greek. <code>set_line_visible</code> hides any line except
+            the surface word. A click, Left and Right (in reading order), Home and End
+            select a word (<code>on_token_select</code>); <code>token_at</code> names the
+            word under a point; Ctrl+C copies a word's lines; a rest on a word opens the
+            card that <code>set_hover_card_builder</code> builds. It inherits
+            <code>SW_DOC_UNITS</code> alone.</p>
+
+            <h3>Grouped bars and the chart chassis (0.26.0, 0.27.0)</h3>
+            <p><code>SW_BAR_CHART.set_series</code> names the series and
+            <code>add_group (label, values)</code> adds a category with one value for each
+            series. A group's bars stand side by side, a legend names the series,
+            <code>series_at</code> says which bar is under a point, and
+            <code>set_emphasized_series</code> draws the other series in the theme's pale
+            ink. <code>SW_CHART.draw_chip</code> is the one hover chip for every chart and
+            stays inside the frame. The chassis draws the legend from
+            <code>legend_names</code> and ends it in "+n" when the names do not fit.
+            <code>series_color</code> gives eight distinct colors before it cycles.</p>
+
+            <h3>Query builder (0.27.0)</h3>
+            <p><code>SW_QUERY_BUILDER</code> builds a clause tree. The deferred
+            <code>SW_QUERY_NODE</code> has three heirs: <code>SW_QUERY_GROUP</code>
+            (children joined ALL or ANY, nested to any depth),
+            <code>SW_QUERY_CONDITION</code> (field, operator, value) and
+            <code>SW_QUERY_PROXIMITY</code> (two words within n words of each other,
+            <code>NEAR/n</code> or <code>BEFORE/n</code>). Any node can be negated. The
+            engine reads <code>root</code>; <code>expression</code> is the question as a
+            reader reads it; <code>query_text</code> is an SQL-shaped rendering for display
+            only, never executed. <code>set_field_choices</code> gives a field a picker of
+            codes and <code>set_field_suggester</code> makes a field a lemma whose picker
+            follows the typing. <code>on_change</code> hears every edit, including a
+            proximity's distance (0.28.1). The first builder's flat calls still work on
+            the root group.</p>
+
+            <h3>One hundred thousand rows (0.28.0)</h3>
+            <p><code>SW_DATA_GRID</code> draws only the rows in view; GW-29 measured it with
+            100,000 rows of shaped Hebrew and Greek cells. The cost was in
+            simple_shaping's cache contracts (fixed in simple_shaping 0.6.1).
+            <code>SW_SHAPING.layout_styled</code> now keeps two generations of 1,024
+            layouts, so a string drawn again is one hash lookup; the font setters clear
+            it, and <code>forget_layouts</code> covers changes made on <code>facade</code>
+            directly. <code>SW_GRID_COLUMN.sort_key</code> gives each row's key once per
+            sort. Measured in the lean build (the shipping configuration): wheel frame 1.5
+            milliseconds median, page jump 5.1 milliseconds, sort 175 milliseconds, against
+            a 16.7 millisecond frame. With every contract on (0.28.2): wheel frame 14.8
+            milliseconds, page jump 42.6 milliseconds; the lean build is 1.5 and 5.1. The GW-29 test times only the
+            measured step inside simple_testing's <code>without_contracts</code>, with contracts switched off for that step:
+            wheel frame 3.7 milliseconds, page jump 13.6 milliseconds, and it asserts the 60 Hz budget in every build.
+            The grid's merge runs over SPECIAL arrays, and 100,000 rows sort in about 190 milliseconds.
+            <code>SW_DATA_GRID.add_row</code> (0.28.2) places one row by binary search, <code>add_rows</code> adds many with one
+            rebuild, and <code>SW_GRID_COLUMN.alignment</code> (<code>set_alignment</code>, <code>aligned</code>) sets a column's
+            alignment; the default, <code>Align_start</code>, puts a Hebrew line flush right.</p>
+
+            <h3>Shared building blocks (0.25.0)</h3>
             <ul>
                 <li><code>SW_TEXT_POINTING</code>, <code>SW_VSCROLLING</code>,
                 <code>SW_TEXT_SELECTION</code>, <code>SW_IN_PLACE_EDITING</code>,
@@ -259,7 +321,10 @@
                 <code>SW_MARK_HOST</code> is a mixin with no parent at all (legend and mark
                 painter), shared by the text box, the paragraph list and the parallel text.
                 <code>SW_DOCUMENT_VIEW</code> and <code>SW_PARAGRAPH_LIST</code> stand on
-                these too.</li>
+                these too, as do <code>SW_PARALLEL_TEXT</code> and <code>SW_INTERLINEAR</code>.
+                <code>SW_DOC_UNITS</code> also owns its heirs' input and layout bookkeeping,
+                and <code>SW_STACKED_ITEMS.pinned_height</code> keeps a band that does not
+                scroll out of the content.</li>
                 <li><code>SW_VSCROLLBAR</code> is the one vertical scrollbar. Lists,
                 paragraph lists, scroll areas, chat threads, trees and data grids all use
                 it. Its drag keeps the grab point and ends on release.</li>
@@ -577,7 +642,7 @@
                 </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_bar_chart.html">SW_BAR_CHART</a></h3>
-                    <p>Category bars, hover rings, slot math.</p>
+                    <p>Category bars, grouped series, hover rings, slot math.</p>
                 </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_scatter_chart.html">SW_SCATTER_CHART</a></h3>
@@ -660,7 +725,7 @@
                 </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_query_builder.html">SW_QUERY_BUILDER</a></h3>
-                    <p>WHERE text, quoted and assaulted.</p>
+                    <p>A clause tree of groups, conditions and proximity; typed pickers.</p>
                 </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_form_generator.html">SW_FORM_GENERATOR</a></h3>
@@ -725,7 +790,7 @@
             <p>
                 The library ships a test target that drives the model layer headless - including
                 drawing, via a painter over an offscreen cairo surface - with <em>every assertion
-                live</em> (F_code with contracts kept). 414 tests at 0.24.0 (75 across ten assault sets at first); the suite
+                live</em> (F_code with contracts kept). 444 tests at 0.28.2 (75 across ten assault sets at first); the suite
                 caught three real defects on its first day (a truncation alias in list row math, a
                 clipboard race against history managers, and an ECF namespace clash).
             </p>
