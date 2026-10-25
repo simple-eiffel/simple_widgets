@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.29.0 - GW-15: closable, reorderable tabs with an overflow menu)
+
+For many Bible tabs (`Ctrl+W` in the GUI specification).
+- **Closable.** `SW_TABS.set_closable_by_default` and `set_tab_closable`
+  (a pinned tab has no close box). A press and release on the close box
+  calls `request_close`, which asks the `close_guard` (an unsaved note can
+  refuse) and then `close_tab`. Releasing off the box closes nothing.
+  Closing the selected tab selects its right neighbor, else its left.
+  `on_close` gets the closed page; `on_change` fires only when a
+  different page becomes selected (closing an earlier tab shifts
+  `selected_index` silently).
+- **Reorderable.** A tab dragged sideways past half the theme's `padding`
+  changes places with each neighbor whose middle the pointer crosses,
+  several in one pointer move (`move_tab`, `on_move`). The selection
+  follows its page.
+- **Overflow.** Tabs keep their natural widths (capped at twenty insets).
+  When they outrun the bar the strip scrolls so the selected tab is whole,
+  and a chevron at the right end opens `overflow_menu`, every tab in order
+  (ampersands doubled so they show as written). Closing tabs at the end
+  pulls the strip back.
+- **Keys and wheel.** `select_next` and `select_previous` (wrapping) and
+  `close_selected` are for the application's Ctrl+Tab, Ctrl+Shift+Tab and
+  Ctrl+W accelerators. The wheel over the strip steps the selection.
+- **Spacing from the theme.** The bar is the label font's box plus
+  `control_inset` above and below (40 at 1x, as before), tab sides are
+  `control_inset`, the gap between tabs half of `padding`. The fixed
+  `Bar_h` constant is now the measured `bar_h`.
+- **Shared tab geometry.** New deferred class `SW_TAB_STRIP`: tab boxes,
+  `tab_index_at`, and two placement policies, SHRINK (every tab, equal
+  shares when crowded) and SCROLL (natural widths from a first tab).
+  `SW_DOCK_ZONE` now inherits it (SHRINK) instead of keeping its own copy;
+  its behavior is unchanged (the GW-05 tests pass as they were).
+- Tests (`SW_TABS_ASSAULT`, 11): closing and the neighbor selected, the
+  guard and pinned tabs, the close box through the window, drag reorder
+  through the window, `move_tab` both ways, overflow scrolling and the
+  chevron menu picked through the popup, the strip pulling back, the
+  accelerators, the wheel, and scripture tab labels (pointed Hebrew,
+  polytonic Greek, mixed English and Hebrew) in both themes (evidence
+  `gw15_tabs_light.png`, `gw15_tabs_dark.png`). 455 pass;
+  `screen_grab_marries_cairo` fails only in a locked session.
+
 ### Changed (0.19.1 — STATUS BAR AND HOVER CARD SPACING FROM THE THEME)
 
 Larry asked whether the controls carry Vision2's inner and outer borders

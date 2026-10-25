@@ -9,7 +9,9 @@ note
 		receiving asks the host to move_panel here, and the reflow
 		follows. Hit testing routes THROUGH to panel contents, so
 		docked widgets stay fully alive. The bar and tab arithmetic
-		(panel_at_bar, tab_at) is public and assaulted.
+		(panel_at_bar, tab_at) is public and assaulted. The tab boxes
+		are SW_TAB_STRIP's, placed by its SHRINK policy (GW-15 pushed
+		the geometry up so SW_TABS shares it).
 	]"
 
 class
@@ -20,6 +22,8 @@ inherit
 		redefine
 			widget_at, pebble_at, accepts_pebble, receive_pebble, arrange, handle_click
 		end
+
+	SW_TAB_STRIP
 
 create
 	make_on
@@ -33,8 +37,6 @@ feature {NONE} -- Initialization
 			host := a_host
 			zone_id := a_zone
 			create tab_ids.make (4)
-			create tab_lefts.make (4)
-			create tab_widths.make (4)
 			bar_h := 22.0
 			tab_pad := 11.0
 			content_pad := 12.0
@@ -110,18 +112,12 @@ feature -- Access
 			-- TABBED: the panel id whose tab is under the point; 0
 			-- elsewhere. Valid after `arrange'.
 		local
-			i: INTEGER
+			k: INTEGER
 		do
-			if is_tabbed and then a_py >= y and then a_py < y + bar_h then
-				from
-					i := 1
-				until
-					i > tab_ids.count or Result > 0
-				loop
-					if a_px >= tab_lefts.i_th (i) and then a_px < tab_lefts.i_th (i) + tab_widths.i_th (i) then
-						Result := tab_ids.i_th (i)
-					end
-					i := i + 1
+			if is_tabbed and then tab_ids.count = tab_lefts.count then
+				k := tab_index_at (a_px, a_py)
+				if k > 0 then
+					Result := tab_ids.i_th (k)
 				end
 			end
 		end
@@ -129,8 +125,17 @@ feature -- Access
 	tab_ids: ARRAYED_LIST [INTEGER]
 			-- TABBED: the panel behind each tab, left to right.
 
-	tab_lefts, tab_widths: ARRAYED_LIST [REAL_64]
-			-- TABBED: where each tab stands.
+	strip_top: REAL_64
+			-- The tab strip runs along the zone's top.
+		do
+			Result := y
+		end
+
+	strip_height: REAL_64
+			-- As tall as a title bar.
+		do
+			Result := bar_h
+		end
 
 feature -- Pebbles
 
@@ -184,7 +189,8 @@ feature -- Layout
 		local
 			mine: ARRAYED_LIST [INTEGER]
 			i, act: INTEGER
-			sy, l_natural, l_total, l_x, l_w: REAL_64
+			sy: REAL_64
+			l_naturals: ARRAYED_LIST [REAL_64]
 		do
 			title_font (a_p)
 			bar_h := a_p.text_extent + a_p.theme.padding
@@ -193,35 +199,19 @@ feature -- Layout
 			content_pad := a_p.theme.border_width
 			mine := host.panels_in (zone_id)
 			tab_ids.wipe_out
-			tab_lefts.wipe_out
-			tab_widths.wipe_out
+			forget_placement
 			if is_tabbed then
+				create l_naturals.make (mine.count)
 				from
 					i := 1
 				until
 					i > mine.count
 				loop
-					l_total := l_total + a_p.advance (host.panels.i_th (mine.i_th (i)).title) + 2.0 * tab_pad
-					i := i + 1
-				end
-				l_x := x + 2.0
-				from
-					i := 1
-				until
-					i > mine.count
-				loop
-					l_natural := a_p.advance (host.panels.i_th (mine.i_th (i)).title) + 2.0 * tab_pad
-					if l_total > width - 4.0 and then mine.count > 0 then
-						l_w := ((width - 4.0) / mine.count).max (1.0)
-					else
-						l_w := l_natural
-					end
 					tab_ids.extend (mine.i_th (i))
-					tab_lefts.extend (l_x)
-					tab_widths.extend (l_w)
-					l_x := l_x + l_w
+					l_naturals.extend (a_p.advance (host.panels.i_th (mine.i_th (i)).title) + 2.0 * tab_pad)
 					i := i + 1
 				end
+				place_tabs_shrinking (l_naturals, x + 2.0, (width - 4.0).max (0.0))
 				act := host.active_panel (zone_id)
 				if act > 0 then
 					host.panels.i_th (act).content.set_bounds (x + content_pad, y + bar_h + content_pad,
