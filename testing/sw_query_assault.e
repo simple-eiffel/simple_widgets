@@ -107,6 +107,53 @@ feature -- The tree
 			end
 		end
 
+	test_gw12_distance_edit_is_heard
+			-- Turning the proximity's distance changes the tree and tells the
+			-- host, like every other edit.
+		local
+			w: SW_WINDOW
+			q: SW_QUERY_BUILDER
+			p: SW_QUERY_PROXIMITY
+			changes_before: INTEGER
+		do
+			create w.make ("qb", 0, 0, 900, 400, create {SW_THEME}.make_light)
+			q := new_builder
+			p := q.root.add_proximity (3, "light", "darkness", 5)
+			q.add_clause
+			q.set_on_change (agent note_change)
+			w.set_root (q)
+			w.request_render
+			if attached distance_box_of (q) as al_box then
+				changes_before := changes
+				al_box.handle_wheel (120).do_nothing
+				assert_true ("the distance moved", p.distance /= 5)
+				assert_integers_equal ("the tree has the box's value", al_box.value, p.distance)
+				assert_true ("and the host heard", changes > changes_before)
+			else
+				assert_true ("a proximity row has a distance box", False)
+			end
+		end
+
+	test_gw12_long_distance_preset_renders
+			-- A saved question may say "within 120 words"; rebuilding the
+			-- rows must show it, not abort.
+		local
+			w: SW_WINDOW
+			q: SW_QUERY_BUILDER
+		do
+			create w.make ("qb", 0, 0, 900, 400, create {SW_THEME}.make_light)
+			q := new_builder
+			q.root.add_proximity (3, "light", "darkness", 120).do_nothing
+			q.add_clause
+			w.set_root (q)
+			w.request_render
+			if attached distance_box_of (q) as al_box then
+				assert_integers_equal ("the box shows 120", 120, al_box.value)
+			else
+				assert_true ("a proximity row has a distance box", False)
+			end
+		end
+
 feature -- The builder, both themes
 
 	test_gw12_builder_light
@@ -157,6 +204,21 @@ feature {NONE} -- Fixtures
 				and then al_row.children.count >= 4
 			then
 				Result := al_row.children.i_th (4)
+			end
+		end
+
+	distance_box_of (q: SW_QUERY_BUILDER): detachable SW_NUMBER_BOX
+			-- The distance box of the root group's first child, a proximity
+			-- (its first line: not, field, first word, "within", the box).
+		do
+			if attached {SW_COLUMN} q.children.first as al_root
+				and then al_root.children.count >= 2
+				and then attached {SW_COLUMN} al_root.children.i_th (2) as al_prox
+				and then attached {SW_ROW} al_prox.children.first as al_words
+				and then al_words.children.count >= 5
+				and then attached {SW_NUMBER_BOX} al_words.children.i_th (5) as al_box
+			then
+				Result := al_box
 			end
 		end
 
