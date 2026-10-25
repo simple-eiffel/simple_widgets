@@ -34,7 +34,7 @@ deferred class
 inherit
 	SW_STACKED_POINTING
 		redefine
-			item_text_count,
+			item_text_count, forget_hover,
 			set_hover_point, set_hovered, handle_wheel, handle_click, handle_double_click,
 			handle_drag, handle_release, handle_key, handle_char, cursor_kind
 		end
@@ -274,6 +274,23 @@ feature -- Layout bookkeeping
 			Result := laid_px.max (8) * 1.5
 		end
 
+	scroll_extent: REAL_64
+			-- The stacked items below their origin, with the page inset
+			-- under them.
+		do
+			Result := stack.content_height + stack_origin_y + margin
+		end
+
+	forget_hover
+			-- The content changed: nothing - no character, no link - is
+			-- under the pointer until it moves.
+		do
+			Precursor {SW_STACKED_POINTING}
+			update_link_hover
+		ensure then
+			no_link: hovered_link_span = 0
+		end
+
 feature -- Input (SW_WIDGET)
 
 	handle_wheel (a_delta: INTEGER): BOOLEAN
@@ -471,6 +488,16 @@ feature {NONE} -- Unit implementation
 
 	laid_px: INTEGER
 			-- Body text's pixel size at the last layout.
+
+	margin: REAL_64
+			-- The page inset at the last layout (the theme's border_width).
+
+	layout_key (a_p: SW_PAINTER; a_width: REAL_64): STRING_8
+			-- What a layout depends on beyond the items: the width, the text
+			-- size and the engine.
+		do
+			Result := a_width.truncated_to_integer.out + "|" + laid_px.out + "|" + a_p.has_shaping.out
+		end
 
 	stack_reset
 			-- Empty unit lists, one per item, for the items as they are.

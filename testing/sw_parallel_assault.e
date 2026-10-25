@@ -196,6 +196,30 @@ feature -- Layout
 			assert_true ("and inside the view", v.stacked_top (40) + 1.0 < v.y + v.height)
 		end
 
+	test_gw06_wipe_out_forgets_the_hovered_link
+			-- A link under the pointer is forgotten with the rows it was in.
+		local
+			w: SW_WINDOW
+			v: SW_PARALLEL_TEXT
+			r: INTEGER
+			b: TUPLE [x, y, width, height: REAL_64]
+		do
+			create w.make ("link", 0, 0, 600, 300, create {SW_THEME}.make_light)
+			attach_parallel_kit (w)
+			create v.make (300.0)
+			v.add_column ("A").do_nothing
+			r := v.add_row ("1")
+			v.set_cell (r, 1, "see John 3:16")
+			v.cell (r, 1).add_link (5, 9, "John 3:16")
+			w.set_root (v)
+			w.request_render
+			b := v.text_boxes (1, 5, 6).first
+			v.set_hover_point (b.x + 1.0, b.y + b.height / 2.0)
+			assert_true ("a link under the pointer", v.hovered_link.same_string ("John 3:16"))
+			v.wipe_out
+			assert_true ("forgotten with its rows", v.hovered_link.is_empty)
+		end
+
 feature -- They Chose, both themes
 
 	test_gw06_parallel_light

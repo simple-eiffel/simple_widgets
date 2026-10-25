@@ -92,6 +92,50 @@ feature -- Flow
 			assert_true ("Ctrl+C copied the word (no failure)", v.selected_token = 2)
 		end
 
+	test_gw07_every_line_can_be_pointed_at
+			-- The gloss line is text too: the pointer finds its character, so
+			-- a hover card can open from it.
+		local
+			w: SW_WINDOW
+			v: SW_INTERLINEAR
+			k: INTEGER
+			b: TUPLE [x, y, width, height: REAL_64]
+		do
+			create w.make ("il", 0, 0, 900, 400, create {SW_THEME}.make_light)
+			attach_il_kit (w)
+			v := twelve_words (False)
+			w.set_root (v)
+			w.request_render
+			from k := 1 until k > v.unit_count or else v.unit_row (k) = {SW_INTERLINEAR_TOKEN}.Line_gloss loop
+				k := k + 1
+			end
+			assert_true ("a gloss unit", k <= v.unit_count)
+			b := v.text_boxes (k, 0, 1).first
+			assert_true ("the gloss character is found", v.character_at (b.x + b.width / 2.0, b.y + b.height / 2.0) > 0)
+			assert_integers_equal ("and its unit is the gloss", k, v.pointed_item (b.x + b.width / 2.0, b.y + b.height / 2.0))
+		end
+
+	test_gw07_new_words_after_wipe_out_are_shown
+			-- After wipe_out, a new word is what is laid out - even when the
+			-- revision arithmetic would have come back to the old value.
+		local
+			w: SW_WINDOW
+			v: SW_INTERLINEAR
+			k: INTEGER
+		do
+			create w.make ("il", 0, 0, 900, 400, create {SW_THEME}.make_light)
+			attach_il_kit (w)
+			create v.make (400.0)
+			k := v.add_token ("old")
+			v.set_token_line (k, {SW_INTERLINEAR_TOKEN}.Line_gloss, "gloss")
+			w.set_root (v)
+			w.request_render
+			v.wipe_out
+			k := v.add_token ("new")
+			w.request_render
+			assert_strings_equal ("the new word is laid out", {STRING_32} "new", v.text_of (1))
+		end
+
 feature -- Genesis 1:1, both themes
 
 	test_gw07_interlinear_light

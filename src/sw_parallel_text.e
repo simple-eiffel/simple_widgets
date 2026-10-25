@@ -319,12 +319,6 @@ feature -- Rows
 
 feature -- Scrolling (SW_VSCROLLING)
 
-	scroll_extent: REAL_64
-			-- The rows, under the title band, with the page inset below.
-		do
-			Result := stack.content_height + stack_origin_y + margin
-		end
-
 feature -- Layout
 
 	arrange (a_p: SW_PAINTER)
@@ -392,7 +386,7 @@ feature {NONE} -- Model
 
 feature {NONE} -- Layout implementation
 
-	margin, gutter_w, columns_w, cell_pad: REAL_64
+	gutter_w, columns_w, cell_pad: REAL_64
 	column_lefts, column_widths: ARRAYED_LIST [REAL_64]
 
 	measure (a_p: SW_PAINTER)
@@ -430,7 +424,7 @@ feature {NONE} -- Layout implementation
 				c := c + 1
 			end
 			laid_px := body_pixel_size (a_p)
-			l_key := columns_w.truncated_to_integer.out + "|" + laid_px.out + "|" + a_p.has_shaping.out
+			l_key := layout_key (a_p, columns_w)
 			measure_units (a_p, l_key, 0.0)
 			place_bar (t)
 		ensure
