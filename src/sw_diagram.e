@@ -412,26 +412,52 @@ feature -- Layered layout (GW-23)
 		end
 
 	crossing_count: INTEGER
-			-- Pairs of edges between the same two adjacent layers that cross,
-			-- as laid out.
+			-- Pairs of segments that cross, as laid out. A long edge is a chain
+			-- of segments through its dummy nodes, so its crossings count too
+			-- (scan 17: only adjacent-layer edges were counted).
 		local
 			i, j: INTEGER
-			a1, b1, a2, b2: INTEGER
+			u1, v1, u2, v2: INTEGER
 		do
-			if layer_of.count = nodes.count and order_of.count = nodes.count then
-				from i := 1 until i > edges.count loop
-					from j := i + 1 until j > edges.count loop
-						a1 := tail (i); b1 := head (i); a2 := tail (j); b2 := head (j)
-						if layer_of.i_th (a1) = layer_of.i_th (a2) and then layer_of.i_th (b1) = layer_of.i_th (b2)
-							and then layer_of.i_th (b1) = layer_of.i_th (a1) + 1
-							and then (order_of.i_th (a1) - order_of.i_th (a2)) * (order_of.i_th (b1) - order_of.i_th (b2)) < 0
-						then
-							Result := Result + 1
-						end
-						j := j + 1
+			from i := 1 until i > segments.count loop
+				from j := i + 1 until j > segments.count loop
+					u1 := segments.i_th (i).u; v1 := segments.i_th (i).v
+					u2 := segments.i_th (j).u; v2 := segments.i_th (j).v
+					if ln_layer.i_th (u1) = ln_layer.i_th (u2)
+						and then (ln_order.i_th (u1) - ln_order.i_th (u2)) * (ln_order.i_th (v1) - ln_order.i_th (v2)) < 0
+					then
+						Result := Result + 1
 					end
-					i := i + 1
+					j := j + 1
 				end
+				i := i + 1
+			end
+		end
+
+	is_layout_current: BOOLEAN
+			-- Does the layered layout cover every edge (none added since)?
+		do
+			Result := edge_chains.count = edges.count
+		end
+
+	layout_runs: INTEGER
+			-- How many layered layouts have been made (one per change of the
+			-- graph or the size, not per frame).
+
+	edge_route (a_edge: INTEGER): ARRAYED_LIST [TUPLE [px, py: REAL_64]]
+			-- The points edge `a_edge' is drawn through, in the widget's own
+			-- coordinates: its tail, a dummy node in every layer it crosses,
+			-- its head (scan 17: long edges were one straight segment through
+			-- whatever nodes stood between).
+		require
+			known: a_edge >= 1 and a_edge <= edges.count
+			laid_out: is_layout_current
+		do
+			create Result.make (edge_chains.i_th (a_edge).count)
+			across
+				edge_chains.i_th (a_edge) as k
+			loop
+				Result.extend ([ln_x.i_th (k), ln_y.i_th (k)])
 			end
 		end
 
@@ -446,8 +472,10 @@ feature -- Layered layout (GW-23)
 				layered_key := l_key
 				break_cycles
 				assign_layers
+				build_layout_graph
 				order_layers
 				place_layers (a_p)
+				layout_runs := layout_runs + 1
 			end
 		ensure
 			laid_out: layer_of.count = nodes.count and order_of.count = nodes.count
@@ -457,6 +485,66 @@ feature {NONE} -- Layered layout internals
 
 	layered_key: INTEGER
 			-- What the last layered layout was made for.
+
+	ln_layer, ln_order: ARRAYED_LIST [INTEGER]
+			-- The layout graph: real nodes 1 .. node count, then the dummy nodes
+			-- long edges pass through; each one's layer and place.
+		attribute
+			create Result.make (8)
+		end
+
+	ln_x, ln_y: ARRAYED_LIST [REAL_64]
+			-- Each layout node's position.
+		attribute
+			create Result.make (8)
+		end
+
+	segments: ARRAYED_LIST [TUPLE [u, v: INTEGER]]
+			-- Layout-graph edges, each from a layer to the next.
+		attribute
+			create Result.make (8)
+		end
+
+	edge_chains: ARRAYED_LIST [ARRAYED_LIST [INTEGER]]
+			-- Parallel to `edges': the layout nodes each is drawn through, in
+			-- layer order.
+		attribute
+			create Result.make (8)
+		end
+
+	build_layout_graph
+			-- Real nodes keep their layers; each edge longer than one layer gets
+			-- a dummy node in every layer between (the Sugiyama method), and
+			-- every edge becomes a chain of one-layer segments.
+		local
+			i, l, l_prev, l_dummy: INTEGER
+			l_chain: ARRAYED_LIST [INTEGER]
+		do
+			ln_layer.wipe_out
+			ln_layer.append (layer_of)
+			segments.wipe_out
+			edge_chains.wipe_out
+			from i := 1 until i > edges.count loop
+				create l_chain.make (2)
+				l_chain.extend (tail (i))
+				l_prev := tail (i)
+				from l := layer_of.i_th (tail (i)) + 1 until l >= layer_of.i_th (head (i)) loop
+					ln_layer.extend (l)
+					l_dummy := ln_layer.count
+					segments.extend ([l_prev, l_dummy])
+					l_chain.extend (l_dummy)
+					l_prev := l_dummy
+					l := l + 1
+				end
+				segments.extend ([l_prev, head (i)])
+				l_chain.extend (head (i))
+				edge_chains.extend (l_chain)
+				i := i + 1
+			end
+		ensure
+			one_chain_per_edge: edge_chains.count = edges.count
+			one_layer_per_segment: across segments as sg all ln_layer.i_th (sg.v) = ln_layer.i_th (sg.u) + 1 end
+		end
 
 	tail (a_edge: INTEGER): INTEGER
 			-- The edge's start after cycle breaking.
@@ -546,16 +634,16 @@ feature {NONE} -- Layered layout internals
 		end
 
 	order_layers
-			-- Start in node order; then four barycenter sweeps, down and up,
-			-- each layer sorted by the mean place of its neighbours in the layer
-			-- before (ties by node id).
+			-- Start in id order (real nodes, then dummies); then four barycenter
+			-- sweeps, down and up, each layer sorted by the mean place of its
+			-- neighbours in the layer before (ties by id).
 		local
 			l_sweep, l_layer, l_top: INTEGER
 		do
-			order_of.wipe_out
-			across nodes as n loop order_of.extend (0) end
+			ln_order.wipe_out
+			across ln_layer as n loop ln_order.extend (0) end
 			l_top := 0
-			across layer_of as l loop l_top := l_top.max (l) end
+			across ln_layer as l loop l_top := l_top.max (l) end
 			from l_layer := 1 until l_layer > l_top loop
 				sort_layer (l_layer, 0)
 				l_layer := l_layer + 1
@@ -574,45 +662,48 @@ feature {NONE} -- Layered layout internals
 				end
 				l_sweep := l_sweep + 1
 			end
+			order_of.wipe_out
+			from l_layer := 1 until l_layer > nodes.count loop
+				order_of.extend (ln_order.i_th (l_layer))
+				l_layer := l_layer + 1
+			end
 		end
 
 	sort_layer (a_layer, a_side: INTEGER)
-			-- Order layer `a_layer' by barycenter against the layer on `a_side'
-			-- (-1 before, 1 after; 0: by node id alone). Insertion sort: layers
-			-- are small.
+			-- Order layer `a_layer' of the layout graph by barycenter against
+			-- the layer on `a_side' (-1 before, 1 after; 0: by id alone).
 		local
 			l_members: ARRAYED_LIST [INTEGER]
 			l_keys: ARRAYED_LIST [REAL_64]
 			i, j, v, n: INTEGER
-			l_sum: REAL_64
-			l_key: REAL_64
+			l_sum, l_key: REAL_64
 		do
 			create l_members.make (4)
 			create l_keys.make (4)
-			from v := 1 until v > nodes.count loop
-				if layer_of.i_th (v) = a_layer then
+			from v := 1 until v > ln_layer.count loop
+				if ln_layer.i_th (v) = a_layer then
 					l_sum := 0.0
 					n := 0
 					if a_side /= 0 then
-						from i := 1 until i > edges.count loop
-							if a_side < 0 and then head (i) = v and then layer_of.i_th (tail (i)) = a_layer - 1 then
-								l_sum := l_sum + order_of.i_th (tail (i))
+						across
+							segments as sg
+						loop
+							if a_side < 0 and then sg.v = v then
+								l_sum := l_sum + ln_order.i_th (sg.u)
 								n := n + 1
-							elseif a_side > 0 and then tail (i) = v and then layer_of.i_th (head (i)) = a_layer + 1 then
-								l_sum := l_sum + order_of.i_th (head (i))
+							elseif a_side > 0 and then sg.u = v then
+								l_sum := l_sum + ln_order.i_th (sg.v)
 								n := n + 1
 							end
-							i := i + 1
 						end
 					end
 					if n > 0 then
 						l_key := l_sum / n
 					elseif a_side /= 0 then
-						l_key := order_of.i_th (v)
+						l_key := ln_order.i_th (v)
 					else
 						l_key := v
 					end
-						-- insert by (key, id)
 					from
 						j := l_members.count
 					until
@@ -628,7 +719,7 @@ feature {NONE} -- Layered layout internals
 				v := v + 1
 			end
 			from i := 1 until i > l_members.count loop
-				order_of.put_i_th (i, l_members.i_th (i))
+				ln_order.put_i_th (i, l_members.i_th (i))
 				i := i + 1
 			end
 		end
@@ -647,12 +738,14 @@ feature {NONE} -- Layered layout internals
 			a_p.font ({SW_PAINTER}.Role_ui, 11.5, False)
 			l_inset := a_p.theme.border_width
 			l_top := 0
-			across layer_of as l loop l_top := l_top.max (l) end
+			across ln_layer as l loop l_top := l_top.max (l) end
 			create l_widths.make_filled (l_top)
 			create l_counts.make_filled (l_top)
-			from v := 1 until v > nodes.count loop
-				l_layer := layer_of.i_th (v)
-				l_widths.put_i_th (l_widths.i_th (l_layer).max (a_p.advance (nodes.i_th (v).label)), l_layer)
+			from v := 1 until v > ln_layer.count loop
+				l_layer := ln_layer.i_th (v)
+				if v <= nodes.count then
+					l_widths.put_i_th (l_widths.i_th (l_layer).max (a_p.advance (nodes.i_th (v).label)), l_layer)
+				end
 				l_counts.put_i_th (l_counts.i_th (l_layer) + 1, l_layer)
 				v := v + 1
 			end
@@ -667,42 +760,57 @@ feature {NONE} -- Layered layout internals
 			l_most := 1
 			across l_counts as k loop l_most := l_most.max (k) end
 			l_row := ((height - 2.0 * l_inset - 24.0) / l_most).max (a_p.text_extent * 1.6)
-			from v := 1 until v > nodes.count loop
-				l_layer := layer_of.i_th (v)
+			ln_x.wipe_out
+			ln_y.wipe_out
+			from v := 1 until v > ln_layer.count loop
+				l_layer := ln_layer.i_th (v)
 				l_count := l_counts.i_th (l_layer)
-				nodes.i_th (v).px := l_lefts.i_th (l_layer)
-				nodes.i_th (v).py := (height - l_count * l_row) / 2.0 + (order_of.i_th (v) - 0.5) * l_row
-				nodes.i_th (v).vx := 0.0
-				nodes.i_th (v).vy := 0.0
+				ln_x.extend (l_lefts.i_th (l_layer))
+				ln_y.extend ((height - l_count * l_row) / 2.0 + (ln_order.i_th (v) - 0.5) * l_row)
+				if v <= nodes.count then
+					nodes.i_th (v).px := ln_x.last
+					nodes.i_th (v).py := ln_y.last
+					nodes.i_th (v).vx := 0.0
+					nodes.i_th (v).vy := 0.0
+				end
 				v := v + 1
 			end
 		end
 
 	draw_layered_edge (a_p: SW_PAINTER; a_edge: INTEGER)
-			-- From the tail's label end to the head, with an arrowhead; a
-			-- reversed edge dashed, its arrow pointing back as written.
+			-- Along its chain - from the end of the left node's label, through a
+			-- dummy node in every layer between, to the right node - with an
+			-- arrowhead at the head; a reversed edge dashed, without one.
 		local
 			ax, ay, bx, by, l_len, ux, uy: REAL_64
 			l_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
+			l_route: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
 			m: DOUBLE_MATH
+			l_first: INTEGER
 		do
 			create m
 			a_p.font ({SW_PAINTER}.Role_ui, 11.5, False)
-				-- from the end of the tail's label, so no edge runs through it
-			ax := x + nodes.i_th (edges.i_th (a_edge).a).px + 14.0 + a_p.advance (nodes.i_th (edges.i_th (a_edge).a).label)
-			ay := y + nodes.i_th (edges.i_th (a_edge).a).py
-			bx := x + nodes.i_th (edges.i_th (a_edge).b).px
-			by := y + nodes.i_th (edges.i_th (a_edge).b).py
-			create l_pts.make (2)
-			l_pts.extend ([ax, ay])
-			l_pts.extend ([bx, by])
-			if is_reversed.count = edges.count and then is_reversed.i_th (a_edge) then
+			l_route := edge_route (a_edge)
+			l_first := edge_chains.i_th (a_edge).first
+			create l_pts.make (l_route.count)
+			across
+				l_route as rp
+			loop
+				l_pts.extend ([x + rp.px, y + rp.py])
+			end
+				-- from the end of the left node's label, so no edge runs through it
+			l_pts.first.px := l_pts.first.px + 14.0 + a_p.advance (nodes.i_th (l_first).label)
+			ax := l_pts.i_th (l_pts.count - 1).px
+			ay := l_pts.i_th (l_pts.count - 1).py
+			bx := l_pts.last.px
+			by := l_pts.last.py
+			if is_reversed.i_th (a_edge) then
 				a_p.dashed_polyline (l_pts, 1.2, a_p.Stroke_dashed)
 			else
-				a_p.line (ax, ay, bx, by, 1.2)
+				a_p.dashed_polyline (l_pts, 1.2, a_p.Stroke_solid)
 			end
 			l_len := m.sqrt ((bx - ax) * (bx - ax) + (by - ay) * (by - ay))
-			if l_len > 20.0 then
+			if l_len > 20.0 and then not is_reversed.i_th (a_edge) then
 				ux := (bx - ax) / l_len
 				uy := (by - ay) / l_len
 					-- the arrow stops at the head's ring (radius 8)
