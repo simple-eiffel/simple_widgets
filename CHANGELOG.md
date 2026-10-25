@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Changed (0.38.1 - one parser for generated geometry)
+
+- New deferred **`SW_GEOMETRY_DATA`** (`parse_block`, `flush`, `pending`):
+  SW_WORLD_GEOMETRY and SW_REGION_GEOMETRY inherit it instead of carrying
+  two parser copies that had drifted (the world's ended its last block by
+  comparing the block's identity with `data_5` and kept 6 numbers at
+  least, the region's 4). Both generators (`tools/gen_world_geometry.py`,
+  `tools/gen_region_geometry.py`) emit the inheritance and a `flush` after
+  the last block; regenerated, the world's data is identical to before.
+  537 pass (GW-29's contract-build timing excepted, see 0.37.3).
+
 ### Changed (0.38.0 - one place for colour arithmetic)
 
 Larry 2026-10-25: "keep going with your recommends" - the extractions the

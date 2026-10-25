@@ -11,6 +11,9 @@ note
 class
 	SW_WORLD_GEOMETRY
 
+inherit
+	SW_GEOMETRY_DATA
+
 feature -- Access
 
 	polygons: ARRAYED_LIST [ARRAY [REAL_64]]
@@ -23,84 +26,9 @@ feature -- Access
 			parse_block (data_3, Result)
 			parse_block (data_4, Result)
 			parse_block (data_5, Result)
+			flush (Result)
 		ensure
 			many_rings: Result.count >= 100
-		end
-
-feature {NONE} -- Parsing
-
-	parse_block (a_data: STRING; a_acc: ARRAYED_LIST [ARRAY [REAL_64]])
-			-- Rings separated by ';', numbers by whitespace; a block
-			-- boundary can fall mid-ring, so an unterminated tail is
-			-- carried in `pending' for the next block.
-		local
-			i, n: INTEGER
-			c: CHARACTER
-			tok: STRING
-			vals: ARRAYED_LIST [REAL_64]
-		do
-			vals := pending
-			create tok.make (12)
-			n := a_data.count
-			from
-				i := 1
-			until
-				i > n
-			loop
-				c := a_data.item (i)
-				if c = ';' then
-					if not tok.is_empty then
-						vals.extend (tok.to_double)
-						tok.wipe_out
-					end
-					flush_ring (vals, a_acc)
-				elseif c = ' ' or c = '%N' or c = '%T' or c = '%R' then
-					if not tok.is_empty then
-						vals.extend (tok.to_double)
-						tok.wipe_out
-					end
-				else
-					tok.extend (c)
-				end
-				i := i + 1
-			end
-			if not tok.is_empty then
-				vals.extend (tok.to_double)
-			end
-			if is_last_block (a_data) then
-				flush_ring (vals, a_acc)
-			end
-		end
-
-	is_last_block (a_data: STRING): BOOLEAN
-		do
-			Result := a_data = data_5
-		end
-
-	flush_ring (a_vals: ARRAYED_LIST [REAL_64]; a_acc: ARRAYED_LIST [ARRAY [REAL_64]])
-		local
-			arr: ARRAY [REAL_64]
-			k: INTEGER
-		do
-			if a_vals.count >= 6 then
-				create arr.make_filled (0.0, 1, a_vals.count)
-				from
-					k := 1
-				until
-					k > a_vals.count
-				loop
-					arr [k] := a_vals.i_th (k)
-					k := k + 1
-				end
-				a_acc.extend (arr)
-			end
-			a_vals.wipe_out
-		end
-
-	pending: ARRAYED_LIST [REAL_64]
-			-- Numbers of a ring split across block boundaries.
-		once
-			create Result.make (2600)
 		end
 
 feature {NONE} -- Generated data (Natural Earth 110m, public domain)

@@ -226,6 +226,9 @@ header = f'''note
 class
 	SW_REGION_GEOMETRY
 
+inherit
+	SW_GEOMETRY_DATA
+
 feature -- Region
 
 	West: REAL_64 = {WEST:.1f}
@@ -256,71 +259,6 @@ for kind, n, calls in sections:
 		end
 '''
 parser = '''
-feature {NONE} -- Parsing
-
-	parse_block (a_data: STRING; a_acc: ARRAYED_LIST [ARRAY [REAL_64]])
-			-- Rings or lines separated by ';', numbers by white space; a block
-			-- boundary can fall mid-ring, so an unfinished tail waits in
-			-- `pending' for the next block (and `flush').
-		local
-			i: INTEGER
-			c: CHARACTER
-			tok: STRING
-		do
-			create tok.make (12)
-			from
-				i := 1
-			until
-				i > a_data.count
-			loop
-				c := a_data.item (i)
-				if c = ';' then
-					if not tok.is_empty then
-						pending.extend (tok.to_double)
-						tok.wipe_out
-					end
-					flush (a_acc)
-				elseif c = ' ' or c = '%N' or c = '%T' or c = '%R' then
-					if not tok.is_empty then
-						pending.extend (tok.to_double)
-						tok.wipe_out
-					end
-				else
-					tok.extend (c)
-				end
-				i := i + 1
-			end
-			if not tok.is_empty then
-				pending.extend (tok.to_double)
-			end
-		end
-
-	flush (a_acc: ARRAYED_LIST [ARRAY [REAL_64]])
-			-- Move the pending numbers out as one ring or line.
-		local
-			l_ring: ARRAY [REAL_64]
-			i: INTEGER
-		do
-			if pending.count >= 4 then
-				create l_ring.make_filled (0.0, 1, pending.count)
-				from
-					i := 1
-				until
-					i > pending.count
-				loop
-					l_ring [i] := pending.i_th (i)
-					i := i + 1
-				end
-				a_acc.extend (l_ring)
-			end
-			pending.wipe_out
-		end
-
-	pending: ARRAYED_LIST [REAL_64]
-		once
-			create Result.make (4096)
-		end
-
 feature {NONE} -- Data
 '''
 text = header + body + parser + "\n".join(decls) + "\nend\n"
