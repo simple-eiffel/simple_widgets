@@ -9,9 +9,10 @@ note
 
 		A descendant opens the box with `open_editor', seats it each
 		layout with `seat_editor' (measuring it with
-		`editor_text_height'), follows the typing in `edited', takes the
-		box down in `end_edit' (keeping or restoring), and passes keys
-		and characters through `editor_key' and `editor_char' first.
+		`editor_text_height'), follows the typing in `edited', and says
+		what a kept edit and a dropped one mean (`keep_item',
+		`restore_item'); `end_edit' is the one template. Keys and
+		characters go through `editor_key' and `editor_char' first.
 		Nothing of SW_WIDGET is redefined here, so it inherits beside
 		SW_TEXT_POINTING, SW_VSCROLLING and SW_TEXT_SELECTION without a
 		clash. Lifted from SW_PARAGRAPH_LIST for SW_DOCUMENT_VIEW's live
@@ -67,11 +68,32 @@ feature -- Editing
 		end
 
 	end_edit (a_commit: BOOLEAN)
-			-- Take the box down: keep its text (`a_commit') or restore what
-			-- stood before.
+			-- Take the box down. Kept (`a_commit') and changed, its text
+			-- stands (`keep_item') and the host hears `on_edit_commit';
+			-- otherwise - dropped, or kept with nothing changed - the item
+			-- is as it was (`restore_item'). An unchanged edit is not a
+			-- commit. The box is down before either runs.
 		require
 			editing: is_editing
-		deferred
+		local
+			i: INTEGER
+			l_text: STRING_32
+		do
+			i := editing_index
+			if attached editor as al_ed then
+				l_text := al_ed.text.twin
+			else
+				l_text := edit_backup.twin
+			end
+			close_editor
+			if a_commit and then not l_text.same_string (edit_backup) then
+				keep_item (i, l_text)
+				if attached on_edit_commit as al_c then
+					al_c.call (i, l_text)
+				end
+			else
+				restore_item (i)
+			end
 		ensure
 			done: not is_editing
 		end
@@ -82,6 +104,21 @@ feature {NONE} -- Editing pieces
 			-- The box now reads `a_text': the item follows (and reflows).
 		require
 			editing_it: a_item = editing_index
+		deferred
+		end
+
+	keep_item (a_item: INTEGER; a_text: STRING_32)
+			-- The edit of `a_item' stands, reading `a_text' (changed).
+		require
+			box_down: not is_editing
+			changed: not a_text.same_string (edit_backup)
+		deferred
+		end
+
+	restore_item (a_item: INTEGER)
+			-- `a_item' as it was before the edit (`edit_backup').
+		require
+			box_down: not is_editing
 		deferred
 		end
 

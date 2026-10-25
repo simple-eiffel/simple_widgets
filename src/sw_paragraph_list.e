@@ -911,25 +911,20 @@ feature -- Editing
 			selected: selected_index = a_i
 		end
 
-	end_edit (a_commit: BOOLEAN)
-			-- Take the editor down: keep its text and tell the host
-			-- (`a_commit'), or restore what stood before.
-		local
-			i: INTEGER
+	keep_item (a_i: INTEGER; a_text: STRING_32)
+			-- The paragraph already follows the typing (`edited').
 		do
-			i := editing_index
-			if a_commit then
-				if attached on_edit_commit as al_c then
-					al_c.call (i, texts.i_th (i).twin)
-				end
-			else
-				texts.put_i_th (edit_backup.twin, i)
-				marks_list.i_th (i).copy_from (edit_marks_backup)
-				revisions.put_i_th (revisions.i_th (i) + 1, i)
-			end
-			close_editor
+			texts.put_i_th (a_text, a_i)
+		end
+
+	restore_item (a_i: INTEGER)
+			-- The text and marks as they stood at `begin_edit'.
+		do
+			texts.put_i_th (edit_backup.twin, a_i)
+			marks_list.i_th (a_i).copy_from (edit_marks_backup)
+			revisions.put_i_th (revisions.i_th (a_i) + 1, a_i)
 		ensure then
-			restored: not a_commit implies text_of (i_before (old editing_index)).same_string (old edit_backup)
+			restored: text_of (a_i).same_string (edit_backup)
 		end
 
 feature -- Tooling
@@ -1356,14 +1351,7 @@ feature {NONE} -- Measurement
 			in_range: Result >= 0 and Result <= count
 		end
 
-	i_before (a_i: INTEGER): INTEGER
-			-- Identity, named for a postcondition that must read an
-			-- index captured before the editor came down.
-		do
-			Result := a_i
-		end
-
-	edited (a_i: INTEGER; a_text: STRING_32)
+edited (a_i: INTEGER; a_text: STRING_32)
 			-- The editor typed: the paragraph follows and its height
 			-- reflows (SW_IN_PLACE_EDITING tells the host).
 		do

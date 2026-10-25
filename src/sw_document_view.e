@@ -357,34 +357,27 @@ feature -- Editing (live preview)
 			editing: is_editing and editing_index = a_block
 		end
 
-	end_edit (a_commit: BOOLEAN)
-			-- Take the box down. Kept (`a_commit') and changed, its source
-			-- replaces the block - with as many blocks as it reads as.
-		local
-			i: INTEGER
-			l_text: STRING_32
+	keep_item (a_i: INTEGER; a_text: STRING_32)
+			-- The edited source replaces the block - with as many blocks as
+			-- it reads as.
 		do
-			i := editing_index
-			if attached editor as al_ed then
-				l_text := al_ed.text.twin
-			else
-				create l_text.make_empty
-			end
-			close_editor
-			if i <= stack.count then
-				stack.forget (i)
-			end
-			if a_commit and then attached codec as al_codec and then not l_text.same_string (edit_backup) then
-				document.replace (i, al_codec.blocks_from (l_text))
-				if attached on_edit_commit as al_kept then
-					al_kept.call (i, l_text)
-				end
+			if attached codec as al_codec then
+				document.replace (a_i, al_codec.blocks_from (a_text))
 				if attached on_document_change as al_changed then
 					al_changed.call (Void)
 				end
 			end
+		end
+
+	restore_item (a_i: INTEGER)
+			-- The document was never touched; the block measures again at
+			-- its own height.
+		do
+			if a_i <= stack.count then
+				stack.forget (a_i)
+			end
 		ensure then
-			unchanged_unless_kept: not a_commit implies document.revision = old document.revision
+			document_untouched: document.revision = old document.revision
 		end
 
 	new_paragraph_after (a_block: INTEGER)
