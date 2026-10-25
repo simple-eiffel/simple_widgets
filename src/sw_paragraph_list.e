@@ -75,7 +75,7 @@ class
 	SW_PARAGRAPH_LIST
 
 inherit
-	SW_TEXT_POINTING
+	SW_STACKED_POINTING
 		redefine
 			item_text_count,
 			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
@@ -84,27 +84,7 @@ inherit
 			handle_release
 		end
 
-	SW_VSCROLLING
-		undefine
-			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
-		redefine
-			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
-			handle_double_click, handle_drag, handle_key, handle_char,
-			accepts_focus, wants_hover_point, cursor_kind, focusables,
-			handle_release
-		end
-
 	SW_IN_PLACE_EDITING
-		undefine
-			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
-		redefine
-			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
-			handle_double_click, handle_drag, handle_key, handle_char,
-			accepts_focus, wants_hover_point, cursor_kind, focusables,
-			handle_release
-		end
-
-	SW_STACKED_ITEMS
 		undefine
 			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
 		redefine

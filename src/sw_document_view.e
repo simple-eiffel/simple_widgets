@@ -67,31 +67,13 @@ inherit
 			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
 		end
 
-	SW_VSCROLLING
-		undefine
-			dwell_ms, handle_dwell, hover_card_at
-		redefine
-			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
-		end
-
 	SW_IN_PLACE_EDITING
 		undefine
-			dwell_ms, handle_dwell, hover_card_at
+			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at
 		redefine
 			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
 			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
-		end
-
-	SW_STACKED_ITEMS
-		undefine
-			dwell_ms, handle_dwell, hover_card_at
-		redefine
-			arrange, handle_wheel, handle_click, handle_double_click, handle_drag,
-			handle_release, handle_key, handle_char, accepts_focus, wants_hover_point,
-			cursor_kind, set_hover_point, set_hovered, sub_widgets, widget_at
+			cursor_kind, sub_widgets, widget_at
 		end
 
 create
@@ -284,22 +266,6 @@ feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 			Result := x + margin
 		end
 
-	unit_item_top (a_item: INTEGER): REAL_64
-		do
-			Result := stacked_top (a_item)
-		end
-
-	unit_item_at (a_py: REAL_64): INTEGER
-		do
-			Result := stacked_item_at (a_py)
-		end
-
-	is_on_content (a_px, a_py: REAL_64): BOOLEAN
-			-- Inside the view, off the scrollbar.
-		do
-			Result := contains (a_px, a_py) and then not bar.contains (a_px, a_py)
-		end
-
 feature -- Scrolling (SW_VSCROLLING)
 
 	scroll_extent: REAL_64
@@ -333,10 +299,8 @@ feature -- Layout
 				Result := 0
 			elseif editor_has (hover_px, hover_py) then
 				Result := 1
-			elseif hovered_link_span > 0 then
-				Result := 2
-			elseif hover_character > 0 then
-				Result := 1
+			else
+				Result := unit_cursor_kind
 			end
 		end
 
@@ -391,78 +355,40 @@ feature -- Input
 		end
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
-			-- The bar first; then a press on text starts a selection (and
-			-- remembers a link under it); a press elsewhere clears it.
-		local
-			u: INTEGER
+			-- The bar first; then, editable, the live preview's press; else
+			-- a press on text starts a selection (SW_DOC_UNITS).
 		do
-			create pressed_link.make_empty
 			if press_bar (a_px, a_py) then
 				Result := True
 			elseif is_editable then
+				create pressed_link.make_empty
 				Result := editable_click (a_px, a_py)
 			else
-				u := pointed_item (a_px, a_py)
-				if u > 0 then
-					begin_selection (u, offset_at_point (u, a_px, a_py))
-					pressed_link := link_target_at_point (a_px, a_py)
-					Result := True
-				else
-					clear_selection
-					Result := contains (a_px, a_py)
-				end
+				Result := unit_press (a_px, a_py)
 			end
 		end
 
 	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
 			-- Select the word under the pointer.
-		local
-			u, ch: INTEGER
-			w: TUPLE [lo, hi: INTEGER]
 		do
-			ch := character_at (a_px, a_py)
-			if ch > 0 then
-				u := pointed_item (a_px, a_py)
-				w := word_at (u, ch)
-				select_range (u, w.lo, u, w.hi)
-				Result := True
-			end
+			Result := unit_double_click (a_px, a_py)
 		end
 
 	handle_drag (a_px, a_py: REAL_64)
 			-- The thumb follows, or the selection grows to the text under
 			-- the pointer.
-		local
-			u: INTEGER
 		do
-			if not drag_bar (a_py) and then is_selecting then
-				u := pointed_item (a_px, a_py)
-				if u > 0 then
-					extend_selection (u, offset_at_point (u, a_px, a_py))
-				end
+			if not drag_bar (a_py) then
+				unit_drag (a_px, a_py)
 			end
 		end
 
 	handle_release (a_x, a_y: INTEGER)
 			-- Let go of the thumb or end the selection; a click on a link
 			-- (pressed and released on it, nothing selected) follows it.
-		local
-			l_target: STRING_32
 		do
 			release_bar
-			if is_selecting then
-				end_selection
-				if not has_selection and then not pressed_link.is_empty
-					and then link_target_at_point (a_x, a_y).same_string (pressed_link)
-				then
-					l_target := pressed_link.twin
-					clear_selection
-					if attached on_link_click as al_click then
-						al_click.call (l_target)
-					end
-				end
-			end
-			create pressed_link.make_empty
+			unit_release (a_x, a_y)
 		ensure then
 			released: not bar.is_dragging and not is_selecting
 		end

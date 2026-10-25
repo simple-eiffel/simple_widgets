@@ -18,11 +18,12 @@ note
 		wash, struck runs) and its selection, and keeps the link under the
 		pointer (`hovered_link', `on_link_hover', `link_target_at').
 
-		A descendant fills `block_units' (one list per stacked item),
-		calls `number_units', and says where its units stand
-		(`units_left', `unit_item_top', `unit_item_at'), what ink a unit's
-		plain text takes (`unit_ink'), and where its content is
-		(`is_on_content': inside, off any scrollbar). Lifted from
+		It inherits SW_STACKED_POINTING (pointing, scrolling and the
+		stack, joined once) and SW_TEXT_SELECTION, so its heirs inherit it
+		alone. A descendant fills `block_units' (one list per stacked
+		item), calls `number_units', and says where a unit's `dx' counts
+		from (`units_left') and what ink a unit's plain text takes
+		(`unit_ink'). Lifted from
 		SW_DOCUMENT_VIEW so GW-06 is not its second copy.
 	]"
 	author: "Larry Rix"
@@ -31,7 +32,7 @@ deferred class
 	SW_DOC_UNITS
 
 inherit
-	SW_TEXT_POINTING
+	SW_STACKED_POINTING
 		redefine
 			item_text_count
 		end
@@ -96,7 +97,7 @@ feature -- Units
 			valid: is_valid_item (a_unit)
 		do
 			if is_laid_out then
-				Result := unit_item_top (units.i_th (a_unit).block) + units.i_th (a_unit).dy
+				Result := stacked_top (units.i_th (a_unit).block) + units.i_th (a_unit).dy
 			end
 		end
 
@@ -215,14 +216,14 @@ feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 			l_list: ARRAYED_LIST [SW_DOC_UNIT]
 		do
 			if is_on_content (a_px, a_py) then
-				b := unit_item_at (a_py)
+				b := stacked_item_at (a_py)
 				if b > 0 and then b <= block_units.count and then b <= block_first_unit.count then
 					l_list := block_units.i_th (b)
 					if l_list.count = 1 and then l_list.first.box_w = 0.0 then
 						Result := block_first_unit.i_th (b)
 					else
 						cx := a_px - units_left
-						cy := a_py - unit_item_top (b)
+						cy := a_py - stacked_top (b)
 						from
 							k := 1
 						until
@@ -242,25 +243,93 @@ feature -- Items (SW_TEXT_POINTING, SW_TEXT_SELECTION)
 			none_or_valid: Result = 0 or else is_valid_item (Result)
 		end
 
+feature {NONE} -- Reading with the pointer
+
+	unit_press (a_px, a_py: REAL_64): BOOLEAN
+			-- A press: on text it starts a selection (and remembers a link
+			-- under it); elsewhere inside it clears the selection. Taken
+			-- when inside.
+		local
+			u: INTEGER
+		do
+			create pressed_link.make_empty
+			u := pointed_item (a_px, a_py)
+			if u > 0 then
+				begin_selection (u, offset_at_point (u, a_px, a_py))
+				pressed_link := link_target_at_point (a_px, a_py)
+				Result := True
+			else
+				clear_selection
+				Result := contains (a_px, a_py)
+			end
+		end
+
+	unit_double_click (a_px, a_py: REAL_64): BOOLEAN
+			-- Select the word under the pointer.
+		local
+			u, ch: INTEGER
+			w: TUPLE [lo, hi: INTEGER]
+		do
+			ch := character_at (a_px, a_py)
+			if ch > 0 then
+				u := pointed_item (a_px, a_py)
+				w := word_at (u, ch)
+				select_range (u, w.lo, u, w.hi)
+				Result := True
+			end
+		end
+
+	unit_drag (a_px, a_py: REAL_64)
+			-- The selection grows to the text under the pointer.
+		local
+			u: INTEGER
+		do
+			if is_selecting then
+				u := pointed_item (a_px, a_py)
+				if u > 0 then
+					extend_selection (u, offset_at_point (u, a_px, a_py))
+				end
+			end
+		end
+
+	unit_release (a_x, a_y: INTEGER)
+			-- End the selection; a click on a link (pressed and released on
+			-- it, nothing selected) follows it.
+		local
+			l_target: STRING_32
+		do
+			if is_selecting then
+				end_selection
+				if not has_selection and then not pressed_link.is_empty
+					and then link_target_at_point (a_x, a_y).same_string (pressed_link)
+				then
+					l_target := pressed_link.twin
+					clear_selection
+					if attached on_link_click as al_click then
+						al_click.call (l_target)
+					end
+				end
+			end
+			create pressed_link.make_empty
+		ensure
+			not_selecting: not is_selecting
+		end
+
+	unit_cursor_kind: INTEGER
+			-- A hand over a link, an I-beam over text, else the arrow.
+		do
+			if hovered_link_span > 0 then
+				Result := 2
+			elseif hover_character > 0 then
+				Result := 1
+			end
+		end
+
 feature {NONE} -- Unit hooks
 
 	units_left: REAL_64
 			-- Where a unit's `dx' counts from, in window coordinates.
 		deferred
-		end
-
-	unit_item_top (a_item: INTEGER): REAL_64
-			-- Stacked item `a_item''s top, in window coordinates.
-		require
-			item_positive: a_item >= 1
-		deferred
-		end
-
-	unit_item_at (a_py: REAL_64): INTEGER
-			-- The stacked item whose box holds window y `a_py'; 0 for none.
-		deferred
-		ensure
-			non_negative: Result >= 0
 		end
 
 	unit_ink (a_theme: SW_THEME; a_unit: SW_DOC_UNIT): NATURAL_32
@@ -269,13 +338,9 @@ feature {NONE} -- Unit hooks
 		end
 
 	is_on_content (a_px, a_py: REAL_64): BOOLEAN
-			-- Is the point over the units: inside, off any scrollbar?
-		deferred
-		end
-
-	is_laid_out: BOOLEAN
-			-- Do the units stand for the items as they are?
-		deferred
+			-- Is the point over the units: inside, off the scrollbar?
+		do
+			Result := contains (a_px, a_py) and then not bar.contains (a_px, a_py)
 		end
 
 feature {NONE} -- Unit implementation
@@ -344,7 +409,7 @@ feature {NONE} -- Unit implementation
 			g: SW_TEXT_GEOMETRY
 		do
 			g := a_unit.geometry
-			g.set_alignment ({SHAPING_CONSTANTS}.Align_start, a_unit.wrap)
+			g.set_alignment (a_unit.alignment, a_unit.wrap)
 			if a_unit.content.span_count > 0 then
 				g.set_styles (doc_styles.styles_of (a_unit.content))
 			else
