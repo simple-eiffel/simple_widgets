@@ -438,7 +438,7 @@ feature -- Drawing
 			a_p.set_color (t.outline)
 			a_p.hline (x, y + Header_h - 0.5, width)
 				-- vertical scrollbar
-			bar.draw (a_p, scroll_y, is_hovered and then bar.contains (hover_px, hover_py))
+			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
 			a_p.pop_clip
 			a_p.set_color (t.outline)
 			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
