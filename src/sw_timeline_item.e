@@ -64,10 +64,11 @@ feature -- Access
 			-- and finer): semantic zoom.
 
 	is_point: BOOLEAN
-			-- Drawn as a tick? Class A, or a one-year item other than
-			-- tradition (G is never drawn as a point).
+			-- Drawn as a tick? Class A only: a tick claims a day, and one year
+			-- of class B, C, D or F is still a bar (scan 15: Qarqar, fixed to
+			-- the year, was drawn as a day).
 		do
-			Result := certainty = Class_a or else (year_from = year_to and certainty /= Class_g and certainty /= Class_e)
+			Result := certainty = Class_a
 		end
 
 	is_lean: BOOLEAN

@@ -15,16 +15,29 @@ note
 		Input: the wheel zooms about the pointer; a drag pans; a click on an
 		item selects it (`on_select'), on a group header folds the group,
 		elsewhere sets the cursor (`on_cursor'); Left/Right pan, plus and
-		minus zoom, Home fits everything.
+		minus zoom, Home fits everything. Lanes scroll up and down under a
+		scrollbar (SW_VSCROLLING): Up/Down, Page Up/Page Down and the bar.
+	]"
+	scan_15: "[
+		2026-10-25, the design scan since c9d5571; a note for the future
+		self. (1) An envelope is per dispute AND lane: a dispute whose
+		positions sit in several lanes is bracketed in each. (2) Only class
+		A is a tick; one year of B, C, D or F is a bar six pixels wide at
+		least. (3) A dispute shows all its positions while its envelope is
+		on the view, whatever their importance: disputes are drawn, not
+		hidden. (4) Every year mark - tick, cursor, axis label - stands at
+		the middle of its year. (5) The lanes scroll vertically, and the
+		preferred height is the laid-out height. Guarded by the scan15_*
+		tests in SW_LANE_TIMELINE_ASSAULT.
 	]"
 
 class
 	SW_LANE_TIMELINE
 
 inherit
-	SW_WIDGET
+	SW_VSCROLLING
 		redefine
-			arrange, handle_click, handle_drag, handle_wheel, handle_key, accepts_focus,
+			arrange, handle_click, handle_drag, handle_release, handle_wheel, handle_key, accepts_focus,
 			wants_hover_point, accessible_role, default_accessible_name, accessible_value
 		end
 
@@ -350,8 +363,9 @@ feature -- Measurement (after arrange)
 	headers: ARRAYED_LIST [TUPLE [group: STRING_32; hy: REAL_64]]
 			-- Each group header's row.
 
-	envelope_boxes: ARRAYED_LIST [TUPLE [ex, ey, ew, eh: REAL_64]]
-			-- Parallel to the disputes: the envelope drawn round the positions.
+	envelope_boxes: ARRAYED_LIST [TUPLE [ex, ey, ew, eh: REAL_64; dispute, lane: INTEGER]]
+			-- One per dispute and lane holding shown positions: the envelope
+			-- drawn round them there.
 
 	axis_labels: ARRAYED_LIST [TUPLE [year: INTEGER; lx, lw: REAL_64]]
 			-- The year labels the axis draws, each wholly inside the plot: a
@@ -406,10 +420,31 @@ feature -- Measurement (after arrange)
 feature -- Layout
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- The laid-out height (axis, headers, every stacked row) once laid
+			-- out; before that an estimate.
 		do
 			measure (a_p)
-			Result := axis_h + (lane_titles.count + 2) * row_h
+			if content_extent > 0.0 then
+				Result := content_extent
+			else
+				Result := axis_h + (lane_titles.count + 2) * row_h
+			end
 		end
+
+	scroll_extent: REAL_64
+			-- SW_VSCROLLING: everything the lanes would take.
+		do
+			Result := content_extent
+		end
+
+	wheel_line: REAL_64
+			-- SW_VSCROLLING: one row.
+		do
+			Result := row_h.max (1.0)
+		end
+
+	content_extent: REAL_64
+			-- The axis, the headers and every lane's rows, as last laid out.
 
 	arrange (a_p: SW_PAINTER)
 			-- Measure, place the group headers and lanes, and stack each lane's
@@ -431,14 +466,10 @@ feature -- Layout
 			end
 			create l_rows_of.make_filled (items.count)
 			envelope_boxes.wipe_out
-			from i := 1 until i > dispute_titles.count loop
-				envelope_boxes.extend ([0.0, 0.0, 0.0, 0.0])
-				i := i + 1
-			end
 			lane_tops.wipe_out
 			lane_heights.wipe_out
 			headers.wipe_out
-			cy := y + axis_h
+			cy := y + axis_h - scroll_y
 			from
 				l := 1
 			until
@@ -478,11 +509,12 @@ feature -- Layout
 							item_boxes.i_th (it.id).by := cy + (l_rows_of.i_th (it.id) - 1) * row_h + 3.0
 						end
 					end
-					from i := 1 until i > dispute_titles.count loop
-						if positions_shown (i, l) > 0 then
-							envelope_boxes.i_th (i).ey := cy + (first_row_of (i, l, l_rows_of) - 1) * row_h + 1.0
+					across
+						envelope_boxes as e
+					loop
+						if e.lane = l then
+							e.ey := cy + (first_row_of (e.dispute, l, l_rows_of) - 1) * row_h + 1.0
 						end
-						i := i + 1
 					end
 					cy := cy + lane_heights.last
 				else
@@ -490,6 +522,8 @@ feature -- Layout
 				end
 				l := l + 1
 			end
+			content_extent := cy + scroll_y - y
+			place_bar (a_p.theme)
 			place_axis_labels (a_p)
 		ensure then
 			one_box_per_item: item_boxes.count = items.count
@@ -501,7 +535,7 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			l, i: INTEGER
+			l: INTEGER
 		do
 			t := a_p.theme
 			a_p.set_color (t.surface)
@@ -541,13 +575,13 @@ feature -- Drawing
 				l := l + 1
 			end
 			a_p.push_clip (plot_left, y + axis_h, plot_w, (height - axis_h).max (0.0))
-			from i := 1 until i > dispute_titles.count loop
-				if envelope_boxes.i_th (i).ew > 0.0 then
+			across
+				envelope_boxes as e
+			loop
+				if e.ew > 0.0 then
 					a_p.set_color (t.ink_muted)
-					a_p.dashed_rrect_stroke (envelope_boxes.i_th (i).ex + 0.5, envelope_boxes.i_th (i).ey + 0.5,
-						envelope_boxes.i_th (i).ew - 1.0, envelope_boxes.i_th (i).eh - 1.0, t.radius, 1.0, a_p.Stroke_dashed)
+					a_p.dashed_rrect_stroke (e.ex + 0.5, e.ey + 0.5, e.ew - 1.0, e.eh - 1.0, t.radius, 1.0, a_p.Stroke_dashed)
 				end
-				i := i + 1
 			end
 			across
 				items as it
@@ -565,6 +599,7 @@ feature -- Drawing
 			if has_cursor then
 				draw_cursor_label (a_p)
 			end
+			draw_bar (a_p)
 			if is_focused then
 				a_p.set_color (t.accent)
 				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
@@ -586,7 +621,9 @@ feature -- Input
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
 			-- Fold a group, select an item, or set the cursor; start a pan.
 		do
-			if is_enabled and then contains (a_px, a_py) then
+			if is_enabled and then press_bar (a_px, a_py) then
+				Result := True
+			elseif is_enabled and then contains (a_px, a_py) then
 				Result := True
 				press_x := a_px
 				press_from := view_from
@@ -609,12 +646,19 @@ feature -- Input
 		local
 			l_span: REAL_64
 		do
-			if is_panning or else (a_px - press_x).abs >= 4.0 then
+			if drag_bar (a_py) then
+				-- the scrollbar took it
+			elseif is_panning or else (a_px - press_x).abs >= 4.0 then
 				is_panning := True
 				l_span := view_to - view_from
 				view_from := press_from - (a_px - press_x) * l_span / plot_w.max (1.0)
 				view_to := view_from + l_span
 			end
+		end
+
+	handle_release (a_x, a_y: INTEGER)
+		do
+			release_bar
 		end
 
 	handle_wheel (a_delta: INTEGER): BOOLEAN
@@ -643,6 +687,12 @@ feature -- Input
 				zoom_about ((view_from + view_to) / 2.0, 1.25)
 			when 36 then
 				fit_all
+			when 33, 34 then
+				scroll_key (a_vk).do_nothing
+			when 38 then
+				scroll_to (scroll_y - row_h)
+			when 40 then
+				scroll_to (scroll_y + row_h)
 			else
 			end
 		end
@@ -725,9 +775,14 @@ feature {NONE} -- Implementation
 		end
 
 	is_shown_now (a_item: SW_TIMELINE_ITEM): BOOLEAN
-			-- At this zoom and on the view?
+			-- At this zoom and on the view? A dispute's position shows while
+			-- the dispute's envelope is on the view, whatever its importance.
 		do
-			Result := a_item.importance <= zoom_level and then a_item.year_to + 1 >= view_from and then a_item.year_from <= view_to
+			if a_item.dispute > 0 then
+				Result := dispute_to.i_th (a_item.dispute) + 1 >= view_from and then dispute_from.i_th (a_item.dispute) <= view_to
+			else
+				Result := a_item.importance <= zoom_level and then a_item.year_to + 1 >= view_from and then a_item.year_from <= view_to
+			end
 		end
 
 	positions_shown (a_dispute, a_lane: INTEGER): INTEGER
@@ -804,12 +859,11 @@ feature {NONE} -- Implementation
 			x1 := year_x (a_item.year_from)
 			x2 := year_x (a_item.year_to + 1)
 			if a_item.is_point then
-				x1 := x1 - 3.0
+					-- at the middle of its year, where the cursor and labels stand
+				x1 := year_x (a_item.year_from + 0.5) - 3.0
 				x2 := x1 + 6.0
-			elseif a_item.certainty = {SW_TIMELINE_ITEM}.Class_g then
-				x2 := x2.max (x1 + 6.0)
 			else
-				x2 := x2.max (x1 + 3.0)
+				x2 := x2.max (x1 + 6.0)
 			end
 			l_text := a_p.advance (item_label (a_item)) + 8.0
 			if x2 - x1 >= l_text then
@@ -859,9 +913,7 @@ feature {NONE} -- Implementation
 					r := r + 1
 				end
 			end
-			envelope_boxes.i_th (a_dispute).ex := l_left - 2.0
-			envelope_boxes.i_th (a_dispute).ew := (l_right - l_left) + 4.0
-			envelope_boxes.i_th (a_dispute).eh := (r - a_first) * row_h - 2.0
+			envelope_boxes.extend ([l_left - 2.0, 0.0, (l_right - l_left) + 4.0, (r - a_first) * row_h - 2.0, a_dispute, a_lane])
 		end
 
 	item_label (a_item: SW_TIMELINE_ITEM): STRING_32

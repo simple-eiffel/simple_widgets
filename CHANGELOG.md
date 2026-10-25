@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.35.1 - the fifteenth scan, since c9d5571: the timeline)
+
+Five HIGH findings, each with a test that failed on 0.35.0:
+- **A dispute across lanes is bracketed in each lane.** One envelope box
+  per dispute kept only the last lane's; boxes are per dispute and lane now
+  (`scan15_a_dispute_across_lanes_is_enveloped_in_each`).
+- **Only class A is a tick.** One year of class B, C, D or F was drawn as a
+  day; it is a bar at least six pixels wide (`scan15_a_one_year_bar_is_not_a_tick`).
+- **Disputes are drawn, not hidden.** Positions were shown one by one, so a
+  dispute of detail positions vanished at millennium scale; all positions
+  show while the envelope is on the view (`scan15_a_dispute_never_loses_a_position`).
+- **Every year mark at the middle of its year.** Ticks stood at the start,
+  the cursor and labels at the middle: 200 pixels apart at a two-year view
+  (`scan15_a_tick_stands_where_the_cursor_stands`).
+- **Every lane can be reached.** SW_LANE_TIMELINE now inherits SW_VSCROLLING:
+  a scrollbar, Up/Down and Page Up/Page Down scroll the lanes (the wheel
+  still zooms); the preferred height is the laid-out height
+  (`scan15_preferred_height_counts_rows_and_headers`,
+  `scan15_lanes_below_the_bottom_can_be_reached`).
+- A class note `scan_15` records the five rules for the next editor.
+- Not done (MEDIUM): class D's stated confidence and class E's authority are
+  not drawn; the provenance badge shares the scheme badge; selection is not
+  drawn; the keyboard cannot set the cursor or select; layout is
+  lanes x disputes x items; the year mapping is written beside SW_SCALE
+  rather than with it. Report: `.eiffel-workflow/evidence/design-scan-since-c9d5571.md`.
+  520 pass.
+
 ### Added (0.35.0 - GW-17: SW_LANE_TIMELINE, a world timeline)
 
 For the world timeline (P13, research 11-HISTORY-TIMELINE).
