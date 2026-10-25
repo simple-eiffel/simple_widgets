@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.35.0 - GW-17: SW_LANE_TIMELINE, a world timeline)
+
+For the world timeline (P13, research 11-HISTORY-TIMELINE).
+- **`SW_ERA_YEARS`**: astronomical years (1 BC = 0) read as BC/AD or BCE/CE;
+  no label ever shows a year zero (postcondition); `range_label`
+  ("1650-1550 BC", "AD 29-34", "4 BC - AD 30"); ticks on round DISPLAYED
+  years (100 BC, AD 100); `nice_step`.
+- **`SW_TIMELINE_ITEM`**: a range of years in a lane with a certainty class
+  A-G, a badge, a dispute, a lean and an importance for semantic zoom.
+  Tradition (G) is never a point (invariant).
+- **`SW_LANE_TIMELINE`**: lanes in collapsible groups (a click on a header
+  folds it), overlapping items stacked into rows, every certainty class
+  drawn by pattern with a label through GW-18 (A tick, B solid bar, C bar
+  with its scheme badge, D gradient bar, E soft band, F dashed bar "per the
+  text", G hatched band "tradition"), a dispute's positions stacked inside
+  its dashed envelope, the owner's lean marked with its wording and never
+  pre-selected, semantic zoom (periods at millennium scale, major events at
+  century scale, everything at decade scale), a synchronism cursor with its
+  year in a chip and `slice (year)` listing every visible item at that
+  moment. The wheel zooms about the pointer, a drag pans, Left/Right pan,
+  plus and minus zoom, Home fits everything; `on_select`, `on_cursor`. Year
+  labels that the plot's edge would cut are left out, and a right-to-left
+  title keeps its class label after it (both seen in the evidence).
+- Tests (`SW_LANE_TIMELINE_ASSAULT`, 8): years without a year zero across
+  6,000 years; round ticks; whole axis labels at several views; stacking and
+  disputes; semantic zoom and folding; cursor, wheel and tradition; a pilot
+  timeline with pointed Hebrew and polytonic Greek titles in both themes
+  (evidence `gw17_timeline_light.png`, `gw17_timeline_dark.png`). 514 pass.
+
 ### Fixed (0.34.2 - the fourteenth scan, since c01e578: hatch cost)
 
 - **A huge hatch is bounded.** The clip throws ink away only after every
