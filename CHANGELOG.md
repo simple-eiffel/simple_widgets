@@ -21,6 +21,40 @@ but two pieces of this program had kept fixed pixels.
 - Nothing else moves at 1x. At 2x text all of it doubles.
 - Test: `status_bar_and_hover_card_spacing_scale`. 383 pass.
 
+### Added (0.28.0 — 100,000 SHAPED ROWS AT 60 HZ; GW-29)
+
+simple_bible's concordance lists every place a word occurs: 88,444 rows for
+the Greek article. `SW_DATA_GRID` already drew only the rows in view. GW-29
+measured it with 100,000 rows of shaped Hebrew and Greek cells and fixed
+what the measurement found.
+- **The defect was in simple_shaping** (0.6.1, merged there). Its layout
+  cache's postconditions rebuilt the whole MML model on every call, so under
+  assertions each shaped string cost more than the last. A frame took 316
+  ms and then grew past 3 seconds. The fix is in that library, with its own
+  before/after test.
+- **`SW_SHAPING.layout_styled` remembers** (every widget's
+  `SW_PAINTER.text` comes through it). It keeps two generations of 1,024
+  layouts, so a string drawn again is one hash lookup and scrolling never
+  empties the memo at once. The font setters clear it, and
+  `forget_layouts` is there for changes made on `facade` directly.
+- **The grid sorts by keys asked for once.** `SW_GRID_COLUMN.sort_key`
+  gives each row's key once per sort, instead of two agent calls per
+  comparison (3.4 million for 100,000 rows).
+- **Measured** (`gw29_hundred_thousand_rows_light`/`_dark`; evidence
+  `gw29_grid_light.png`/`_dark.png`):
+  - Lean build (`ec.sh release`, the `_lean` binary, the shipping
+    configuration): wheel frame 1.5 ms median, page jump 5.1 ms, sort 175 ms,
+    against a 16.7 ms frame. The test asserts the 60 Hz budget here.
+  - Contracts-on build (`ec.sh test`): wheel frame 39 ms, page jump 190 ms,
+    sort 0.8 s. The test asserts that frames do not grow slower and that a
+    frame drawn again never reaches the facade.
+- The test runner takes `SW_ONLY=<part of a test name>` to run only those
+  tests.
+- Not built: a virtual row source (count plus fetch, with the host owning
+  sort and filter). 100,000 rows in memory take 1.4 ms to adopt. Build it
+  when a list too large to hold appears.
+- Next: per-column alignment, so a Hebrew line column can sit flush right.
+
 ### Added (0.27.0 — QUERY BUILDER CLAUSE TREE; GW-12; and the fifth scan's fixes)
 
 - **`SW_QUERY_BUILDER` builds a clause tree** (simple_bible's Search

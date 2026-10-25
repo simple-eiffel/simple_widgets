@@ -531,19 +531,17 @@ feature {NONE} -- Engine
 	resizing_column: INTEGER
 			-- The column being width-dragged; 0 when idle.
 
-	view_less (a_mi, b_mi: INTEGER): BOOLEAN
-			-- Does model row `a_mi' order strictly before `b_mi'
-			-- under the current column and direction? Strict BOTH
-			-- ways, so equal keys never reorder (stability).
-		require
-			sorting: sort_column >= 1 and sort_column <= columns.count
+	key_less (a_keys: SPECIAL [detachable COMPARABLE]; a_mi, b_mi: INTEGER): BOOLEAN
+			-- Does model row `a_mi' order strictly before `b_mi' by the keys
+			-- in `a_keys' (indexed by model row) and the current direction?
+			-- Strict BOTH ways, so equal keys never reorder (stability).
 		do
-			if is_descending then
-				Result := columns.i_th (sort_column).row_less
-					(rows.i_th (b_mi), rows.i_th (a_mi))
-			else
-				Result := columns.i_th (sort_column).row_less
-					(rows.i_th (a_mi), rows.i_th (b_mi))
+			if attached a_keys [a_mi] as al_a and then attached a_keys [b_mi] as al_b then
+				if is_descending then
+					Result := al_b < al_a
+				else
+					Result := al_a < al_b
+				end
 			end
 		end
 
@@ -553,10 +551,21 @@ feature {NONE} -- Engine
 			-- already handles, and equal keys keep model order in
 			-- BOTH directions (the descending insertion sort swapped
 			-- them - caught by a failing assault, 2026-08-23).
+			-- GW-29: each row's key is asked for ONCE, before the merge, not
+			-- twice a comparison - 100,000 rows made 3.4 million agent calls.
+		require
+			sorting: sort_column >= 1 and sort_column <= columns.count
 		local
 			src, dst, swp: ARRAYED_LIST [INTEGER]
 			stride, lo, mid, hi, a, b: INTEGER
+			l_keys: SPECIAL [detachable COMPARABLE]
+			l_column: SW_GRID_COLUMN [G]
 		do
+			l_column := columns.i_th (sort_column)
+			create l_keys.make_filled (Void, rows.count + 1)
+			across view as mi loop
+				l_keys [mi] := l_column.sort_key (rows.i_th (mi))
+			end
 			src := view.twin
 			dst := view.twin
 			from
@@ -576,7 +585,7 @@ feature {NONE} -- Engine
 					across
 						lo |..| hi as w
 					loop
-						if b > hi or else (a <= mid and then not view_less (src.i_th (b), src.i_th (a))) then
+						if b > hi or else (a <= mid and then not key_less (l_keys, src.i_th (b), src.i_th (a))) then
 							dst.put_i_th (src.i_th (a), w)
 							a := a + 1
 						else

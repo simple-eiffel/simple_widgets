@@ -701,6 +701,10 @@ feature {NONE} -- Test runners
 			run_test (agent grouped_bars_tests.test_gw10_crowded_chart_keeps_inside, "gw10_crowded_chart_keeps_inside")
 			run_test (agent grouped_bars_tests.test_gw10_controls_light, "gw10_controls_light")
 			run_test (agent grouped_bars_tests.test_gw10_controls_dark, "gw10_controls_dark")
+			print ("%N=== GW-29 VIRTUAL GRID ===%N")
+			create virtual_grid_tests
+			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_light, "gw29_hundred_thousand_rows_light")
+			run_test (agent virtual_grid_tests.test_gw29_hundred_thousand_rows_dark, "gw29_hundred_thousand_rows_dark")
 			print ("%N=== GW-12 QUERY BUILDER ===%N")
 			create query_tests
 			run_test (agent query_tests.test_gw12_tree_reads_and_renders, "gw12_tree_reads_and_renders")
@@ -764,13 +768,18 @@ feature {NONE} -- Test runners
 	interlinear_tests: SW_INTERLINEAR_ASSAULT
 	grouped_bars_tests: SW_GROUPED_BARS_ASSAULT
 	query_tests: SW_QUERY_ASSAULT
+	virtual_grid_tests: SW_VIRTUAL_GRID_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)
 			-- Run one test; any exception (contract or otherwise) fails it.
 		local
 			l_retried: BOOLEAN
 		do
-			if not l_retried then
+			if attached (create {EXECUTION_ENVIRONMENT}).item ("SW_ONLY") as al_only
+				and then not al_only.is_empty and then not a_name.has_substring (al_only.to_string_8)
+			then
+					-- SW_ONLY=<part of a name> runs only the tests it names.
+			elseif not l_retried then
 				a_test.call (Void)
 				print ("  PASS: " + a_name + "%N")
 				passed := passed + 1

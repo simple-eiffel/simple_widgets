@@ -143,17 +143,56 @@ feature -- Measurement and layout
 			size_positive: a_pixel_size > 0
 			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
 				or a_role = {SW_PAINTER}.Role_mono
+			--
+			-- GW-29: remembered. Every widget's `SW_PAINTER.text' comes here
+			-- every frame, so a string drawn again is one hash lookup - not a
+			-- trip through the facade's cache key and contracts. Two
+			-- generations of `Memo_generation' layouts each: when the newer
+			-- fills it becomes the older and the oldest goes, so scrolling a
+			-- long list never empties the memo at once.
+		local
+			l_key: STRING_32
 		do
-			if a_pixel_size < small_size_below and then not small_script_faces.is_empty then
-				Result := facade.layout (a_text.to_string_32, a_width_pixels, a_pixel_size,
-					small_styled_fonts (a_role, a_bold))
+			l_key := memo_key (a_text, a_width_pixels, a_pixel_size, a_role, a_bold)
+			if attached memo.item (l_key) as al_layout then
+				Result := al_layout
+			elseif attached older_memo.item (l_key) as al_older then
+				Result := al_older
+				remember (l_key, al_older)
 			else
-				Result := facade.layout (a_text.to_string_32, a_width_pixels, a_pixel_size,
-					styled_fonts (a_role, a_bold))
+				if a_pixel_size < small_size_below and then not small_script_faces.is_empty then
+					Result := facade.layout (a_text.to_string_32, a_width_pixels, a_pixel_size,
+						small_styled_fonts (a_role, a_bold))
+				else
+					Result := facade.layout (a_text.to_string_32, a_width_pixels, a_pixel_size,
+						styled_fonts (a_role, a_bold))
+				end
+				remember (l_key, Result)
 			end
 		ensure
 			parameters_kept: Result.width_pixels = a_width_pixels
 				and Result.pixel_size = a_pixel_size
+			remembered: memo.has (memo_key (a_text, a_width_pixels, a_pixel_size, a_role, a_bold))
+		end
+
+	memo_count: INTEGER
+			-- Layouts `layout_styled' remembers now.
+		do
+			Result := memo.count + older_memo.count
+		end
+
+	Memo_generation: INTEGER = 1024
+			-- Layouts in one generation of the memo: a screenful of grid
+			-- cells many times over.
+
+	forget_layouts
+			-- Drop what `layout_styled' remembers. The font setters here do
+			-- it themselves; call it after changing `facade''s fonts directly.
+		do
+			memo.wipe_out
+			older_memo.wipe_out
+		ensure
+			forgotten: memo_count = 0
 		end
 
 	styled_fonts (a_role: INTEGER; a_bold: BOOLEAN): FONT_LIST
@@ -248,6 +287,7 @@ feature -- Element change
 			create mono_family.make_from_string_general (a_theme.family_mono)
 			role_fonts.fill_with (Void)
 			small_role_fonts.fill_with (Void)
+			forget_layouts
 		ensure
 			policy_present: attached fonts
 			role_faces_follow: attached ui_family as al_ui and then al_ui.same_string_general (a_theme.family_ui)
@@ -259,6 +299,7 @@ feature -- Element change
 			usable_when_given: attached a_fonts as al implies not al.is_empty
 		do
 			fonts := a_fonts
+			forget_layouts
 		ensure
 			set: fonts = a_fonts
 		end
@@ -278,6 +319,7 @@ feature -- Script faces (GW-03)
 			script_faces.force (create {STRING_32}.make_from_string_general (a_family), a_script_class)
 			role_fonts.fill_with (Void)
 			small_role_fonts.fill_with (Void)
+			forget_layouts
 		ensure
 			recorded: attached script_face (a_script_class) as al_face
 				and then al_face.same_string_general (a_family)
@@ -305,6 +347,7 @@ feature -- Script faces (GW-03)
 			small_script_faces.force (create {STRING_32}.make_from_string_general (a_family), a_script_class)
 			small_size_below := a_below_px
 			small_role_fonts.fill_with (Void)
+			forget_layouts
 		ensure
 			recorded: attached small_script_faces.item (a_script_class) as al_face
 				and then al_face.same_string_general (a_family)
@@ -313,6 +356,49 @@ feature -- Script faces (GW-03)
 
 	small_size_below: INTEGER
 			-- Pixel size below which the small script faces apply (0: never).
+
+feature {NONE} -- The layout memo (GW-29)
+
+	memo: HASH_TABLE [SHAPED_LAYOUT, STRING_32]
+			-- The newer generation.
+		attribute
+			create Result.make (Memo_generation)
+		end
+
+	older_memo: HASH_TABLE [SHAPED_LAYOUT, STRING_32]
+			-- The older generation; a hit here moves into `memo'.
+		attribute
+			create Result.make (0)
+		end
+
+	remember (a_key: STRING_32; a_layout: SHAPED_LAYOUT)
+			-- `a_layout' under `a_key' in the newer generation, starting a
+			-- new one first when it is full.
+		do
+			if memo.count >= Memo_generation then
+				older_memo := memo
+				create memo.make (Memo_generation)
+			end
+			memo.force (a_layout, a_key)
+		ensure
+			kept: memo.has (a_key)
+		end
+
+	memo_key (a_text: READABLE_STRING_GENERAL; a_width_pixels, a_pixel_size, a_role: INTEGER;
+			a_bold: BOOLEAN): STRING_32
+			-- Size, width, role and weight first, then a separator no number
+			-- makes, then the text: no text can forge another call's key.
+		do
+			create Result.make (a_text.count + 16)
+			Result.append_integer (a_pixel_size)
+			Result.append_character (',')
+			Result.append_integer (a_width_pixels)
+			Result.append_character (',')
+			Result.append_integer (a_role)
+			Result.append_character (if a_bold then 'b' else 'r' end)
+			Result.append_character ('|')
+			Result.append_string_general (a_text)
+		end
 
 feature {NONE} -- Per-role policies (GW-04)
 
@@ -391,6 +477,7 @@ feature -- Removal
 invariant
 	facade_attached: facade /= Void
 	bridge_attached: bridge /= Void
+	memo_bounded: memo.count <= Memo_generation and older_memo.count <= Memo_generation
 	fonts_usable: attached fonts as al_fonts implies not al_fonts.is_empty
 
 end
