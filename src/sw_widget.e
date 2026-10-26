@@ -745,8 +745,11 @@ feature {NONE} -- Implementation
 	accessible_node_id_cache: INTEGER
 
 	accessible_node_id_counter: CELL [INTEGER]
-			-- The last node id given, process-wide.
-		once ("PROCESS")
+			-- The last node id given, per processor: a window's widgets all live on its one processor,
+			-- so ids stay unique where UI Automation reads them. Not once ("PROCESS"): a process-wide
+			-- once of a non-separate type is rejected under SCOOP (VFFD(8)), and every SCOOP app
+			-- failed to compile from 0.34.1 (2026-10-25) until this (simple_bible's window, 2026-10-26).
+		once
 			create Result.put (0)
 		end
 
