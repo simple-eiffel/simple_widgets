@@ -361,6 +361,40 @@ feature -- Spacing from the theme (Vision2 tokens)
 			assert_integers_equal ("hidden again", 0, w.reference_mark_at ((l_top.x + 4.0).rounded, (l_top.y + 4.0).rounded))
 		end
 
+	test_reference_tip_shares_the_hint_and_scales
+			-- Design scan 21: the reference-mark tip was a drifted copy of the tooltip (4 px gap
+			-- against 6) and the pills ignored text_scale. Before: the tip sat 4 px under its
+			-- pill and a 2x pill was 19 px tall; after: the shared hint's 6 px, and 38 px.
+		local
+			w: SW_WINDOW
+			root: SW_COLUMN
+			l_box: SW_LABEL
+			l_r, l_hint: TUPLE [x, y, w, h: REAL_64]
+			l_theme: SW_THEME
+		do
+			create l_theme.make_light
+			create w.make ("hint", 0, 0, 600, 300, l_theme)
+			create root.make
+			root := root.with_padding (40.0)
+			create l_box.make_ui ("box")
+			root.put (l_box)
+			w.set_root (root)
+			w.add_reference_mark (l_box, "C4", "Reference box", w.Corner_top_left)
+			w.set_reference_marks_shown (True)
+			w.request_render
+			w.dispatch (w.Event_window_move, (l_box.x - 2.0).rounded, (l_box.y - 2.0).rounded)
+			assert_integers_equal ("pointer on the pill", 1, w.hovered_reference_mark)
+			w.request_render
+			l_hint := w.last_hint_rect
+			assert_true ("tip drawn", l_hint.w > 0.0)
+			assert_true ("tip 6 px under the pill, as a tooltip sits under its widget",
+				(l_hint.y - (l_box.y - 6.0 + 19.0) - 6.0).abs < 0.01)
+			w.theme.set_text_scale (2.0)
+			w.request_render
+			assert_integers_equal ("a 2x pill is twice as tall: 30 px under its top still hits", 1,
+				w.reference_mark_at ((l_box.x).rounded, (l_box.y - 6.0 + 30.0).rounded))
+		end
+
 	test_status_bar_and_hover_card_spacing_scale
 			-- The status bar's end pad is the theme's border_width and its
 			-- height the measured font plus padding; the hover card's inset
