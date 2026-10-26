@@ -354,8 +354,7 @@ feature -- Drawing
 						a_p.push_clip (tab_lefts.i_th (i), y, tab_widths.i_th (i), bar_h)
 						a_p.text (tab_lefts.i_th (i) + tab_pad, y + bar_text_y, host.panels.i_th (tab_ids.i_th (i)).title)
 						a_p.pop_clip
-						a_p.set_color (t.outline)
-						a_p.fill_rect (tab_lefts.i_th (i) + tab_widths.i_th (i) - 0.5, y + 4.0, 1.0, bar_h - 8.0)
+						draw_tab_separator (a_p, i)
 						i := i + 1
 					end
 					if act > 0 then

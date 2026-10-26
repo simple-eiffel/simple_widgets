@@ -548,8 +548,7 @@ feature -- Drawing
 						l_ink := draw_tab_ground (a_p, i, i = selected_index,
 							shows_hover and then hover_py < y + bar_h and then hover_px >= tx and then hover_px <= tx + tw)
 						if is_dragging and then i = drag_index then
-							a_p.set_color (t.accent)
-							a_p.rrect_stroke (tx + 0.5, y + 4.5, tw - 1.0, bar_h - 6.0, t.radius)
+							draw_tab_outline (a_p, i)
 						end
 						a_p.set_color (l_ink)
 						l_label_w := (tw - 2.0 * tab_pad).max (1.0)

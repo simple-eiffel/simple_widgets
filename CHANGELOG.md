@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.38.6 - design scan 18, since af94462)
+
+Report: `.eiffel-workflow/evidence/design-scan-since-af94462.md` (1 HIGH,
+6 MEDIUM, 7 LOW).
+- **HIGH H1**: the tab ground scaled with the theme, but the SW_TABS drag
+  outline and the SW_DOCK_ZONE separators kept 4-pixel literals, so at
+  text scale 2 the outline stood 4 pixels above the ground it outlines.
+  SW_TAB_STRIP now has `tab_inset` (half the padding), `draw_tab_outline`
+  and `draw_tab_separator` beside `draw_tab_ground`; both heirs lost
+  their literals. Test `scan18_drag_outline_hugs_the_ground_at_any_scale`
+  reads the pixels at scale 2: it failed on the old code ("the outline is
+  on the ground's top edge") and passes now. Scale 1 is unchanged (the
+  evidence PNGs are byte-identical).
+- M2: the GW-29 test prints which build it measured (lean or contract).
+- M3: SW_PAINTER, SW_HEATMAP and SW_COLOR_PICKER inherit SW_COLOR_MATH
+  `{NONE}`; only SW_THEME exports it.
+- M5: SW_WINDOW names its 31 event numbers from `SHELL_EVENTS`
+  (`Event_window_press` and the rest); key codes and modes stay numbers.
+- simple_shell 1.23.0 (framed panels, GW-22): rebuilt clean, 539 pass.
+- Open: M1 (no pixel check on the dock's tab look), M4 (a stateless
+  block parser before a third geometry heir), M6 (nothing checks the C
+  header's numbers against the registry), and the LOW items.
+
 ### Changed (0.38.5 - the layered layout, headless)
 
 - New **`SW_LAYERED_LAYOUT`** (design scan finding 10): cycle breaking,

@@ -709,6 +709,7 @@ feature {NONE} -- Test runners
 			run_test (agent memo_tests.test_scan7_hebrew_column_sits_flush_right, "scan7_hebrew_column_sits_flush_right")
 			print ("%N=== GW-15 TABS ===%N")
 			create tabs_tests
+			run_test (agent tabs_tests.test_scan18_drag_outline_hugs_the_ground_at_any_scale, "scan18_drag_outline_hugs_the_ground_at_any_scale")
 			run_test (agent tabs_tests.test_gw15_close_selects_the_neighbor, "gw15_close_selects_the_neighbor")
 			run_test (agent tabs_tests.test_gw15_guard_and_pinned_tabs, "gw15_guard_and_pinned_tabs")
 			run_test (agent tabs_tests.test_gw15_close_box_through_the_window, "gw15_close_box_through_the_window")
