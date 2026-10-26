@@ -2923,23 +2923,45 @@ feature {NONE} -- Rendering
 
 	draw_tooltip (a_w: SW_WIDGET)
 			-- A small drawn hint below the widget, clamped on screen.
-		local
-			t: SW_THEME
-			tw, tx, ty: REAL_64
 		do
-			t := theme
-			painter.font ({SW_PAINTER}.Role_ui, 10.5, False)
-			tw := painter.advance (a_w.tooltip) + 18.0
-			tx := a_w.x.min (win_w - tw - 4.0).max (4.0)
-			ty := a_w.y + a_w.height + 6.0
-			if ty + 26.0 > win_h then
-				ty := a_w.y - 32.0
-			end
-			painter.set_color (t.ink)
-			painter.rrect_fill (tx, ty, tw, 26.0, t.radius)
-			painter.set_color (t.background)
-			painter.text (tx + 9.0, ty + 17.5, a_w.tooltip)
+			draw_hint (a_w.tooltip, a_w.x, a_w.y, a_w.y + a_w.height)
 		end
+
+	draw_hint (a_text: READABLE_STRING_GENERAL; a_left, a_top, a_bottom: REAL_64)
+			-- `a_text' in an ink box just below the span `a_top'..`a_bottom' at `a_left', or just
+			-- above it when the window ends first; kept on screen and sized by `text_scale'. The
+			-- tooltip and the reference-mark tip share it (design scan 21: they had drifted).
+		local
+			l_scale, l_w, l_h, l_x, l_y: REAL_64
+		do
+			l_scale := theme.text_scale
+			painter.font ({SW_PAINTER}.Role_ui, 10.5, False)
+			l_w := painter.advance (a_text) + 18.0 * l_scale
+			l_h := 26.0 * l_scale
+			l_x := a_left.min (win_w - l_w - 4.0).max (4.0)
+			l_y := a_bottom + Hint_gap
+			if l_y + l_h > win_h then
+				l_y := a_top - Hint_gap - l_h
+			end
+			painter.set_color (theme.ink)
+			painter.rrect_fill (l_x, l_y, l_w, l_h, theme.radius)
+			painter.set_color (theme.background)
+			painter.text (l_x + 9.0 * l_scale, l_y + 17.5 * l_scale, a_text)
+			last_hint_rect := [l_x, l_y, l_w, l_h]
+		end
+
+	Hint_gap: REAL_64 = 6.0
+			-- Space between a hint and what it describes.
+
+feature -- Hints
+
+	last_hint_rect: TUPLE [x, y, w, h: REAL_64]
+			-- Where the last hint (tooltip or reference-mark tip) was drawn, for hosts and tests.
+		attribute
+			Result := [0.0, 0.0, 0.0, 0.0]
+		end
+
+feature {NONE} -- Hint internals
 
 feature -- Reference marks
 
@@ -3044,8 +3066,8 @@ feature {NONE} -- Reference mark internals
 				i > reference_marks.count
 			loop
 				if attached reference_marks.i_th (i) as m and then m.widget.width > 0.0 and then m.widget.height > 0.0 then
-					l_w := painter.advance (m.code) + 14.0
-					l_h := 19.0
+					l_w := painter.advance (m.code) + 14.0 * theme.text_scale
+					l_h := 19.0 * theme.text_scale
 					if m.corner = Corner_top_right or m.corner = Corner_bottom_right then
 						l_x := m.widget.x + m.widget.width - l_w + 6.0
 					else
@@ -3064,7 +3086,7 @@ feature {NONE} -- Reference mark internals
 					painter.set_line_width (2.0)
 					painter.rrect_stroke (l_x, l_y, l_w, l_h, l_h / 2.0)
 					painter.set_line_width (1.0)
-					painter.text (l_x + 7.0, l_y + 13.5, m.code)
+					painter.text (l_x + 7.0 * theme.text_scale, l_y + 13.5 * theme.text_scale, m.code)
 					mark_rects.put_i_th ([l_x, l_y, l_w, l_h], i)
 				else
 					mark_rects.put_i_th ([0.0, 0.0, 0.0, 0.0], i)
@@ -3081,21 +3103,11 @@ feature {NONE} -- Reference mark internals
 		require
 			in_range: a_mark >= 1 and a_mark <= reference_marks.count
 		local
-			l_text: STRING_32
-			tw, tx, ty: REAL_64
+			l_r: TUPLE [x, y, w, h: REAL_64]
 		do
-			l_text := reference_marks.i_th (a_mark).code + {STRING_32} "  " + reference_marks.i_th (a_mark).tip
-			painter.font ({SW_PAINTER}.Role_ui, 10.5, False)
-			tw := painter.advance (l_text) + 18.0
-			tx := mark_rects.i_th (a_mark).x.min (win_w - tw - 4.0).max (4.0)
-			ty := mark_rects.i_th (a_mark).y + mark_rects.i_th (a_mark).h + 4.0
-			if ty + 26.0 > win_h then
-				ty := mark_rects.i_th (a_mark).y - 30.0
-			end
-			painter.set_color (theme.ink)
-			painter.rrect_fill (tx, ty, tw, 26.0, theme.radius)
-			painter.set_color (theme.background)
-			painter.text (tx + 9.0, ty + 17.5, l_text)
+			l_r := mark_rects.i_th (a_mark)
+			draw_hint (reference_marks.i_th (a_mark).code + {STRING_32} "  " + reference_marks.i_th (a_mark).tip,
+				l_r.x, l_r.y, l_r.y + l_r.h)
 		end
 
 feature -- Notifications
