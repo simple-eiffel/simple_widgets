@@ -682,6 +682,7 @@ feature {NONE} -- Test runners
 			run_test (agent parallel_tests.test_gw06_band_is_not_content, "gw06_band_is_not_content")
 			run_test (agent parallel_tests.test_gw06_scroll_to_row_shows_it_below_the_band, "gw06_scroll_to_row_shows_it_below_the_band")
 			run_test (agent parallel_tests.test_gw06_scroll_to_row_waits_for_new_rows, "gw06_scroll_to_row_waits_for_new_rows")
+			run_test (agent parallel_tests.test_gw06_a_scroll_for_vanished_rows_is_dropped, "gw06_a_scroll_for_vanished_rows_is_dropped")
 			run_test (agent parallel_tests.test_gw06_wipe_out_forgets_the_hovered_link, "gw06_wipe_out_forgets_the_hovered_link")
 			run_test (agent parallel_tests.test_gw06_parallel_light, "gw06_parallel_light")
 			run_test (agent parallel_tests.test_gw06_parallel_dark, "gw06_parallel_dark")

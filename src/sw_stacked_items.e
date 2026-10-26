@@ -171,7 +171,8 @@ feature -- Stack
 		end
 
 	pending_scroll_item: INTEGER
-			-- The item `scroll_item_into_view' asked for, met at the next `measure_stack'; 0 when none.
+			-- The item `scroll_item_into_view' asked for, met at the next `measure_stack' (or dropped
+			-- there when the list no longer reaches it); 0 when none.
 
 	body_pixel_size (a_p: SW_PAINTER): INTEGER
 			-- Body text's pixel size at the painter's scale: what a layout
@@ -247,7 +248,10 @@ feature {NONE} -- Stack pieces
 				i := i + 1
 			end
 			stack.restack (a_gap)
-			if pending_scroll_item >= 1 and pending_scroll_item <= stack.count and then height > 0.0 then
+			if pending_scroll_item > stack.count then
+					-- The rows it named are gone (design scan 22): never move the view for them later.
+				pending_scroll_item := 0
+			elseif pending_scroll_item >= 1 and then height > 0.0 then
 				scroll_to (stacked_scroll_for (pending_scroll_item))
 				pending_scroll_item := 0
 			end

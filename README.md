@@ -44,6 +44,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.41.2 | - | A kept scroll request is dropped with the rows it named |
 | 0.41.1 | - | A scroll asked for while rows are being replaced is kept until they are laid out |
 | 0.41.0 | - | Reference marks: numbered pills naming parts of a window, each with a tip, for talking about screenshots |
 | 0.40.2 | - | SCOOP applications compile again (a process-wide once became per-processor) |

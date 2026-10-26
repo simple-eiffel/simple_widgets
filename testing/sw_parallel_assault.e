@@ -222,6 +222,36 @@ feature -- Layout
 			assert_true ("and inside the view", v.stacked_top (40) + 1.0 < v.y + v.height)
 		end
 
+	test_gw06_a_scroll_for_vanished_rows_is_dropped
+			-- Design scan 22: a scroll asked for row 40, then the rows replaced by ten, must not move
+			-- the view later when rows grow again. Before: the request stayed pending and the view
+			-- jumped to row 40 once there were 60 rows; after: it is dropped with the rows it named.
+		local
+			w: SW_WINDOW
+			v: SW_PARALLEL_TEXT
+			i: INTEGER
+		do
+			create w.make ("drop", 0, 0, 600, 300, create {SW_THEME}.make_light)
+			attach_parallel_kit (w)
+			v := long_parallel
+			w.set_root (v)
+			w.request_render
+			v.scroll_to (0.0)
+			v.scroll_to_row (40)
+			v.wipe_out
+			from i := 1 until i > 10 loop
+				v.set_cell (v.add_row (i.out), 1, "Short chapter " + i.out)
+				i := i + 1
+			end
+			w.request_render
+			from i := 11 until i > 60 loop
+				v.set_cell (v.add_row (i.out), 1, "Longer again " + i.out)
+				i := i + 1
+			end
+			w.request_render
+			assert_reals_equal ("still at the top", 0.0, v.scroll_y, 0.000_1)
+		end
+
 	test_gw06_wipe_out_forgets_the_hovered_link
 			-- A link under the pointer is forgotten with the rows it was in.
 		local
