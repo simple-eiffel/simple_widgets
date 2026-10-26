@@ -101,6 +101,12 @@ feature -- Access
 	render_count: INTEGER
 			-- Frames drawn.
 
+	is_frame_released: BOOLEAN
+			-- Has the offscreen frame been given back (after `close')?
+		do
+			Result := not offscreen.is_valid
+		end
+
 	on_close_request: detachable PROCEDURE
 			-- Run when the user asks the window to close (its close box, Alt+F4).
 
@@ -137,11 +143,20 @@ feature -- Element change
 			if attached hovered as al_h then
 				al_h.set_hovered (False)
 			end
+			if attached capture as al_c and then al_c.is_pressed then
+				al_c.set_pressed (False)
+			end
 			focused := Void
 			hovered := Void
 			capture := Void
+			if offscreen.is_valid then
+					-- scan 19: every float/unfloat leaked a client-sized frame
+				ctx.destroy
+				offscreen.destroy
+			end
 		ensure
 			closed: not is_open
+			released: is_frame_released
 		end
 
 feature -- Input
@@ -173,6 +188,8 @@ feature -- Drawing
 	render
 			-- Lay `content' out over the client area, inside the theme's
 			-- padding, and draw it.
+		require
+			open: is_open
 		local
 			l_inset: REAL_64
 		do
@@ -223,6 +240,7 @@ feature -- Drawing
 			-- Write the last frame's client area to `a_path' as a PNG. True
 			-- when the file was written.
 		require
+			open: is_open
 			path_given: not a_path.is_empty
 		local
 			l_image: CAIRO_SURFACE
@@ -243,6 +261,7 @@ feature {NONE} -- Input internals
 			l_keys: SW_KEYS
 			l_code: INTEGER
 			l_taker: detachable SW_WIDGET
+			l_swallow: BOOLEAN
 		do
 			if a_type = Event_panel_press then
 				last_x := a_x
@@ -294,16 +313,24 @@ feature {NONE} -- Input internals
 				end
 			elseif a_type = Event_panel_key then
 				create l_keys
+					-- a new key down: whatever the last one armed is stale
+				swallow_next_char := False
 				if owner.fire_accelerator (a_x, l_keys.control_down, l_keys.alt_down, l_keys.shift_down) then
+						-- scan 19: the WM_CHAR behind it is the same keystroke
+					swallow_next_char := True
 					owner.after_floating_input
 				elseif attached focused as al_f then
 					al_f.handle_key (a_x, l_keys.shift_down)
 					owner.after_floating_input
 				end
 			elseif a_type = Event_panel_char then
+				l_swallow := swallow_next_char and a_x < 32
+				swallow_next_char := False
 				l_code := paired_code_point (a_x)
 				if l_code < 0 then
 						-- the high half of a pair: the low half follows
+				elseif l_swallow then
+						-- the key down half of this gesture ran the accelerator
 				elseif l_code = 9 and then not (attached focused as al_tf and then al_tf.wants_tab) then
 					create l_keys
 					step_focus (if l_keys.shift_down then -1 else 1 end)
@@ -395,6 +422,10 @@ feature {NONE} -- State
 
 	capture: detachable SW_WIDGET
 			-- The widget that took the press.
+
+	swallow_next_char: BOOLEAN
+			-- Did the last key down run an accelerator, so the control code
+			-- its WM_CHAR carries is the same keystroke?
 
 	last_x, last_y: INTEGER
 			-- Where the pointer last was.
