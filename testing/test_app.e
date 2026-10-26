@@ -805,6 +805,12 @@ feature {NONE} -- Test runners
 			run_test (agent layered_tests.test_layered_engine_runs_headless, "layered_engine_runs_headless")
 			run_test (agent layered_tests.test_gw23_outline_light, "gw23_outline_light")
 			run_test (agent layered_tests.test_gw23_outline_dark, "gw23_outline_dark")
+			print ("%N=== GW-22 FLOATING WINDOWS ===%N")
+			run_test (agent floating_tests.test_gw22_double_click_floats_a_tab_and_close_docks_it, "gw22_double_click_floats_a_tab_and_close_docks_it")
+			run_test (agent floating_tests.test_gw22_a_floating_window_takes_input_like_the_main_one, "gw22_a_floating_window_takes_input_like_the_main_one")
+			run_test (agent floating_tests.test_gw22_a_modal_dialog_holds_the_floating_window, "gw22_a_modal_dialog_holds_the_floating_window")
+			run_test (agent floating_tests.test_gw22_floating_panel_light, "gw22_floating_panel_light")
+			run_test (agent floating_tests.test_gw22_floating_panel_dark, "gw22_floating_panel_dark")
 			run_test (agent strokes_tests.test_gw18_patterns_light, "gw18_patterns_light")
 			run_test (agent strokes_tests.test_gw18_patterns_dark, "gw18_patterns_dark")
 			print ("%N=== GW-14 UI AUTOMATION ===%N")
@@ -898,6 +904,11 @@ feature {NONE} -- Test runners
 	timeline_tests: SW_LANE_TIMELINE_ASSAULT
 	atlas_tests: SW_REGIONAL_MAP_ASSAULT
 	layered_tests: SW_LAYERED_DIAGRAM_ASSAULT
+
+	floating_tests: SW_FLOATING_ASSAULT
+		once
+			create Result
+		end
 	uia_tests: SW_ACCESSIBILITY_ASSAULT
 
 	run_test (a_test: PROCEDURE; a_name: STRING)

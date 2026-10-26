@@ -20,7 +20,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			widget_at, pebble_at, accepts_pebble, receive_pebble, arrange, handle_click,
+			widget_at, pebble_at, accepts_pebble, receive_pebble, arrange, handle_click, handle_double_click,
 			accessible_children, accessible_role, default_accessible_name
 		end
 
@@ -222,6 +222,25 @@ feature -- Input
 			if id > 0 then
 				host.activate_panel (id)
 				Result := True
+			end
+		end
+
+	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
+			-- A double click on a tab or a title bar floats that panel when the
+			-- host offers floating (GW-22); otherwise it is a click.
+		local
+			id: INTEGER
+		do
+			if is_tabbed then
+				id := tab_at (a_px, a_py)
+			else
+				id := panel_at_bar (a_py)
+			end
+			if id > 0 and then host.can_float and then not host.is_floating (id) then
+				host.request_float (id)
+				Result := True
+			else
+				Result := handle_click (a_px, a_py)
 			end
 		end
 

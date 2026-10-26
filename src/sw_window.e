@@ -63,6 +63,8 @@ inherit
 
 	SW_WIDGET_EXPORTING
 
+	SW_POINTER_ROUTING
+
 create
 	make
 
@@ -317,6 +319,154 @@ feature -- Accessibility (GW-14)
 	is_accessibility_published: BOOLEAN
 			-- Has the tree been published at least once?
 
+feature -- Floating windows (GW-22)
+
+	floating_windows: ARRAYED_LIST [SW_FLOATING_WINDOW]
+			-- The trees this window keeps in windows of their own.
+		attribute
+			create Result.make (2)
+		end
+
+	float_widget (a_content: SW_WIDGET; a_title: READABLE_STRING_GENERAL; a_x, a_y, a_width, a_height: INTEGER): SW_FLOATING_WINDOW
+			-- `a_content' alone in a floating window titled `a_title' at the
+			-- given outer geometry, owned by this window and on screen when
+			-- this window is. Closed when no panel slot is free.
+		require
+			content_free: a_content.parent = Void
+			not_floating: not is_floating_content (a_content)
+			sane_size: a_width > 0 and a_height > 0
+		do
+			create Result.make (Current, a_content, a_title, a_x, a_y, a_width, a_height)
+			if Result.is_open then
+				floating_windows.extend (Result)
+				Result.render
+				if is_window_shown then
+					Result.show
+				end
+			end
+		ensure
+			registered: Result.is_open implies floating_windows.has (Result)
+		end
+
+	unfloat (a_float: SW_FLOATING_WINDOW)
+			-- Close `a_float' and forget it; its content is free again.
+		require
+			registered: floating_windows.has (a_float)
+		do
+			a_float.close
+			floating_windows.prune_all (a_float)
+		ensure
+			forgotten: not floating_windows.has (a_float)
+			closed: not a_float.is_open
+		end
+
+	floating_at (a_slot: INTEGER): detachable SW_FLOATING_WINDOW
+			-- The floating window whose panel is in `a_slot'.
+		do
+			across
+				floating_windows as al_float
+			until
+				Result /= Void
+			loop
+				if al_float.is_open and then al_float.slot = a_slot then
+					Result := al_float
+				end
+			end
+		end
+
+	is_floating_content (a_widget: SW_WIDGET): BOOLEAN
+			-- Does a floating window of this one show `a_widget'?
+		do
+			Result := across floating_windows as al_float some al_float.content = a_widget end
+		end
+
+	enable_floating_panels (a_host: SW_DOCK_HOST)
+			-- Let a double click on a tab or title bar of `a_host' tear that
+			-- panel off into a floating window (`float_dock_panel').
+		do
+			a_host.set_on_float_request (agent float_dock_panel (a_host, ?))
+		ensure
+			offered: a_host.can_float
+		end
+
+	float_dock_panel (a_host: SW_DOCK_HOST; a_panel: INTEGER)
+			-- Tear panel `a_panel' out of `a_host' into a floating window as
+			-- big as its zone (at least 320 x 200); closing that window docks
+			-- the panel again where it was.
+		require
+			panel_known: a_panel >= 1 and a_panel <= a_host.panels.count
+			docked: not a_host.is_floating (a_panel)
+		local
+			l_rect: TUPLE [rx, ry, rw, rh: REAL_64]
+			l_float: SW_FLOATING_WINDOW
+			l_key: STRING_32
+			l_offset: INTEGER
+		do
+			l_rect := a_host.zone_rect (a_host.panels.i_th (a_panel).zone)
+			l_key := a_host.panels.i_th (a_panel).key.twin
+			l_offset := 160 + 32 * floating_windows.count
+			a_host.float_panel (a_panel)
+			l_float := float_widget (a_host.panels.i_th (a_panel).content, a_host.panels.i_th (a_panel).title,
+				l_offset, l_offset, l_rect.rw.truncated_to_integer.max (320), l_rect.rh.truncated_to_integer.max (200) + 32)
+			if l_float.is_open then
+				l_float.set_on_close_request (agent dock_floating (a_host, l_key, l_float))
+			else
+					-- no panel slot free: the panel stays docked
+				a_host.redock_panel (a_panel)
+			end
+			after_input
+		end
+
+	dock_floating (a_host: SW_DOCK_HOST; a_key: READABLE_STRING_GENERAL; a_float: SW_FLOATING_WINDOW)
+			-- Close `a_float' and put the panel keyed `a_key' back in its zone.
+		do
+			if floating_windows.has (a_float) then
+				unfloat (a_float)
+			end
+			if a_host.panel_by_key (a_key) > 0 and then a_host.is_floating (a_host.panel_by_key (a_key)) then
+				a_host.redock_panel (a_host.panel_by_key (a_key))
+			end
+			after_input
+		ensure
+			closed: not a_float.is_open
+		end
+
+feature {SW_FLOATING_WINDOW} -- Floating windows (GW-22)
+
+	after_floating_input
+			-- A floating window handled an input: the one itinerary.
+		do
+			after_input
+		end
+
+	claims_char_accelerator (a_code: INTEGER): BOOLEAN
+			-- Does the accelerator table (or a mnemonic) take control code
+			-- `a_code', typed into a floating window?
+		do
+			Result := char_accelerator_fired (a_code)
+		end
+
+feature {NONE} -- Floating window internals (GW-22)
+
+	render_floating_windows
+		do
+			across
+				floating_windows as al_float
+			loop
+				if al_float.is_open then
+					al_float.render
+					al_float.blit
+				end
+			end
+		end
+
+	is_floating_event (a_type: INTEGER): BOOLEAN
+			-- A panel event (41 - 50, 60 - 65)?
+		do
+			Result := (a_type >= Event_panel_press and a_type <= Event_panel_dropped)
+				or (a_type >= Event_panel_key and a_type <= Event_panel_leave)
+		end
+
 feature -- Following Windows (GW-27)
 
 	follow_system_theme (a_light, a_dark: SW_THEME)
@@ -482,6 +632,7 @@ feature -- Operation
 		do
 			render
 			blit
+			render_floating_windows
 		end
 
 	write_frame (a_path: READABLE_STRING_GENERAL): BOOLEAN
@@ -502,7 +653,7 @@ feature -- Operation
 			-- no window is ever shown.
 		do
 			if attached target_at (a_x, a_y) as w then
-				bubble_wheel (w, a_delta)
+				spine_wheel (w, a_delta)
 			end
 			after_input
 		end
@@ -564,6 +715,18 @@ feature -- Operation
 feature {NONE} -- Dispatch
 
 	dispatch (a_type, a_x, a_y: INTEGER)
+		do
+			if is_floating_event (a_type) and then attached floating_at (event_extra) as al_float then
+					-- GW-22: a framed panel's events belong to the floating
+					-- window that owns its slot, not to this window's tree
+				al_float.handle_event (a_type, a_x, a_y)
+			else
+				dispatch_own (a_type, a_x, a_y)
+			end
+		end
+
+	dispatch_own (a_type, a_x, a_y: INTEGER)
+			-- An event of this window itself.
 		do
 			if a_type = Event_tick then
 					-- The heartbeat is global: toasts age and the frame
@@ -1779,27 +1942,19 @@ feature {NONE} -- Focus internals
 			unit_step: a_dir = 1 or a_dir = -1
 		local
 			fs: ARRAYED_LIST [SW_WIDGET]
-			i: INTEGER
+			l_next: SW_WIDGET
 		do
 			create fs.make (8)
 			if attached active_root as r then
 				r.focusables (fs)
 			end
 			if not fs.is_empty then
-				if attached focused as f then
-					i := fs.index_of (f, 1)
-				end
-				i := i + a_dir
-				if i < 1 then
-					i := fs.count
-				elseif i > fs.count then
-					i := 1
-				end
+				l_next := ring_neighbour (fs, focused, a_dir)
 				if attached focused as prev then
 					prev.set_focused (False)
 				end
-				focused := fs.i_th (i)
-				fs.i_th (i).set_focused (True)
+				focused := l_next
+				l_next.set_focused (True)
 			end
 		end
 
@@ -1886,6 +2041,7 @@ feature {NONE} -- Popup lifecycle
 		local
 			l_keys: SW_KEYS
 			l_swallow: BOOLEAN
+			l_code: INTEGER
 		do
 			inspect a_type
 			when Event_window_press then
@@ -1947,24 +2103,21 @@ feature {NONE} -- Popup lifecycle
 					-- UTF-16 arrives in units; astral characters come as a
 					-- surrogate pair across two WM_CHARs. Pair them here so
 					-- widgets only ever see whole code points (R8).
-				if a_x >= 0xD800 and a_x <= 0xDBFF then
-					pending_surrogate := a_x
-				elseif a_x >= 0xDC00 and a_x <= 0xDFFF and pending_surrogate /= 0 then
+				l_code := paired_code_point (a_x)
+				if l_code < 0 then
+						-- the high half of a pair: the low half follows
+				elseif l_code >= 0x10000 then
 					if attached focused as w then
-						w.handle_char (0x10000 + (pending_surrogate - 0xD800) * 0x400 + (a_x - 0xDC00))
+						w.handle_char (l_code)
 						after_input
 					end
-					pending_surrogate := 0
 				elseif l_swallow then
 						-- the key-down half of this gesture already ran
 						-- an accelerator; the WM_CHAR that trails it is
 						-- the same keystroke, not a second one
-					pending_surrogate := 0
 				elseif char_accelerator_fired (a_x) then
-					pending_surrogate := 0
 					after_input
 				else
-					pending_surrogate := 0
 					if a_x = 9 and then not (attached focused as tf and then tf.wants_tab) then
 						if shift_is_down then
 							focus_previous
@@ -2091,7 +2244,7 @@ feature {NONE} -- Popup lifecycle
 					close_hover_card
 				end
 				if attached target_at (a_x, a_y) as w then
-					bubble_wheel (w, event_extra)
+					spine_wheel (w, event_extra)
 				end
 					-- The text moved under a resting pointer: time the rest
 					-- again (GW-08).
@@ -2181,28 +2334,8 @@ feature {NONE} -- Popup lifecycle
 			-- until someone consumes it; the consumer takes the pointer
 			-- capture and shows pressed. Disabled widgets are inert and
 			-- the click passes through them.
-		local
-			w: detachable SW_WIDGET
-			handled: BOOLEAN
 		do
-			from
-				w := a_target
-			until
-				handled or w = Void
-			loop
-				if w.is_enabled then
-					if a_double then
-						handled := w.handle_double_click (a_x, a_y)
-					else
-						handled := w.handle_click (a_x, a_y)
-					end
-				end
-				if handled then
-					Result := w
-				else
-					w := w.parent
-				end
-			end
+			Result := spine_click (a_target, a_x, a_y, a_double)
 			if attached Result as cw and then cw.is_enabled then
 				if not a_double then
 					cw.set_pressed (True)
@@ -2268,13 +2401,7 @@ feature {NONE} -- Popup lifecycle
 		do
 			paths := take_dropped_paths
 			if not paths.is_empty then
-				w := target_at (a_x, a_y)
-				from
-				until
-					w = Void or else (w.is_enabled and then w.accepts_files)
-				loop
-					w := w.parent
-				end
+				w := spine_file_taker (target_at (a_x, a_y))
 				if attached w as tw then
 					tw.receive_files (paths, a_x, a_y)
 					after_input
@@ -2295,27 +2422,6 @@ feature {NONE} -- Popup lifecycle
 				if w.is_enabled and then attached w.pebble_at (a_x, a_y) as pb then
 					begin_pick (pb, a_x, a_y)
 				else
-					w := w.parent
-				end
-			end
-		end
-
-	bubble_wheel (a_target: SW_WIDGET; a_delta: INTEGER)
-			-- The wheel goes to the widget under the POINTER, then up
-			-- the spine - never to keyboard focus.
-		local
-			w: detachable SW_WIDGET
-			handled: BOOLEAN
-		do
-			from
-				w := a_target
-			until
-				handled or w = Void
-			loop
-				if w.is_enabled then
-					handled := w.handle_wheel (a_delta)
-				end
-				if not handled then
 					w := w.parent
 				end
 			end
@@ -2382,6 +2488,7 @@ feature {NONE} -- Popup lifecycle
 				refresh_enabling_states
 				render
 				blit
+				render_floating_windows
 				last_render_ms := tick_ms - t0
 				if last_render_ms > 100 then
 					log_line ("sw: SLOW frame " + last_render_ms.out + "ms at " + win_w.out + "x" + win_h.out)
@@ -2402,6 +2509,11 @@ feature {NONE} -- Popup lifecycle
 			end
 			if attached sheet as s then
 				s.refresh_enabling
+			end
+			across
+				floating_windows as al_float
+			loop
+				al_float.content.refresh_enabling
 			end
 		end
 
@@ -3184,9 +3296,6 @@ feature -- Drawer tab (peek and pin)
 			-- The pebble in flight, when pick-and-drop is active.
 
 	pick_x, pick_y, pick_cur_x, pick_cur_y: INTEGER
-
-	pending_surrogate: INTEGER
-			-- High half of a UTF-16 pair awaiting its partner.
 
 	dwell_ticks: INTEGER
 			-- Timer ticks the pointer has rested on the hovered widget.
