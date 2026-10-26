@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.40.2 - SCOOP apps compile again)
+
+- `SW_WIDGET.accessible_node_id_counter` was a `once ("PROCESS")` of a non-separate type, which SCOOP rejects (VFFD(8)). The library's own targets compile in thread mode, so from 0.34.1 (2026-10-25, the UI Automation bridge) every SCOOP application failed to compile, unseen. It is now a plain `once`: per processor under SCOOP, and a window's widgets all live on its one processor, so node ids stay unique where UI Automation reads them. Before: simple_bible's window (a SCOOP app) stopped at VFFD(8); after: it compiles. Test suite: 555 passed, 0 failed.
+
 ### Fixed (0.40.1 - design scan 20, since 1260e13)
 
 Report: `.eiffel-workflow/evidence/design-scan-since-1260e13.md` (5 HIGH,
