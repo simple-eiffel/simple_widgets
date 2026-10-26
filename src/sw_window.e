@@ -2963,6 +2963,17 @@ feature -- Hints
 
 feature {NONE} -- Hint internals
 
+feature -- Title
+
+	set_title (a_title: READABLE_STRING_GENERAL)
+			-- Call the window `a_title': its caption changes at once when it is up.
+		do
+			create title.make_from_string_general (a_title)
+			set_caption (a_title)
+		ensure
+			set: title.same_string_general (a_title)
+		end
+
 feature -- Reference marks
 
 	reference_marks: ARRAYED_LIST [TUPLE [widget: SW_WIDGET; code: STRING_32; tip: STRING_32; corner: INTEGER]]

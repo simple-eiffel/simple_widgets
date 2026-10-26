@@ -327,6 +327,17 @@ feature -- GW-11: status-bar sections
 
 feature -- Spacing from the theme (Vision2 tokens)
 
+	test_set_title_renames_the_window
+			-- 0.42.0: a window can be renamed after it is made (simple_bible's title names the chapter
+			-- it reads); before the native window opens, only the title changes.
+		local
+			w: SW_WINDOW
+		do
+			create w.make ("first", 0, 0, 200, 120, create {SW_THEME}.make_light)
+			w.set_title ("simple_bible  John 3 (KJV)")
+			assert_strings_equal ("renamed", "simple_bible  John 3 (KJV)", w.title)
+		end
+
 	test_reference_marks_sit_on_corners_and_tip
 			-- Pills name parts of a window for screenshots: hidden until shown, each at its
 			-- widget's chosen corner, and the one under the pointer shows its tip.

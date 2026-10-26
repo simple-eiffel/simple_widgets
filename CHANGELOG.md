@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.42.0 - window title)
+
+- `SW_WINDOW.set_title`: rename the window after it is made; the caption changes at once when it is up (simple_shell 1.25.0 `set_caption`). Test `set_title_renames_the_window`; 560 passed, 0 failed.
+
 ### Fixed (0.41.2 - design scan 22)
 
 - A kept scroll request (0.41.1) is dropped when the list no longer reaches its item, so it can never move the view later when rows grow again. Before: `gw06_a_scroll_for_vanished_rows_is_dropped` FAILED (the view jumped to row 40); after: 559 passed, 0 failed. Report: `.eiffel-workflow/evidence/design-scan-since-7b79425.md` (0 HIGH; the uneven wrapper contracts and SW_LIST stay LOW).
