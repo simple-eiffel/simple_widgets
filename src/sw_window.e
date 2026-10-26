@@ -86,6 +86,8 @@ feature {NONE} -- Initialization
 			create lens
 			create tab_rects.make (2)
 			create accelerators.make (8)
+			create reference_marks.make (0)
+			create mark_rects.make (0)
 			alloc_w := win_w
 			alloc_h := win_h
 			offscreen := cairo.create_surface (alloc_w, alloc_h)
@@ -2243,9 +2245,13 @@ feature {NONE} -- Popup lifecycle
 				end
 				update_hover (a_x, a_y)
 				watch_hover_card (a_x, a_y)
+				if reference_marks_shown then
+					follow_reference_mark (a_x, a_y)
+				end
 			when Event_window_leave then
 				last_pointer_x := -30000
 				last_pointer_y := -30000
+				hovered_reference_mark := 0
 				cancel_dwell_timer
 				if hover_card /= Void then
 					close_hover_card
@@ -2728,6 +2734,9 @@ feature {NONE} -- Rendering
 			if lens.is_active (is_dev_mode) and then attached hovered as hw then
 				lens.draw_chip (painter, theme, hw)
 			end
+			if reference_marks_shown then
+				draw_reference_marks
+			end
 			if attached popup as m then
 				m.draw (painter)
 			end
@@ -2930,6 +2939,163 @@ feature {NONE} -- Rendering
 			painter.rrect_fill (tx, ty, tw, 26.0, t.radius)
 			painter.set_color (t.background)
 			painter.text (tx + 9.0, ty + 17.5, a_w.tooltip)
+		end
+
+feature -- Reference marks
+
+	reference_marks: ARRAYED_LIST [TUPLE [widget: SW_WIDGET; code: STRING_32; tip: STRING_32; corner: INTEGER]]
+			-- Numbered pills naming parts of the window, so a screenshot can say "C4" and be
+			-- understood: each sits at one corner of its widget and shows `tip' under the pointer.
+
+	reference_marks_shown: BOOLEAN
+			-- Are the pills drawn?
+
+	hovered_reference_mark: INTEGER
+			-- The pill under the pointer, whose tip is showing; 0 when none.
+
+	reference_mark_at (a_x, a_y: INTEGER): INTEGER
+			-- The pill drawn at (`a_x', `a_y') in the last frame, the last drawn winning; 0 when none.
+		local
+			i: INTEGER
+			l_r: TUPLE [x, y, w, h: REAL_64]
+		do
+			if reference_marks_shown then
+				from
+					i := mark_rects.count
+				until
+					i < 1 or Result > 0
+				loop
+					l_r := mark_rects.i_th (i)
+					if l_r.w > 0.0 and then a_x >= l_r.x and then a_x <= l_r.x + l_r.w
+						and then a_y >= l_r.y and then a_y <= l_r.y + l_r.h
+					then
+						Result := i
+					end
+					i := i - 1
+				end
+			end
+		ensure
+			in_range: Result >= 0 and Result <= reference_marks.count
+			none_when_hidden: not reference_marks_shown implies Result = 0
+		end
+
+	add_reference_mark (a_widget: SW_WIDGET; a_code, a_tip: READABLE_STRING_GENERAL; a_corner: INTEGER)
+			-- Name `a_widget' with the pill `a_code' at `a_corner' (Corner_top_left ...
+			-- Corner_bottom_right); `a_tip' is what the pointer reads on it.
+		require
+			code_not_empty: not a_code.is_empty
+			valid_corner: a_corner >= Corner_top_left and a_corner <= Corner_bottom_right
+		do
+			reference_marks.extend ([a_widget, a_code.to_string_32, a_tip.to_string_32, a_corner])
+			mark_rects.extend ([0.0, 0.0, 0.0, 0.0])
+		ensure
+			grew: reference_marks.count = old reference_marks.count + 1
+			parallel: mark_rects.count = reference_marks.count
+		end
+
+	set_reference_marks_shown (a_shown: BOOLEAN)
+			-- Show or hide the pills.
+		do
+			reference_marks_shown := a_shown
+			hovered_reference_mark := 0
+			after_input
+		ensure
+			set: reference_marks_shown = a_shown
+			no_tip: hovered_reference_mark = 0
+		end
+
+	Corner_top_left: INTEGER = 1
+	Corner_top_right: INTEGER = 2
+	Corner_bottom_left: INTEGER = 3
+	Corner_bottom_right: INTEGER = 4
+			-- Where a pill sits on its widget.
+
+feature {NONE} -- Reference mark internals
+
+	mark_rects: ARRAYED_LIST [TUPLE [x, y, w, h: REAL_64]]
+			-- Each pill's box as last drawn, parallel to `reference_marks'; w = 0 when not drawn.
+
+	Mark_fill: NATURAL_32 = 0xC2410C
+			-- The pill color of the design boards (burnt orange, white text and rim), the same in
+			-- both themes so a pill never reads as part of the interface.
+
+	follow_reference_mark (a_x, a_y: INTEGER)
+			-- The pointer moved: show the tip of the pill under it.
+		local
+			l_mark: INTEGER
+		do
+			l_mark := reference_mark_at (a_x, a_y)
+			if l_mark /= hovered_reference_mark then
+				hovered_reference_mark := l_mark
+				after_input
+			end
+		end
+
+	draw_reference_marks
+			-- Every pill whose widget is laid out, then the hovered pill's tip.
+		local
+			i: INTEGER
+			l_w, l_h, l_x, l_y: REAL_64
+		do
+			painter.font ({SW_PAINTER}.Role_mono, 10.5, True)
+			from
+				i := 1
+			until
+				i > reference_marks.count
+			loop
+				if attached reference_marks.i_th (i) as m and then m.widget.width > 0.0 and then m.widget.height > 0.0 then
+					l_w := painter.advance (m.code) + 14.0
+					l_h := 19.0
+					if m.corner = Corner_top_right or m.corner = Corner_bottom_right then
+						l_x := m.widget.x + m.widget.width - l_w + 6.0
+					else
+						l_x := m.widget.x - 6.0
+					end
+					if m.corner = Corner_bottom_left or m.corner = Corner_bottom_right then
+						l_y := m.widget.y + m.widget.height - l_h + 6.0
+					else
+						l_y := m.widget.y - 6.0
+					end
+					l_x := l_x.min (win_w - l_w - 2.0).max (2.0)
+					l_y := l_y.min (win_h - l_h - 2.0).max (2.0)
+					painter.set_color (Mark_fill)
+					painter.rrect_fill (l_x, l_y, l_w, l_h, l_h / 2.0)
+					painter.set_color (0xFFFFFF)
+					painter.set_line_width (2.0)
+					painter.rrect_stroke (l_x, l_y, l_w, l_h, l_h / 2.0)
+					painter.set_line_width (1.0)
+					painter.text (l_x + 7.0, l_y + 13.5, m.code)
+					mark_rects.put_i_th ([l_x, l_y, l_w, l_h], i)
+				else
+					mark_rects.put_i_th ([0.0, 0.0, 0.0, 0.0], i)
+				end
+				i := i + 1
+			end
+			if hovered_reference_mark >= 1 and hovered_reference_mark <= reference_marks.count then
+				draw_reference_tip (hovered_reference_mark)
+			end
+		end
+
+	draw_reference_tip (a_mark: INTEGER)
+			-- Pill `a_mark''s code and tip in a hint under the pill, kept on screen.
+		require
+			in_range: a_mark >= 1 and a_mark <= reference_marks.count
+		local
+			l_text: STRING_32
+			tw, tx, ty: REAL_64
+		do
+			l_text := reference_marks.i_th (a_mark).code + {STRING_32} "  " + reference_marks.i_th (a_mark).tip
+			painter.font ({SW_PAINTER}.Role_ui, 10.5, False)
+			tw := painter.advance (l_text) + 18.0
+			tx := mark_rects.i_th (a_mark).x.min (win_w - tw - 4.0).max (4.0)
+			ty := mark_rects.i_th (a_mark).y + mark_rects.i_th (a_mark).h + 4.0
+			if ty + 26.0 > win_h then
+				ty := mark_rects.i_th (a_mark).y - 30.0
+			end
+			painter.set_color (theme.ink)
+			painter.rrect_fill (tx, ty, tw, 26.0, theme.radius)
+			painter.set_color (theme.background)
+			painter.text (tx + 9.0, ty + 17.5, l_text)
 		end
 
 feature -- Notifications
