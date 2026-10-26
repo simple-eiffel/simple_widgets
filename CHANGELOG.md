@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.41.2 - design scan 22)
+
+- A kept scroll request (0.41.1) is dropped when the list no longer reaches its item, so it can never move the view later when rows grow again. Before: `gw06_a_scroll_for_vanished_rows_is_dropped` FAILED (the view jumped to row 40); after: 559 passed, 0 failed. Report: `.eiffel-workflow/evidence/design-scan-since-7b79425.md` (0 HIGH; the uneven wrapper contracts and SW_LIST stay LOW).
+
 ### Fixed (0.41.1 - a scroll asked for during a refill is kept)
 
 - `SW_STACKED_ITEMS.scroll_item_into_view` (so `SW_PARALLEL_TEXT.scroll_to_row`, the document view and the interlinear) dropped a request made after the rows were replaced and before the next layout: the old stack answered it. The request is now kept (`pending_scroll_item`) and met once the next `measure_stack` has restacked. Found by simple_bible's reading pane (a new chapter opened at a verse showed verse 1). Before: `gw06_scroll_to_row_waits_for_new_rows` FAILED; after: 558 passed, 0 failed.
