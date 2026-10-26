@@ -753,6 +753,46 @@ feature {NONE} -- Implementation
 	is_disabled: BOOLEAN
 			-- Stored inverted so a fresh widget is enabled by default.
 
+feature -- Printing (GW-20)
+
+	print_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- How tall all of this is at `a_width', to be printed: its
+			-- preferred height (a widget that scrolls answers all of its
+			-- content).
+		require
+			positive_width: a_width > 0.0
+		do
+			Result := preferred_height (a_p, a_width)
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	clean_break (a_y: REAL_64): REAL_64
+			-- Where a page may end at or above `a_y' without cutting through
+			-- a line of text. A widget without parts keeps itself whole (its
+			-- top, when `a_y' falls inside it); one with parts asks the parts
+			-- `a_y' falls in. Valid after `arrange'.
+		local
+			l_inside: BOOLEAN
+		do
+			Result := a_y
+			if a_y > y and a_y < y + height then
+				across
+					sub_widgets as al_part
+				loop
+					if a_y > al_part.y and a_y < al_part.y + al_part.height then
+						Result := Result.min (al_part.clean_break (a_y))
+						l_inside := True
+					end
+				end
+				if not l_inside and sub_widgets.is_empty then
+					Result := y
+				end
+			end
+		ensure
+			no_lower: Result <= a_y
+		end
+
 invariant
 	sane_size: width >= 0.0 and height >= 0.0
 	pressed_only_when_enabled: is_pressed implies is_enabled

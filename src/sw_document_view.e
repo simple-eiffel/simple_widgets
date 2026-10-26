@@ -69,7 +69,7 @@ inherit
 		undefine
 			set_hover_point, set_hovered, dwell_ms, handle_dwell, hover_card_at,
 			accepts_focus, wants_hover_point, handle_wheel, handle_double_click,
-			handle_drag, handle_release
+			handle_drag, handle_release, print_height, clean_break
 		redefine
 			arrange, handle_click, handle_key, handle_char, cursor_kind, sub_widgets, widget_at
 		end
