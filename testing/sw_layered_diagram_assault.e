@@ -177,6 +177,41 @@ feature -- Scan 17 (since 086d3e8)
 
 feature -- Evidence
 
+	test_layered_engine_runs_headless
+			-- The engine alone, no window (scan finding 10): a cycle 1 > 2 > 3 > 1
+			-- plus 1 > 4 and 3 > 4. One edge reversed, layers by longest path,
+			-- dummies on the long edges, every segment one layer, and the same
+			-- answer twice.
+		local
+			l_engine: SW_LAYERED_LAYOUT
+			l_edges: ARRAYED_LIST [TUPLE [a, b: INTEGER]]
+			l_first: ARRAYED_LIST [INTEGER]
+		do
+			create l_edges.make (5)
+			l_edges.extend ([1, 2])
+			l_edges.extend ([2, 3])
+			l_edges.extend ([3, 1])
+			l_edges.extend ([1, 4])
+			l_edges.extend ([3, 4])
+			create l_engine.make
+			l_engine.lay_out (4, l_edges)
+			assert_integers_equal ("one edge reversed", 1, l_engine.back_edge_count)
+			assert_true ("the closing edge", l_engine.is_reversed.i_th (3))
+			assert_true ("layers 1, 2, 3, 4", l_engine.layer_of.i_th (1) = 1 and l_engine.layer_of.i_th (2) = 2
+				and l_engine.layer_of.i_th (3) = 3 and l_engine.layer_of.i_th (4) = 4)
+			assert_integers_equal ("four layers", 4, l_engine.layer_count)
+			assert_integers_equal ("1 > 4 runs through two dummies", 4, l_engine.edge_chains.i_th (4).count)
+			assert_integers_equal ("the reversed 3 > 1 through one", 3, l_engine.edge_chains.i_th (3).count)
+			assert_integers_equal ("four nodes and three dummies", 7, l_engine.graph_layer.count)
+			across l_engine.segments as ic_segment loop
+				assert_integers_equal ("one layer per segment",
+					l_engine.graph_layer.i_th (ic_segment.u) + 1, l_engine.graph_layer.i_th (ic_segment.v))
+			end
+			l_first := l_engine.order_of.twin
+			l_engine.lay_out (4, l_edges)
+			assert_true ("the same graph, the same order", l_first ~ l_engine.order_of)
+		end
+
 	test_gw23_outline_light
 		do
 			outline_gate (create {SW_THEME}.make_light, "gw23_outline_light.png")

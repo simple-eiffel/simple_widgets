@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Changed (0.38.5 - the layered layout, headless)
+
+- New **`SW_LAYERED_LAYOUT`** (design scan finding 10): cycle breaking,
+  longest-path layering, dummy nodes and barycenter ordering moved out of
+  SW_DIAGRAM (849 lines, now 600) into an engine with no painter and no
+  widget - `lay_out (node_count, edges)`, then `layer_of`, `order_of`,
+  `is_reversed`, `edge_chains`, `graph_layer`/`graph_order`, `segments`,
+  `crossing_count`, `layer_count`. SW_DIAGRAM keeps placement and drawing
+  and its public names, delegating through `layering`. New test
+  `layered_engine_runs_headless` (no window); 538 pass; the GW-23 outline
+  evidence is byte-identical. Not moved: SW_ORG_CHART's forest depth (a
+  parent walk, nothing to share yet) and the lane timeline's interval
+  packing (a different algorithm), as the scan advised.
+- simple_shell 1.22.2 (`SHELL_EVENTS`): rebuilt clean against it, 537 pass.
+
 ### Changed (0.38.4 - exports in their own ancestor; GW-29 timing without collector pauses)
 
 - **`SW_WIDGET_EXPORTING`**: the GW-21 export cluster (`widget_image`,
