@@ -36,14 +36,16 @@ inherit
 		redefine
 			item_text_count, forget_hover,
 			set_hover_point, set_hovered, handle_wheel, handle_click, handle_double_click,
-			handle_drag, handle_release, handle_key, handle_char, cursor_kind
+			handle_drag, handle_release, handle_key, handle_char, cursor_kind,
+			print_height, clean_break
 		end
 
 	SW_TEXT_SELECTION
 		undefine
 			dwell_ms, handle_dwell, hover_card_at, accepts_focus, wants_hover_point,
 			set_hover_point, set_hovered, handle_wheel, handle_click, handle_double_click,
-			handle_drag, handle_release, handle_key, handle_char, cursor_kind
+			handle_drag, handle_release, handle_key, handle_char, cursor_kind,
+			print_height, clean_break
 		redefine
 			item_separator
 		end
@@ -279,6 +281,52 @@ feature -- Layout bookkeeping
 			-- under them.
 		do
 			Result := stack.content_height + stack_origin_y + margin
+		end
+
+	print_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- All of the stacked text at `a_width', not a viewport of it: the
+			-- widget is laid out at that width to measure it (GW-20).
+		do
+			set_bounds (x, y, a_width, height.max (1.0))
+			arrange (a_p)
+			Result := scroll_extent
+		end
+
+	clean_break (a_y: REAL_64): REAL_64
+			-- The lowest line edge at or above `a_y': a page then ends between
+			-- two lines, never through one (GW-20).
+		local
+			u, l: INTEGER
+			g: SW_TEXT_GEOMETRY
+			l_top, l_bottom: REAL_64
+		do
+			Result := Precursor {SW_STACKED_POINTING} (a_y)
+			if a_y > y and a_y < y + height then
+				Result := y
+				from
+					u := 1
+				until
+					u > unit_count
+				loop
+					g := unit_geometry (u)
+					from
+						l := 0
+					until
+						l >= g.line_count
+					loop
+						l_top := unit_origin_y (u) + g.top_of_line (l)
+						l_bottom := l_top + g.height_of_line (l)
+						if l_top <= a_y then
+							Result := Result.max (l_top)
+						end
+						if l_bottom <= a_y then
+							Result := Result.max (l_bottom)
+						end
+						l := l + 1
+					end
+					u := u + 1
+				end
+			end
 		end
 
 	forget_hover

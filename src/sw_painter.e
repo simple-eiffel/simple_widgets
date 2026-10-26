@@ -394,6 +394,24 @@ feature -- Shapes
 			context.restore.do_nothing
 		end
 
+	push_transform (a_dx, a_dy, a_scale: REAL_64)
+			-- Move the origin to (`a_dx', `a_dy') and draw everything `a_scale'
+			-- times its size until `pop_transform'; nests with the clips
+			-- (save / restore discipline). Printing draws pages through it
+			-- (GW-20).
+		require
+			positive: a_scale > 0.0
+		do
+			context.save.do_nothing
+			context.translate (a_dx, a_dy).do_nothing
+			context.scale (a_scale, a_scale).do_nothing
+		end
+
+	pop_transform
+		do
+			context.restore.do_nothing
+		end
+
 	set_color_alpha (a_rgb: NATURAL_32; a_alpha: REAL_64)
 			-- Colour with transparency, for backdrops and washes.
 		require

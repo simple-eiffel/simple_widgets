@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.40.0 - GW-20: print preview, print, print to PDF)
+
+Needs simple_shell 1.24.0 (SHELL_PRINTER) and simple_cairo 1.6.0 (the
+Windows printing surface).
+- **`SW_PRINT_JOB`**: any widget printed. It is laid out at the page's
+  content width and its whole printable height, then cut into pages where
+  the widget says a page may end cleanly; pages are drawn in vector through
+  SW_PAINTER on paper white in the theme's faces, with a header line and
+  "Page n of m" in the margins. `write_pdf`, `print_to (printer, title,
+  output)`, `draw_page`, `page_count`, `page_top`/`page_bottom`,
+  `last_error`.
+- **`SW_PAGE_SETUP`**: Letter or A4, landscape, margins in points, header,
+  page numbers, `points_per_pixel` (0.75 prints at the screen's size).
+- **`SW_PRINT_PREVIEW`**: the sheets one under another, scrolled under a
+  bar; `page_at_top`, `show_page`.
+- **`SW_PRINTER`**: the toolkit's name for SHELL_PRINTER.
+- **SW_WIDGET**: `print_height` (preferred height; SW_DOC_UNITS answers its
+  whole text) and `clean_break` (a widget without parts keeps itself whole,
+  one with parts asks the parts; SW_DOC_UNITS breaks between lines).
+  **SW_PAINTER**: `push_transform`/`pop_transform`.
+- **PDF**: the shipped cairo.dll cannot write PDF (its first page fails
+  with "out of memory"; see simple_cairo's CHANGELOG), so `write_pdf` falls
+  back to the Windows PDF printer and waits for the spooler's file
+  (`used_windows_pdf_printer`). A rebuilt cairo.dll makes the cairo route
+  work with no change here.
+- Tests: no page edge cuts a label or a line of a document; a PDF is
+  written; the commentary prints through Microsoft Print to PDF with no
+  dialog; landscape lays the text out wider; the preview pages. Evidence
+  `gw20_page_light.png` (a Letter sheet: header, Hebrew right-aligned,
+  Greek, page number) and `gw20_preview_light.png`, looked at. 552 pass.
+- Open: grids and lists print only what fits (they report no whole height
+  yet); no printer dialog by design (the application lists printers); the
+  preview draws every visible sheet each frame (no cache); copies and page
+  ranges are not offered.
+
 ### Fixed (0.39.1 - design scan 19, since b8d50ce)
 
 Report: `.eiffel-workflow/evidence/design-scan-since-b8d50ce.md` (4 HIGH,

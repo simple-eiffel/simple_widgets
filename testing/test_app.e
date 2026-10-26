@@ -814,6 +814,12 @@ feature {NONE} -- Test runners
 			run_test (agent floating_tests.test_scan19_an_accelerator_runs_once_from_a_floating_window, "scan19_an_accelerator_runs_once_from_a_floating_window")
 			run_test (agent floating_tests.test_scan19_closing_gives_the_frame_back, "scan19_closing_gives_the_frame_back")
 			run_test (agent floating_tests.test_scan19_a_floating_panel_stays_out_of_its_zone, "scan19_a_floating_panel_stays_out_of_its_zone")
+			print ("%N=== GW-20 PRINTING ===%N")
+			run_test (agent print_tests.test_gw20_no_page_edge_cuts_a_label, "gw20_no_page_edge_cuts_a_label")
+			run_test (agent print_tests.test_gw20_no_page_edge_cuts_a_line_of_a_document, "gw20_no_page_edge_cuts_a_line_of_a_document")
+			run_test (agent print_tests.test_gw20_a_pdf_with_every_page, "gw20_a_pdf_with_every_page")
+			run_test (agent print_tests.test_gw20_prints_through_the_file_printer, "gw20_prints_through_the_file_printer")
+			run_test (agent print_tests.test_gw20_preview_light, "gw20_preview_light")
 			run_test (agent strokes_tests.test_gw18_patterns_light, "gw18_patterns_light")
 			run_test (agent strokes_tests.test_gw18_patterns_dark, "gw18_patterns_dark")
 			print ("%N=== GW-14 UI AUTOMATION ===%N")
@@ -909,6 +915,11 @@ feature {NONE} -- Test runners
 	layered_tests: SW_LAYERED_DIAGRAM_ASSAULT
 
 	floating_tests: SW_FLOATING_ASSAULT
+		once
+			create Result
+		end
+
+	print_tests: SW_PRINT_ASSAULT
 		once
 			create Result
 		end
