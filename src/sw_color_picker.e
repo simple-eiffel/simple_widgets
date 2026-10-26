@@ -16,6 +16,7 @@ inherit
 			handle_char, accepts_focus
 		end
 
+inherit {NONE}
 	SW_COLOR_MATH
 
 create

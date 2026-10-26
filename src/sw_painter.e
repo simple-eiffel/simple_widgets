@@ -10,7 +10,7 @@ note
 class
 	SW_PAINTER
 
-inherit
+inherit {NONE}
 	SW_COLOR_MATH
 
 create

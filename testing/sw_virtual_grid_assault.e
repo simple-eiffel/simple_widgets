@@ -224,6 +224,11 @@ feature {NONE} -- Fixtures
 				-- The first page jumps revisit rows the wheel just drew (the memo
 				-- serves them); from the eleventh on, every row is new.
 			assert_true ("page frames do not grow slower", median_of (l_page, 21, 30) <= 2.0 * median_of (l_page, 11, 20) + 2.0)
+			if is_lean_build then
+				report_text ("GW-29 measured in the LEAN build: held to 60 Hz")
+			else
+				report_text ("GW-29 measured in the CONTRACT build: held to twice the 60 Hz budget")
+			end
 			assert_true ("wheel scrolling holds 60 Hz in the build it is held to", median (l_wheel) < budget_here)
 			assert_true ("a page jump holds 60 Hz in the build it is held to", median (l_page) < budget_here)
 			assert_true ("100,000 rows sort in under half a second", l_sort < 500.0)
@@ -259,6 +264,12 @@ feature {NONE} -- Fixtures
 	report (a_what: STRING; a_ms: REAL_64)
 		do
 			io.put_string ("    GW-29 " + a_what + ": " + ((a_ms * 100.0).rounded / 100.0).out + " ms%N")
+			io.output.flush
+		end
+
+	report_text (a_line: STRING)
+		do
+			io.put_string ("    " + a_line + "%N")
 			io.output.flush
 		end
 

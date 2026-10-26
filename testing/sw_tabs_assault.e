@@ -17,6 +17,46 @@ class
 inherit
 	SW_SHAPING_ASSAULT
 
+feature -- One inset (scan 18)
+
+	test_scan18_drag_outline_hugs_the_ground_at_any_scale
+			-- At text scale 2 the tab ground is inset by half the theme's
+			-- padding; the drag outline must sit on that ground's edge, not 4
+			-- pixels above it where the old literal put it.
+		local
+			w: SW_WINDOW
+			tb: SW_TABS
+			t: SW_THEME
+			l_image: CAIRO_SURFACE
+			cy, ax, l_column, l_ground_row, l_old_row: INTEGER
+			m, l_inset: REAL_64
+		do
+			create t.make_light
+			t.set_text_scale (2.0)
+			create w.make ("tabs", 0, 0, 900, 300, t)
+			tb := four_tabs
+			w.set_root (tb)
+			w.request_render
+			cy := (tb.y + tb.bar_h / 2.0).truncated_to_integer
+			ax := (tb.tab_lefts [1] + tb.tab_pad + 2.0).truncated_to_integer
+			w.dispatch (2, ax, cy)
+			w.dispatch (9, ax + 20, cy)
+			assert_true ("dragging the first tab", tb.is_dragging and tb.labels [1].same_string ("A"))
+			l_image := w.widget_image (tb, t, 1.0)
+			m := w.export_margin (t)
+			l_inset := t.padding / 2.0
+			assert_true ("the scale moves the inset off the old 4 pixels", l_inset >= 6.0)
+			l_column := (tb.tab_lefts [1] + tb.tab_widths [1] / 2.0 - tb.x + m).truncated_to_integer
+			l_ground_row := (tb.y + l_inset - tb.y + m).truncated_to_integer
+			l_old_row := (4.0 + m).truncated_to_integer
+			assert_true ("the outline is on the ground's top edge",
+				is_near (image_pixel (l_image, l_column, l_ground_row), t.accent))
+			assert_false ("and not where the literal put it",
+				is_near (image_pixel (l_image, l_column, l_old_row), t.accent))
+			l_image.destroy
+			w.dispatch (10, ax + 20, cy)
+		end
+
 feature -- Closing
 
 	test_gw15_close_selects_the_neighbor
@@ -456,6 +496,30 @@ feature {NONE} -- Fixtures
 				if w.write_frame (path) then
 				end
 			end
+		end
+
+feature {NONE} -- Pixels
+
+	image_pixel (a_image: CAIRO_SURFACE; a_x, a_y: INTEGER): NATURAL_32
+			-- The colour at (`a_x', `a_y') of an opaque image, as 0xRRGGBB.
+		require
+			inside: a_x >= 0 and a_y >= 0 and a_x < a_image.width and a_y < a_image.height
+		local
+			l_bytes: MANAGED_POINTER
+		do
+			create l_bytes.share_from_pointer (a_image.data, a_image.stride * a_image.height)
+			Result := l_bytes.read_natural_32 (a_y * a_image.stride + a_x * 4) & 0xFFFFFF
+		end
+
+	is_near (a_rgb, a_want: NATURAL_32): BOOLEAN
+			-- Within 48 per channel.
+		do
+			Result := ((a_rgb |>> 16) & 0xFF).to_integer_32 - ((a_want |>> 16) & 0xFF).to_integer_32 <= 48
+				and ((a_want |>> 16) & 0xFF).to_integer_32 - ((a_rgb |>> 16) & 0xFF).to_integer_32 <= 48
+				and ((a_rgb |>> 8) & 0xFF).to_integer_32 - ((a_want |>> 8) & 0xFF).to_integer_32 <= 48
+				and ((a_want |>> 8) & 0xFF).to_integer_32 - ((a_rgb |>> 8) & 0xFF).to_integer_32 <= 48
+				and (a_rgb & 0xFF).to_integer_32 - (a_want & 0xFF).to_integer_32 <= 48
+				and (a_want & 0xFF).to_integer_32 - (a_rgb & 0xFF).to_integer_32 <= 48
 		end
 
 end

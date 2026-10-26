@@ -19,6 +19,7 @@ inherit
 			draw
 		end
 
+inherit {NONE}
 	SW_COLOR_MATH
 
 create

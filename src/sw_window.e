@@ -565,7 +565,7 @@ feature {NONE} -- Dispatch
 
 	dispatch (a_type, a_x, a_y: INTEGER)
 		do
-			if a_type = 7 then
+			if a_type = Event_tick then
 					-- The heartbeat is global: toasts age and the frame
 					-- echo flushes no matter which phase owns the pointer.
 					-- A popup must never freeze the window's clock.
@@ -587,7 +587,7 @@ feature {NONE} -- Dispatch
 				else
 					peek_out_ticks := 0
 				end
-			elseif a_type = 16 then
+			elseif a_type = Event_window_resize then
 					-- Likewise the surface: a resize that arrives while a
 					-- dialog or popup is open must still reallocate.
 				resize_surface (a_x, a_y)
@@ -650,7 +650,7 @@ feature {NONE} -- Dispatch
 			act: detachable PROCEDURE
 		do
 			inspect a_type
-			when 2 then
+			when Event_window_press then
 				idx := a_d.button_at (a_x, a_y)
 				if idx > 0 then
 					act := a_d.buttons.i_th (idx).action
@@ -660,12 +660,12 @@ feature {NONE} -- Dispatch
 					end
 					after_input
 				end
-			when 3 then
+			when Event_window_char then
 				if a_x = 27 then
 					close_dialog
 					after_input
 				end
-			when 6 then
+			when Event_window_expose then
 				blit
 			else
 					-- Shell events (the strip's 21..23, the fast tick
@@ -933,7 +933,7 @@ feature {NONE} -- Dispatch internals
 			act: detachable PROCEDURE
 		do
 			inspect a_type
-			when 2 then
+			when Event_window_press then
 				idx := a_m.item_at (a_x, a_y)
 				if idx > 0 then
 					act := a_m.items.i_th (idx).action
@@ -943,10 +943,10 @@ feature {NONE} -- Dispatch internals
 					a.call
 				end
 				after_input
-			when 13 then
+			when Event_window_move then
 				a_m.set_hover_at (a_x, a_y)
 				after_input
-			when 3 then
+			when Event_window_char then
 				if a_x = 27 then
 					close_popup
 					after_input
@@ -964,7 +964,7 @@ feature {NONE} -- Dispatch internals
 						after_input
 					end
 				end
-			when 4 then
+			when Event_window_key then
 					-- THE ARROW GAP. Type 4 is the VIRTUAL KEY, and it used to
 					-- fall into the `else' below and be discarded: the menu
 					-- opened on Alt+F and then answered nothing but letters and
@@ -972,9 +972,9 @@ feature {NONE} -- Dispatch internals
 				if navigate_open_menu (a_x) then
 					after_input
 				end
-			when 6 then
+			when Event_window_expose then
 				blit
-			when 11 then
+			when Event_window_context then
 				close_popup
 				after_input
 			else
@@ -1830,7 +1830,7 @@ feature {NONE} -- Popup lifecycle
 			w: detachable SW_WIDGET
 		do
 			inspect a_type
-			when 2 then
+			when Event_window_press then
 				if attached pick_pebble as pb then
 					w := target_at (a_x, a_y)
 					if attached w as tw and then tw.is_enabled and then tw.accepts_pebble (pb) then
@@ -1841,19 +1841,19 @@ feature {NONE} -- Popup lifecycle
 					end
 				end
 				after_input
-			when 13 then
+			when Event_window_move then
 				pick_cur_x := a_x
 				pick_cur_y := a_y
 				after_input
-			when 3 then
+			when Event_window_char then
 				if a_x = 27 then
 					end_pick
 					after_input
 				end
-			when 11 then
+			when Event_window_context then
 				end_pick
 				after_input
-			when 6 then
+			when Event_window_expose then
 				blit
 			else
 					-- shell events pass through modality
@@ -1888,7 +1888,7 @@ feature {NONE} -- Popup lifecycle
 			l_swallow: BOOLEAN
 		do
 			inspect a_type
-			when 2 then
+			when Event_window_press then
 				if hover_card /= Void and then not point_in_hover_card (a_x, a_y) then
 						-- GW-09: a click off the card closes it and still lands
 					close_hover_card
@@ -1935,7 +1935,7 @@ feature {NONE} -- Popup lifecycle
 					drawer_pinned := True
 				end
 				after_input
-			when 3 then
+			when Event_window_char then
 					-- GW-24: only a CONTROL code can trail a key-down
 					-- accelerator (Ctrl+[ is 27, Ctrl+6 is 30); most make no
 					-- WM_CHAR at all (Ctrl+1, F5, Alt+S, whose WM_SYSCHAR the
@@ -1983,18 +1983,18 @@ feature {NONE} -- Popup lifecycle
 						after_input
 					end
 				end
-			when 4 then
+			when Event_window_key then
 				create l_keys
 				route_key_down (a_x, l_keys.control_down, l_keys.alt_down,
 					l_keys.shift_down)
-			when 6 then
+			when Event_window_expose then
 				blit
-			when 8 then
+			when Event_window_double then
 				if attached target_at (a_x, a_y) as w then
 					capture := bubble_click (w, a_x, a_y, True)
 				end
 				after_input
-			when 9 then
+			when Event_window_drag then
 					-- the pointer belongs to whoever accepted the press,
 					-- not to the keyboard focus (every surveyed toolkit
 					-- agrees: Qt at its grabber, ImGui at its active id).
@@ -2015,7 +2015,7 @@ feature {NONE} -- Popup lifecycle
 					w.handle_drag (a_x, a_y)
 					after_input
 				end
-			when 10 then
+			when Event_window_release then
 				sheet_dragging := False
 				sheet_sizing := False
 				if attached capture as cw then
@@ -2026,7 +2026,7 @@ feature {NONE} -- Popup lifecycle
 					capture := Void
 					after_input
 				end
-			when 7 then
+			when Event_tick then
 				if attached hovered as hw and then not hw.tooltip.is_empty
 					and then not tooltip_visible
 				then
@@ -2047,7 +2047,7 @@ feature {NONE} -- Popup lifecycle
 					end
 					after_input
 				end
-			when 13 then
+			when Event_window_move then
 				last_pointer_x := a_x
 				last_pointer_y := a_y
 				if sheet = Void and then drawer_tab_at (a_x, a_y) > 0 then
@@ -2055,7 +2055,7 @@ feature {NONE} -- Popup lifecycle
 				end
 				update_hover (a_x, a_y)
 				watch_hover_card (a_x, a_y)
-			when 14 then
+			when Event_window_leave then
 				last_pointer_x := -30000
 				last_pointer_y := -30000
 				cancel_dwell_timer
@@ -2068,9 +2068,9 @@ feature {NONE} -- Popup lifecycle
 					hovered := Void
 					after_input
 				end
-			when 18 then
+			when Event_window_drop then
 				deliver_drop (a_x, a_y)
-			when 17 then
+			when Event_window_middle then
 				if lens.is_active (is_dev_mode) and then attached target_at (a_x, a_y) as dw
 					and then lens.observes (dw)
 				then
@@ -2085,7 +2085,7 @@ feature {NONE} -- Popup lifecycle
 				end
 				after_input
 
-			when 15 then
+			when Event_window_wheel then
 				if hover_card /= Void and then not point_in_hover_card (a_x, a_y) then
 						-- the page moves under the card's word: close it
 					close_hover_card
@@ -2097,7 +2097,7 @@ feature {NONE} -- Popup lifecycle
 					-- again (GW-08).
 				rearm_dwell (hovered)
 				after_input
-			when 11 then
+			when Event_window_context then
 				if lens.is_active (is_dev_mode)
 					and then (sheet = Void or else (is_drawer_mode and then drawer_pinned))
 					and then attached target_at (a_x, a_y) as dw
@@ -2113,7 +2113,7 @@ feature {NONE} -- Popup lifecycle
 					bubble_context (w, a_x, a_y)
 				end
 				after_input
-			when 12 then
+			when Event_window_triple then
 				if attached active_root as r and then attached r.widget_at (a_x, a_y) as w then
 					if w.handle_triple_click (a_x, a_y) then
 					end

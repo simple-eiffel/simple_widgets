@@ -137,7 +137,7 @@ feature -- Painting
 			l_inset, l_rule: REAL_64
 		do
 			t := a_p.theme
-			l_inset := t.padding / 2.0
+			l_inset := tab_inset (t)
 			l_rule := (t.border_width / 4.0).max (2.0)
 			if a_selected then
 				a_p.set_color (t.surface)
@@ -152,6 +152,44 @@ feature -- Painting
 			else
 				Result := t.ink_muted
 			end
+		end
+
+	draw_tab_outline (a_p: SW_PAINTER; a_i: INTEGER)
+			-- Outline tab `a_i''s ground in the accent (a tab being dragged),
+			-- on the ground's own edge at every scale (scan 18: the outline
+			-- kept a 4-pixel literal while the ground scaled).
+		require
+			placed: a_i >= 1 and a_i <= tab_widths.count
+			shown: tab_widths.i_th (a_i) > 0.0
+		local
+			t: SW_THEME
+		do
+			t := a_p.theme
+			a_p.set_color (t.accent)
+			a_p.rrect_stroke (tab_lefts.i_th (a_i) + 0.5, strip_top + tab_inset (t) + 0.5, tab_widths.i_th (a_i) - 1.0,
+				strip_height - tab_inset (t) - 2.0, t.radius)
+		end
+
+	draw_tab_separator (a_p: SW_PAINTER; a_i: INTEGER)
+			-- A hairline after tab `a_i', inset as the grounds are.
+		require
+			placed: a_i >= 1 and a_i <= tab_widths.count
+		local
+			t: SW_THEME
+		do
+			t := a_p.theme
+			a_p.set_color (t.outline)
+			a_p.fill_rect (tab_lefts.i_th (a_i) + tab_widths.i_th (a_i) - 0.5, strip_top + tab_inset (t), 1.0,
+				(strip_height - 2.0 * tab_inset (t)).max (1.0))
+		end
+
+	tab_inset (a_theme: SW_THEME): REAL_64
+			-- How far a tab's ground, outline and separator stand in from the
+			-- strip: half the theme's padding, so they scale together.
+		do
+			Result := a_theme.padding / 2.0
+		ensure
+			non_negative: Result >= 0.0
 		end
 
 feature -- Placement
