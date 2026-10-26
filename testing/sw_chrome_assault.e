@@ -327,6 +327,40 @@ feature -- GW-11: status-bar sections
 
 feature -- Spacing from the theme (Vision2 tokens)
 
+	test_reference_marks_sit_on_corners_and_tip
+			-- Pills name parts of a window for screenshots: hidden until shown, each at its
+			-- widget's chosen corner, and the one under the pointer shows its tip.
+		local
+			w: SW_WINDOW
+			root: SW_COLUMN
+			l_top, l_bottom: SW_LABEL
+		do
+			create w.make ("marks", 0, 0, 600, 300, create {SW_THEME}.make_light)
+			create root.make
+			create l_top.make_ui ("top")
+			create l_bottom.make_ui ("bottom")
+			root.put (l_top)
+			root.put (l_bottom)
+			w.set_root (root)
+			w.add_reference_mark (l_top, "C4", "Reference box", w.Corner_top_left)
+			w.add_reference_mark (l_bottom, "S3", "Lexicon, south", w.Corner_bottom_right)
+			w.request_render
+			assert_integers_equal ("hidden: no pill answers", 0, w.reference_mark_at (l_top.x.rounded, l_top.y.rounded + 2))
+			w.set_reference_marks_shown (True)
+			w.request_render
+			assert_integers_equal ("top-left pill on the top widget's corner", 1,
+				w.reference_mark_at ((l_top.x + 4.0).rounded, (l_top.y + 4.0).rounded))
+			assert_integers_equal ("bottom-right pill on the bottom widget's corner", 2,
+				w.reference_mark_at ((l_bottom.x + l_bottom.width - 6.0).rounded, (l_bottom.y + l_bottom.height - 4.0).rounded))
+			assert_integers_equal ("nothing in the middle of the window", 0, w.reference_mark_at (300, 150))
+			w.dispatch (w.Event_window_move, (l_top.x + 4.0).rounded, (l_top.y + 4.0).rounded)
+			assert_integers_equal ("pointer on C4 shows its tip", 1, w.hovered_reference_mark)
+			w.dispatch (w.Event_window_move, 300, 150)
+			assert_integers_equal ("pointer off every pill: no tip", 0, w.hovered_reference_mark)
+			w.set_reference_marks_shown (False)
+			assert_integers_equal ("hidden again", 0, w.reference_mark_at ((l_top.x + 4.0).rounded, (l_top.y + 4.0).rounded))
+		end
+
 	test_status_bar_and_hover_card_spacing_scale
 			-- The status bar's end pad is the theme's border_width and its
 			-- height the measured font plus padding; the hover card's inset
