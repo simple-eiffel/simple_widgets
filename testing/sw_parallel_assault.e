@@ -196,6 +196,32 @@ feature -- Layout
 			assert_true ("and inside the view", v.stacked_top (40) + 1.0 < v.y + v.height)
 		end
 
+	test_gw06_scroll_to_row_waits_for_new_rows
+			-- simple_bible's reading pane refills the view with a chapter and asks for a verse before
+			-- the next layout. Before: the request went to the old layout and was lost, so verse 40
+			-- stayed out of view (row 1 at the top); after: it is kept and met once the rows are laid out.
+		local
+			w: SW_WINDOW
+			v: SW_PARALLEL_TEXT
+			i: INTEGER
+		do
+			create w.make ("refill", 0, 0, 600, 300, create {SW_THEME}.make_light)
+			attach_parallel_kit (w)
+			v := long_parallel
+			w.set_root (v)
+			w.request_render
+			v.wipe_out
+			from i := 1 until i > 60 loop
+				v.set_cell (v.add_row (i.out), 1, "Another chapter " + i.out)
+				i := i + 1
+			end
+			v.scroll_to_row (40)
+			w.request_render
+			assert_true ("scrolled", v.scroll_y > 0.0)
+			assert_true ("row 40 below the band", v.stacked_top (40) >= v.y + v.header_height - 0.5)
+			assert_true ("and inside the view", v.stacked_top (40) + 1.0 < v.y + v.height)
+		end
+
 	test_gw06_wipe_out_forgets_the_hovered_link
 			-- A link under the pointer is forgotten with the rows it was in.
 		local

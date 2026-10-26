@@ -163,7 +163,15 @@ feature -- Stack
 			if is_laid_out and then height > 0.0 and then a_i <= stack.count then
 				scroll_to (stacked_scroll_for (a_i))
 			end
+				-- Also met after the next measure: items added since the last layout are not
+				-- stacked yet, and a refilled view (a new chapter) would lose the request.
+			pending_scroll_item := a_i
+		ensure
+			remembered: pending_scroll_item = a_i
 		end
+
+	pending_scroll_item: INTEGER
+			-- The item `scroll_item_into_view' asked for, met at the next `measure_stack'; 0 when none.
 
 	body_pixel_size (a_p: SW_PAINTER): INTEGER
 			-- Body text's pixel size at the painter's scale: what a layout
@@ -239,6 +247,10 @@ feature {NONE} -- Stack pieces
 				i := i + 1
 			end
 			stack.restack (a_gap)
+			if pending_scroll_item >= 1 and pending_scroll_item <= stack.count and then height > 0.0 then
+				scroll_to (stacked_scroll_for (pending_scroll_item))
+				pending_scroll_item := 0
+			end
 		ensure
 			counted: stack.count = stack_count
 		end

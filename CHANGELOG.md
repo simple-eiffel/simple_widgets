@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.41.1 - a scroll asked for during a refill is kept)
+
+- `SW_STACKED_ITEMS.scroll_item_into_view` (so `SW_PARALLEL_TEXT.scroll_to_row`, the document view and the interlinear) dropped a request made after the rows were replaced and before the next layout: the old stack answered it. The request is now kept (`pending_scroll_item`) and met once the next `measure_stack` has restacked. Found by simple_bible's reading pane (a new chapter opened at a verse showed verse 1). Before: `gw06_scroll_to_row_waits_for_new_rows` FAILED; after: 558 passed, 0 failed.
+
 ### Added (0.41.0 - reference marks)
 
 - `SW_WINDOW.add_reference_mark (widget, code, tip, corner)` and `set_reference_marks_shown`: numbered pills (the design boards' burnt-orange marker, white text and rim) at a chosen corner of each laid-out widget, kept on screen; the pill under the pointer shows its tip (`hovered_reference_mark`, `reference_mark_at`). A screenshot with the pills on can say "P05.4" and be understood. Hidden pills cost one boolean per frame. First user: simple_bible's View > Show design pills. Test `reference_marks_sit_on_corners_and_tip`; 556 passed, 0 failed.
