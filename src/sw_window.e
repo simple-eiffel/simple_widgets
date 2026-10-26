@@ -336,6 +336,9 @@ feature -- Floating windows (GW-22)
 			not_floating: not is_floating_content (a_content)
 			sane_size: a_width > 0 and a_height > 0
 		do
+				-- scan 19: this window must not keep the focus, hover or
+				-- capture on a widget that now lives in another window
+			let_go_of (a_content)
 			create Result.make (Current, a_content, a_title, a_x, a_y, a_width, a_height)
 			if Result.is_open then
 				floating_windows.extend (Result)
@@ -447,6 +450,38 @@ feature {SW_FLOATING_WINDOW} -- Floating windows (GW-22)
 		end
 
 feature {NONE} -- Floating window internals (GW-22)
+
+	let_go_of (a_tree: SW_WIDGET)
+			-- Drop the focus, hover and capture where they lie in `a_tree'.
+		do
+			if attached focused as al_f and then is_in_tree (al_f, a_tree) then
+				al_f.set_focused (False)
+				focused := Void
+			end
+			if attached hovered as al_h and then is_in_tree (al_h, a_tree) then
+				al_h.set_hovered (False)
+				hovered := Void
+			end
+			if attached capture as al_c and then is_in_tree (al_c, a_tree) then
+				al_c.set_pressed (False)
+				capture := Void
+			end
+		end
+
+	is_in_tree (a_widget, a_tree: SW_WIDGET): BOOLEAN
+			-- Is `a_widget' `a_tree' or below it?
+		local
+			w: detachable SW_WIDGET
+		do
+			from
+				w := a_widget
+			until
+				Result or w = Void
+			loop
+				Result := w = a_tree
+				w := w.parent
+			end
+		end
 
 	render_floating_windows
 		do

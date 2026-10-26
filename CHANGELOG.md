@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.39.1 - design scan 19, since b8d50ce)
+
+Report: `.eiffel-workflow/evidence/design-scan-since-b8d50ce.md` (4 HIGH,
+8 MEDIUM, 7 LOW). Needs simple_shell 1.23.1. Each fix has a test that
+failed on the old code:
+- **HIGH**: an accelerator ran twice from a floating window - once on the
+  key down, again on the control code its WM_CHAR carries (a Ctrl+B
+  toggle undid itself). The floating window now arms a swallow as the main
+  window does. `scan19_an_accelerator_runs_once_from_a_floating_window`
+  (old code: "expected 1, got 2").
+- **HIGH**: closing a floating window never released its cairo frame;
+  every float and unfloat leaked a client-sized surface. `close` destroys
+  it (`is_frame_released`), and `render` and `export_frame_png` now
+  require an open window. `scan19_closing_gives_the_frame_back`.
+- **HIGH**: a floating panel could be shown in a zone behind the floating
+  window's back. `restore_layout` keeps floating panels out of their zones,
+  `move_panel` only changes where a floating panel will dock, and
+  `show_panel` requires `not is_floating`.
+  `scan19_a_floating_panel_stays_out_of_its_zone` (its first assertion,
+  the focus one below, is where the old code failed).
+- **HIGH** (simple_shell 1.23.1): a panel destroyed with its owner kept
+  answering open.
+- MEDIUM: floating a tree now drops the main window's focus, hover and
+  capture inside it (`let_go_of`), and `close` releases a pressed widget.
+- 547 pass.
+- Open (the report has them all): every main frame repaints every
+  floating window (no dirty flag); size events are not coalesced; the
+  input state and itinerary are still two copies (the report proposes a
+  deferred SW_INPUT_SURFACE beside SW_POINTER_ROUTING); a deactivated
+  floating window still draws its focus ring; floating trees are not
+  published to screen readers; event 48 means outer size for plain panels
+  and client size for framed ones.
+
 ### Added (0.39.0 - GW-22: floating panels in a second window)
 
 Needs simple_shell 1.23.0 (framed panels).

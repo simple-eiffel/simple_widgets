@@ -359,7 +359,10 @@ feature -- Element change
 		do
 			if panels.i_th (a_panel).zone /= a_zone then
 				panels.i_th (a_panel).zone := a_zone
-				active_ids [a_zone] := a_panel
+				if not is_floating (a_panel) then
+						-- a floating panel only changes where it will dock (scan 19)
+					active_ids [a_zone] := a_panel
+				end
 				announce
 			end
 		ensure
@@ -383,6 +386,7 @@ feature -- Element change
 			-- Bring panel `a_panel' back where it was (shown, in a tabbed zone).
 		require
 			panel_known: a_panel >= 1 and a_panel <= panels.count
+			not_floating: not is_floating (a_panel)
 		do
 			if not panels.i_th (a_panel).is_visible then
 				panels.i_th (a_panel).is_visible := True
@@ -669,7 +673,8 @@ feature -- Snapshot
 					id := panel_by_key (e.key)
 					if id > 0 and then not l_placed [id] then
 						panels.i_th (id).zone := e.zone
-						panels.i_th (id).is_visible := e.shown
+							-- a floating panel stays out of its zone (scan 19)
+						panels.i_th (id).is_visible := e.shown and not is_floating (id)
 						l_new.extend (panels.i_th (id))
 						l_placed [id] := True
 					end

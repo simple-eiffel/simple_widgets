@@ -62,6 +62,88 @@ feature -- Tearing off and docking
 			assert_true ("the window is gone", w.floating_windows.is_empty and not l_float.is_open)
 		end
 
+feature -- Scan 19
+
+	test_scan19_an_accelerator_runs_once_from_a_floating_window
+			-- Ctrl+B reaches a floating window as a key down (60) AND the
+			-- control code its WM_CHAR carries (61): the toggle must run once.
+		local
+			w: SW_WINDOW
+			r: SW_TEST_RECORDER
+			l_float: SW_FLOATING_WINDOW
+			l_keys: SW_KEYS
+		do
+			create w.make ("floating", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			create r.make
+			w.set_root (create {SW_LABEL}.make_ui ("main"))
+			w.request_render
+			fired := 0
+			w.register_accelerator (66, True, False, False, agent do fired := fired + 1 end)
+			l_float := w.float_widget (r, "Notes", -3000, -3000, 400, 300)
+			create l_keys
+			l_keys.simulate (False, True, False)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_key, 66, 0)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_char, 2, 0)
+			assert_integers_equal ("Ctrl+B ran once", 1, fired)
+				-- Ctrl+B as a WM_CHAR alone (no key down claimed it) still runs it
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_key, 17, 0)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_char, 2, 0)
+			l_keys.stop_simulating
+			assert_integers_equal ("a control code alone still runs it", 2, fired)
+			w.unfloat (l_float)
+		end
+
+	test_scan19_closing_gives_the_frame_back
+		local
+			w: SW_WINDOW
+			r: SW_TEST_RECORDER
+			l_float: SW_FLOATING_WINDOW
+		do
+			create w.make ("floating", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			create r.make
+			w.set_root (create {SW_LABEL}.make_ui ("main"))
+			w.request_render
+			l_float := w.float_widget (r, "Notes", -3000, -3000, 400, 300)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_press, 20, 20)
+			assert_true ("pressed", r.is_pressed)
+			w.unfloat (l_float)
+			assert_true ("the offscreen frame is released", l_float.is_frame_released)
+			assert_false ("nothing left pressed", r.is_pressed)
+		end
+
+	test_scan19_a_floating_panel_stays_out_of_its_zone
+			-- Restoring a layout, or moving the panel to another zone, while it
+			-- floats must not show it in a zone as well.
+		local
+			w: SW_WINDOW
+			dh: SW_DOCK_HOST
+			r1, r2: SW_TEST_RECORDER
+			l_snapshot: STRING_32
+		do
+			create w.make ("floating", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			create r1.make
+			create r2.make
+			create dh.make (create {SW_LABEL}.make_ui ("the document"))
+			dh.add_keyed_panel ("word", "Word study", r1, dh.Zone_south).do_nothing
+			dh.add_keyed_panel ("refs", "Cross references", r2, dh.Zone_south).do_nothing
+			w.set_root (dh)
+			w.enable_floating_panels (dh)
+			w.request_render
+			l_snapshot := dh.layout_snapshot
+			w.give_focus (r2)
+			w.float_dock_panel (dh, 2)
+			assert_true ("the main window let go of the focus inside it", w.focused = Void and not r2.is_focused)
+			dh.restore_layout (l_snapshot)
+			assert_true ("restored", dh.last_restore_ok)
+			assert_true ("still floating, not in a zone", dh.is_floating (2) and not dh.is_panel_visible (2))
+			assert_true ("its content still free", r2.parent = Void)
+			dh.move_panel (2, dh.Zone_east)
+			assert_false ("moved, still not in a zone", dh.is_panel_visible (2))
+			w.floating_windows.first.handle_event ({SHELL_EVENTS}.Event_panel_close_request, 0, 0)
+			assert_true ("docked again in the zone it was moved to",
+				dh.is_panel_visible (2) and dh.panels [2].zone = dh.Zone_east and r2.parent = dh)
+		end
+
 feature -- Evidence
 
 	test_gw22_floating_panel_light
@@ -112,6 +194,8 @@ feature -- Input
 			l_float.handle_event ({SHELL_EVENTS}.Event_panel_key, 116, 0)
 			assert_integers_equal ("F5 runs the owner's accelerator", 1, fired)
 			assert_integers_equal ("and is not typed into the widget", 1, r.keys.count)
+				-- as typed: the key down first (it disarms the accelerator's swallow)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_key, 9, 0)
 			l_float.handle_event ({SHELL_EVENTS}.Event_panel_char, 9, 0)
 			assert_true ("Tab moves the focus within the window", l_float.focused = other and not r.is_focused)
 			l_float.handle_event ({SHELL_EVENTS}.Event_panel_move, cx, cy)
