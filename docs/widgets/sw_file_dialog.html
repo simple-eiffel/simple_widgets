@@ -43,7 +43,7 @@
     <span class="keyword">local</span>
         fd: <span class="type">SW_FILE_DIALOG</span>
     <span class="keyword">do</span>
-        <span class="keyword">create</span> fd.make_open (<span <span class="keyword">class</span>="string">&quot;D:/prod/simple_widgets&quot;</span>)
+        <span class="keyword">create</span> fd.make_open (<span <span class="keyword">class</span>="string">&quot;C:/Projects/my_app&quot;</span>)
         fd.set_extension_filter (<span <span class="keyword">class</span>="string">&quot;.e&quot;</span>)
         fd.set_on_accept (<span class="keyword">agent</span> on_file_chosen)
         fd.set_on_cancel (<span class="keyword">agent</span> on_file_cancelled)
@@ -59,7 +59,7 @@ on_file_chosen (a_path: <span class="type">STRING_32</span>)
 
         <section id="example-2">
             <h2>Save mode</h2>
-<pre><code><span class="keyword">create</span> fd.make_save (<span <span class="keyword">class</span>="string">&quot;D:/prod/output&quot;</span>, <span <span class="keyword">class</span>="string">&quot;untitled.txt&quot;</span>)
+<pre><code><span class="keyword">create</span> fd.make_save (<span <span class="keyword">class</span>="string">&quot;C:/Projects/output&quot;</span>, <span <span class="keyword">class</span>="string">&quot;untitled.txt&quot;</span>)
 fd.set_on_accept (<span class="keyword">agent</span> on_save_target)
 window.show_sheet (fd, 560.0)</code></pre>
         </section>

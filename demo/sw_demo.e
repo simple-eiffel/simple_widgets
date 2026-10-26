@@ -64,7 +64,7 @@ feature {NONE} -- Initialization
 			danger_button.set_dev_note ("armed by the Danger armed check box; fires on_delete")
 			create danger_check.make ("Danger armed", True, Void)
 			create click_me_button.make_primary ("Click Me", Void)
-			create dictation.make ("D:\prod\simple_speech\models\ggml-base.en.bin")
+			create dictation.make (fleet_path ("simple_speech\models\ggml-base.en.bin"))
 			create prompt_view.make
 			generate_swatches
 			create perf_chart.make
@@ -105,9 +105,9 @@ feature {NONE} -- Initialization
 			window.after_render_actions.subscribe (agent on_frame_cost)
 			prompt_view.set_on_submit (agent on_prompt_submitted)
 			danger_button.set_enabled_when (agent danger_check.is_checked)
-			window.add_font ("D:\prod\simple_narrate\fonts\Archivo.ttf").do_nothing
-			window.add_font ("D:\prod\simple_narrate\fonts\Literata.ttf").do_nothing
-			window.add_font ("D:\prod\simple_narrate\fonts\IBMPlexMono.ttf").do_nothing
+			window.add_font (fleet_path ("simple_narrate\fonts\Archivo.ttf")).do_nothing
+			window.add_font (fleet_path ("simple_narrate\fonts\Literata.ttf")).do_nothing
+			window.add_font (fleet_path ("simple_narrate\fonts\IBMPlexMono.ttf")).do_nothing
 			window.set_frame_echo ("sw_demo_frame.png")
 
 			create root.make
@@ -222,7 +222,7 @@ feature {NONE} -- Initialization
 			create page.make
 			page := page.with_gap (10.0)
 			page.put (create {SW_LABEL}.make_ui ("A PNG loaded by cairo, contain-scaled and centered by SW_IMAGE"))
-			page.put ((create {SW_IMAGE}.make_from_file ("D:/prod/simple_widgets/docs/images/logo.png")).with_display_height (170.0))
+			page.put ((create {SW_IMAGE}.make_from_file (fleet_path ("simple_widgets\docs\images\logo.png"))).with_display_height (170.0))
 			tabs.add_page ("Picture", page)
 			create page.make
 			page := page.with_gap (12.0)
@@ -645,6 +645,24 @@ feature {NONE} -- Initialization
 			statusbar.set_left ({STRING_32} "big list: item " + a_i.out + {STRING_32} " selected")
 		end
 
+feature {NONE} -- Fleet files
+
+	fleet_path (a_relative: STRING): STRING_32
+			-- `a_relative' under $SIMPLE_EIFFEL (the simple_* checkout), or as given when that is unset,
+			-- so no machine's own folder is written into the source.
+		local
+			env: EXECUTION_ENVIRONMENT
+		do
+			create env
+			if attached env.item ("SIMPLE_EIFFEL") as al_root and then not al_root.is_empty then
+				Result := al_root.to_string_32 + {STRING_32} "\" + a_relative.to_string_32
+			else
+				Result := a_relative.to_string_32
+			end
+		ensure
+			not_empty: not a_relative.is_empty implies not Result.is_empty
+		end
+
 feature {NONE} -- Behaviour
 
 	window: SW_WINDOW
@@ -881,7 +899,7 @@ feature {NONE} -- Behaviour
 			create Result.make
 			Result := Result.with_padding (12.0).with_gap (10.0)
 			Result.put ((create {SW_LABEL}.make_ui ("The file manager (left tree lazy, right files live) and TRUE DOCKING %/8212/ middle-click a panel title, drop on another edge; empty zones collapse")).as_muted)
-			create fm.make ("D:\prod\simple_widgets")
+			create fm.make (fleet_path ("simple_widgets"))
 			fm.set_on_open (agent on_fm_open)
 			Result.put (fm)
 			create doc.make_body ("the document takes every pixel the panels do not %/8212/ move them and watch the reflow")
@@ -1447,7 +1465,7 @@ feature {NONE} -- Behaviour
 		local
 			fd: SW_FILE_DIALOG
 		do
-			create fd.make_open ("D:/prod/simple_widgets")
+			create fd.make_open (fleet_path ("simple_widgets"))
 			fd.set_on_accept (agent on_file_chosen)
 			fd.set_on_cancel (agent on_file_cancelled)
 			window.show_sheet (fd, 560.0)
@@ -1457,7 +1475,7 @@ feature {NONE} -- Behaviour
 		local
 			fd: SW_FILE_DIALOG
 		do
-			create fd.make_save ("D:/prod/simple_widgets", "untitled.txt")
+			create fd.make_save (fleet_path ("simple_widgets"), "untitled.txt")
 			fd.set_on_accept (agent on_file_chosen)
 			fd.set_on_cancel (agent on_file_cancelled)
 			window.show_sheet (fd, 560.0)

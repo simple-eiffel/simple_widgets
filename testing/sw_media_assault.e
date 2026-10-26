@@ -15,6 +15,22 @@ inherit
 
 feature {NONE} -- Fixture
 
+	fleet_path (a_relative: STRING): STRING_32
+			-- `a_relative' under $SIMPLE_EIFFEL (the simple_* checkout), or as given when that is unset,
+			-- so no machine's own folder is written into the source.
+		local
+			env: EXECUTION_ENVIRONMENT
+		do
+			create env
+			if attached env.item ("SIMPLE_EIFFEL") as al_root and then not al_root.is_empty then
+				Result := al_root.to_string_32 + {STRING_32} "\" + a_relative.to_string_32
+			else
+				Result := a_relative.to_string_32
+			end
+		ensure
+			not_empty: not a_relative.is_empty implies not Result.is_empty
+		end
+
 	fixture_png: STRING_32
 			-- A real 8x8 PNG on disk, generated once - SW_IMAGE loads
 			-- through cairo, and cairo wants a real file.
@@ -190,9 +206,9 @@ feature -- Dictation
 			d: SW_DICTATION
 			words: STRING_32
 		do
-			create d.make ("D:\prod\simple_speech\models\ggml-base.en.bin")
+			create d.make (fleet_path ("simple_speech\models\ggml-base.en.bin"))
 			if d.is_ready then
-				words := d.transcribe_wav ("D:\prod\simple_speech\sherpa-onnx\test_audio_short.wav")
+				words := d.transcribe_wav (fleet_path ("simple_speech\sherpa-onnx\test_audio_short.wav"))
 				assert ("real speech became real words", not words.is_empty)
 			else
 				assert ("model absent on this machine - honest skip", not d.is_ready)
