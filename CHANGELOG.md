@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.39.0 - GW-22: floating panels in a second window)
+
+Needs simple_shell 1.23.0 (framed panels).
+- **`SW_FLOATING_WINDOW`**: one widget tree in a floating window of its own
+  (a framed simple_shell panel: caption, sizing border, focus, owned by the
+  main window, never topmost) for a study pane on a second monitor. It
+  draws in the owner's theme and shaping kit, inside the theme's padding,
+  and takes clicks, double clicks, drags, the wheel, hover and leave, keys,
+  characters (surrogate pairs whole) and Tab like the main window; a key
+  the owner's accelerator table claims still runs it (F5, Ctrl+letter).
+  Every input goes through the owner's one itinerary, so all windows
+  repaint together. Input waits while the owner shows a modal dialog.
+  `export_frame_png` writes its client area.
+- **SW_WINDOW**: `float_widget`, `unfloat`, `floating_windows`,
+  `floating_at`, `enable_floating_panels (host)`, `float_dock_panel`; panel
+  events (41-50, 60-65) go to the floating window that owns their slot.
+- **SW_DOCK_HOST**: `float_panel`, `redock_panel`, `is_floating`,
+  `can_float`, `request_float`, `on_float_request`. With floating enabled a
+  **double click on a tab or a title bar** tears that panel off; closing
+  the floating window docks it again where it was.
+- **`SW_POINTER_ROUTING`** (pushed up out of SW_WINDOW): `spine_click`,
+  `spine_wheel`, `spine_file_taker`, `ring_neighbour`, `paired_code_point`
+  - the walks both kinds of window take. SW_WINDOW's `bubble_wheel` is now
+  `spine_wheel`; behaviour unchanged.
+- Tests: `gw22_double_click_floats_a_tab_and_close_docks_it`,
+  `gw22_a_floating_window_takes_input_like_the_main_one`,
+  `gw22_a_modal_dialog_holds_the_floating_window`, evidence
+  `gw22_floating_light.png` / `gw22_floating_dark.png` (looked at: Hebrew
+  and Greek shaped, inset). Test widget `SW_TEST_RECORDER`. 544 pass.
+- Open: popups, sheets and hover cards inside a floating window; per-widget
+  pointer shapes there; screen-reader publishing of floating trees;
+  `layout_snapshot` does not record floating panels or their geometry
+  (they come back docked); the first placement is a fixed offset, not the
+  second monitor.
+
 ### Fixed (0.38.6 - design scan 18, since af94462)
 
 Report: `.eiffel-workflow/evidence/design-scan-since-af94462.md` (1 HIGH,

@@ -24,6 +24,11 @@ note
 		                  its place; remove_panel lets it go (the ids
 		                  after it shift down, so durable identity is
 		                  the panel's KEY - add_keyed_panel, panel_by_key)
+		    FLOATING      (GW-22) float_panel takes a panel out of its
+		                  zone into a floating window (SW_WINDOW does the
+		                  window: enable_floating_panels, then a double
+		                  click on a tab or title bar); redock_panel puts it
+		                  back where it was
 		    SNAPSHOT      layout_snapshot writes fractions, tab modes,
 		                  every panel's key, zone, visibility and order,
 		                  and each tabbed zone's active panel as text;
@@ -396,6 +401,7 @@ feature -- Element change
 			z: INTEGER
 		do
 			panels.i_th (a_panel).content.set_parent (Void)
+			forget_floating_key (panels.i_th (a_panel).key)
 			panels.go_i_th (a_panel)
 			panels.remove
 			from
@@ -461,6 +467,76 @@ feature -- Element change
 			on_layout_change := a_action
 		ensure
 			set: on_layout_change = a_action
+		end
+
+feature -- Floating (GW-22)
+
+	is_floating (a_panel: INTEGER): BOOLEAN
+			-- Is panel `a_panel' out of its zone, in a floating window?
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			Result := across floating_keys as al_key some al_key.same_string (panels.i_th (a_panel).key) end
+		end
+
+	can_float: BOOLEAN
+			-- Does a double click on a tab or title bar float its panel?
+		do
+			Result := on_float_request /= Void
+		end
+
+	on_float_request: detachable PROCEDURE [INTEGER]
+			-- Asked to float a panel (SW_WINDOW.enable_floating_panels).
+
+	set_on_float_request (a_action: PROCEDURE [INTEGER])
+		do
+			on_float_request := a_action
+		ensure
+			set: on_float_request = a_action
+		end
+
+	request_float (a_panel: INTEGER)
+			-- The gesture: ask `on_float_request' to float panel `a_panel'.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+			docked: not is_floating (a_panel)
+		do
+			if attached on_float_request as al_request then
+				al_request.call (a_panel)
+			end
+		end
+
+	float_panel (a_panel: INTEGER)
+			-- Take panel `a_panel' out of its zone (it keeps its zone and
+			-- place for `redock_panel') and let its content go.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+			docked: not is_floating (a_panel)
+		do
+			floating_keys.extend (panels.i_th (a_panel).key.twin)
+			panels.i_th (a_panel).content.set_parent (Void)
+			hide_panel (a_panel)
+			announce
+		ensure
+			floating: is_floating (a_panel)
+			off_the_zone: not is_panel_visible (a_panel)
+			let_go: panels.i_th (a_panel).content.parent = Void
+		end
+
+	redock_panel (a_panel: INTEGER)
+			-- Put floating panel `a_panel' back in its zone, shown.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+			floating: is_floating (a_panel)
+		do
+			forget_floating_key (panels.i_th (a_panel).key)
+			panels.i_th (a_panel).content.set_parent (Current)
+			show_panel (a_panel)
+			announce
+		ensure
+			docked: not is_floating (a_panel)
+			shown: is_panel_visible (a_panel)
+			adopted: panels.i_th (a_panel).content.parent = Current
 		end
 
 feature -- Snapshot
@@ -779,6 +855,27 @@ feature -- Drawing
 		end
 
 feature {NONE} -- Organs
+
+	floating_keys: ARRAYED_LIST [STRING_32]
+			-- The keys of the panels out in floating windows.
+		attribute
+			create Result.make (2)
+		end
+
+	forget_floating_key (a_key: READABLE_STRING_GENERAL)
+		do
+			from
+				floating_keys.start
+			until
+				floating_keys.after
+			loop
+				if floating_keys.item.same_string_general (a_key) then
+					floating_keys.remove
+				else
+					floating_keys.forth
+				end
+			end
+		end
 
 	west_zone: SW_DOCK_ZONE
 			-- Self-initializing: the mutual Current/zone knot unties
