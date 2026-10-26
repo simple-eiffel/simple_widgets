@@ -34,6 +34,18 @@ feature -- Access
 
 	theme: SW_THEME
 
+	twin_in_theme (a_theme: SW_THEME): SW_PAINTER
+			-- A painter on the same context in `a_theme', with the same
+			-- shaping kit: a print preview draws paper in paper inks on a
+			-- dark screen (scan 20).
+		do
+			create Result.make (context, a_theme)
+			Result.set_shaping (shaping)
+		ensure
+			same_context: Result.context = context
+			in_theme: Result.theme = a_theme
+		end
+
 feature -- Colour
 
 	set_color (a_rgb: NATURAL_32)

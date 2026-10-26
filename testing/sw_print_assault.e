@@ -191,6 +191,97 @@ feature -- Preview and evidence
 			assert_true ("the preview written", w.export_widget_png (l_preview, evidence_path ("gw20_preview_light.png"), 1.0))
 		end
 
+feature -- Scan 20
+
+	test_scan20_the_preview_shows_paper_inks_on_a_dark_screen
+			-- A dark screen's preview must show what prints: dark ink on white
+			-- paper, not the screen's light ink.
+		local
+			w: SW_WINDOW
+			l_preview: SW_PRINT_PREVIEW
+			l_job: SW_PRINT_JOB
+			l_image: CAIRO_SURFACE
+			l_col: SW_COLUMN
+			x0, y0, i, j, l_dark: INTEGER
+			m, s: REAL_64
+		do
+			create w.make ("preview", 0, 0, 700, 800, create {SW_THEME}.make_dark)
+			attach_window_kit (w)
+			create l_col.make
+			from i := 1 until i > 6 loop
+				l_col.put (create {SW_LABEL}.make_ui ("Verse " + i.out + ": In the beginning was the Word, and the Word was with God."))
+				i := i + 1
+			end
+			create l_job.make (l_col, create {SW_PAGE_SETUP}.make_letter, create {SW_THEME}.make_light, Void)
+			create l_preview.make (l_job)
+			w.set_root (l_preview)
+			w.request_render
+			l_image := w.widget_image (l_preview, w.theme, 1.0)
+			m := w.export_margin (w.theme)
+			s := l_preview.sheet_scale
+			x0 := (l_preview.sheet_left - l_preview.x + m + l_job.setup.margin_points * s).truncated_to_integer
+			y0 := (l_preview.sheet_y (1) + m + l_job.setup.margin_points * s).truncated_to_integer
+			from j := y0 until j > y0 + 40 loop
+				from i := x0 until i > x0 + 300 loop
+					if is_dark_pixel (l_image, i, j) then
+						l_dark := l_dark + 1
+					end
+					i := i + 1
+				end
+				j := j + 1
+			end
+			l_image.destroy
+			assert_true ("the first lines are dark ink on the white sheet: " + l_dark.out + " dark pixels", l_dark > 30)
+		end
+
+	test_scan20_printing_leaves_the_widget_where_it_was
+		local
+			l_col: SW_COLUMN
+			l_job: SW_PRINT_JOB
+			cairo: SIMPLE_CAIRO
+			l_image: CAIRO_SURFACE
+			l_ctx: CAIRO_CONTEXT
+			l_p: SW_PAINTER
+			l_window: SW_WINDOW
+		do
+			create l_window.make ("measure", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			create l_col.make
+			l_col.put (create {SW_LABEL}.make_ui ("In the beginning was the Word."))
+			l_col.put (create {SW_LABEL}.make_ui ("And the Word was with God."))
+			l_col.set_bounds (7.0, 9.0, 300.0, 50.0)
+			l_col.arrange (l_window.painter)
+			create l_job.make (l_col, create {SW_PAGE_SETUP}.make_letter, create {SW_THEME}.make_light, Void)
+			assert_true ("paginating left it where it was",
+				l_col.x = 7.0 and l_col.y = 9.0 and l_col.width = 300.0 and l_col.height = 50.0)
+			create cairo.make
+			l_image := cairo.create_surface (100, 100)
+			create l_ctx.make (l_image)
+			create l_p.make (l_ctx, l_job.theme)
+			l_job.draw_page (l_p, 1, 0.0, 0.0, 0.1)
+			assert_true ("drawing a page left it where it was",
+				l_col.x = 7.0 and l_col.y = 9.0 and l_col.width = 300.0 and l_col.height = 50.0)
+			l_ctx.destroy
+			l_image.destroy
+		end
+
+	test_scan20_a_failed_print_says_why_and_lets_go
+		local
+			l_job: SW_PRINT_JOB
+			l_printer: SW_PRINTER
+		do
+			l_job := commentary_job (create {SW_PAGE_SETUP}.make_letter)
+			assert_false ("no such printer", l_job.print_to ({STRING_32} "No Such Printer (scan 20)", "nothing", Void))
+			assert_false ("and it says why", l_job.last_error.is_empty)
+			create l_printer.make
+			if l_printer.has_printer ({STRING_32} "Microsoft Print to PDF") then
+				create l_job.make (create {SW_TEST_FAILING_WIDGET}.make, create {SW_PAGE_SETUP}.make_letter, create {SW_THEME}.make_light, Void)
+				assert_false ("a page that fails to draw fails the print",
+					l_job.print_to ({STRING_32} "Microsoft Print to PDF", "failing", evidence_path ("scan20_failed_print.pdf")))
+				assert_false ("it says why", l_job.last_error.is_empty)
+				assert_false ("and the printer is free again", l_printer.is_printing)
+			end
+		end
+
 feature {NONE} -- Fixtures
 
 	commentary_job (a_setup: SW_PAGE_SETUP): SW_PRINT_JOB
@@ -216,6 +307,19 @@ feature {NONE} -- Fixtures
 			create kit.make_with_assets (shaping_assets)
 			kit.set_theme_faces (create {SW_THEME}.make_light)
 			create Result.make (v, a_setup, create {SW_THEME}.make_light, kit)
+		end
+
+	is_dark_pixel (a_image: CAIRO_SURFACE; a_x, a_y: INTEGER): BOOLEAN
+			-- Every channel of the pixel at (`a_x', `a_y') below 100?
+		local
+			l_bytes: MANAGED_POINTER
+			l_rgb: NATURAL_32
+		do
+			if a_x >= 0 and a_y >= 0 and a_x < a_image.width and a_y < a_image.height then
+				create l_bytes.share_from_pointer (a_image.data, a_image.stride * a_image.height)
+				l_rgb := l_bytes.read_natural_32 (a_y * a_image.stride + a_x * 4)
+				Result := ((l_rgb |>> 16) & 0xFF) < 100 and ((l_rgb |>> 8) & 0xFF) < 100 and (l_rgb & 0xFF) < 100
+			end
 		end
 
 	attach_window_kit (a_window: SW_WINDOW)
