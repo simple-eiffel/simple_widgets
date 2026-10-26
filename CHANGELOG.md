@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.40.1 - design scan 20, since 1260e13)
+
+Report: `.eiffel-workflow/evidence/design-scan-since-1260e13.md` (5 HIGH,
+10 MEDIUM, 7 LOW). Needs simple_shell 1.24.1. Each fix has a test that
+failed on the old code:
+- **HIGH**: on a dark or high-contrast screen the preview drew the content
+  in the screen's inks on white paper (light grey on white), unlike what
+  prints. `draw_page` now draws in the job's paper theme whatever painter
+  it is given (`SW_PAINTER.twin_in_theme`).
+  `scan20_the_preview_shows_paper_inks_on_a_dark_screen` (old code: "0
+  dark pixels").
+- **HIGH**: printing left a widget that is also shown laid out at the
+  paper's size. The job puts a placed widget back after paginating and
+  after each page (one never placed stays laid out for print, so the
+  preview does not re-lay it every frame).
+  `scan20_printing_leaves_the_widget_where_it_was`.
+- **HIGH**: `print_to` had no rescue: a page that failed to draw leaked its
+  surfaces and left the process's printer document open, refusing every
+  later print; a null printing surface went unchecked. **HIGH**: its
+  failures never set `last_error`, so `write_pdf`'s fallback (the route the
+  shipped cairo.dll forces) reported no reason. Both fixed: every failure
+  says why, the document is aborted, the surfaces released.
+  `scan20_a_failed_print_says_why_and_lets_go` (old code: "and it says
+  why"), with a test widget whose drawing fails.
+- **HIGH** (simple_shell 1.24.1): a printer owns only its own document.
+- 555 pass.
+- Open (in the report): the preview draws every visible sheet each frame;
+  `print_height` measures by laying out; units assume square dots; the
+  file helpers and the paper theme beside `export_theme` could be shared.
+
 ### Added (0.40.0 - GW-20: print preview, print, print to PDF)
 
 Needs simple_shell 1.24.0 (SHELL_PRINTER) and simple_cairo 1.6.0 (the

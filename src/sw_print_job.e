@@ -99,6 +99,7 @@ feature -- Pagination
 			l_p := new_painter (l_ctx)
 			l_width := setup.content_width_pixels
 			l_page := setup.content_height_pixels
+			remember_bounds
 			printed_height := widget.print_height (l_p, l_width).max (1.0)
 			widget.set_bounds (0.0, 0.0, l_width, printed_height)
 			widget.arrange (l_p)
@@ -125,6 +126,7 @@ feature -- Pagination
 				page_tops.extend (0.0)
 				page_bottoms.extend (printed_height)
 			end
+			restore_bounds (l_p)
 			l_ctx.destroy
 			l_image.destroy
 		ensure
@@ -144,33 +146,39 @@ feature -- Drawing
 		local
 			l_ppp, l_w, l_h, l_m, l_slice: REAL_64
 			l_number: STRING_32
+			l_paper: SW_PAINTER
 		do
+				-- paper inks whatever the screen wears (scan 20)
+			l_paper := a_p.twin_in_theme (theme)
 			l_ppp := setup.points_per_pixel
-			a_p.push_transform (a_left, a_top, a_scale)
-			a_p.set_color (0xFFFFFF)
-			a_p.fill_rect (0.0, 0.0, setup.page_width_points, setup.page_height_points)
-			a_p.push_transform (setup.margin_points, setup.margin_points, l_ppp)
+			l_paper.push_transform (a_left, a_top, a_scale)
+			l_paper.set_color (0xFFFFFF)
+			l_paper.fill_rect (0.0, 0.0, setup.page_width_points, setup.page_height_points)
+			l_paper.push_transform (setup.margin_points, setup.margin_points, l_ppp)
 				-- now in widget pixels, the content area's top left at the origin
 			l_w := setup.content_width_pixels
 			l_h := setup.content_height_pixels
 			l_m := setup.margin_pixels
-			a_p.font ({SW_PAINTER}.Role_ui, 10.0, False)
-			a_p.set_color (theme.ink_muted)
+			l_paper.font ({SW_PAINTER}.Role_ui, 10.0, False)
+			l_paper.set_color (theme.ink_muted)
 			if not setup.header.is_empty then
-				a_p.text (0.0, -l_m / 2.0, setup.header)
+				l_paper.text (0.0, -l_m / 2.0, setup.header)
 			end
 			if setup.show_page_numbers then
 				l_number := {STRING_32} "Page " + a_page.out.to_string_32 + {STRING_32} " of " + page_count.out.to_string_32
-				a_p.text (l_w - a_p.advance (l_number), l_h + l_m / 2.0 + a_p.font_ascent, l_number)
+				l_paper.text (l_w - l_paper.advance (l_number), l_h + l_m / 2.0 + l_paper.font_ascent, l_number)
 			end
 			l_slice := page_bottom (a_page) - page_top (a_page)
-			a_p.push_clip (0.0, 0.0, l_w, l_slice)
-			a_p.push_transform (0.0, -page_top (a_page), 1.0)
-			widget.draw (a_p)
-			a_p.pop_transform
-			a_p.pop_clip
-			a_p.pop_transform
-			a_p.pop_transform
+			remember_bounds
+			lay_out_for_print (l_paper)
+			l_paper.push_clip (0.0, 0.0, l_w, l_slice)
+			l_paper.push_transform (0.0, -page_top (a_page), 1.0)
+			widget.draw (l_paper)
+			l_paper.pop_transform
+			l_paper.pop_clip
+			l_paper.pop_transform
+			l_paper.pop_transform
+			restore_bounds (l_paper)
 		end
 
 feature -- Output
@@ -221,49 +229,91 @@ feature -- Output
 	print_to (a_printer, a_title: READABLE_STRING_GENERAL; a_output: detachable READABLE_STRING_GENERAL): BOOLEAN
 			-- Every page to printer `a_printer' as a document titled
 			-- `a_title' (into file `a_output' when the printer writes files).
-			-- True when the spooler took every page.
+			-- True when the spooler took every page; else `last_error' says
+			-- why, and the printer is free again.
 		require
 			printer_named: not a_printer.is_empty
 		local
-			l_printer: SW_PRINTER
-			l_surface: CAIRO_SURFACE
-			l_ctx: CAIRO_CONTEXT
+			l_printer: detachable SW_PRINTER
+			l_surface: detachable CAIRO_SURFACE
+			l_ctx: detachable CAIRO_CONTEXT
 			l_p: SW_PAINTER
 			i: INTEGER
 			l_dots: REAL_64
+			l_failed: BOOLEAN
 		do
-			create l_printer.make
-			if not l_printer.is_printing and then
-				l_printer.begin_document (a_printer, a_title, a_output, setup.paper, setup.is_landscape)
-			then
-				Result := True
-				l_dots := l_printer.dots_per_inch_x / 72.0
-				from
-					i := 1
-				until
-					i > page_count or not Result
-				loop
-					if l_printer.begin_page then
-						create l_surface.make_for_printer_dc (l_printer.dc)
-						create l_ctx.make (l_surface)
-						l_p := new_painter (l_ctx)
-							-- the DC's origin is the printable area's corner, not the sheet's
-						draw_page (l_p, i, - l_printer.unprintable_left, - l_printer.unprintable_top, l_dots)
-						l_ctx.show_page
-						l_ctx.destroy
-						l_surface.destroy
-						Result := l_printer.end_page
-					else
-						Result := False
-					end
-					i := i + 1
+			if l_failed then
+					-- a page failed half way (scan 20): give everything back
+				if attached l_ctx as al_ctx and then al_ctx.is_valid then
+					al_ctx.destroy
 				end
-				if Result then
-					Result := l_printer.end_document
+				if attached l_surface as al_s then
+					al_s.destroy
+				end
+				if attached l_printer as al_pr and then al_pr.owns_document then
+					al_pr.abort_document
+				end
+				if last_error.is_empty then
+					last_error := {STRING_32} "page " + i.out.to_string_32 + {STRING_32} " failed to print"
+					if attached (create {EXCEPTION_MANAGER}).last_exception as al_e and then attached al_e.description as al_d then
+						last_error.append ({STRING_32} ": " + al_d.to_string_32)
+					end
+				end
+			else
+				last_error.wipe_out
+				create l_printer.make
+				if not l_printer.has_printer (a_printer) then
+					last_error := {STRING_32} "no printer called " + a_printer.to_string_32
+				elseif not l_printer.begin_document (a_printer, a_title, a_output, setup.paper, setup.is_landscape) then
+					last_error := {STRING_32} "the printer " + a_printer.to_string_32 + {STRING_32} " did not begin a document (another may be printing)"
 				else
-					l_printer.abort_document
+					Result := True
+					l_dots := l_printer.dots_per_inch_x / 72.0
+					from
+						i := 1
+					until
+						i > page_count or not Result
+					loop
+						if l_printer.begin_page then
+							create l_surface.make_for_printer_dc (l_printer.dc)
+							if l_surface.is_valid then
+								create l_ctx.make (l_surface)
+								l_p := new_painter (l_ctx)
+									-- the DC's origin is the printable area's corner, not the sheet's
+								draw_page (l_p, i, - l_printer.unprintable_left, - l_printer.unprintable_top, l_dots)
+								l_ctx.show_page
+								l_ctx.destroy
+								l_ctx := Void
+							else
+								last_error := {STRING_32} "no printing surface for page " + i.out.to_string_32
+								Result := False
+							end
+							l_surface.destroy
+							l_surface := Void
+							if Result and then not l_printer.end_page then
+								last_error := {STRING_32} "the printer refused page " + i.out.to_string_32
+								Result := False
+							end
+						else
+							last_error := {STRING_32} "the printer did not open page " + i.out.to_string_32
+							Result := False
+						end
+						i := i + 1
+					end
+					if Result then
+						Result := l_printer.end_document
+						if not Result then
+							last_error := {STRING_32} "the spooler did not take the document"
+						end
+					elseif l_printer.owns_document then
+						l_printer.abort_document
+					end
 				end
 			end
+		rescue
+			l_failed := True
+			Result := False
+			retry
 		end
 
 feature {NONE} -- Implementation
@@ -376,6 +426,43 @@ feature {NONE} -- Implementation
 	cairo: SIMPLE_CAIRO
 
 	page_tops, page_bottoms: ARRAYED_LIST [REAL_64]
+
+	saved_bounds: TUPLE [x, y, width, height: REAL_64]
+			-- Where the widget was before printing laid it out.
+		attribute
+			Result := [0.0, 0.0, 0.0, 0.0]
+		end
+
+	remember_bounds
+		do
+			saved_bounds := [widget.x, widget.y, widget.width, widget.height]
+		end
+
+	lay_out_for_print (a_p: SW_PAINTER)
+			-- The widget at the content width and its printed height.
+		do
+			if widget.width /= setup.content_width_pixels or widget.height /= printed_height
+				or widget.x /= 0.0 or widget.y /= 0.0
+			then
+				widget.set_bounds (0.0, 0.0, setup.content_width_pixels, printed_height)
+				widget.arrange (a_p)
+			end
+		end
+
+	restore_bounds (a_p: SW_PAINTER)
+			-- Put the widget back where it was, when it had been placed
+			-- (scan 20: printing a widget that is also shown must not leave
+			-- it at the paper's size). One never placed stays laid out for
+			-- print, so a preview does not lay it out again every frame.
+		do
+			if saved_bounds.width > 0.0 and then
+				(widget.x /= saved_bounds.x or widget.y /= saved_bounds.y
+					or widget.width /= saved_bounds.width or widget.height /= saved_bounds.height)
+			then
+				widget.set_bounds (saved_bounds.x, saved_bounds.y, saved_bounds.width, saved_bounds.height)
+				widget.arrange (a_p)
+			end
+		end
 
 	new_painter (a_ctx: CAIRO_CONTEXT): SW_PAINTER
 		do
