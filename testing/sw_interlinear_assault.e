@@ -38,6 +38,37 @@ feature -- Flow
 			assert_true ("right to left: word 1 at the right", v.token_box (1).x > v.token_box (2).x)
 		end
 
+	test_interlinear_scrolls_to_a_word_chosen_before_layout
+			-- 0.45.0: a word selected before the view is laid out (a chapter just filled, a verse to
+			-- show) is scrolled to at the next layout, refilled or not. Before: `scroll_to_token' did
+			-- nothing until laid out, so the chapter opened at its top.
+		local
+			w: SW_WINDOW
+			v: SW_INTERLINEAR
+			i, k: INTEGER
+		do
+			create w.make ("il", 0, 0, 420, 240, create {SW_THEME}.make_light)
+			attach_il_kit (w)
+			create v.make (200.0)
+			from i := 1 until i > 200 loop
+				k := v.add_token ("word" + i.out)
+				v.set_token_line (k, {SW_INTERLINEAR_TOKEN}.Line_gloss, "gloss")
+				i := i + 1
+			end
+			w.set_root (v)
+			v.select_token (190)
+			w.request_render
+			assert_true ("scrolled to the word", v.scroll_y > 0.0)
+			v.wipe_out
+			from i := 1 until i > 200 loop
+				k := v.add_token ("again" + i.out)
+				i := i + 1
+			end
+			v.select_token (195)
+			w.request_render
+			assert_true ("refilled, scrolled again", v.scroll_y > 0.0)
+		end
+
 	test_gw07_lines_hide_and_show
 			-- Hiding the morphology line makes every cell shorter; the
 			-- surface word cannot be hidden.
