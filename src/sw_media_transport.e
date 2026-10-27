@@ -16,7 +16,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			handle_click, handle_drag
+			handle_click, handle_drag, preferred_width
 		end
 
 create
@@ -48,6 +48,9 @@ feature -- Access
 	Button_zone: REAL_64 = 44.0
 
 	Time_zone: REAL_64 = 96.0
+
+	Min_bar_width: REAL_64 = 120.0
+			-- The shortest seek bar `preferred_width' asks room for.
 
 	fraction: REAL_64
 		do
@@ -132,6 +135,15 @@ feature -- Element change
 		end
 
 feature -- Layout
+
+	preferred_width (a_p: SW_PAINTER): REAL_64
+			-- Its button, its clock and a seek bar `Min_bar_width' long. 0.44.2 (scan 35): it had none,
+			-- so in a row it got no room.
+		do
+			Result := Button_zone + Time_zone + Min_bar_width
+		ensure then
+			room_for_all: Result >= Button_zone + Time_zone + Min_bar_width
+		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 		do

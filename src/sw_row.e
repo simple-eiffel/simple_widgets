@@ -9,9 +9,9 @@ class
 	SW_ROW
 
 inherit
-	SW_WIDGET
+	SW_BOX_CONTAINER
 		redefine
-			sub_widgets, preferred_width,
+			preferred_width,
 			arrange, widget_at
 		end
 
@@ -29,15 +29,6 @@ feature {NONE} -- Initialization
 		end
 
 feature -- Access
-
-	children: ARRAYED_LIST [SW_WIDGET]
-
-	gap: REAL_64
-			-- Space between SIBLINGS - EV_BOX.padding. Consulted only
-			-- when `gap_is_explicit'; otherwise `default_gap'.
-
-	gap_is_explicit: BOOLEAN
-			-- Has the application set `gap' itself? Explicit always wins.
 
 	is_wrapping: BOOLEAN
 			-- Flex-wrap: children beyond the width start a new line
@@ -76,63 +67,6 @@ feature -- Access
 			set: cross_axis = a_axis
 		end
 
-feature -- Element change
-
-	add (a_w: SW_WIDGET): like Current
-			-- Fluent append.
-		do
-			put (a_w)
-			Result := Current
-		ensure
-			added: children.last = a_w
-			chained: Result = Current
-		end
-
-	remove (a_w: SW_WIDGET)
-			-- Take `a_w' out (it may be put elsewhere): a layout that moves a pane between containers
-			-- (simple_bible's Simple and Study layouts) puts it back where the arrangement wants it.
-		require
-			a_child: children.has (a_w)
-		do
-			children.prune_all (a_w)
-			if a_w.parent = Current then
-				a_w.set_parent (Void)
-			end
-		ensure
-			gone: not children.has (a_w)
-			orphaned: a_w.parent /= Current
-		end
-
-	put (a_w: SW_WIDGET)
-		do
-			children.extend (a_w)
-			a_w.set_parent (Current)
-		ensure
-			added: children.last = a_w
-			adopted: a_w.parent = Current
-		end
-
-	with_gap (a_gap: REAL_64): like Current
-		require
-			non_negative: a_gap >= 0.0
-		do
-			set_gap (a_gap)
-			Result := Current
-		ensure
-			explicit: gap_is_explicit and gap = a_gap
-		end
-
-	set_gap (a_gap: REAL_64)
-			-- Fix the sibling separation; the theme no longer decides.
-		require
-			non_negative: a_gap >= 0.0
-		do
-			gap := a_gap
-			gap_is_explicit := True
-		ensure
-			explicit: gap_is_explicit and gap = a_gap
-		end
-
 feature -- Spacing (theme defaults, explicit always wins)
 
 	default_gap (a_p: SW_PAINTER): REAL_64
@@ -158,13 +92,6 @@ feature -- Spacing (theme defaults, explicit always wins)
 		ensure
 			explicit_wins: gap_is_explicit implies Result = gap
 			non_negative: Result >= 0.0
-		end
-
-feature -- Tooling
-
-	sub_widgets: ARRAYED_LIST [SW_WIDGET]
-		do
-			Result := children
 		end
 
 feature -- Layout
@@ -426,9 +353,5 @@ feature -- Hit testing
 				end
 			end
 		end
-
-invariant
-	children_attached: children /= Void
-	gap_non_negative: gap >= 0.0
 
 end

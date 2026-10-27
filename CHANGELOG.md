@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.44.2 - design scan 35)
+
+- `SW_MENU_BAR` and `SW_MEDIA_TRANSPORT` had no `preferred_width`: the 0.44.1 toolbar bug in its siblings (in a row they got no room and a click fell outside them). The menu bar now claims the width of its titles (from `pad_bounds`), the transport its button, clock and a `Min_bar_width` seek bar. Before: `menu_bar_and_transport_in_a_row_claim_their_width` FAILED (563 passed, 1 failed); after: 564 passed, 0 failed.
+- New deferred `SW_BOX_CONTAINER`: the child list, `put`, `add`, `remove`, the gap and `sub_widgets`, which `SW_ROW` and `SW_COLUMN` had copied byte for byte. `SW_TOOLBAR` measures, draws and hit-tests with one formula (`tool_width`, `tool_advance`, named constants) instead of three copies.
+
 ### Fixed (0.44.1 - a toolbar in a row)
 
 - `SW_TOOLBAR` had no `preferred_width`: placed in a row (not growing) it got no room, drew its tools past its bounds, and a click on them fell outside it (simple_bible's C10 Parallel did nothing). It now claims the width its tools are drawn in. Before: `toolbar_in_a_row_claims_its_width` FAILED; after: 563 passed, 0 failed.

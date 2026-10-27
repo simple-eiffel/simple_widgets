@@ -24,7 +24,7 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click, wants_hover_point,
-			accessible_role
+			accessible_role, preferred_width
 		end
 
 create
@@ -295,6 +295,22 @@ feature -- Layout
 	wants_hover_point: BOOLEAN
 		do
 			Result := True
+		end
+
+	preferred_width (a_p: SW_PAINTER): REAL_64
+			-- The width its titles are drawn in, from `pad_bounds'. 0.44.2 (scan 35): it had none, so in
+			-- a row it got no room, as the toolbar did before 0.44.1.
+		local
+			l_last: TUPLE [left, width: REAL_64]
+		do
+			if labels.is_empty then
+				Result := 12.0
+			else
+				l_last := pad_bounds (a_p, labels.count)
+				Result := l_last.left - x + l_last.width + 6.0
+			end
+		ensure then
+			positive: Result > 0.0
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64

@@ -104,15 +104,9 @@ feature -- Layout
 			-- The width its tools are drawn in (0.44.1: in a row it had none, so clicks missed).
 		do
 			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label - 1.0, False)
-			Result := 12.0
+			Result := 2.0 * Tool_inset
 			across items as ic loop
-				if ic.gap then
-					Result := Result + 13.0
-				elseif ic.glyph > 0 then
-					Result := Result + 28.0 + 3.0
-				else
-					Result := Result + a_p.advance (ic.label) + 22.0 + 3.0
-				end
+				Result := Result + tool_advance (a_p, ic)
 			end
 			if probe_painter = Void then
 				probe_painter := a_p
@@ -123,6 +117,41 @@ feature -- Layout
 		do
 			Result := 34.0
 		end
+
+	tool_width (a_p: SW_PAINTER; a_item: like items.item): REAL_64
+			-- The room tool `a_item' is drawn in, the spacing after it not counted; the tool font must be
+			-- set. THE one formula (scan 35): `preferred_width', `draw' and `handle_click' each had a copy.
+		do
+			if a_item.gap then
+				Result := Separator_width
+			elseif a_item.glyph > 0 then
+				Result := Glyph_tool_width
+			else
+				Result := a_p.advance (a_item.label) + Label_tool_padding
+			end
+		ensure
+			positive: Result > 0.0
+		end
+
+	tool_advance (a_p: SW_PAINTER; a_item: like items.item): REAL_64
+			-- How far the next tool starts after `a_item'.
+		do
+			Result := tool_width (a_p, a_item)
+			if not a_item.gap then
+				Result := Result + Tool_spacing
+			end
+		ensure
+			past_the_tool: Result >= tool_width (a_p, a_item)
+		end
+
+	Tool_inset: REAL_64 = 6.0
+			-- Before the first tool and after the last.
+	Separator_width: REAL_64 = 13.0
+	Glyph_tool_width: REAL_64 = 28.0
+	Label_tool_padding: REAL_64 = 22.0
+			-- A labelled tool is its text plus this.
+	Tool_spacing: REAL_64 = 3.0
+			-- Between a tool and the next.
 
 feature -- Drawing
 
@@ -137,7 +166,7 @@ feature -- Drawing
 			t := a_p.theme
 			a_p.set_color (t.surface_variant)
 			a_p.rrect_fill (x, y, width, height, t.radius)
-			tx := x + 6.0
+			tx := x + Tool_inset
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_label - 1.0, False)
 			from
 				i := 1
@@ -148,13 +177,9 @@ feature -- Drawing
 				if it.gap then
 					a_p.set_color (t.outline)
 					a_p.vline (tx + 5.0, y + 7.0, height - 14.0)
-					tx := tx + 13.0
+					tx := tx + Separator_width
 				else
-					if it.glyph > 0 then
-						tw := 28.0
-					else
-						tw := a_p.advance (it.label) + 22.0
-					end
+					tw := tool_width (a_p, it)
 					if it.can_toggle and then it.is_on then
 						a_p.set_color (t.wash_accent)
 						a_p.rrect_fill (tx, y + 5.0, tw, height - 10.0, t.radius)
@@ -179,7 +204,7 @@ feature -- Drawing
 					else
 						a_p.text (tx + 11.0, y + height / 2.0 + t.size_label / 2.0 - 3.0, it.label)
 					end
-					tx := tx + tw + 3.0
+					tx := tx + tw + Tool_spacing
 				end
 				i := i + 1
 			end
@@ -196,7 +221,7 @@ feature -- Input
 		do
 			if is_enabled and then attached probe_painter as p then
 				p.font ({SW_PAINTER}.Role_ui, p.theme.size_label - 1.0, False)
-				tx := x + 6.0
+				tx := x + Tool_inset
 				from
 					i := 1
 				until
@@ -204,13 +229,9 @@ feature -- Input
 				loop
 					it := items.i_th (i)
 					if it.gap then
-						tx := tx + 13.0
+						tx := tx + Separator_width
 					else
-						if it.glyph > 0 then
-							tw := 28.0
-						else
-							tw := p.advance (it.label) + 22.0
-						end
+						tw := tool_width (p, it)
 						if a_px >= tx and a_px <= tx + tw and it.enabled then
 							if it.can_toggle then
 								it.is_on := not it.is_on
@@ -220,7 +241,7 @@ feature -- Input
 							end
 							hit := True
 						end
-						tx := tx + tw + 3.0
+						tx := tx + tw + Tool_spacing
 					end
 					i := i + 1
 				end
