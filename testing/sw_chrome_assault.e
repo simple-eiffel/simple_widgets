@@ -327,6 +327,42 @@ feature -- GW-11: status-bar sections
 
 feature -- Spacing from the theme (Vision2 tokens)
 
+	test_layout_moves_remove_retitle_and_clear_marks
+			-- 0.44.0, for a host with two arrangements of the same panes: a widget removed from a
+			-- column can be put in a row; a parallel column can be retitled; the pills can be cleared
+			-- and named again.
+		local
+			w: SW_WINDOW
+			l_column: SW_COLUMN
+			l_row: SW_ROW
+			l_pane: SW_LABEL
+			l_view: SW_PARALLEL_TEXT
+		do
+			create w.make ("moves", 0, 0, 400, 200, create {SW_THEME}.make_light)
+			create l_column.make
+			create l_row.make
+			create l_pane.make_ui ("pane")
+			l_column.put (l_pane)
+			l_column.put (l_row)
+			w.set_root (l_column)
+			l_column.remove (l_pane)
+			assert_false ("gone from the column", l_column.children.has (l_pane))
+			assert_true ("parent dropped", l_pane.parent = Void)
+			l_row.put (l_pane)
+			assert_true ("adopted by the row", l_pane.parent = l_row)
+			l_row.remove (l_pane)
+			assert_true ("and out again", l_row.children.is_empty and l_pane.parent = Void)
+			create l_view.make (200.0)
+			l_view.add_column ("KJV").do_nothing
+			l_view.set_column_title (1, "BSB")
+			assert_strings_equal ("retitled", "BSB", l_view.column_title (1))
+			w.add_reference_mark (l_row, "S1", "one", w.Corner_top_left)
+			w.clear_reference_marks
+			assert_true ("cleared", w.reference_marks.is_empty)
+			w.add_reference_mark (l_row, "T3", "two", w.Corner_top_left)
+			assert_integers_equal ("named again", 1, w.reference_marks.count)
+		end
+
 	test_set_title_renames_the_window
 			-- 0.42.0: a window can be renamed after it is made (simple_bible's title names the chapter
 			-- it reads); before the native window opens, only the title changes.
