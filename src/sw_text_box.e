@@ -36,7 +36,7 @@ inherit
 			accepts_focus, preferred_width, handle_click, handle_double_click,
 			handle_triple_click, handle_drag, handle_char, handle_key,
 			context_menu, accepts_pebble, receive_pebble, cursor_kind,
-			accessible_role, accessible_value
+			accessible_role, accessible_value, set_focused
 		end
 
 	SW_CLUSTER_MATH
@@ -135,6 +135,12 @@ feature -- Access
 			-- lo+1 .. hi; kept sorted, disjoint and non-empty.
 
 	is_single_line: BOOLEAN
+
+	is_just_focused: BOOLEAN
+			-- Did focus just arrive, so the click that brought it keeps everything selected?
+
+	is_focus_select_requested, is_focus_select_declined: BOOLEAN
+			-- `set_selects_all_on_focus' choices over the single-line default.
 
 	is_read_only: BOOLEAN
 
@@ -296,6 +302,37 @@ feature -- Clipboard and selection commands
 		ensure
 			placed: caret = a_offset
 			collapsed: not has_selection
+		end
+
+	selects_all_on_focus: BOOLEAN
+			-- Does gaining focus select every character, so typing replaces the text? Single-line boxes
+			-- (fields, cell editors) by default; multi-line ones place the caret, so one keystroke
+			-- never replaces a whole document (Larry, 2026-10-26).
+		do
+			Result := (is_single_line and not is_focus_select_declined) or is_focus_select_requested
+		end
+
+	set_selects_all_on_focus (a_on: BOOLEAN)
+			-- Choose `selects_all_on_focus' for this box.
+		do
+			is_focus_select_requested := a_on
+			is_focus_select_declined := not a_on
+		ensure
+			set: selects_all_on_focus = a_on
+		end
+
+	set_focused (a_focused: BOOLEAN)
+			-- Gaining focus selects everything when `selects_all_on_focus'; the click that brought the
+			-- focus keeps it selected, and the next click places the caret (Larry: "clicking then
+			-- again puts the edit-bar wherever the mousetip was in the text").
+		do
+			if a_focused and not is_focused and selects_all_on_focus then
+				select_all
+				is_just_focused := True
+			elseif not a_focused then
+				is_just_focused := False
+			end
+			Precursor (a_focused)
 		end
 
 	select_all
@@ -796,7 +833,18 @@ feature -- Input
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
 			-- Click places the caret; Shift+Click keeps the anchor and
-			-- selects everything between it and the click point.
+			-- selects everything between it and the click point. The click
+			-- that brought focus keeps everything selected (`selects_all_on_focus').
+		do
+			Result := placed_click (a_px, a_py)
+			if is_just_focused then
+				select_all
+				is_just_focused := False
+			end
+		end
+
+	placed_click (a_px, a_py: REAL_64): BOOLEAN
+			-- The click's own work: the eye, the clear button, or the caret.
 		local
 			keys: SW_KEYS
 		do

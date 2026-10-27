@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.43.0 - select all on focus)
+
+- `SW_TEXT_BOX.selects_all_on_focus` (single-line boxes by default; `set_selects_all_on_focus` to choose): gaining focus selects every character, so typing replaces the text; the click that brought focus keeps it selected; the next click places the caret. Multi-line boxes place the caret, so one keystroke never replaces a document. Larry's rule for every editable field (2026-10-26), after simple_bible's reference box joined "John 3:16" onto "Genesis 1". Test `textbox_focus_selects_all_then_a_click_places_the_caret`; 561 passed, 0 failed.
+
 ### Added (0.42.0 - window title)
 
 - `SW_WINDOW.set_title`: rename the window after it is made; the caption changes at once when it is up (simple_shell 1.25.0 `set_caption`). Test `set_title_renames_the_window`; 560 passed, 0 failed.
