@@ -69,6 +69,53 @@ feature -- Flow
 			assert_true ("refilled, scrolled again", v.scroll_y > 0.0)
 		end
 
+	test_interlinear_lays_out_cantillated_hebrew
+			-- 0.45.1: Genesis 1:1-2 as MACULA writes it, with its cantillation marks, one cell per
+			-- word, right to left. A mark shaped left of its run's origin gave a cluster a negative
+			-- x, and SW_CLUSTER_MATH's edge postconditions failed: simple_bible's Interlinear tab
+			-- died on its first frame. Before: this test FAILED with that postcondition; after: every
+			-- character edge lies within its run.
+		local
+			w: SW_WINDOW
+			v: SW_INTERLINEAR
+			k: INTEGER
+		do
+			create w.make ("il", 0, 0, 900, 500, create {SW_THEME}.make_light)
+			attach_il_kit (w)
+			create v.make (400.0)
+			v.set_right_to_left (True)
+			across <<
+				{STRING_32} "%/1489/%/1456/%/1468/%/1512/%/1461/%/1488/%/1513/%/1460/%/1473/%/1430/%/1497/%/1514/",
+				{STRING_32} "%/1489/%/1464/%/1468/%/1512/%/1464/%/1443/%/1488/",
+				{STRING_32} "%/1488/%/1457/%/1500/%/1465/%/1492/%/1460/%/1425/%/1497/%/1501/",
+				{STRING_32} "%/1488/%/1461/%/1445/%/1514/",
+				{STRING_32} "%/1492/%/1463/%/1513/%/1464/%/1468/%/1473/%/1502/%/1463/%/1430/%/1497/%/1460/%/1501/",
+				{STRING_32} "%/1493/%/1456/%/1488/%/1461/%/1445/%/1514/",
+				{STRING_32} "%/1492/%/1464/%/1488/%/1464/%/1469/%/1512/%/1462/%/1509/",
+				{STRING_32} "%/1493/%/1456/%/1492/%/1464/%/1488/%/1464/%/1431/%/1512/%/1462/%/1509/",
+				{STRING_32} "%/1492/%/1464/%/1497/%/1456/%/1514/%/1464/%/1445/%/1492/",
+				{STRING_32} "%/1514/%/1465/%/1448/%/1492/%/1493/%/1468/%/1433/",
+				{STRING_32} "%/1493/%/1464/%/1489/%/1465/%/1428/%/1492/%/1493/%/1468/",
+				{STRING_32} "%/1493/%/1456/%/1495/%/1465/%/1430/%/1513/%/1462/%/1473/%/1498/%/1456/",
+				{STRING_32} "%/1506/%/1463/%/1500/",
+				{STRING_32} "%/1508/%/1456/%/1468/%/1504/%/1461/%/1443/%/1497/",
+				{STRING_32} "%/1514/%/1456/%/1492/%/1425/%/1493/%/1465/%/1501/",
+				{STRING_32} "%/1493/%/1456/%/1512/%/1443/%/1493/%/1468/%/1495/%/1463/",
+				{STRING_32} "%/1488/%/1457/%/1500/%/1465/%/1492/%/1460/%/1428/%/1497/%/1501/",
+				{STRING_32} "%/1502/%/1456/%/1512/%/1463/%/1495/%/1462/%/1430/%/1508/%/1462/%/1514/",
+				{STRING_32} "%/1506/%/1463/%/1500/",
+				{STRING_32} "%/1508/%/1456/%/1468/%/1504/%/1461/%/1445/%/1497/",
+				{STRING_32} "%/1492/%/1463/%/1502/%/1464/%/1468/%/1469/%/1497/%/1460/%/1501/"
+				>> as ic loop
+				k := v.add_token (ic)
+				v.set_token_line (k, {SW_INTERLINEAR_TOKEN}.Line_gloss, "gloss")
+			end
+			w.set_root (v)
+			w.request_render
+			assert_true ("laid out", v.is_laid_out)
+			assert_integers_equal ("every word a cell", 21, v.token_count)
+		end
+
 	test_gw07_lines_hide_and_show
 			-- Hiding the morphology line makes every cell shorter; the
 			-- surface word cannot be hidden.

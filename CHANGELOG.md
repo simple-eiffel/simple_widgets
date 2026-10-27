@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.45.1 - a mark left of its run)
+
+- `SW_CLUSTER_MATH.cluster_x` passed HarfBuzz's x through, and a mark placed left of its run's origin (a Hebrew cantillation accent on the first letter, as MACULA writes Genesis 1:1) gave a negative edge: the `non_negative` postconditions failed and simple_bible's Interlinear tab died on its first frame. The edge is now held within the run (new postcondition `within_run`). Before: `interlinear_lays_out_cantillated_hebrew` FAILED (565 passed, 1 failed); after: 566 passed, 0 failed.
+
 ### Added (0.45.0 - an interlinear opens at its verse)
 
 - `SW_INTERLINEAR.scroll_to_token` (and so `select_token`) asked before the words are laid out - a chapter just filled - is met at the next layout (`pending_scroll_token`), as `SW_STACKED_ITEMS` does for rows. simple_bible's Interlinear tab opens at the verse read. Before: `interlinear_scrolls_to_a_word_chosen_before_layout` FAILED (564 passed, 1 failed).
