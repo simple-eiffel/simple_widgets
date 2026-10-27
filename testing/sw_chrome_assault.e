@@ -37,6 +37,32 @@ feature -- Tests
 			assert ("plain tool is never on", not tb.is_tool_on ("New"))
 		end
 
+	test_toolbar_in_a_row_claims_its_width
+			-- 0.44.1: a toolbar placed in a row (not growing) had no preferred width, so it drew its
+			-- tools past its zero-width bounds and a click on them fell outside it (simple_bible's
+			-- C10 Parallel did nothing). Before: width 0 and no action; after: its tools' width.
+		local
+			w: SW_WINDOW
+			root: SW_COLUMN
+			l_row: SW_ROW
+			tb: SW_TOOLBAR
+		do
+			create w.make ("bar", 0, 0, 600, 200, create {SW_THEME}.make_light)
+			create root.make
+			create l_row.make
+			create tb.make
+			tb.add_tool ("Parallel", "hint", True, agent record_fire)
+			tb.add_tool ("Interlinear", "hint", False, Void)
+			l_row.put (tb)
+			root.put (l_row)
+			w.set_root (root)
+			w.request_render
+			assert_true ("claims room for its tools", tb.width > 60.0)
+			fired := 0
+			if tb.handle_click (tb.x + 16.0, tb.y + 17.0) then end
+			assert_integers_equal ("the first tool fires", 1, fired)
+		end
+
 	test_toolbar_click_fires_and_latches
 		local
 			tb: SW_TOOLBAR

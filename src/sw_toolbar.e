@@ -13,7 +13,7 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click, wants_hover_point,
-			accessible_role
+			accessible_role, preferred_width
 		end
 
 create
@@ -98,6 +98,25 @@ feature -- Layout
 	wants_hover_point: BOOLEAN
 		do
 			Result := True
+		end
+
+	preferred_width (a_p: SW_PAINTER): REAL_64
+			-- The width its tools are drawn in (0.44.1: in a row it had none, so clicks missed).
+		do
+			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label - 1.0, False)
+			Result := 12.0
+			across items as ic loop
+				if ic.gap then
+					Result := Result + 13.0
+				elseif ic.glyph > 0 then
+					Result := Result + 28.0 + 3.0
+				else
+					Result := Result + a_p.advance (ic.label) + 22.0 + 3.0
+				end
+			end
+			if probe_painter = Void then
+				probe_painter := a_p
+			end
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
