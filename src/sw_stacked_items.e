@@ -174,6 +174,15 @@ feature -- Stack
 			-- The item `scroll_item_into_view' asked for, met at the next `measure_stack' (or dropped
 			-- there when the list no longer reaches it); 0 when none.
 
+	forget_pending_scroll
+			-- Drop the scroll asked for: the items it named are being replaced. Every refill calls it
+			-- (scan 37: a refilled view that asked for nothing jumped to the old item's place).
+		do
+			pending_scroll_item := 0
+		ensure
+			dropped: pending_scroll_item = 0
+		end
+
 	body_pixel_size (a_p: SW_PAINTER): INTEGER
 			-- Body text's pixel size at the painter's scale: what a layout
 			-- key and a wheel line are made of.
