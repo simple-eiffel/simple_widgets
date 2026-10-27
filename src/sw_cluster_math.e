@@ -74,7 +74,10 @@ feature -- Cluster arithmetic
 	cluster_x (a_run: GLYPH_RUN; a_char: INTEGER): REAL_64
 			-- The x of the cluster that renders run-relative character
 			-- `a_char' (1 .. `source_count'); 0.0 when the map names no
-			-- glyph, which a degraded run may.
+			-- glyph, which a degraded run may. Held within the run (0.45.1): a
+			-- mark HarfBuzz places left of the run's origin (a Hebrew
+			-- cantillation accent on the first letter) has a negative x, and an
+			-- edge outside the run killed simple_bible's Interlinear tab.
 		require
 			in_range: a_char >= 1 and a_char <= a_run.source_count
 		local
@@ -82,10 +85,11 @@ feature -- Cluster arithmetic
 		do
 			g := a_run.cluster_map [a_run.cluster_map.lower + a_char - 1]
 			if g >= 1 and then g <= a_run.x_positions.count then
-				Result := a_run.x_positions [a_run.x_positions.lower + g - 1]
+				Result := a_run.x_positions [a_run.x_positions.lower + g - 1].max (0.0).min (a_run.advance_width)
 			end
 		ensure
 			non_negative: Result >= 0.0
+			within_run: Result <= a_run.advance_width
 		end
 
 	caret_after_x (a_run: SHAPED_RUN; a_char: INTEGER): REAL_64
