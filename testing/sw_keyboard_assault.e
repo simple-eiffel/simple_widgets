@@ -288,6 +288,34 @@ feature -- The accelerator table
 
 feature -- Menus: mnemonics
 
+	test_menu_bar_and_transport_in_a_row_claim_their_width
+			-- 0.44.2 (scan 35): the 0.44.1 toolbar bug in its siblings. A menu bar or a media transport
+			-- placed in a row (not growing) had no preferred width, so it got none, drew past its
+			-- bounds, and a click fell outside it. Before: both widths 0; after: the width they draw in.
+		local
+			w: SW_WINDOW
+			root: SW_COLUMN
+			l_row: SW_ROW
+			bar: SW_MENU_BAR
+			l_transport: SW_MEDIA_TRANSPORT
+		do
+			create w.make ("row", 0, 0, 900, 200, create {SW_THEME}.make_light)
+			create root.make
+			create l_row.make
+			create bar.make
+			bar.add_menu ("&File", agent built_menu)
+			bar.add_menu ("&Edit", agent built_menu)
+			create l_transport.make (60.0)
+			l_row.put (bar)
+			l_row.put (l_transport)
+			root.put (l_row)
+			w.set_root (root)
+			w.request_render
+			assert_true ("the menu bar claims room for its titles", bar.width > 60.0)
+			assert_true ("its last title fits inside it", bar.pad_bounds (w.painter, 2).left + bar.pad_bounds (w.painter, 2).width <= bar.x + bar.width)
+			assert_true ("the transport claims its button, clock and a bar", l_transport.width >= l_transport.Button_zone + l_transport.Time_zone + 100.0)
+		end
+
 	test_menu_bar_reads_and_answers_its_ampersands
 		local
 			bar: SW_MENU_BAR

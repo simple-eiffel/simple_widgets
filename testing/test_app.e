@@ -574,6 +574,7 @@ feature {NONE} -- Test runners
 			run_test (agent keyboard_tests.test_gw24_trailing_control_code_is_still_swallowed, "gw24_trailing_control_code_is_still_swallowed")
 			run_test (agent keyboard_tests.test_an_unclaimed_ctrl_key_is_still_the_focused_box_s_own, "unclaimed_ctrl_key_is_still_the_box_s_own")
 			run_test (agent keyboard_tests.test_first_registration_wins_and_clear_empties, "first_registration_wins_and_clear_empties")
+			run_test (agent keyboard_tests.test_menu_bar_and_transport_in_a_row_claim_their_width, "menu_bar_and_transport_in_a_row_claim_their_width")
 			run_test (agent keyboard_tests.test_menu_bar_reads_and_answers_its_ampersands, "menu_bar_reads_and_answers_its_ampersands")
 			run_test (agent keyboard_tests.test_a_disabled_pad_does_not_answer_alt, "a_disabled_pad_does_not_answer_alt")
 			run_test (agent keyboard_tests.test_an_open_menu_answers_a_bare_letter, "an_open_menu_answers_a_bare_letter")
