@@ -135,6 +135,7 @@ feature -- Element change
 			forget_hover
 			laid_revision := -1
 			scroll_y := 0.0
+			forget_pending_scroll
 			clear_selection
 		ensure
 			set: document = a_document

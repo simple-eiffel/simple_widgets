@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.45.2 - design scan 37)
+
+- A refill kept the stack's row request: a word or row asked for in a laid-out view stays armed until the next measure, so a refill that asked for nothing (simple_bible's Interlinear on a whole chapter) jumped to the old place. `SW_STACKED_ITEMS.forget_pending_scroll`, called by every refill: `SW_INTERLINEAR.wipe_out`, `SW_PARALLEL_TEXT.wipe_out`, `SW_PARAGRAPH_LIST.wipe_out`, `SW_DOCUMENT_VIEW.set_document`. Before: `refilled_interlinear_forgets_an_old_scroll` FAILED; after: passes.
+
 ### Fixed (0.45.1 - a mark left of its run)
 
 - `SW_CLUSTER_MATH.cluster_x` passed HarfBuzz's x through, and a mark placed left of its run's origin (a Hebrew cantillation accent on the first letter, as MACULA writes Genesis 1:1) gave a negative edge: the `non_negative` postconditions failed and simple_bible's Interlinear tab died on its first frame. The edge is now held within the run (new postcondition `within_run`). Before: `interlinear_lays_out_cantillated_hebrew` FAILED (565 passed, 1 failed); after: 566 passed, 0 failed.

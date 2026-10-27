@@ -696,6 +696,7 @@ feature {NONE} -- Test runners
 			run_test (agent interlinear_tests.test_gw07_cells_flow_and_wrap, "gw07_cells_flow_and_wrap")
 			run_test (agent interlinear_tests.test_interlinear_scrolls_to_a_word_chosen_before_layout, "interlinear_scrolls_to_a_word_chosen_before_layout")
 			run_test (agent interlinear_tests.test_interlinear_lays_out_cantillated_hebrew, "interlinear_lays_out_cantillated_hebrew")
+			run_test (agent interlinear_tests.test_refilled_interlinear_forgets_an_old_scroll, "refilled_interlinear_forgets_an_old_scroll")
 			run_test (agent interlinear_tests.test_gw07_lines_hide_and_show, "gw07_lines_hide_and_show")
 			run_test (agent interlinear_tests.test_gw07_select_by_click_and_keys, "gw07_select_by_click_and_keys")
 			run_test (agent interlinear_tests.test_gw07_every_line_can_be_pointed_at, "gw07_every_line_can_be_pointed_at")

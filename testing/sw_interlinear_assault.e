@@ -116,6 +116,34 @@ feature -- Flow
 			assert_integers_equal ("every word a cell", 21, v.token_count)
 		end
 
+	test_refilled_interlinear_forgets_an_old_scroll
+			-- Scan 37: a word selected in a laid-out view leaves the stack's row request armed until
+			-- the next measure; a refill that selects nothing (a whole chapter) then jumped to the
+			-- old row. Before: scrolled down; after: the new words open at the top.
+		local
+			w: SW_WINDOW
+			v: SW_INTERLINEAR
+			i, k: INTEGER
+		do
+			create w.make ("il", 0, 0, 420, 240, create {SW_THEME}.make_light)
+			attach_il_kit (w)
+			create v.make (200.0)
+			from i := 1 until i > 200 loop
+				k := v.add_token ("word" + i.out)
+				i := i + 1
+			end
+			w.set_root (v)
+			w.request_render
+			v.select_token (190)
+			v.wipe_out
+			from i := 1 until i > 200 loop
+				k := v.add_token ("again" + i.out)
+				i := i + 1
+			end
+			w.request_render
+			assert_true ("opens at the top", v.scroll_y = 0.0)
+		end
+
 	test_gw07_lines_hide_and_show
 			-- Hiding the morphology line makes every cell shorter; the
 			-- surface word cannot be hidden.

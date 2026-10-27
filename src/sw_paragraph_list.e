@@ -667,6 +667,7 @@ feature -- Element change
 			hover_character := 0
 			selected_index := 0
 			scroll_y := 0.0
+			forget_pending_scroll
 			drop_measurements
 		ensure
 			empty: count = 0

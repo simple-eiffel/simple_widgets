@@ -265,6 +265,7 @@ feature -- Rows
 			rows.wipe_out
 			rows_revision := rows_revision + 1
 			scroll_y := 0.0
+			forget_pending_scroll
 			clear_selection
 			forget_hover
 		ensure

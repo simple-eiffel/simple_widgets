@@ -131,6 +131,7 @@ feature -- Words
 			structure_revision := structure_revision + 1
 			selected_token := 0
 			pending_scroll_token := 0
+			forget_pending_scroll
 			scroll_y := 0.0
 			clear_selection
 			forget_hover
