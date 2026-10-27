@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.44.1 - a toolbar in a row)
+
+- `SW_TOOLBAR` had no `preferred_width`: placed in a row (not growing) it got no room, drew its tools past its bounds, and a click on them fell outside it (simple_bible's C10 Parallel did nothing). It now claims the width its tools are drawn in. Before: `toolbar_in_a_row_claims_its_width` FAILED; after: 563 passed, 0 failed.
+
 ### Added (0.44.0 - one set of panes, two arrangements)
 
 - `SW_ROW.remove` and `SW_COLUMN.remove` (take a child out to put it elsewhere), `SW_PARALLEL_TEXT.set_column_title`, `SW_WINDOW.clear_reference_marks`: what simple_bible's Simple and Study layouts need to move the same panes and rename their pills. Test `layout_moves_remove_retitle_and_clear_marks`.

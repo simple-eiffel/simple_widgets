@@ -148,6 +148,7 @@ feature {NONE} -- Test runners
 			create chrome_tests
 			run_test (agent chrome_tests.test_radio_auto_selects_first, "radio_auto_selects_first")
 			run_test (agent chrome_tests.test_toolbar_by_label_state, "toolbar_by_label_state")
+			run_test (agent chrome_tests.test_toolbar_in_a_row_claims_its_width, "toolbar_in_a_row_claims_its_width")
 			run_test (agent chrome_tests.test_toolbar_click_fires_and_latches, "toolbar_click_fires_and_latches")
 			run_test (agent chrome_tests.test_theme_invariants_both_ways, "theme_invariants_both_ways")
 			run_test (agent chrome_tests.test_theme_gw28_both_palettes_readable, "theme_gw28_both_palettes_readable")
