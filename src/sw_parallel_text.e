@@ -127,6 +127,17 @@ feature -- Columns
 			numbered: Result = column_count
 		end
 
+	set_column_title (a_column: INTEGER; a_title: READABLE_STRING_GENERAL)
+			-- Column `a_column' is titled `a_title' (a version picked again).
+		require
+			valid: a_column >= 1 and a_column <= column_count
+		do
+			titles.put_i_th (a_title.to_string_32, a_column)
+			rows_revision := rows_revision + 1
+		ensure
+			set: column_title (a_column).same_string_general (a_title)
+		end
+
 	set_column_weight (a_column: INTEGER; a_weight: REAL_64)
 		require
 			valid: a_column >= 1 and a_column <= column_count

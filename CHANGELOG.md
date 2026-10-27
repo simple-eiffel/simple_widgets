@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.44.0 - one set of panes, two arrangements)
+
+- `SW_ROW.remove` and `SW_COLUMN.remove` (take a child out to put it elsewhere), `SW_PARALLEL_TEXT.set_column_title`, `SW_WINDOW.clear_reference_marks`: what simple_bible's Simple and Study layouts need to move the same panes and rename their pills. Test `layout_moves_remove_retitle_and_clear_marks`.
+
 ### Added (0.43.0 - select all on focus)
 
 - `SW_TEXT_BOX.selects_all_on_focus` (single-line boxes by default; `set_selects_all_on_focus` to choose): gaining focus selects every character, so typing replaces the text; the click that brought focus keeps it selected; the next click places the caret. Multi-line boxes place the caret, so one keystroke never replaces a document. Larry's rule for every editable field (2026-10-26), after simple_bible's reference box joined "John 3:16" onto "Genesis 1". Test `textbox_focus_selects_all_then_a_click_places_the_caret`; 561 passed, 0 failed.

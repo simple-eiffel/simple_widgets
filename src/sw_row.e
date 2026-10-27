@@ -88,6 +88,21 @@ feature -- Element change
 			chained: Result = Current
 		end
 
+	remove (a_w: SW_WIDGET)
+			-- Take `a_w' out (it may be put elsewhere): a layout that moves a pane between containers
+			-- (simple_bible's Simple and Study layouts) puts it back where the arrangement wants it.
+		require
+			a_child: children.has (a_w)
+		do
+			children.prune_all (a_w)
+			if a_w.parent = Current then
+				a_w.set_parent (Void)
+			end
+		ensure
+			gone: not children.has (a_w)
+			orphaned: a_w.parent /= Current
+		end
+
 	put (a_w: SW_WIDGET)
 		do
 			children.extend (a_w)

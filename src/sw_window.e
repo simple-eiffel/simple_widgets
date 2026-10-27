@@ -3026,6 +3026,17 @@ feature -- Reference marks
 			parallel: mark_rects.count = reference_marks.count
 		end
 
+	clear_reference_marks
+			-- No pills: a host whose layout changes names its parts again.
+		do
+			reference_marks.wipe_out
+			mark_rects.wipe_out
+			hovered_reference_mark := 0
+		ensure
+			none: reference_marks.is_empty
+			parallel: mark_rects.is_empty
+		end
+
 	set_reference_marks_shown (a_shown: BOOLEAN)
 			-- Show or hide the pills.
 		do
