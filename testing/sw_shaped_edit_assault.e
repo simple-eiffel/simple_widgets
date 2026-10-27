@@ -17,6 +17,39 @@ inherit
 
 feature -- Toy path
 
+	test_focus_selects_all_then_a_click_places_the_caret
+			-- Larry's rule (2026-10-26): gaining focus selects all of a field so typing replaces it;
+			-- the click that brought focus keeps it; the next click places the caret. A multi-line
+			-- box places the caret at once. Before: focus left the caret at 0 and typing joined
+			-- the old text ("John 3:16Genesis 1").
+		local
+			w: SW_WINDOW
+			l_field, l_notes: SW_TEXT_BOX
+			root: SW_COLUMN
+			l_ignored: BOOLEAN
+		do
+			create w.make ("focus", 0, 0, 400, 200, create {SW_THEME}.make_light)
+			create root.make
+			create l_field.make_single_line ("Genesis 1")
+			create l_notes.make ("A long note")
+			root.put (l_field)
+			root.put (l_notes)
+			w.set_root (root)
+			w.request_render
+			w.give_focus (l_field)
+			assert_true ("focus selects all", l_field.has_selection and then l_field.selected_text.same_string ("Genesis 1"))
+			l_ignored := l_field.handle_click (l_field.x + 5.0, l_field.y + l_field.height / 2.0)
+			assert_true ("the focusing click keeps it", l_field.selected_text.same_string ("Genesis 1"))
+			l_ignored := l_field.handle_click (l_field.x + 5.0, l_field.y + l_field.height / 2.0)
+			assert_false ("the next click places the caret", l_field.has_selection)
+			w.give_focus (l_notes)
+			assert_false ("a multi-line box places the caret", l_notes.has_selection)
+			l_notes.set_selects_all_on_focus (True)
+			w.give_focus (l_field)
+			w.give_focus (l_notes)
+			assert_true ("unless asked", l_notes.has_selection)
+		end
+
 	test_toy_caret_round_trip
 		local
 			b: SW_TEXT_BOX

@@ -642,6 +642,7 @@ feature {NONE} -- Test runners
 			run_test (agent waveform_tests.test_markers_within_the_audio, "waveform_markers_within_audio")
 			run_test (agent waveform_tests.test_headless_paint, "waveform_headless_paint")
 			create shaped_edit_tests
+			run_test (agent shaped_edit_tests.test_focus_selects_all_then_a_click_places_the_caret, "textbox_focus_selects_all_then_a_click_places_the_caret")
 			run_test (agent shaped_edit_tests.test_toy_caret_round_trip, "textbox_toy_caret_round_trip")
 			run_test (agent shaped_edit_tests.test_toy_newline_opens_a_line, "textbox_toy_newline_opens_a_line")
 			run_test (agent shaped_edit_tests.test_shaped_latin_round_trip, "textbox_shaped_latin_round_trip")
