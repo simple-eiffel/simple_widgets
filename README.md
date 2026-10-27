@@ -44,6 +44,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.45.0 | - | An interlinear scrolls to a word chosen before it is laid out |
 | 0.44.2 | - | Menu bars and media transports in a row claim their width; `SW_BOX_CONTAINER` shared by rows and columns |
 | 0.44.1 | - | A toolbar placed in a row claims its width, so its tools can be clicked |
 | 0.44.0 | - | `remove` on rows and columns, parallel column titles, clearing the design pills: one set of panes in two arrangements |

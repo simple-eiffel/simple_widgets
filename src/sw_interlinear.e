@@ -130,6 +130,7 @@ feature -- Words
 			tokens.wipe_out
 			structure_revision := structure_revision + 1
 			selected_token := 0
+			pending_scroll_token := 0
 			scroll_y := 0.0
 			clear_selection
 			forget_hover
@@ -229,14 +230,22 @@ feature -- Selection of words
 		end
 
 	scroll_to_token (a_token: INTEGER)
-			-- Bring word `a_token''s row into view, once laid out.
+			-- Bring word `a_token''s row into view: now when laid out, else at the next layout (0.45.0:
+			-- a chapter just filled opens at its verse, not at its top).
 		require
 			valid: a_token >= 1 and a_token <= token_count
 		do
 			if is_laid_out and then a_token <= token_rows.count then
 				scroll_item_into_view (token_rows.i_th (a_token))
+				pending_scroll_token := 0
+			else
+				pending_scroll_token := a_token
 			end
 		end
+
+	pending_scroll_token: INTEGER
+			-- The word `scroll_to_token' asked for before the words were laid out; met (or dropped
+			-- when the words no longer reach it) at the next `measure'; 0 when none.
 
 	row_count: INTEGER
 			-- Rows the words flowed into at the last layout.
@@ -422,6 +431,13 @@ feature {NONE} -- Layout implementation
 				laid_key := l_key
 				laid_lines := lines_revision
 				stack.invalidate
+			end
+			if pending_scroll_token > token_rows.count then
+				pending_scroll_token := 0
+			elseif pending_scroll_token >= 1 then
+					-- Its row is known now; the stack scrolls to it as it measures.
+				scroll_item_into_view (token_rows.i_th (pending_scroll_token))
+				pending_scroll_token := 0
 			end
 			measure_stack (a_p, l_key, gap).do_nothing
 			place_bar (t)

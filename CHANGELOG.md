@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.45.0 - an interlinear opens at its verse)
+
+- `SW_INTERLINEAR.scroll_to_token` (and so `select_token`) asked before the words are laid out - a chapter just filled - is met at the next layout (`pending_scroll_token`), as `SW_STACKED_ITEMS` does for rows. simple_bible's Interlinear tab opens at the verse read. Before: `interlinear_scrolls_to_a_word_chosen_before_layout` FAILED (564 passed, 1 failed).
+
 ### Fixed (0.44.2 - design scan 35)
 
 - `SW_MENU_BAR` and `SW_MEDIA_TRANSPORT` had no `preferred_width`: the 0.44.1 toolbar bug in its siblings (in a row they got no room and a click fell outside them). The menu bar now claims the width of its titles (from `pad_bounds`), the transport its button, clock and a `Min_bar_width` seek bar. Before: `menu_bar_and_transport_in_a_row_claim_their_width` FAILED (563 passed, 1 failed); after: 564 passed, 0 failed.
