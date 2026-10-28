@@ -35,6 +35,8 @@ inherit
 			accessible_role, context_menu
 		end
 
+	SW_COPYING
+
 create
 	make
 
@@ -744,15 +746,6 @@ feature -- Input
 feature {NONE} -- Engine
 
 	resizing_column: INTEGER
-
-	copy_text (a_text: READABLE_STRING_GENERAL)
-			-- `a_text' onto the system clipboard.
-		local
-			l_clip: SW_CLIPBOARD
-		do
-			create l_clip
-			l_clip.set_text (a_text)
-		end
 			-- The column being width-dragged; 0 when idle.
 
 	key_less (a_keys: SPECIAL [detachable COMPARABLE]; a_mi, b_mi: INTEGER): BOOLEAN

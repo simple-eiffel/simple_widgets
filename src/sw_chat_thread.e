@@ -189,6 +189,8 @@ inherit
 
 	SW_CLUSTER_MATH
 
+	SW_COPYING
+
 create
 	make
 
@@ -857,12 +859,9 @@ feature -- Selection
 			-- SW_CLIPBOARD - the same door SW_TEXT_BOX uses, so there is
 			-- one clipboard path in the toolkit and not two. A no-op when
 			-- nothing is selected.
-		local
-			clip: SW_CLIPBOARD
 		do
 			if has_selection then
-				create clip
-				clip.set_text (selected_text)
+				copy_text (selected_text)
 			end
 		end
 

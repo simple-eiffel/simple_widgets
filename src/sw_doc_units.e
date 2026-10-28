@@ -403,15 +403,6 @@ feature -- Menu (SW_WIDGET)
 			offered: Result /= Void
 		end
 
-	copy_text (a_text: READABLE_STRING_GENERAL)
-			-- `a_text' onto the system clipboard.
-		local
-			l_clip: SW_CLIPBOARD
-		do
-			create l_clip
-			l_clip.set_text (a_text)
-		end
-
 feature -- Input (SW_WIDGET)
 
 	handle_wheel (a_delta: INTEGER): BOOLEAN

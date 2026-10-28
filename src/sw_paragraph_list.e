@@ -97,6 +97,8 @@ inherit
 
 	SW_MARK_HOST
 
+	SW_COPYING
+
 create
 	make
 
@@ -545,15 +547,6 @@ feature -- Element change
 				end
 				Result.append (text_of (al_i))
 			end
-		end
-
-	copy_text (a_text: READABLE_STRING_GENERAL)
-			-- `a_text' onto the system clipboard.
-		local
-			l_clip: SW_CLIPBOARD
-		do
-			create l_clip
-			l_clip.set_text (a_text)
 		end
 
 	add (a_text: READABLE_STRING_GENERAL)

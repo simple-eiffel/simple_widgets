@@ -182,6 +182,65 @@ feature -- The view
 			assert_true ("a wheel notch up moves", v.handle_wheel (120) and v.scroll_y < v.max_scroll)
 		end
 
+	test_empty_document_block_stands_a_line_of_its_face
+			-- Design scan 55: a document lays its body out in the reading face
+			-- (a role policy, GW-13), and an empty paragraph's height had two
+			-- floors - each line at the role face's line, the block at the
+			-- kit's UI line. One floor now: an empty paragraph, an empty
+			-- monospace line and an empty heading are as tall as the same
+			-- block holding one letter.
+		local
+			w: SW_WINDOW
+			v: SW_DOCUMENT_VIEW
+			d: SIMPLE_DOCUMENT
+		do
+			create w.make ("floors", 0, 0, 600, 500, create {SW_THEME}.make_light)
+			attach_kit (w)
+			create d.make
+			d.add_paragraph ("").do_nothing
+			d.add_paragraph ("x").do_nothing
+			d.add_heading (2, "").do_nothing
+			d.add_heading (2, "x").do_nothing
+			create v.make (480.0)
+			v.set_document (d)
+			w.set_root (v)
+			w.request_render
+			assert_true ("laid out", v.is_laid_out)
+			assert_reals_equal ("an empty paragraph is as tall as one letter", v.block_height (2), v.block_height (1), 0.000_1)
+			assert_reals_equal ("an empty heading is as tall as one letter", v.block_height (4), v.block_height (3), 0.000_1)
+		end
+
+	test_each_line_adds_one_line_of_its_face
+			-- Design scan 55, where the two floors disagree: a reading face
+			-- with a SHORTER line than the UI face (body Segoe UI under an
+			-- Archivo UI). The block floor read the kit's UI line, so a
+			-- one-line paragraph stood a UI line tall and its second line
+			-- added less than its third. One floor: every line adds the same.
+			-- (A machine without Archivo realizes Segoe UI for both roles and
+			-- the test holds trivially.)
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			v: SW_DOCUMENT_VIEW
+			d: SIMPLE_DOCUMENT
+		do
+			create th.make_light
+			th.set_families ("Archivo", "Segoe UI", "IBM Plex Mono")
+			create w.make ("floors", 0, 0, 600, 500, th)
+			attach_kit (w)
+			create d.make
+			d.add_paragraph ("x").do_nothing
+			d.add_paragraph ("x%Ny").do_nothing
+			d.add_paragraph ("x%Ny%Nz").do_nothing
+			create v.make (480.0)
+			v.set_document (d)
+			w.set_root (v)
+			w.request_render
+			assert_true ("laid out", v.is_laid_out)
+			assert_reals_equal ("the third line adds what the second added",
+				v.block_height (2) - v.block_height (1), v.block_height (3) - v.block_height (2), 0.000_1)
+		end
+
 	test_empty_paragraph_stands_a_line_tall
 			-- On the shaped path an empty paragraph is as tall as one holding
 			-- a single letter, so typing the first character never makes it

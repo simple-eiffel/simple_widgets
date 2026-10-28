@@ -264,6 +264,24 @@ feature -- Alignment (GW-02)
 
 feature -- Caret geometry
 
+	floor_line_height (a_kit: SW_SHAPING; a_px: INTEGER): REAL_64
+			-- One line of the face text is laid out in at `a_px': the
+			-- leading face of a host's role policy (`fonts', GW-13) when
+			-- one is set, else the kit's (`SW_SHAPING.line_height'). The
+			-- one floor for an empty piece, a blank text box and a text
+			-- box's row (design scan 55: three call sites had drifted).
+		require
+			size_positive: a_px > 0
+		do
+			if attached fonts as al_fonts then
+				Result := a_kit.facade.line_height (a_px, al_fonts)
+			else
+				Result := a_kit.line_height (a_px)
+			end
+		ensure
+			positive: Result > 0.0
+		end
+
 	line_at_offset (a_offset: INTEGER): INTEGER
 			-- The 0-based visual line the caret stands on at `a_offset'.
 		require
@@ -535,7 +553,7 @@ feature -- Building
 					wpx := a_wrap.floor.max (16)
 				end
 				build_shaped (al_kit, a_text, wpx, px, a_single_line)
-				Result := content_height.max (al_kit.line_height (px))
+				Result := content_height.max (floor_line_height (al_kit, px))
 			else
 				a_p.font (if a_role > 0 then a_role else {SW_PAINTER}.Role_body end, a_size, a_bold)
 				build_toy (a_p, a_text, a_wrap, a_single_line, a_hidden)
@@ -704,12 +722,7 @@ feature -- Building
 							-- leaves the primary-face row to its consumer, so
 							-- it gets that row here - a blank line is as tall
 							-- as the lines around it, and N lines are N rows
-						if attached fonts as al_floor_fonts then
-								-- a host's role policy (GW-13): its own leading face
-							l_height := l_height.max (a_kit.facade.line_height (a_px, al_floor_fonts))
-						else
-							l_height := l_height.max (a_kit.line_height (a_px))
-						end
+						l_height := l_height.max (floor_line_height (a_kit, a_px))
 					end
 						-- GW-02: where this line starts in the box.
 					if is_aligned then

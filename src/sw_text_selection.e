@@ -25,6 +25,8 @@ deferred class
 inherit
 	SW_WIDGET
 
+	SW_COPYING
+
 feature -- Items
 
 	item_count: INTEGER
@@ -176,12 +178,9 @@ feature -- Selection
 
 	copy_selection
 			-- The selection onto the system clipboard; nothing when empty.
-		local
-			l_clip: SW_CLIPBOARD
 		do
 			if has_selection then
-				create l_clip
-				l_clip.set_text (selected_text)
+				copy_text (selected_text)
 			end
 		end
 

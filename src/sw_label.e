@@ -31,6 +31,8 @@ inherit
 			accessible_role, default_accessible_name, context_menu
 		end
 
+	SW_COPYING
+
 create
 	make, make_ui, make_mono, make_body
 
@@ -202,19 +204,10 @@ feature -- Layout
 		do
 			if not text.is_empty then
 				create Result.make
-				Result.add_item ("Copy", "", True, agent copy_text)
+				Result.add_item ("Copy", "", True, agent copy_text (text))
 			end
 		ensure then
 			only_with_text: attached Result = not text.is_empty
-		end
-
-	copy_text
-			-- The label's text onto the system clipboard.
-		local
-			l_clip: SW_CLIPBOARD
-		do
-			create l_clip
-			l_clip.set_text (text)
 		end
 
 	preferred_width (a_p: SW_PAINTER): REAL_64
