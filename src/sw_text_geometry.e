@@ -704,7 +704,12 @@ feature -- Building
 							-- leaves the primary-face row to its consumer, so
 							-- it gets that row here - a blank line is as tall
 							-- as the lines around it, and N lines are N rows
-						l_height := l_height.max (a_kit.line_height (a_px))
+						if attached fonts as al_floor_fonts then
+								-- a host's role policy (GW-13): its own leading face
+							l_height := l_height.max (a_kit.facade.line_height (a_px, al_floor_fonts))
+						else
+							l_height := l_height.max (a_kit.line_height (a_px))
+						end
 					end
 						-- GW-02: where this line starts in the box.
 					if is_aligned then

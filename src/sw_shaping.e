@@ -112,6 +112,12 @@ feature -- Access
 			-- The policy `layout_for' uses; Void means the facade's own
 			-- defaults (no theme face prepended yet).
 
+	primary_fonts: detachable FONT_LIST
+			-- What `line_height' measures once `set_theme_faces' has run:
+			-- the theme's UI face leading the general list - the face
+			-- `layout_for' sets Latin text in. Void: `line_height' measures
+			-- `fonts' (or the defaults) as given.
+
 feature -- Measurement and layout
 
 	layout_for (a_text: READABLE_STRING_GENERAL; a_width_pixels, a_pixel_size: INTEGER): SHAPED_LAYOUT
@@ -294,7 +300,14 @@ feature -- Measurement and layout
 		require
 			size_positive: a_pixel_size > 0
 		do
-			if attached fonts as al_fonts then
+				-- 0.46.0: the facade measures the first REALIZED family of a
+				-- list's GENERAL part, but `set_theme_faces' puts the theme
+				-- face in front for Latin only, so once that face was
+				-- installed (Archivo, 2026-10-27) a line of text stood 25 px
+				-- and an empty line 21: measure the face Latin text is set in.
+			if attached primary_fonts as al_primary then
+				Result := facade.line_height (a_pixel_size, al_primary)
+			elseif attached fonts as al_fonts then
 				Result := facade.line_height (a_pixel_size, al_fonts)
 			else
 				Result := facade.line_height (a_pixel_size, facade.default_fonts)
@@ -316,6 +329,8 @@ feature -- Element change
 			create l_fonts.make_default
 			fonts := l_fonts
 				.with_family_for_script ({SHAPING_CONSTANTS}.Script_class_latin, a_theme.family_ui)
+			create l_fonts.make_default
+			primary_fonts := l_fonts.with_leading_family (a_theme.family_ui)
 				-- GW-04: the per-role policies follow the theme too.
 			create ui_family.make_from_string_general (a_theme.family_ui)
 			create body_family.make_from_string_general (a_theme.family_body)
@@ -334,9 +349,11 @@ feature -- Element change
 			usable_when_given: attached a_fonts as al implies not al.is_empty
 		do
 			fonts := a_fonts
+			primary_fonts := Void
 			forget_layouts
 		ensure
 			set: fonts = a_fonts
+			measured_as_given: primary_fonts = Void
 		end
 
 feature -- Script faces (GW-03)

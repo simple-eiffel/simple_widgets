@@ -43,7 +43,7 @@ inherit
 	SW_DOC_UNITS
 		redefine
 			arrange, handle_click, handle_double_click, handle_key, handle_char, cursor_kind,
-			stack_reset
+			stack_reset, context_menu
 		end
 
 create
@@ -58,6 +58,7 @@ feature {NONE} -- Initialization
 			positive: a_viewport_height > 0.0
 		do
 			viewport_height := a_viewport_height
+			set_item_noun ("line")
 			create tokens.make (64)
 			create line_shown.make_filled (True, 1, {SW_INTERLINEAR_TOKEN}.Line_count)
 			create row_heights.make (16)
@@ -347,33 +348,56 @@ feature -- Input
 			end
 		end
 
+	word_text (a_token: INTEGER): STRING_32
+			-- Word `a_token''s visible lines, one a line.
+		require
+			token_known: a_token >= 1 and a_token <= token_count
+		local
+			l: INTEGER
+		do
+			create Result.make (64)
+			from
+				l := 1
+			until
+				l > {SW_INTERLINEAR_TOKEN}.Line_count
+			loop
+				if line_shown [l] and then not token_line (a_token, l).text.is_empty then
+					if not Result.is_empty then
+						Result.append_character ('%N')
+					end
+					Result.append (token_line (a_token, l).text)
+				end
+				l := l + 1
+			end
+		end
+
+	context_token: INTEGER
+			-- The word the last right-click fell on; 0 = none.
+
+	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
+			-- Copy word (the word under the pointer, its visible lines),
+			-- then the reader's menu of SW_DOC_UNITS.
+		do
+			context_token := token_at (a_px, a_py)
+			create Result.make
+			if context_token > 0 then
+				Result.add_item ("Copy word", "", True, agent copy_text (word_text (context_token)))
+			end
+			if attached Precursor {SW_DOC_UNITS} (a_px, a_py) as al_reader then
+				Result.append_items (al_reader)
+			end
+		ensure then
+			offered: Result /= Void
+		end
+
 	handle_char (a_code: INTEGER)
 			-- Ctrl+C copies the selected text when there is one (Ctrl+A), else
 			-- the selected word's visible lines; the rest is SW_DOC_UNITS'.
-		local
-			l_text: STRING_32
-			l: INTEGER
-			l_clip: SW_CLIPBOARD
 		do
 			if a_code = 3 and then has_selection then
 				copy_selection
 			elseif a_code = 3 and then selected_token > 0 then
-				create l_text.make (64)
-				from
-					l := 1
-				until
-					l > {SW_INTERLINEAR_TOKEN}.Line_count
-				loop
-					if line_shown [l] and then not token_line (selected_token, l).text.is_empty then
-						if not l_text.is_empty then
-							l_text.append_character ('%N')
-						end
-						l_text.append (token_line (selected_token, l).text)
-					end
-					l := l + 1
-				end
-				create l_clip
-				l_clip.set_text (l_text)
+				copy_text (word_text (selected_token))
 			else
 				Precursor {SW_DOC_UNITS} (a_code)
 			end

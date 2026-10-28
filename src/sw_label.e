@@ -28,7 +28,7 @@ inherit
 	SW_WIDGET
 		redefine
 			preferred_width,
-			accessible_role, default_accessible_name
+			accessible_role, default_accessible_name, context_menu
 		end
 
 create
@@ -195,6 +195,27 @@ feature -- Element change
 		end
 
 feature -- Layout
+
+	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
+			-- Copy, while there is text; otherwise nothing, so the
+			-- right-click goes on to the parent.
+		do
+			if not text.is_empty then
+				create Result.make
+				Result.add_item ("Copy", "", True, agent copy_text)
+			end
+		ensure then
+			only_with_text: attached Result = not text.is_empty
+		end
+
+	copy_text
+			-- The label's text onto the system clipboard.
+		local
+			l_clip: SW_CLIPBOARD
+		do
+			create l_clip
+			l_clip.set_text (text)
+		end
 
 	preferred_width (a_p: SW_PAINTER): REAL_64
 			-- As wide as the text PAINTS: the shaped measure on the

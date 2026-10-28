@@ -32,7 +32,7 @@ inherit
 		redefine
 			handle_click, handle_double_click, handle_drag, handle_wheel,
 			handle_key, wants_hover_point, accepts_focus, cursor_kind, handle_release,
-			accessible_role
+			accessible_role, context_menu
 		end
 
 create
@@ -93,6 +93,85 @@ feature -- Access
 
 	on_select: detachable PROCEDURE [INTEGER]
 			-- Fired with the MODEL index on selection change.
+
+	context_model: INTEGER
+			-- Model index of the row the last right-click fell on; 0 =
+			-- none. Outlined, NOT selected: a right-click must not fire
+			-- `on_select' (in simple_bible selecting a bookmark goes to
+			-- its verse), and a later click on the same row must still
+			-- select it. Cleared by the next click and by `set_rows'.
+
+	context_column: INTEGER
+			-- The column the last right-click fell in; 0 = none.
+
+	context_object: detachable G
+			-- The row the last right-click fell on, for a client's
+			-- `menu_extension'.
+		do
+			if context_model >= 1 and context_model <= rows.count then
+				Result := rows.i_th (context_model)
+			end
+		end
+
+	cell_text (a_model, a_column: INTEGER): STRING_32
+			-- What row `a_model' shows in column `a_column'.
+		require
+			row_known: a_model >= 1 and a_model <= rows.count
+			column_known: a_column >= 1 and a_column <= columns.count
+		do
+			Result := columns.i_th (a_column).value.item ([rows.i_th (a_model)])
+		end
+
+	row_text (a_model: INTEGER): STRING_32
+			-- Row `a_model''s cells, a tab between them.
+		require
+			row_known: a_model >= 1 and a_model <= rows.count
+		local
+			ci: INTEGER
+		do
+			create Result.make (80)
+			from
+				ci := 1
+			until
+				ci > columns.count
+			loop
+				if ci > 1 then
+					Result.append_character ('%T')
+				end
+				Result.append (cell_text (a_model, ci))
+				ci := ci + 1
+			end
+		end
+
+	shown_rows_text: STRING_32
+			-- The column titles, then every row the view shows in its
+			-- order, one line each, a tab between cells - what a
+			-- spreadsheet pastes as a table.
+		local
+			ci, i: INTEGER
+		do
+			create Result.make (80 * (view.count + 1))
+			from
+				ci := 1
+			until
+				ci > columns.count
+			loop
+				if ci > 1 then
+					Result.append_character ('%T')
+				end
+				Result.append (columns.i_th (ci).title)
+				ci := ci + 1
+			end
+			from
+				i := 1
+			until
+				i > view.count
+			loop
+				Result.append_character ('%N')
+				Result.append (row_text (view.i_th (i)))
+				i := i + 1
+			end
+		end
 
 	on_activate: detachable PROCEDURE [INTEGER]
 			-- Fired with the MODEL index on double-click.
@@ -159,6 +238,7 @@ feature -- Element change
 			if selected_model > rows.count then
 				selected_model := 0
 			end
+			context_model := 0
 			rebuild_view
 		ensure
 			owns_snapshot: rows /= a_rows
@@ -383,6 +463,10 @@ feature -- Drawing
 						a_p.set_color (t.surface_variant)
 						a_p.fill_rect (x, ry, width, Row_h)
 					end
+					if view.i_th (i) = context_model then
+						a_p.set_color (t.accent)
+						a_p.rrect_stroke (x + 1.5, ry + 0.5, width - 3.0, Row_h - 1.0, 2.0)
+					end
 					cx := x - scroll_x
 					from
 						ci := 1
@@ -518,6 +602,7 @@ feature -- Input
 					end
 				else
 					resizing_column := 0
+					context_model := 0
 					vr := view_row_at (a_py)
 					if vr > 0 then
 						select_model_row (view.i_th (vr))
@@ -525,6 +610,37 @@ feature -- Input
 				end
 				Result := True
 			end
+		end
+
+	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
+			-- Copy cell, Copy row and Copy all rows. The row under the
+			-- pointer is noted (`context_model', outlined) so the actions
+			-- - the grid's and a client's `menu_extension' - name it.
+		local
+			vr, l_model, l_column: INTEGER
+		do
+			vr := view_row_at (a_py)
+			if vr > 0 then
+				l_model := view.i_th (vr)
+				l_column := header_column_at (a_px)
+			end
+			context_model := l_model
+			context_column := l_column
+			create Result.make
+			if l_model > 0 and l_column > 0 then
+				Result.add_item ("Copy cell", "", True, agent copy_text (cell_text (l_model, l_column)))
+			else
+				Result.add_item ("Copy cell", "", False, Void)
+			end
+			if l_model > 0 then
+				Result.add_item ("Copy row", "", True, agent copy_text (row_text (l_model)))
+			else
+				Result.add_item ("Copy row", "", False, Void)
+			end
+			Result.add_item ("Copy all rows", "", not view.is_empty, agent copy_text (shown_rows_text))
+		ensure then
+			offered: Result /= Void
+			noted: context_model >= 0 and context_model <= rows.count
 		end
 
 	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
@@ -628,6 +744,15 @@ feature -- Input
 feature {NONE} -- Engine
 
 	resizing_column: INTEGER
+
+	copy_text (a_text: READABLE_STRING_GENERAL)
+			-- `a_text' onto the system clipboard.
+		local
+			l_clip: SW_CLIPBOARD
+		do
+			create l_clip
+			l_clip.set_text (a_text)
+		end
 			-- The column being width-dragged; 0 when idle.
 
 	key_less (a_keys: SPECIAL [detachable COMPARABLE]; a_mi, b_mi: INTEGER): BOOLEAN
@@ -810,5 +935,6 @@ invariant
 	view_never_exceeds_rows: view.count <= rows.count
 	sort_in_range: sort_column >= 0 and sort_column <= columns.count
 	selection_in_model: selected_model >= 0 and selected_model <= rows.count
+	context_in_model: context_model >= 0 and context_model <= rows.count
 
 end

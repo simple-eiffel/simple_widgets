@@ -82,6 +82,53 @@ feature -- Element change
 			parallel: raw_labels.count = items.count
 		end
 
+	append_items (a_other: SW_MENU)
+			-- Every item of `a_other', in order, after this menu's own:
+			-- its labels as declared (mnemonics kept), hints, enabled
+			-- flags, actions and separators.
+		require
+			not_self: a_other /= Current
+		local
+			i: INTEGER
+		do
+			from
+				i := 1
+			until
+				i > a_other.items.count
+			loop
+				if a_other.items.i_th (i).separator then
+					add_separator
+				else
+					add_item (a_other.raw_labels.i_th (i), a_other.items.i_th (i).hint,
+						a_other.items.i_th (i).enabled, a_other.items.i_th (i).action)
+				end
+				i := i + 1
+			end
+		ensure
+			grew: items.count = old items.count + a_other.items.count
+		end
+
+	index_of_label (a_label: READABLE_STRING_GENERAL): INTEGER
+			-- The 1-based index of the first item whose plain label is
+			-- `a_label'; 0 when none - for tests and for clients that
+			-- adjust a menu built elsewhere.
+		local
+			i: INTEGER
+		do
+			from
+				i := 1
+			until
+				i > items.count or Result > 0
+			loop
+				if not items.i_th (i).separator and then items.i_th (i).label.same_string_general (a_label) then
+					Result := i
+				end
+				i := i + 1
+			end
+		ensure
+			in_range: Result >= 0 and Result <= items.count
+		end
+
 feature -- Mnemonics
 
 	mnemonics: SW_MNEMONIC

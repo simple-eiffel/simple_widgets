@@ -70,6 +70,23 @@ feature -- Geometry
 			sized: width = a_w and height = a_h
 		end
 
+	vanish
+			-- Take this widget and everything below it off the surface:
+			-- no extent where it stands, so pills, hover and hit tests
+			-- pass it by until the next `arrange' places it again. A
+			-- folded dock zone and the zones a maximized panel covers
+			-- send their contents away so.
+		do
+			set_bounds (x, y, 0.0, 0.0)
+			across
+				sub_widgets as al_child
+			loop
+				al_child.vanish
+			end
+		ensure
+			gone: width = 0.0 and height = 0.0
+		end
+
 	contains (a_px, a_py: REAL_64): BOOLEAN
 		do
 			Result := a_px >= x and then a_px <= x + width
@@ -651,6 +668,46 @@ feature -- Input
 			-- window presents it; every widget is right-clickable, and
 			-- the only question is whether something is defined here.
 		do
+		end
+
+	menu_extension: detachable PROCEDURE [SW_MENU, REAL_64, REAL_64]
+			-- A client's own items for this widget's right-click menu:
+			-- called with an empty menu and the point, after the widget's
+			-- `context_menu' was asked (so a grid has already noted the
+			-- row under the pointer); what it adds stands first.
+
+	set_menu_extension (a_action: detachable PROCEDURE [SW_MENU, REAL_64, REAL_64])
+		do
+			menu_extension := a_action
+		ensure
+			set: menu_extension = a_action
+		end
+
+	offered_menu (a_px, a_py: REAL_64): detachable SW_MENU
+			-- What a right-click at the point presents: the client's
+			-- `menu_extension' items, a separator, then the widget's own
+			-- `context_menu'; Void when neither offers an item.
+		local
+			l_own: detachable SW_MENU
+		do
+			l_own := context_menu (a_px, a_py)
+			if attached menu_extension as al_extension then
+				create Result.make
+				al_extension.call ([Result, a_px, a_py])
+				if attached l_own as al_own and then not al_own.items.is_empty then
+					if not Result.items.is_empty then
+						Result.add_separator
+					end
+					Result.append_items (al_own)
+				end
+				if Result.items.is_empty then
+					Result := Void
+				end
+			else
+				Result := l_own
+			end
+		ensure
+			extended_never_empty: (menu_extension /= Void and attached Result as al_result) implies not al_result.items.is_empty
 		end
 
 	handle_char (a_code: INTEGER)

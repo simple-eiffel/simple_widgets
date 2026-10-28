@@ -86,6 +86,9 @@ feature {NONE} -- Initialization
 			print ("%N=== CHAT PER-MESSAGE MUTATION ===%N")
 			run_chat_mutation_tests
 
+			print ("%N=== RIGHT-CLICK MENUS + FOLDING AND MAXIMIZED PANES (0.46.0) ===%N")
+			run_context_pane_tests
+
 			print ("%N=== ACCELERATORS + MNEMONICS ===%N")
 			run_keyboard_tests
 
@@ -535,6 +538,21 @@ feature {NONE} -- Test runners
 			run_test (agent chat_text_tests.test_selection_offsets_run_over_the_displayed_text, "selection_offsets_run_over_the_displayed_text")
 			run_test (agent chat_text_tests.test_context_menu_offers_copy_only_when_there_is_something_to_copy, "context_menu_offers_copy")
 			run_test (agent chat_text_tests.test_line_and_selection_evidence, "line_and_selection_evidence (offscreen PNGs)")
+		end
+
+	context_pane_tests: SW_CONTEXT_PANE_ASSAULT
+
+	run_context_pane_tests
+		do
+			create context_pane_tests
+			run_test (agent context_pane_tests.test_extension_stands_above_the_own_items, "extension_stands_above_the_own_items")
+			run_test (agent context_pane_tests.test_grid_right_click_names_a_row_without_selecting_it, "grid_right_click_names_a_row_without_selecting_it")
+			run_test (agent context_pane_tests.test_tree_menu_expands_all_and_copies, "tree_menu_expands_all_and_copies")
+			run_test (agent context_pane_tests.test_paragraph_list_copies_the_paragraph_under_the_pointer, "paragraph_list_copies_the_paragraph_under_the_pointer")
+			run_test (agent context_pane_tests.test_document_view_offers_open_link_and_copy, "document_view_offers_open_link_and_copy")
+			run_test (agent context_pane_tests.test_zone_folds_to_a_strip_and_a_name_opens_it, "zone_folds_to_a_strip_and_a_name_opens_it")
+			run_test (agent context_pane_tests.test_panel_maximizes_and_restores, "panel_maximizes_and_restores")
+			run_test (agent context_pane_tests.test_title_bar_menu_offers_maximize_fold_and_move, "title_bar_menu_offers_maximize_fold_and_move")
 		end
 
 	chat_mutation_tests: SW_CHAT_MUTATION_ASSAULT

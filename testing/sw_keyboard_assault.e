@@ -647,6 +647,8 @@ feature -- The right-click door: a popup that is really PRESENTED
 			-- The honest answer over a widget with no menu to give. A door
 			-- that opened an empty popup here would put a grey rectangle on
 			-- the screen for every stray right-click in the application.
+			-- (0.46.0: a label with text offers Copy; an empty one offers
+			-- nothing, which is the case this test holds.)
 		local
 			w: SW_WINDOW
 			th: SW_THEME
@@ -654,7 +656,7 @@ feature -- The right-click door: a popup that is really PRESENTED
 		do
 			create th.make_dark
 			create w.make ("ctx-bare", 0, 0, 320, 200, th)
-			create l.make_ui ("a label offers no context menu")
+			create l.make_ui ("")
 			l.set_grow (1.0)
 			w.set_root (l)
 			w.request_render

@@ -81,7 +81,7 @@ inherit
 			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
 			handle_double_click, handle_drag, handle_key, handle_char,
 			cursor_kind, focusables,
-			handle_release
+			handle_release, context_menu
 		end
 
 	SW_IN_PLACE_EDITING
@@ -92,7 +92,7 @@ inherit
 			sub_widgets, arrange, widget_at, handle_wheel, handle_click,
 			handle_double_click, handle_drag, handle_key, handle_char,
 			cursor_kind, focusables,
-			handle_release
+			handle_release, context_menu
 		end
 
 	SW_MARK_HOST
@@ -488,6 +488,73 @@ feature -- Alignment (GW-02)
 		end
 
 feature -- Element change
+
+	context_item: INTEGER
+			-- The paragraph the last right-click fell on; 0 = none. For
+			-- a client's `menu_extension'.
+
+	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
+			-- Copy the paragraph under the pointer, Copy the selected
+			-- paragraphs (when several are), Copy all.
+		do
+			context_item := item_at (a_py)
+			create Result.make
+			if context_item > 0 then
+				Result.add_item ("Copy paragraph", "", True, agent copy_text (text_of (context_item)))
+			else
+				Result.add_item ("Copy paragraph", "", False, Void)
+			end
+			if selection_count > 1 then
+				Result.add_item ("Copy selected", "", True, agent copy_text (joined_text (selected_indices)))
+			end
+			Result.add_item ("Copy all", "", count > 0, agent copy_text (all_paragraphs_text))
+		ensure then
+			offered: Result /= Void
+			noted: context_item >= 0 and context_item <= count
+		end
+
+	all_paragraphs_text: STRING_32
+			-- Every paragraph, a blank line between them.
+		local
+			l_all: ARRAYED_LIST [INTEGER]
+			i: INTEGER
+		do
+			create l_all.make (count)
+			from
+				i := 1
+			until
+				i > count
+			loop
+				l_all.extend (i)
+				i := i + 1
+			end
+			Result := joined_text (l_all)
+		end
+
+	joined_text (a_indices: LIST [INTEGER]): STRING_32
+			-- The paragraphs `a_indices' names, a blank line between them.
+		require
+			all_known: across a_indices as al_i all al_i >= 1 and al_i <= count end
+		do
+			create Result.make (256)
+			across
+				a_indices as al_i
+			loop
+				if not Result.is_empty then
+					Result.append ("%N%N")
+				end
+				Result.append (text_of (al_i))
+			end
+		end
+
+	copy_text (a_text: READABLE_STRING_GENERAL)
+			-- `a_text' onto the system clipboard.
+		local
+			l_clip: SW_CLIPBOARD
+		do
+			create l_clip
+			l_clip.set_text (a_text)
+		end
 
 	add (a_text: READABLE_STRING_GENERAL)
 			-- Append a paragraph.

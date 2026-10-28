@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.46.0 - right-click menus everywhere; panes that fold and maximize)
+
+- `SW_WIDGET.set_menu_extension` and `offered_menu`: a client's own items stand above a widget's own right-click menu, a separator between; `SW_WINDOW` presents `offered_menu`. `SW_MENU.append_items` and `index_of_label`.
+- Default menus: `SW_DATA_GRID` Copy cell, Copy row, Copy all rows (titles first, tab-separated); the right-click notes the row (`context_model`, `context_object`, outlined) WITHOUT selecting it, so `on_select` does not fire. `SW_TREE` Expand or Collapse, Expand all, Collapse all, Copy (`expand_all`, `collapse_all`, `context_node`). `SW_DOC_UNITS` (document view, parallel text, interlinear) Open link, Copy, Copy paragraph / verse / line, Copy all, Select All; `SW_INTERLINEAR` adds Copy word. `SW_PARAGRAPH_LIST` Copy paragraph, Copy selected, Copy all. `SW_LABEL` Copy while it has text.
+- `SW_DOCK_HOST`: `collapse_zone`, `expand_zone`, `toggle_zone`, `set_all_collapsed`, `is_folded`, `is_focused_on_center` - a folded zone is a strip along the edge naming its panels (set along the strip on the west and east through the new `SW_PAINTER.push_rotation`); a click on a name opens the zone at that panel; `set_panel_marked` puts a dot beside a name. `set_maximizable`, `maximize_panel`, `restore_maximized`, `toggle_maximized`: a panel takes the whole host. The snapshot keeps folds (`collapsed` lines).
+- `SW_DOCK_ZONE`: bar buttons (fold chevron on the zone's top bar or tab strip, maximize on a maximizable panel's bar, restore on a maximized one; `button_at`, `strip_panel_at`), a double click on a bar maximizes or restores when the host does not float panels, and a right-click on a bar, tab or strip offers Maximize or Restore, Collapse or Show, and Move to another zone.
+- `SW_WIDGET.vanish`: a widget and its subtree off the surface (no extent), so pills and hit tests pass panels a fold or a maximized panel covers.
+- Tests: `SW_CONTEXT_PANE_ASSAULT` (8). `a_context_click_on_nothing_offers_nothing` now holds its case with an empty label, since a label with text offers Copy.
+
+### Fixed (0.46.0 - an empty line as tall as a line of text)
+
+- With the theme's UI face installed (Archivo, by simple_bible 0.7.18 on 2026-10-27), a shaped line of text stood 25 px and an empty one 21 (37 against 41 in a paragraph list): `SW_SHAPING.line_height` measured the general list's first face while `set_theme_faces` puts the theme face first for Latin only. It now measures the theme face leading the list (`primary_fonts`), and `SW_TEXT_GEOMETRY` floors an empty piece at its own role policy's line when a host set one. Before: `textbox_shaped_lines_stack_at_row_height` and `empty_paragraph_stands_a_line_tall` FAILED on unchanged main (573 passed, 2 failed); after: 575 passed, 0 failed.
+
 ### Fixed (0.45.2 - design scan 37)
 
 - A refill kept the stack's row request: a word or row asked for in a laid-out view stays armed until the next measure, so a refill that asked for nothing (simple_bible's Interlinear on a whole chapter) jumped to the old place. `SW_STACKED_ITEMS.forget_pending_scroll`, called by every refill: `SW_INTERLINEAR.wipe_out`, `SW_PARALLEL_TEXT.wipe_out`, `SW_PARAGRAPH_LIST.wipe_out`, `SW_DOCUMENT_VIEW.set_document`. Before: `refilled_interlinear_forgets_an_old_scroll` FAILED; after: passes.
