@@ -43,6 +43,8 @@ inherit
 
 	SW_MARK_HOST
 
+	SW_COPYING
+
 create
 	make, make_single_line, make_password
 
@@ -400,12 +402,9 @@ feature -- Clipboard and selection commands
 	copy_selection
 			-- Masked boxes never surrender their text to the
 			-- clipboard - copying from one is a silent no-op.
-		local
-			clip: SW_CLIPBOARD
 		do
 			if has_selection and not is_masked then
-				create clip
-				clip.set_text (selected_text)
+				copy_text (selected_text)
 			end
 		end
 
@@ -590,7 +589,7 @@ feature -- Layout
 			-- so a host capping a box at five rows let it grow to 6.7.)
 		do
 			if a_p.has_shaping and not is_hiding and then attached a_p.shaping as al_kit then
-				Result := al_kit.line_height (body_pixels (a_p))
+				Result := geometry.floor_line_height (al_kit, body_pixels (a_p))
 			else
 				Result := a_p.theme.scaled_line_height
 			end

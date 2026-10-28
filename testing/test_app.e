@@ -685,6 +685,8 @@ feature {NONE} -- Test runners
 			run_test (agent document_tests.test_gw13_bold_and_links_reach_the_shaper, "gw13_bold_and_links_reach_the_shaper")
 			run_test (agent document_tests.test_gw13_spacing_follows_the_theme, "gw13_spacing_follows_the_theme")
 			run_test (agent document_tests.test_gw13_long_document_scrolls, "gw13_long_document_scrolls")
+			run_test (agent document_tests.test_empty_document_block_stands_a_line_of_its_face, "empty_document_block_stands_a_line_of_its_face")
+			run_test (agent document_tests.test_each_line_adds_one_line_of_its_face, "each_line_adds_one_line_of_its_face")
 			run_test (agent document_tests.test_empty_paragraph_stands_a_line_tall, "empty_paragraph_stands_a_line_tall")
 			run_test (agent document_tests.test_paragraph_spacing_scales, "paragraph_spacing_scales")
 			run_test (agent document_tests.test_gw13_document_light, "gw13_document_light")

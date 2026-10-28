@@ -25,6 +25,8 @@ inherit
 			accepts_focus, wants_tab
 		end
 
+	SW_COPYING
+
 create
 	make
 
@@ -363,11 +365,8 @@ feature -- Operations
 
 	copy_selection
 			-- The selection as a TSV block, onto the clipboard.
-		local
-			clip: SW_CLIPBOARD
 		do
-			create clip
-			clip.set_text (engine.block_tsv (
+			copy_text (engine.block_tsv (
 				sel_row.min (ext_row), sel_col.min (ext_col),
 				sel_row.max (ext_row), sel_col.max (ext_col)))
 		end

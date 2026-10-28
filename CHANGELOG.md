@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.46.1 - design scan 55)
+
+- One floor for a line's height: `SW_TEXT_GEOMETRY.floor_line_height` (the leading face of a host's role policy, else the kit's) serves the block floor, the empty-piece floor and `SW_TEXT_BOX.row_height`. 0.46.0 had moved one of three: a document whose reading face has a shorter line than the UI face stood a one-line paragraph a UI line tall, so its second line added 17 px and its third 21. Before: `each_line_adds_one_line_of_its_face` FAILED; after: 577 passed, 0 failed. Also `empty_document_block_stands_a_line_of_its_face`.
+- One clipboard writer: the parentless mixin `SW_COPYING.copy_text`, inherited by `SW_DATA_GRID`, `SW_TREE`, `SW_LABEL`, `SW_PARAGRAPH_LIST`, `SW_TEXT_SELECTION` (so the document view, parallel text and interlinear), `SW_TEXT_BOX`, `SW_CHAT_THREAD` and `SW_SPREADSHEET`; five private copies from 0.46.0 and four inline writers are gone.
+
 ### Added (0.46.0 - right-click menus everywhere; panes that fold and maximize)
 
 - `SW_WIDGET.set_menu_extension` and `offered_menu`: a client's own items stand above a widget's own right-click menu, a separator between; `SW_WINDOW` presents `offered_menu`. `SW_MENU.append_items` and `index_of_label`.
