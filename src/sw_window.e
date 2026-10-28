@@ -2334,7 +2334,7 @@ feature {NONE} -- Popup lifecycle
 				handled or w = Void
 			loop
 				if w.is_enabled then
-					if attached w.context_menu (a_x, a_y) as m then
+					if attached w.offered_menu (a_x, a_y) as m then
 							-- a right-click focuses its target, as every
 							-- editor does - the menu actions act on state
 							-- the widget will then also DRAW (selection is

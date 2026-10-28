@@ -424,6 +424,17 @@ feature -- Shapes
 			context.restore.do_nothing
 		end
 
+	push_rotation (a_cx, a_cy, a_angle: REAL_64)
+			-- Make (`a_cx', `a_cy') the origin and turn everything drawn by
+			-- `a_angle' radians - clockwise on the screen - until
+			-- `pop_transform'; nests with the clips. A folded dock zone
+			-- sets its titles along the window's edge through it.
+		do
+			context.save.do_nothing
+			context.translate (a_cx, a_cy).do_nothing
+			context.rotate (a_angle).do_nothing
+		end
+
 	set_color_alpha (a_rgb: NATURAL_32; a_alpha: REAL_64)
 			-- Colour with transparency, for backdrops and washes.
 		require

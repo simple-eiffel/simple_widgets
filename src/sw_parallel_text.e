@@ -56,6 +56,7 @@ feature {NONE} -- Initialization
 			positive: a_viewport_height > 0.0
 		do
 			viewport_height := a_viewport_height
+			set_item_noun ("verse")
 			create titles.make (Max_columns)
 			create weights.make (Max_columns)
 			create scales.make (Max_columns)

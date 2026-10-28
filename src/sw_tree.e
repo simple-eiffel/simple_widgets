@@ -16,7 +16,7 @@ inherit
 		redefine
 			handle_click, handle_double_click, handle_wheel, handle_key,
 			wants_hover_point, accepts_focus, handle_drag, handle_release,
-			accessible_role
+			accessible_role, context_menu
 		end
 
 create
@@ -68,6 +68,37 @@ feature -- Access
 
 	visible: ARRAYED_LIST [TUPLE [node: G; depth: INTEGER; has_kids: BOOLEAN]]
 			-- The flattened rows currently showing.
+
+	context_row: INTEGER
+			-- The row of `visible' the last right-click fell on; 0 = none.
+			-- Outlined, not selected (a right-click must not fire
+			-- `on_select'); cleared by the next click and whenever the
+			-- rows are rebuilt.
+
+	context_node: detachable G
+			-- The node the last right-click fell on; Void = none.
+		do
+			if context_row >= 1 and context_row <= visible.count then
+				Result := visible.i_th (context_row).node
+			end
+		end
+
+	label_of (a_node: G): STRING_32
+			-- What the tree shows for `a_node'.
+		do
+			if attached label_provider as al_provider then
+				Result := al_provider.item ([a_node])
+			else
+				create Result.make_empty
+			end
+		end
+
+	has_children (a_node: G): BOOLEAN
+			-- Does `a_node' have children to show?
+		do
+			Result := attached children_provider as al_provider and then attached al_provider.item ([a_node]) as al_kids
+				and then not al_kids.is_empty
+		end
 
 	is_expanded (a_node: G): BOOLEAN
 		do
@@ -138,6 +169,29 @@ feature -- Element change
 			else
 				expand_node (a_node)
 			end
+		end
+
+	expand_all
+			-- Every node with children open, all the way down (the
+			-- provider must describe a finite tree).
+		do
+			across
+				roots as al_root
+			loop
+				open_subtree (al_root)
+			end
+			rebuild_visible
+		ensure
+			roots_open: across roots as al_root all has_children (al_root) implies is_expanded (al_root) end
+		end
+
+	collapse_all
+			-- Every node closed: only the roots show.
+		do
+			open_nodes.wipe_out
+			rebuild_visible
+		ensure
+			only_roots: visible.count = roots.count
 		end
 
 	select_node (a_node: detachable G)
@@ -226,6 +280,10 @@ feature -- Drawing
 						a_p.set_color (t.surface_variant)
 						a_p.fill_rect (x, ry, width, Row_h)
 					end
+					if i = context_row then
+						a_p.set_color (t.accent)
+						a_p.rrect_stroke (x + 1.5, ry + 0.5, width - 3.0, Row_h - 1.0, 2.0)
+					end
 					ix := x + 8.0 + row.depth * Indent_w
 					if row.has_kids then
 						a_p.set_color (t.ink_muted)
@@ -271,6 +329,7 @@ feature -- Input
 				scroll_y := bar.press (a_py, scroll_y)
 				Result := True
 			elseif is_enabled then
+				context_row := 0
 				i := row_at (a_py)
 				if i > 0 then
 					row := visible.i_th (i)
@@ -283,6 +342,39 @@ feature -- Input
 				end
 				Result := True
 			end
+		end
+
+	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
+			-- Expand or Collapse the node under the pointer, Expand all,
+			-- Collapse all, Copy its label. The node is noted
+			-- (`context_node', outlined) for a client's `menu_extension'.
+		local
+			i: INTEGER
+			l_node: detachable G
+		do
+			i := row_at (a_py)
+			if i > 0 then
+				l_node := visible.i_th (i).node
+			end
+			context_row := i
+			create Result.make
+			if attached l_node as al_node and then visible.i_th (i).has_kids then
+				if is_expanded (al_node) then
+					Result.add_item ("Collapse", "", True, agent collapse_node (al_node))
+				else
+					Result.add_item ("Expand", "", True, agent expand_node (al_node))
+				end
+			end
+			Result.add_item ("Expand all", "", not roots.is_empty, agent expand_all)
+			Result.add_item ("Collapse all", "", not open_nodes.is_empty, agent collapse_all)
+			Result.add_separator
+			if attached l_node as al_node then
+				Result.add_item ("Copy", "", True, agent copy_text (label_of (al_node)))
+			else
+				Result.add_item ("Copy", "", False, Void)
+			end
+		ensure then
+			offered: Result /= Void
 		end
 
 	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
@@ -398,6 +490,7 @@ feature {NONE} -- Engine
 
 	rebuild_visible
 		do
+			context_row := 0
 			visible.wipe_out
 			across
 				roots as r
@@ -406,6 +499,32 @@ feature {NONE} -- Engine
 			end
 			scroll_y := scroll_y.min (max_scroll)
 			bar.set_extent (height, visible.count * Row_h)
+		end
+
+	open_subtree (a_node: G)
+			-- `a_node' and every node below it with children, opened.
+		do
+			if attached children_provider as al_provider and then attached al_provider.item ([a_node]) as al_kids
+				and then not al_kids.is_empty
+			then
+				if not open_nodes.has (a_node) then
+					open_nodes.extend (a_node)
+				end
+				across
+					al_kids as al_kid
+				loop
+					open_subtree (al_kid)
+				end
+			end
+		end
+
+	copy_text (a_text: READABLE_STRING_GENERAL)
+			-- `a_text' onto the system clipboard.
+		local
+			l_clip: SW_CLIPBOARD
+		do
+			create l_clip
+			l_clip.set_text (a_text)
 		end
 
 	append_subtree (a_node: G; a_depth: INTEGER)

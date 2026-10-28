@@ -37,7 +37,7 @@ inherit
 			item_text_count, forget_hover,
 			set_hover_point, set_hovered, handle_wheel, handle_click, handle_double_click,
 			handle_drag, handle_release, handle_key, handle_char, cursor_kind,
-			print_height, clean_break
+			print_height, clean_break, context_menu
 		end
 
 	SW_TEXT_SELECTION
@@ -45,7 +45,7 @@ inherit
 			dwell_ms, handle_dwell, hover_card_at, accepts_focus, wants_hover_point,
 			set_hover_point, set_hovered, handle_wheel, handle_click, handle_double_click,
 			handle_drag, handle_release, handle_key, handle_char, cursor_kind,
-			print_height, clean_break
+			print_height, clean_break, context_menu
 		redefine
 			item_separator
 		end
@@ -337,6 +337,79 @@ feature -- Layout bookkeeping
 			update_link_hover
 		ensure then
 			no_link: hovered_link_span = 0
+		end
+
+feature -- Menu (SW_WIDGET)
+
+	item_noun: STRING_32
+			-- What one text is called in the menu ("Copy paragraph").
+		attribute
+			Result := "paragraph"
+		end
+
+	set_item_noun (a_noun: READABLE_STRING_GENERAL)
+		require
+			named: not a_noun.is_empty
+		do
+			create item_noun.make_from_string_general (a_noun)
+		ensure
+			set: item_noun.same_string_general (a_noun)
+		end
+
+	context_item: INTEGER
+			-- The text the last right-click fell on; 0 = none. For a
+			-- client's `menu_extension'.
+
+	all_text: STRING_32
+			-- Every text in reading order, joined as a copy joins them.
+		local
+			i: INTEGER
+		do
+			create Result.make (256)
+			from
+				i := 1
+			until
+				i > item_count
+			loop
+				Result.append (text_of (i))
+				if i < item_count then
+					Result.append (item_separator (i))
+				end
+				i := i + 1
+			end
+		end
+
+	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
+			-- A reader's menu: Open link (over a link that a host
+			-- follows), Copy (the selection), Copy the text under the
+			-- pointer, Copy all, Select All.
+		local
+			l_link: STRING_32
+		do
+			context_item := pointed_item (a_px, a_py)
+			l_link := link_target_at_point (a_px, a_py)
+			create Result.make
+			if not l_link.is_empty and then attached on_link_click as al_follow then
+				Result.add_item ("Open link", "", True, agent al_follow.call ([l_link]))
+				Result.add_separator
+			end
+			Result.add_item ("Copy", "Ctrl+C", has_selection, agent copy_selection)
+			if context_item > 0 then
+				Result.add_item ({STRING_32} "Copy " + item_noun, "", True, agent copy_text (text_of (context_item)))
+			end
+			Result.add_item ("Copy all", "", item_count > 0, agent copy_text (all_text))
+			Result.add_item ("Select All", "Ctrl+A", item_count > 0, agent select_all)
+		ensure then
+			offered: Result /= Void
+		end
+
+	copy_text (a_text: READABLE_STRING_GENERAL)
+			-- `a_text' onto the system clipboard.
+		local
+			l_clip: SW_CLIPBOARD
+		do
+			create l_clip
+			l_clip.set_text (a_text)
 		end
 
 feature -- Input (SW_WIDGET)
