@@ -14,7 +14,8 @@ class
 	SW_LANE_TIMELINE_ASSAULT
 
 inherit
-	SW_SHAPING_ASSAULT
+	SW_VIRTUAL_GRID_ASSAULT
+			-- for the frame budget and the timing harness (Plan 22, 2026-10-30)
 
 feature -- Era years
 
@@ -335,6 +336,150 @@ feature -- Scan 15 (since c9d5571)
 				tl.lane_tops [30] >= tl.y + tl.axis_h and tl.lane_tops [30] + tl.lane_heights [30] <= tl.y + tl.height + 0.5)
 		end
 
+feature -- The river (Plan 22 phase 1, 2026-10-30)
+
+	test_river_deep_time_labels_have_separators
+			-- Deep time reads with US thousands separators ("175,000 BC"); a year of four
+			-- digits reads as before ("1446 BC").
+		local
+			e: SW_ERA_YEARS
+		do
+			create e.make
+			assert_strings_equal ("175,000 BC", {STRING_32} "175,000 BC", e.label (-174999))
+			assert_strings_equal ("10,000 BC", {STRING_32} "10,000 BC", e.label (-9999))
+			assert_strings_equal ("four digits as before", {STRING_32} "1446 BC", e.label (-1445))
+			assert_strings_equal ("a deep range", {STRING_32} "200,000-190,000 BC", e.range_label (-199999, -189999))
+		end
+
+	test_river_ten_thousand_items_hold_the_frame_budget
+			-- Spike S1: 10,000 items in 16 lanes, a dispute of three positions in every 70,
+			-- wheel frames at three views, each median inside the budget of the build (60 Hz
+			-- lean, twice that with contracts). The original took 753 ms at the whole span.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			views: ARRAY [REAL_64]
+			i, k: INTEGER
+			l_frames: ARRAYED_LIST [REAL_64]
+		do
+			create w.make ("river-10k", 0, 0, 1600, 900, create {SW_THEME}.make_dark)
+			tl := river (10_000)
+			w.set_root (tl)
+			views := <<-3000.0, 135.0, -1000.0, -500.0, -720.0, -680.0>>
+			from i := views.lower until i > views.upper loop
+				tl.set_view (views [i], views [i + 1])
+				w.request_render
+				create l_frames.make (12)
+				from k := 1 until k > 12 loop
+					tl.zoom_about ((views [i] + views [i + 1]) / 2.0, (if k \\ 2 = 0 then 0.97 else 1.03 end))
+					l_frames.extend (timed (agent w.request_render))
+					k := k + 1
+				end
+				io.put_string ("    river 10,000 items, view " + views [i].out + " .. " + views [i + 1].out + ": wheel frame median " + ((median (l_frames) * 100.0).rounded / 100.0).out + " ms%N")
+				assert_true ("a wheel frame holds the budget at " + views [i].out, median (l_frames) < budget_here)
+				i := i + 2
+			end
+		end
+
+	test_river_band_label_stays_in_view
+			-- A band that starts left of the view keeps its label at the plot's left edge
+			-- (spike S2: the Paleolithic and the Iron Age lost theirs).
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			l_band: SW_TIMELINE_ITEM
+		do
+			create w.make ("river-band", 0, 0, 900, 300, create {SW_THEME}.make_light)
+			create tl.make
+			tl.add_lane ("Levant", "Near East").do_nothing
+			l_band := tl.add_item (1, "Iron Age", -1199, -538, {SW_TIMELINE_ITEM}.Class_e)
+			l_band.set_importance ({SW_TIMELINE_ITEM}.Importance_period)
+			tl.set_view (-900.0, -600.0)
+			w.set_root (tl)
+			w.request_render
+			assert_true ("the band is laid out from left of the plot", tl.item_boxes.i_th (l_band.id).bx < tl.plot_left)
+			assert_true ("its label starts inside the plot", tl.label_left (l_band) >= tl.plot_left)
+		end
+
+	test_river_lens_spans_deep_time_and_turns_linear
+			-- Spike S2: the lens reaches 200,000 years ago and still gives the biblical span room;
+			-- positions round-trip; the scale only increases; zoomed to 1,000 years or less it
+			-- is exactly linear.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			px, l_prev, l_err, l_share, a, b, m: REAL_64
+			i, k, l_bad: INTEGER
+		do
+			create w.make ("river-lens", 0, 0, 1600, 400, create {SW_THEME}.make_dark)
+			create tl.make
+			tl.add_lane ("World", "World").do_nothing
+			tl.add_item (1, "Denisovans", -193000, -193000, {SW_TIMELINE_ITEM}.Class_b).set_importance ({SW_TIMELINE_ITEM}.Importance_period)
+			tl.add_item (1, "Bar Kokhba", 132, 135, {SW_TIMELINE_ITEM}.Class_b).set_importance ({SW_TIMELINE_ITEM}.Importance_period)
+			tl.set_lens (True)
+			tl.set_view (-200000.0, 135.0)
+			w.set_root (tl)
+			w.request_render
+			assert_true ("the lens reaches deep time", tl.view_from <= -199999.0)
+			l_prev := -1.0e9
+			from i := 0 until i > 400 loop
+				px := tl.plot_left + tl.plot_w * i / 400.0
+				l_err := l_err.max ((tl.year_x (tl.year_at (px)) - px).abs)
+				i := i + 1
+			end
+			assert_true ("positions round-trip within half a pixel: " + l_err.out, l_err < 0.5)
+			from i := 0 until i > 2000 loop
+				px := tl.year_x (-200000.0 + 200134.0 * ((i / 2000.0) ^ 3))
+				if px < l_prev then
+					l_bad := l_bad + 1
+				end
+				l_prev := px
+				i := i + 1
+			end
+			assert_integers_equal ("the scale only increases", 0, l_bad)
+			l_share := (tl.year_x (135.0) - tl.year_x (-999.0)) / tl.plot_w
+			assert_true ("1000 BC to AD 135 gets room: " + l_share.out, l_share > 0.10)
+			from k := 1 until k > 25 loop
+				tl.zoom_about (-700.0, 0.7)
+				w.request_render
+				k := k + 1
+			end
+			assert_true ("zoomed in, the view stays ordered and wide enough", tl.view_to - tl.view_from >= tl.Min_span)
+			tl.set_view (-1000.0, -500.0)
+			w.request_render
+			a := tl.year_x (-1000.0)
+			b := tl.year_x (-500.0)
+			m := tl.year_x (-750.0)
+			assert_true ("at 500 years the scale is linear", (m - (a + b) / 2.0).abs < 0.5)
+		end
+
+	test_river_hover_card_on_an_item
+			-- Spike S6: a rest on an item opens its card (its title, then its years), anchored
+			-- at its box, through the window's own event path.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			it: SW_TIMELINE_ITEM
+			b: TUPLE [bx, by, bw, bh: REAL_64]
+		do
+			create w.make ("river-card", 0, 0, 900, 300, create {SW_THEME}.make_light)
+			create tl.make
+			tl.add_lane ("Mesopotamia", "Near East").do_nothing
+			it := tl.add_item (1, "Sennacherib besieges Lachish", -700, -700, {SW_TIMELINE_ITEM}.Class_a)
+			tl.set_view (-760.0, -640.0)
+			w.set_root (tl)
+			w.request_render
+			b := tl.item_boxes.i_th (it.id)
+			w.dispatch (13, (b.bx + b.bw / 2.0).truncated_to_integer, (b.by + b.bh / 2.0).truncated_to_integer)
+			w.dispatch (w.Event_dwell, 0, 0)
+			assert_true ("the rest opened a card", w.has_hover_card)
+			if attached w.hover_card as al_c then
+				assert_true ("anchored at the item", al_c.anchor_x = b.bx and al_c.anchor_y = b.by)
+				assert_true ("its title first", attached {SW_COLUMN} al_c.content as al_col and then attached {SW_LABEL} al_col.children.first as al_l
+					and then al_l.text.same_string_general ("Sennacherib besieges Lachish"))
+			end
+		end
+
 feature -- Evidence
 
 	test_gw17_timeline_light
@@ -348,6 +493,48 @@ feature -- Evidence
 		end
 
 feature {NONE} -- Fixtures
+
+	river (a_count: INTEGER): SW_LANE_TIMELINE
+			-- 16 lanes in 4 groups; `a_count' items from 3000 BC to AD 135 (3% periods, 27% major,
+			-- 70% detail); one dispute of three positions per 70 items (spike S1's load).
+		local
+			i, l, f, len, d, l_seed: INTEGER
+			it: SW_TIMELINE_ITEM
+		do
+			create Result.make
+			from i := 1 until i > 16 loop
+				Result.add_lane ("Lane " + i.out, "Group " + ((i - 1) // 4 + 1).out).do_nothing
+				i := i + 1
+			end
+			l_seed := 12345
+			from i := 1 until i > a_count loop
+				l_seed := ((l_seed.to_integer_64 * 1103515245 + 12345) \\ 2147483648).to_integer_32
+				l := (i \\ 16) + 1
+				f := -3000 + l_seed.abs \\ 3135
+				if i \\ 70 = 0 then
+					d := Result.add_dispute ("Dispute " + i.out, f, f + 120)
+					Result.add_position (d, l, "Position A " + i.out, f, f + 10, {SW_TIMELINE_ITEM}.Class_c).do_nothing
+					Result.add_position (d, l, "Position B " + i.out, f + 40, f + 60, {SW_TIMELINE_ITEM}.Class_c).do_nothing
+					Result.add_position (d, l, "Position C " + i.out, f + 100, f + 120, {SW_TIMELINE_ITEM}.Class_f).do_nothing
+					i := i + 3
+				else
+					if i \\ 33 = 0 then
+						len := 100 + l_seed.abs \\ 500
+					else
+						len := l_seed.abs \\ 60
+					end
+					it := Result.add_item (l, "Item " + i.out, f, f + len, (l_seed.abs \\ 6) + 1)
+					if i \\ 33 = 0 then
+						it.set_importance ({SW_TIMELINE_ITEM}.Importance_period)
+					elseif l_seed.abs \\ 100 < 28 then
+						it.set_importance ({SW_TIMELINE_ITEM}.Importance_major)
+					else
+						it.set_importance ({SW_TIMELINE_ITEM}.Importance_detail)
+					end
+					i := i + 1
+				end
+			end
+		end
 
 	enveloped (a_tl: SW_LANE_TIMELINE; a_item: SW_TIMELINE_ITEM): BOOLEAN
 			-- Is `a_item''s box inside some envelope box?

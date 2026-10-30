@@ -58,12 +58,40 @@ feature -- Access
 			round_trip: display_year (Result) = a_display and is_before_christ (Result) = a_before
 		end
 
+	number_text (a_number: INTEGER): STRING_32
+			-- `a_number' with US thousands separators from 10,000 up ("175,000"); a year of
+			-- four digits as it is ("1446") (Plan 22, 2026-10-30: deep time).
+		local
+			l_digits: STRING_32
+			i: INTEGER
+		do
+			create l_digits.make (12)
+			l_digits.append_integer (a_number.abs)
+			if a_number.abs < 10000 then
+				Result := l_digits
+			else
+				create Result.make (l_digits.count + l_digits.count // 3)
+				from i := 1 until i > l_digits.count loop
+					if i > 1 and then (l_digits.count - i + 1) \\ 3 = 0 then
+						Result.append_character (',')
+					end
+					Result.append_character (l_digits [i])
+					i := i + 1
+				end
+			end
+			if a_number < 0 then
+				Result.prepend_character ('-')
+			end
+		ensure
+			short_years_plain: a_number.abs < 10000 implies not Result.has (',')
+		end
+
 	label (a_year: INTEGER): STRING_32
 			-- "753 BC", "AD 33" (or "753 BCE", "33 CE").
 		do
 			create Result.make (12)
 			if a_year <= 0 then
-				Result.append_integer (display_year (a_year))
+				Result.append (number_text (display_year (a_year)))
 				if uses_common_era then
 					Result.append ({STRING_32} " BCE")
 				else
@@ -90,7 +118,7 @@ feature -- Access
 			elseif is_before_christ (a_from) = is_before_christ (a_to) then
 				if is_before_christ (a_from) or uses_common_era then
 					create Result.make (16)
-					Result.append_integer (display_year (a_from))
+					Result.append (number_text (display_year (a_from)))
 					Result.append_character ('-')
 					Result.append (label (a_to))
 				else
