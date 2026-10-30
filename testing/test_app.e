@@ -454,6 +454,7 @@ feature {NONE} -- Test runners
 			run_test (agent margins_tests.test_theme_carries_border_padding_and_inset, "theme_carries_border_padding_and_inset")
 			run_test (agent margins_tests.test_column_places_children_from_the_theme, "column_places_children_from_the_theme")
 			run_test (agent margins_tests.test_nested_column_adds_no_second_border, "nested_column_adds_no_second_border")
+			run_test (agent margins_tests.test_short_column_takes_space_back_from_a_grower, "short_column_takes_space_back_from_a_grower")
 			run_test (agent margins_tests.test_explicit_spacing_always_wins, "explicit_spacing_always_wins")
 			run_test (agent margins_tests.test_card_and_group_carry_their_own_border, "card_and_group_carry_their_own_border")
 			run_test (agent margins_tests.test_control_minimum_comes_from_the_font, "control_minimum_comes_from_the_font")

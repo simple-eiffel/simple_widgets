@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.46.2 - a short column takes space back from its growers)
+
+- `SW_COLUMN.arrange`: when the column is shorter than its children's natural heights, the growing children give the shortfall back by weight, down to each one's `min_height`, so the children after them stay inside. Before, only leftover space was handed out; a grower taller than its column pushed the rest off the bottom (Simple Bible's Help > About: the text kept its height while the sheet was resized, and Close sat under a gap). Before: `short_column_takes_space_back_from_a_grower` FAILED (577 passed, 1 failed); after: 578 passed, 0 failed.
+
 ### Fixed (0.46.1 - design scan 55)
 
 - One floor for a line's height: `SW_TEXT_GEOMETRY.floor_line_height` (the leading face of a host's role policy, else the kit's) serves the block floor, the empty-piece floor and `SW_TEXT_BOX.row_height`. 0.46.0 had moved one of three: a document whose reading face has a shorter line than the UI face stood a one-line paragraph a UI line tall, so its second line added 17 px and its third 21. Before: `each_line_adds_one_line_of_its_face` FAILED; after: 577 passed, 0 failed. Also `empty_document_block_stands_a_line_of_its_face`.
