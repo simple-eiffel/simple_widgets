@@ -38,7 +38,24 @@ feature -- Access
 	padding_is_explicit: BOOLEAN
 			-- Has the application set `padding' itself?
 
+	is_fitting: BOOLEAN
+			-- Does a column too short for its children take the shortfall back
+			-- from its growers, down to each one's `min_height'? Off by default:
+			-- a column's growers otherwise keep their natural height and run
+			-- past its bottom, which every existing layout was built on (0.46.3).
+
 feature -- Element change
+
+	fitting: like Current
+			-- Fluent: take a shortfall back from the growers (a sheet whose text must
+			-- leave its buttons in view, 2026-10-30). Give each grower a `min_height'.
+		do
+			is_fitting := True
+			Result := Current
+		ensure
+			fitting: is_fitting
+			chained: Result = Current
+		end
 
 	with_padding (a_pad: REAL_64): like Current
 		require
@@ -154,8 +171,8 @@ feature -- Layout
 
 	arrange (a_p: SW_PAINTER)
 			-- Natural heights first; leftover container height splits
-			-- among growers by weight, and a shortfall is taken back
-			-- from them by weight, down to each one's `min_height'.
+			-- among growers by weight; a fitting column takes a shortfall
+			-- back from them by weight, down to each one's `min_height'.
 		local
 			cy, inner, ch, natural, leftover, total_grow, pad, gp: REAL_64
 			heights: ARRAYED_LIST [REAL_64]
@@ -186,10 +203,12 @@ feature -- Layout
 				if leftover > 0.0 and total_grow > 0.0 and children.i_th (i).grow > 0.0 then
 					ch := children.i_th (i).clamped_height
 						(ch + leftover * children.i_th (i).grow / total_grow)
-				elseif leftover < 0.0 and total_grow > 0.0 and children.i_th (i).grow > 0.0 then
-						-- too short a column (2026-10-30, Larry: the About sheet's text
-						-- did not follow the sheet): the growers give the space back, so
-						-- the children after them stay inside
+				elseif is_fitting and leftover < 0.0 and total_grow > 0.0 and children.i_th (i).grow > 0.0 then
+						-- too short a fitting column (2026-10-30, Larry: the About sheet's
+						-- text did not follow the sheet): the growers give the space back,
+						-- so the children after them stay inside. Opt-in since 0.46.3: by
+						-- default (0.46.2) it shrank dock panels' lists to nothing and their
+						-- clip failed cairo's positive_extent
 					ch := (ch + leftover * children.i_th (i).grow / total_grow)
 						.max (children.i_th (i).min_height)
 				end

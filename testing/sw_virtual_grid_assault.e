@@ -189,11 +189,11 @@ feature {NONE} -- Fixtures
 				i := i + 1
 			end
 			from
-				create l_checked_wheel.make (10)
-				create l_checked_page.make (10)
+				create l_checked_wheel.make (20)
+				create l_checked_page.make (20)
 				i := 1
 			until
-				i > 10
+				i > 20
 			loop
 				g.handle_wheel (120).do_nothing
 				time_it (agent w.request_render)
@@ -208,8 +208,10 @@ feature {NONE} -- Fixtures
 				-- The guard `without_contracts' would otherwise hide: with every
 				-- contract on, frames must not grow slower as the run goes on
 				-- (simple_shaping 0.6.1: each shaped string cost more than the last).
+				-- Halves of ten frames, not five (2026-10-30): five 60 ms frames let one
+				-- burst of other work on the machine fail the light or the dark run.
 			assert_true ("with contracts on, wheel frames do not grow slower",
-				median_of (l_checked_wheel, 6, 10) <= 2.0 * median_of (l_checked_wheel, 1, 5) + 2.0)
+				median_of (l_checked_wheel, 11, 20) <= 2.0 * median_of (l_checked_wheel, 1, 10) + 2.0)
 			report ("wheel frame (median)", median (l_wheel))
 			report ("wheel frame (worst)", worst (l_wheel))
 			report ("page-jump frame (median)", median (l_page))

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.46.3 - fitting is a column's choice)
+
+- 0.46.2 made every `SW_COLUMN` take a shortfall back from its growers. Dock panels hold growing lists in columns shorter than the list's natural height; squeezed to almost nothing, `SW_STACKED_ITEMS.begin_frame` asked cairo for a clip of negative height and failed `CAIRO_CONTEXT.clip_rectangle`'s `positive_extent` (Simple Bible's window, caught by its snapshots before release). Now a column fits only when asked: `SW_COLUMN.fitting` (fluent) and `is_fitting`; a plain column keeps its growers' natural heights as before 0.46.2. Before: `short_column_takes_space_back_from_a_grower` FAILED on 0.46.2 ("a plain column does not shrink its grower: expected 2000, got 251"); after: 578 passed, 0 failed, twice.
+- `gw29_hundred_thousand_rows_light/dark`: the contracts-on growth check compares halves of ten frames, not five; one burst of other work on the machine failed the light or the dark run in turn.
+
 ### Fixed (0.46.2 - a short column takes space back from its growers)
 
 - `SW_COLUMN.arrange`: when the column is shorter than its children's natural heights, the growing children give the shortfall back by weight, down to each one's `min_height`, so the children after them stay inside. Before, only leftover space was handed out; a grower taller than its column pushed the rest off the bottom (Simple Bible's Help > About: the text kept its height while the sheet was resized, and Close sat under a gap). Before: `short_column_takes_space_back_from_a_grower` FAILED (577 passed, 1 failed); after: 578 passed, 0 failed.
