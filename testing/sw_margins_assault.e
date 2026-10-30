@@ -114,8 +114,8 @@ feature -- The outside model: border once, padding between siblings
 	test_short_column_takes_space_back_from_a_grower
 			-- 2026-10-30 (Larry: Help > About's text did not follow its sheet): a growing
 			-- document view taller than its column, a button below it. The column is too
-			-- short for both at their natural heights, so the grower gives the space back
-			-- (down to its minimum) and the button stays inside the column.
+			-- short for both at their natural heights; a FITTING column takes the space back
+			-- from the grower (down to its minimum) and the button stays inside it.
 		local
 			th: SW_THEME
 			p: SW_PAINTER
@@ -133,7 +133,17 @@ feature -- The outside model: border once, padding between siblings
 			create view.make (2000.0)
 			view := view.with_min_size (0.0, 60.0).growing
 			create close.make ("Close", agent do end)
+				-- a plain column keeps the grower's natural height (0.46.2 shrank it there too,
+				-- and dock panels' lists squeezed to nothing failed cairo's clip precondition)
 			create col.make
+			col.put (view)
+			col.put (close)
+			col.set_bounds (0.0, 0.0, 400.0, 300.0)
+			col.arrange (p)
+			assert_reals_equal ("a plain column does not shrink its grower", 2000.0, view.height, 0.000_1)
+
+			create col.make
+			col := col.fitting
 			col.put (view)
 			col.put (close)
 			col.set_bounds (0.0, 0.0, 400.0, 300.0)
