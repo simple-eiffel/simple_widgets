@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.47.0 - the River of Time: SW_LANE_TIMELINE at scale, the lens, hover cards)
+
+- `SW_LANE_TIMELINE` keeps an index as items are added (each lane's items by start, binary-search insertion, stable; each lane's disputes with their positions) and lays rows and envelopes out from it in one pass, remembering what it placed (`shown_ids`); only items in the visible rows are drawn; label widths are measured once per item and size. The same boxes as before (every existing GW-17 and scan-15 test passes). 10,000 items: a wheel frame took 2,334 ms in the contract build, now 20 ms (Plan 22 spike S1: 753 ms to 10.7 ms lean). Before: `river_ten_thousand_items_hold_the_frame_budget` FAILED; after: passed.
+- The lens (`set_lens`, `set_lens_anchor`, `lens_blend`, `u_of`, `year_of_u`, `position`): a bent scale u = -ln (1 + (anchor - year) / 1,000) blended with the linear one by the width of the view, exactly linear at 1,000 years or less and fully bent at 20,000 or more, so one view reaches 200,000 years ago (`Lens_max_span` 250,000) while 1000 BC to AD 135 keeps more than a tenth of the axis; `year_at` inverts it by bisection; zoom, pan and drag work in the bent coordinate; the axis picks its round years stretch by stretch. Test `river_lens_spans_deep_time_and_turns_linear`.
+- Hover cards (`dwell_ms`, `hover_card_at`): an item's title and years, and a dispute's name and other positions. Test `river_hover_card_on_an_item`.
+- `label_left`: a band that starts left of the plot keeps its label at the plot's edge. Test `river_band_label_stays_in_view`.
+- `SW_ERA_YEARS.number_text`: deep time reads with US thousands separators ("175,000 BC"); four-digit years as before. Before: `river_deep_time_labels_have_separators` FAILED ("175000 BC"); after: passed.
+- Removed: `lane_order`, `positions_shown`, `first_row_of`, `place_item`, `place_dispute` (the index replaces them). 583 passed, 0 failed.
+
 ### Fixed (0.46.3 - fitting is a column's choice)
 
 - 0.46.2 made every `SW_COLUMN` take a shortfall back from its growers. Dock panels hold growing lists in columns shorter than the list's natural height; squeezed to almost nothing, `SW_STACKED_ITEMS.begin_frame` asked cairo for a clip of negative height and failed `CAIRO_CONTEXT.clip_rectangle`'s `positive_extent` (Simple Bible's window, caught by its snapshots before release). Now a column fits only when asked: `SW_COLUMN.fitting` (fluent) and `is_fitting`; a plain column keeps its growers' natural heights as before 0.46.2. Before: `short_column_takes_space_back_from_a_grower` FAILED on 0.46.2 ("a plain column does not shrink its grower: expected 2000, got 251"); after: 578 passed, 0 failed, twice.

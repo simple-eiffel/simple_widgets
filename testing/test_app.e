@@ -817,6 +817,11 @@ feature {NONE} -- Test runners
 			run_test (agent timeline_tests.test_scan15_lanes_below_the_bottom_can_be_reached, "scan15_lanes_below_the_bottom_can_be_reached")
 			run_test (agent timeline_tests.test_gw17_timeline_light, "gw17_timeline_light")
 			run_test (agent timeline_tests.test_gw17_timeline_dark, "gw17_timeline_dark")
+			run_test (agent timeline_tests.test_river_deep_time_labels_have_separators, "river_deep_time_labels_have_separators")
+			run_test (agent timeline_tests.test_river_ten_thousand_items_hold_the_frame_budget, "river_ten_thousand_items_hold_the_frame_budget")
+			run_test (agent timeline_tests.test_river_band_label_stays_in_view, "river_band_label_stays_in_view")
+			run_test (agent timeline_tests.test_river_lens_spans_deep_time_and_turns_linear, "river_lens_spans_deep_time_and_turns_linear")
+			run_test (agent timeline_tests.test_river_hover_card_on_an_item, "river_hover_card_on_an_item")
 			print ("%N=== GW-19 REGIONAL MAP ===%N")
 			create atlas_tests
 			run_test (agent atlas_tests.test_gw19_land_and_water_stay_apart, "gw19_land_and_water_stay_apart")
