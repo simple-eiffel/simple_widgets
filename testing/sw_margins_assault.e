@@ -111,6 +111,53 @@ feature -- The outside model: border once, padding between siblings
 			surf.destroy
 		end
 
+	test_short_column_takes_space_back_from_a_grower
+			-- 2026-10-30 (Larry: Help > About's text did not follow its sheet): a growing
+			-- document view taller than its column, a button below it. The column is too
+			-- short for both at their natural heights, so the grower gives the space back
+			-- (down to its minimum) and the button stays inside the column.
+		local
+			th: SW_THEME
+			p: SW_PAINTER
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			col: SW_COLUMN
+			view: SW_DOCUMENT_VIEW
+			close: SW_BUTTON
+		do
+			create th.make_light
+			create surf.make (400, 300)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+
+			create view.make (2000.0)
+			view := view.with_min_size (0.0, 60.0).growing
+			create close.make ("Close", agent do end)
+			create col.make
+			col.put (view)
+			col.put (close)
+			col.set_bounds (0.0, 0.0, 400.0, 300.0)
+			col.arrange (p)
+
+			assert_true ("the button stays inside the column", close.y + close.height <= 300.0 + 0.000_1)
+			assert_reals_equal ("the view takes the rest, no more",
+				300.0 - close.height - th.padding, view.height, 0.000_1)
+
+				-- a column too short even for the view's minimum keeps the minimum
+			col.set_bounds (0.0, 0.0, 400.0, 50.0)
+			col.arrange (p)
+			assert_reals_equal ("never below its min_height", 60.0, view.height, 0.000_1)
+
+				-- and a tall column still hands the grower the leftover, as before
+			view.set_grow (1.0)
+			col.set_bounds (0.0, 0.0, 400.0, 3000.0)
+			col.arrange (p)
+			assert_reals_equal ("a tall column still grows it",
+				3000.0 - close.height - th.padding, view.height, 0.000_1)
+			ctx.destroy
+			surf.destroy
+		end
+
 	test_nested_column_adds_no_second_border
 			-- The whole point. An inner box separates its children and
 			-- adds NOTHING at its own edge, so nesting cannot walk the

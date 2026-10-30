@@ -154,7 +154,8 @@ feature -- Layout
 
 	arrange (a_p: SW_PAINTER)
 			-- Natural heights first; leftover container height splits
-			-- among growers by weight.
+			-- among growers by weight, and a shortfall is taken back
+			-- from them by weight, down to each one's `min_height'.
 		local
 			cy, inner, ch, natural, leftover, total_grow, pad, gp: REAL_64
 			heights: ARRAYED_LIST [REAL_64]
@@ -185,6 +186,12 @@ feature -- Layout
 				if leftover > 0.0 and total_grow > 0.0 and children.i_th (i).grow > 0.0 then
 					ch := children.i_th (i).clamped_height
 						(ch + leftover * children.i_th (i).grow / total_grow)
+				elseif leftover < 0.0 and total_grow > 0.0 and children.i_th (i).grow > 0.0 then
+						-- too short a column (2026-10-30, Larry: the About sheet's text
+						-- did not follow the sheet): the growers give the space back, so
+						-- the children after them stay inside
+					ch := (ch + leftover * children.i_th (i).grow / total_grow)
+						.max (children.i_th (i).min_height)
 				end
 				children.i_th (i).set_bounds (x + pad, cy, inner, ch)
 				children.i_th (i).arrange (a_p)
