@@ -253,6 +253,37 @@ feature -- The measuring tool (Larry, 2026-10-31)
 			assert_true ("deleted entirely", a.measure_points.is_empty and a.measure_state = a.Measure_idle and a.readout_lines.is_empty)
 		end
 
+	test_atlas_tells_every_measure_change
+			-- The measurement pushes each change to its agents: start, two points, undo, close is not
+			-- yet possible, end, delete; a repeated point (a double-click's second press) tells nothing.
+		local
+			w: SW_WINDOW
+			a: SW_ATLAS
+		do
+			w := atlas_window (create {SW_THEME}.make_light, 900, 600)
+			a := atlas_of (w)
+			a.set_view (40.0, 35.8, 32.6)
+			w.request_render
+			told := 0
+			a.on_measure_change (agent do told := told + 1 end)
+			a.start_measuring
+			assert_integers_equal ("start told", 1, told)
+			click (a, 35.2345, 31.7767)
+			click (a, 36.2920, 33.5131)
+			assert_integers_equal ("each point told", 3, told)
+			click (a, 36.2920, 33.5131)
+			assert_integers_equal ("the same point again tells nothing", 3, told)
+			a.undo_point
+			assert_integers_equal ("undo told", 4, told)
+			a.end_measuring
+			assert_integers_equal ("end told", 5, told)
+			a.delete_measure
+			assert_integers_equal ("delete told", 6, told)
+		end
+
+	told: INTEGER
+			-- Changes told to the agent of `test_atlas_tells_every_measure_change'.
+
 	test_atlas_measures_a_shape_and_its_area
 			-- Four corners of the box 30 to 31 east, 40 to 41 north, then a click on the first point:
 			-- closed, 9,401.8 square kilometers (exact on the sphere), read out as 9,400 square

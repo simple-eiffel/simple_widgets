@@ -413,6 +413,39 @@ feature -- Files, queries, forms, charts of command
 				oc.Box_h + oc.Gap_y, oc.node_y (l1) - oc.node_y (boss), 0.000_1)
 		end
 
+	test_dock_panel_buttons_follow_their_conditions
+			-- A button inside a docked panel, in a column, re-queries its enabling condition when
+			-- the window's enabling pass walks the dock (2026-10-31: the Atlas's Undo point, End,
+			-- Close shape and Delete kept the state they were made with, so only Start worked;
+			-- the zones never passed the pass on to their panels).
+		local
+			w: SW_WINDOW
+			dh: SW_DOCK_HOST
+			col: SW_COLUMN
+			b: SW_BUTTON
+		do
+			create w.make ("dock-enabling", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			create dh.make (create {SW_LABEL}.make_ui ("the document"))
+			create col.make
+			create b.make ("Delete", Void)
+			col.put (b)
+			if dh.add_panel ("ATLAS", col, dh.Zone_east) > 0 then end
+			w.set_root (dh)
+			w.request_render
+			dock_flag := False
+			b.set_enabled_when (agent: BOOLEAN do Result := dock_flag end)
+			assert_false ("made disabled", b.is_enabled)
+			dock_flag := True
+			dh.refresh_enabling
+			assert_true ("the window's pass enables it", b.is_enabled)
+			dock_flag := False
+			dh.refresh_enabling
+			assert_false ("and disables it again", b.is_enabled)
+		end
+
+	dock_flag: BOOLEAN
+			-- The condition `test_dock_panel_buttons_follow_their_conditions' flips.
+
 	test_dock_reflow_law
 		local
 			dh: SW_DOCK_HOST

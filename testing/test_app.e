@@ -373,6 +373,7 @@ feature {NONE} -- Test runners
 			run_test (agent enterprise_tests.test_gw05_hide_show_remove, "gw05_hide_show_remove")
 			run_test (agent enterprise_tests.test_gw05_snapshot_round_trip, "gw05_snapshot_round_trip")
 			run_test (agent enterprise_tests.test_gw05_spacing_follows_the_theme, "gw05_spacing_follows_the_theme")
+			run_test (agent enterprise_tests.test_dock_panel_buttons_follow_their_conditions, "dock_panel_buttons_follow_their_conditions")
 		end
 
 	enterprise_tests: SW_ENTERPRISE_ASSAULT
@@ -837,6 +838,7 @@ feature {NONE} -- Test runners
 			run_test (agent sw_atlas_tests.test_atlas_scale_reads_true_distances, "atlas_scale_reads_true_distances")
 			run_test (agent sw_atlas_tests.test_atlas_measures_point_to_point, "atlas_measures_point_to_point")
 			run_test (agent sw_atlas_tests.test_atlas_measures_a_shape_and_its_area, "atlas_measures_a_shape_and_its_area")
+			run_test (agent sw_atlas_tests.test_atlas_tells_every_measure_change, "atlas_tells_every_measure_change")
 			run_test (agent sw_atlas_tests.test_atlas_area_of_a_shape_on_the_map, "atlas_area_of_a_shape_on_the_map")
 			run_test (agent sw_atlas_tests.test_atlas_amounts_read_to_three_figures, "atlas_amounts_read_to_three_figures")
 			run_test (agent sw_atlas_tests.test_atlas_three_thousand_areas_hold_the_frame_budget, "atlas_three_thousand_areas_hold_the_frame_budget")
