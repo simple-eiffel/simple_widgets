@@ -86,6 +86,74 @@ feature -- Access
 			short_years_plain: a_number.abs < 10000 implies not Result.has (',')
 		end
 
+	is_year_text (a_text: READABLE_STRING_GENERAL): BOOLEAN
+			-- Does `a_text' read as a year: "1446 BC", "1446 B.C.", "1446 BCE", "AD 70", "70 AD",
+			-- "70 CE", "200,000 BC", a plain "70", or "-1446" (a minus for BC)? Never year zero.
+			-- (2026-10-31: the Timeline's From and To boxes.)
+		do
+			Result := parsed_year (a_text).ok
+		end
+
+	year_of_text (a_text: READABLE_STRING_GENERAL): INTEGER
+			-- The astronomical year `a_text' names: -1445 for "1446 BC", 70 for "AD 70".
+		require
+			a_year: is_year_text (a_text)
+		do
+			Result := parsed_year (a_text).year
+		ensure
+			reads_back: display_year (Result) >= 1
+		end
+
+	parsed_year (a_text: READABLE_STRING_GENERAL): TUPLE [ok: BOOLEAN; year: INTEGER]
+			-- `a_text' read as a year, or not.
+		local
+			s, l_digits: STRING_32
+			l_before, l_after: BOOLEAN
+			i: INTEGER
+			c: CHARACTER_32
+		do
+			create s.make_from_string_general (a_text)
+			s.to_upper
+			s.replace_substring_all ({STRING_32} ".", {STRING_32} "")
+			s.replace_substring_all ({STRING_32} ",", {STRING_32} "")
+			s.adjust
+			if s.ends_with ({STRING_32} "BCE") then
+				l_before := True
+				s.remove_tail (3)
+			elseif s.ends_with ({STRING_32} "BC") then
+				l_before := True
+				s.remove_tail (2)
+			elseif s.ends_with ({STRING_32} "CE") then
+				l_after := True
+				s.remove_tail (2)
+			elseif s.ends_with ({STRING_32} "AD") then
+				l_after := True
+				s.remove_tail (2)
+			elseif s.starts_with ({STRING_32} "AD") then
+				l_after := True
+				s.remove_head (2)
+			end
+			s.adjust
+			if not l_before and not l_after and then s.starts_with ({STRING_32} "-") then
+				l_before := True
+				s.remove_head (1)
+			end
+			create l_digits.make (s.count)
+			Result := [False, 0]
+			if not s.is_empty and s.count <= 9 then
+				from i := 1 until i > s.count or l_digits.count < i - 1 loop
+					c := s [i]
+					if c >= '0' and c <= '9' then
+						l_digits.append_character (c)
+					end
+					i := i + 1
+				end
+				if l_digits.count = s.count and then l_digits.to_integer >= 1 then
+					Result := [True, astronomical (l_digits.to_integer, l_before)]
+				end
+			end
+		end
+
 	label (a_year: INTEGER): STRING_32
 			-- "753 BC", "AD 33" (or "753 BCE", "33 CE").
 		do

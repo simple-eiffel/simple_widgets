@@ -44,6 +44,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.49.0 | - | A bar across time on the lane timeline (data limits shown, Home/End), view changes pushed to agents, typed years read; SW_SCROLLBAR ancestor with SW_VSCROLLBAR and SW_HSCROLLBAR |
 | 0.48.2 | - | Docked buttons follow their state (dock zones pass the enabling pass to their panels); the Atlas pushes measure changes to an agent collection |
 | 0.48.1 | - | The Atlas measures: a scale in miles, kilometers and nautical miles; a point-to-point measuring tool with shapes and areas; the area of every empire |
 | 0.48.0 | - | The Atlas: SW_ATLAS - areas by year in earth hues, sites with disputed candidates, marks and selection, timed routes, hover cards, a true aspect |

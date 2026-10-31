@@ -406,6 +406,108 @@ feature -- The river (Plan 22 phase 1, 2026-10-30)
 				tl.item_boxes.i_th (l_band.id).bx + tl.item_boxes.i_th (l_band.id).bw + 4.0, tl.label_left (l_band), 0.001)
 		end
 
+	test_river_time_bar_walks_the_data
+			-- Larry, 2026-10-31: a left-to-right bar across all the data. Its ends name the first and
+			-- last years; dragging its thumb to the far end shows the latest data; a press on the
+			-- bare track before the thumb pages back; Home and End reach the ends; it works under
+			-- the lens too.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			l_span, l_from: REAL_64
+		do
+			create w.make ("river-timebar", 0, 0, 1200, 400, create {SW_THEME}.make_light)
+			create tl.make
+			tl.add_lane ("Levant", "Near East").do_nothing
+			tl.add_item (1, "Ur", -3000, -2900, {SW_TIMELINE_ITEM}.Class_b).do_nothing
+			tl.add_item (1, "Bar Kokhba", 132, 135, {SW_TIMELINE_ITEM}.Class_b).do_nothing
+			tl.set_view (-1000.0, -800.0)
+			w.set_root (tl)
+			w.request_render
+			assert_integers_equal ("the earliest data", -3000, tl.data_earliest)
+			assert_integers_equal ("the latest data", 135, tl.data_latest)
+			assert_true ("the bar is needed: the view shows a part", tl.time_bar.is_needed)
+			assert_true ("a strip at the bottom", tl.time_strip_h > 0.0)
+			l_span := tl.view_to - tl.view_from
+				-- hold the thumb and drag it past the track's end
+			tl.handle_click (tl.time_bar.thumb_left (tl.time_scroll) + 2.0, tl.time_bar.track_y + 2.0).do_nothing
+			assert_true ("the thumb held", tl.time_bar.is_dragging)
+			tl.handle_drag (tl.time_bar.track_x + tl.time_bar.track_w + 50.0, tl.time_bar.track_y + 2.0)
+			tl.handle_release (0, 0)
+			w.request_render
+			assert_reals_equal ("dragged to the end: the latest data in view", 136.0, tl.view_to, 1.0)
+			assert_reals_equal ("the width kept", l_span, tl.view_to - tl.view_from, 0.01)
+				-- page back by pressing the track before the thumb
+			l_from := tl.view_from
+			tl.handle_click (tl.time_bar.track_x + 3.0, tl.time_bar.track_y + 2.0).do_nothing
+			tl.handle_release (0, 0)
+			assert_reals_equal ("paged back a view", l_from - l_span, tl.view_from, 0.01)
+			tl.handle_key (35, False)
+			assert_true ("End: the latest data in view", tl.view_to >= 136.0 and tl.view_from <= 135.0)
+			tl.handle_key (36, False)
+			assert_true ("Home: the earliest data in view", tl.view_from <= -3000.0 and tl.view_to >= -3000.0)
+				-- through the lens
+			tl.set_lens (True)
+			tl.set_lens_anchor (136.0)
+			tl.set_view (-1000.0, -800.0)
+			w.request_render
+			tl.handle_click (tl.time_bar.thumb_left (tl.time_scroll) + 2.0, tl.time_bar.track_y + 2.0).do_nothing
+			tl.handle_drag (tl.time_bar.track_x - 50.0, tl.time_bar.track_y + 2.0)
+			tl.handle_release (0, 0)
+			w.request_render
+			assert_reals_equal ("through the lens, dragged to the start: the earliest data", -3000.0, tl.view_from, 1.0)
+		end
+
+	test_river_tells_each_view_change_once
+			-- The years in view pushed to agents: once per change, whatever changed them, never for a
+			-- frame that changed nothing.
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+		do
+			create w.make ("river-told", 0, 0, 1000, 300, create {SW_THEME}.make_light)
+			create tl.make
+			tl.add_lane ("Levant", "Near East").do_nothing
+			tl.add_item (1, "Samaria", -721, -721, {SW_TIMELINE_ITEM}.Class_b).do_nothing
+			tl.set_view (-900.0, -500.0)
+			w.set_root (tl)
+			views_told := 0
+			tl.view_changed.subscribe (agent (a_from, a_to: REAL_64) do views_told := views_told + 1 end)
+			w.request_render
+			assert_integers_equal ("the first view told", 1, views_told)
+			w.request_render
+			assert_integers_equal ("a frame that changed nothing tells nothing", 1, views_told)
+			tl.show_years (-750.0, -650.0)
+			w.request_render
+			assert_integers_equal ("show_years told", 2, views_told)
+			tl.handle_key (39, False)
+			w.request_render
+			assert_integers_equal ("a key told", 3, views_told)
+		end
+
+	views_told: INTEGER
+
+	test_river_reads_years_typed
+			-- The From and To boxes' reader: BC, B.C., BCE, AD before or after, CE, commas, a minus for
+			-- BC; year zero and words refused.
+		local
+			e: SW_ERA_YEARS
+		do
+			create e.make
+			assert_integers_equal ("1446 BC", -1445, e.year_of_text ("1446 BC"))
+			assert_integers_equal ("1446 B.C.", -1445, e.year_of_text ("1446 B.C."))
+			assert_integers_equal ("586 BCE", -585, e.year_of_text ("586 bce"))
+			assert_integers_equal ("AD 70", 70, e.year_of_text ("AD 70"))
+			assert_integers_equal ("70 AD", 70, e.year_of_text ("70 AD"))
+			assert_integers_equal ("30 CE", 30, e.year_of_text ("30 CE"))
+			assert_integers_equal ("200,000 BC", -199999, e.year_of_text ("200,000 BC"))
+			assert_integers_equal ("plain 135", 135, e.year_of_text ("135"))
+			assert_integers_equal ("-1446", -1445, e.year_of_text ("-1446"))
+			assert_false ("year zero refused", e.is_year_text ("0"))
+			assert_false ("words refused", e.is_year_text ("the exodus"))
+			assert_false ("empty refused", e.is_year_text (""))
+		end
+
 	test_river_a_lean_keeps_its_room
 			-- A lean's marker and wording are drawn after the label; an item that starts in the
 			-- middle of that wording must go to another row (the seed's "shown first" ran into

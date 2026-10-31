@@ -57,7 +57,7 @@ inherit
 		redefine
 			arrange, handle_click, handle_drag, handle_release, handle_wheel, handle_key, accepts_focus,
 			wants_hover_point, accessible_role, default_accessible_name, accessible_value,
-			dwell_ms, hover_card_at
+			dwell_ms, hover_card_at, place_bar
 		end
 
 create
@@ -151,6 +151,7 @@ feature -- Data
 			create Result.make (items.count + 1, a_lane, a_title, a_from, a_to, a_class)
 			items.extend (Result)
 			index_plain (Result)
+			note_extent (a_from, a_to)
 		ensure
 			added: items.last = Result and Result.id = items.count
 		end
@@ -182,6 +183,7 @@ feature -- Data
 			items.extend (Result)
 			Result.set_dispute (a_dispute)
 			index_position (Result)
+			note_extent (a_from, a_to)
 		ensure
 			a_position: Result.dispute = a_dispute
 			added: items.last = Result and Result.id = items.count
@@ -291,6 +293,211 @@ feature -- View
 			else
 				Result := (view_to - view_from) / plot_w.max (1.0)
 			end
+		end
+
+feature -- The bar across time (2026-10-31, Larry: "a left-to-right slider for walking time forward
+		-- and back", the data's limits shown, and the years in view set by hand)
+
+	has_data: BOOLEAN
+			-- Has any item been added?
+
+	data_earliest, data_latest: INTEGER
+			-- The first and last years any item holds (astronomical).
+
+	time_bar: SW_HSCROLLBAR
+			-- The bar across the bottom: all the data's years as its track, the view as its thumb;
+			-- through the lens it runs in the bent coordinate, so deep time and a reign both get room.
+		attribute
+			create Result.make
+		end
+
+	time_strip_h: REAL_64
+			-- The strip the bar and the data's first and last years take at the bottom.
+
+	view_changed: SW_EVENT [TUPLE [view_from, view_to: REAL_64]]
+			-- Fired once each time the years in view change, whatever changed them (a drag, the wheel,
+			-- a key, the bar, `set_view'): told at the end of `arrange' when they differ from the last
+			-- told (state by agents, research/23).
+		attribute
+			create Result.make
+		end
+
+	show_years (a_from, a_to: REAL_64)
+			-- The years `a_from' .. `a_to' in view, as near as the scale allows.
+		require
+			ordered: a_from < a_to
+		local
+			l_from, l_to: REAL_64
+		do
+			l_from := a_from
+			l_to := a_to
+			if is_lens then
+				l_from := l_from.max (Lens_deepest)
+				l_to := l_to.min (lens_anchor + Lens_knee / 2.0)
+			end
+			l_to := l_to.max (l_from + Min_span)
+			set_view (l_from, l_to)
+		end
+
+	show_earliest
+			-- The view's width kept, moved to start at the earliest data.
+		require
+			some_data: has_data
+		do
+			move_view_start (data_earliest - (view_to - view_from) * 0.02)
+		end
+
+	show_latest
+			-- The view's width kept, moved to end at the latest data.
+		require
+			some_data: has_data
+		local
+			l_target: REAL_64
+		do
+			l_target := data_latest + 1 + (view_to - view_from) * 0.02
+			if is_lens then
+				shift_u (u_of (l_target.min (lens_anchor + Lens_knee / 2.0)) - u_of (view_to))
+			else
+				view_from := view_from + (l_target - view_to)
+				view_to := l_target
+			end
+		end
+
+	time_coordinate (a_year: REAL_64): REAL_64
+			-- Where `a_year' falls along the bar: the bent coordinate through the lens, else the year.
+		do
+			if is_lens then
+				Result := u_of (a_year)
+			else
+				Result := a_year
+			end
+		end
+
+	time_lo: REAL_64
+			-- The bar's start: the earliest data, or the view's start when that is earlier.
+		do
+			Result := time_coordinate (view_from)
+			if has_data then
+				Result := Result.min (time_coordinate (data_earliest))
+			end
+		end
+
+	time_hi: REAL_64
+			-- The bar's end: the latest data, or the view's end when that is later.
+		do
+			Result := time_coordinate (view_to)
+			if has_data then
+				Result := Result.max (time_coordinate (data_latest + 1))
+			end
+		end
+
+	time_scroll: REAL_64
+			-- The view's start along the bar.
+		do
+			Result := time_coordinate (view_from) - time_lo
+		end
+
+feature {NONE} -- The bar across time
+
+	note_extent (a_from, a_to: INTEGER)
+			-- Widen `data_earliest' .. `data_latest' to hold `a_from' .. `a_to'.
+		do
+			if has_data then
+				data_earliest := data_earliest.min (a_from)
+				data_latest := data_latest.max (a_to)
+			else
+				data_earliest := a_from
+				data_latest := a_to
+				has_data := True
+			end
+		ensure
+			held: data_earliest <= a_from and data_latest >= a_to
+		end
+
+	move_view_start (a_year: REAL_64)
+			-- The view, its width kept, moved to start at `a_year'.
+		do
+			if is_lens then
+				shift_u (u_of (a_year.max (Lens_deepest)) - u_of (view_from))
+			else
+				view_to := view_to + (a_year - view_from)
+				view_from := a_year
+			end
+		end
+
+	move_time_to (a_scroll: REAL_64)
+			-- The view moved so its start stands at `a_scroll' along the bar.
+		local
+			l_d: REAL_64
+		do
+			l_d := (time_lo + a_scroll) - time_coordinate (view_from)
+			if is_lens then
+				shift_u (l_d)
+			else
+				view_from := view_from + l_d
+				view_to := view_to + l_d
+			end
+		end
+
+	place_time_bar (a_p: SW_PAINTER)
+			-- The strip at the bottom: the first year's label under the lane titles, the bar across
+			-- the plot, the last year's label at the right.
+		local
+			l_right_w: REAL_64
+		do
+			if has_data then
+				a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+				time_strip_h := (a_p.text_extent + 8.0).max (a_p.theme.scrollbar_width + 6.0)
+				l_right_w := a_p.advance (era.label (data_latest)) + 12.0
+				time_bar.place (plot_left, y + height - time_strip_h, (plot_w - l_right_w).max (20.0), time_strip_h, a_p.theme)
+				time_bar.set_extent ((time_coordinate (view_to) - time_coordinate (view_from)).max (0.0), (time_hi - time_lo).max (0.0))
+			else
+				time_strip_h := 0.0
+			end
+		end
+
+	draw_time_strip (a_p: SW_PAINTER)
+			-- The strip: the earliest year at the left, the bar, the latest year at the right.
+		local
+			t: SW_THEME
+			ty, lw: REAL_64
+		do
+			if has_data and time_strip_h > 0.0 then
+				t := a_p.theme
+				ty := y + height - time_strip_h
+				a_p.set_color (t.surface)
+				a_p.fill_rect (x, ty, width, time_strip_h)
+				a_p.set_color (t.divider)
+				a_p.fill_rect (x, ty, width, 1.0)
+				a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+				a_p.set_color (t.ink_muted)
+				lw := a_p.advance (era.label (data_earliest))
+				a_p.text ((plot_left - lw - 8.0).max (x + 4.0), ty + (time_strip_h - a_p.text_extent) / 2.0 + a_p.font_ascent, era.label (data_earliest))
+				a_p.text (time_bar.track_x + time_bar.track_w + 10.0, ty + (time_strip_h - a_p.text_extent) / 2.0 + a_p.font_ascent, era.label (data_latest))
+				time_bar.draw (a_p, time_scroll, shows_hover and then time_bar.contains (hover_px, hover_py))
+			end
+		end
+
+	told_from, told_to: REAL_64
+	has_told_view: BOOLEAN
+
+	tell_view
+			-- `view_changed' when the years in view differ from the last told.
+		do
+			if not has_told_view or else told_from /= view_from or else told_to /= view_to then
+				has_told_view := True
+				told_from := view_from
+				told_to := view_to
+				view_changed.call ([view_from, view_to])
+			end
+		end
+
+	place_bar (a_theme: SW_THEME)
+			-- SW_VSCROLLING's bar, above the strip across time.
+		do
+			bar.place (x, y, width, (height - time_strip_h).max (1.0), a_theme)
+			bar.set_extent ((height - time_strip_h).max (0.0), content_extent)
+			scroll_y := scroll_y.max (0.0).min (max_scroll)
 		end
 
 feature -- The lens (Plan 22, spike S2)
@@ -657,9 +864,9 @@ feature -- Layout
 		end
 
 	scroll_extent: REAL_64
-			-- SW_VSCROLLING: everything the lanes would take.
+			-- SW_VSCROLLING: everything the lanes would take, and the strip across time under them.
 		do
-			Result := content_extent
+			Result := content_extent + time_strip_h
 		end
 
 	wheel_line: REAL_64
@@ -755,8 +962,10 @@ feature -- Layout
 				l := l + 1
 			end
 			content_extent := cy + scroll_y - y
+			place_time_bar (a_p)
 			place_bar (a_p.theme)
 			place_axis_labels (a_p)
+			tell_view
 		ensure then
 			one_box_per_item: item_boxes.count = items.count
 			one_top_per_lane: lane_tops.count = lane_titles.count and lane_heights.count = lane_titles.count
@@ -773,7 +982,7 @@ feature -- Drawing
 			a_p.set_color (t.surface)
 			a_p.fill_rect (x, y, width, height)
 			draw_axis (a_p)
-			a_p.push_clip (x, y + axis_h, width, (height - axis_h).max (0.0))
+			a_p.push_clip (x, y + axis_h, width, (height - axis_h - time_strip_h).max (0.0))
 			across
 				headers as h
 			loop
@@ -806,7 +1015,7 @@ feature -- Drawing
 				end
 				l := l + 1
 			end
-			a_p.push_clip (plot_left, y + axis_h, plot_w, (height - axis_h).max (0.0))
+			a_p.push_clip (plot_left, y + axis_h, plot_w, (height - axis_h - time_strip_h).max (0.0))
 			across
 				envelope_boxes as e
 			loop
@@ -829,6 +1038,7 @@ feature -- Drawing
 			if has_cursor then
 				draw_cursor_label (a_p)
 			end
+			draw_time_strip (a_p)
 			draw_bar (a_p)
 			if is_focused then
 				a_p.set_color (t.accent)
@@ -887,6 +1097,13 @@ feature -- Input
 		do
 			if is_enabled and then press_bar (a_px, a_py) then
 				Result := True
+			elseif is_enabled and then time_bar.contains (a_px, a_py) then
+					-- the bar across time: hold the thumb, or page toward the press
+				move_time_to (time_bar.press (a_px, time_scroll))
+				Result := True
+			elseif is_enabled and then has_data and then a_py >= y + height - time_strip_h and then contains (a_px, a_py) then
+					-- the strip, off the bar: nothing under it to choose
+				Result := True
 			elseif is_enabled and then contains (a_px, a_py) then
 				Result := True
 				press_x := a_px
@@ -913,6 +1130,8 @@ feature -- Input
 		do
 			if drag_bar (a_py) then
 				-- the scrollbar took it
+			elseif time_bar.is_dragging then
+				move_time_to (time_bar.drag_to (a_px))
 			elseif is_panning or else (a_px - press_x).abs >= 4.0 then
 				is_panning := True
 				if is_lens then
@@ -931,6 +1150,7 @@ feature -- Input
 	handle_release (a_x, a_y: INTEGER)
 		do
 			release_bar
+			time_bar.release
 		end
 
 	handle_wheel (a_delta: INTEGER): BOOLEAN
@@ -958,7 +1178,17 @@ feature -- Input
 			when 109, 189 then
 				zoom_about ((view_from + view_to) / 2.0, 1.25)
 			when 36 then
-				fit_all
+					-- Home: the earliest data (Shift+Home: everything)
+				if a_shift or not has_data then
+					fit_all
+				else
+					show_earliest
+				end
+			when 35 then
+					-- End: the latest data
+				if has_data then
+					show_latest
+				end
 			when 33, 34 then
 				scroll_key (a_vk).do_nothing
 			when 38 then

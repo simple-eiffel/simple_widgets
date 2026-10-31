@@ -381,6 +381,9 @@ feature -- Budget
 	test_atlas_three_thousand_areas_hold_the_frame_budget
 			-- Cliopatria-sized: 3,000 areas of 60 points, about one in twenty holding the year;
 			-- a pan frame inside the budget of the build (spike S3: 5,656 outlines, 7 to 9 ms lean).
+			-- Rings sized so neighbors meet rather than stack, as real borders do (2026-10-31: rings
+			-- up to 3 degrees across piled 150 translucent fills on each other, an overdraw no year
+			-- of the real data has, and the frame hovered at the budget's edge under machine load).
 		local
 			w: SW_WINDOW
 			a: SW_ATLAS
@@ -390,7 +393,7 @@ feature -- Budget
 			w := atlas_window (create {SW_THEME}.make_dark, 1400, 900)
 			a := atlas_of (w)
 			from i := 1 until i > 3000 loop
-				a.add_area ("Polity " + i.out, ring_of (20.0 + (i \\ 50) * 0.8, 15.0 + (i // 50) * 0.5, 0.6 + (i \\ 7) * 0.4, 60),
+				a.add_area ("Polity " + i.out, ring_of (20.0 + (i \\ 50) * 0.8, 15.0 + (i // 50) * 0.5, 0.35 + (i \\ 4) * 0.05, 60),
 					-3000 + (i \\ 20) * 150, -3000 + (i \\ 20) * 150 + 140, 1 + i \\ a.Hue_count, "").do_nothing
 				i := i + 1
 			end

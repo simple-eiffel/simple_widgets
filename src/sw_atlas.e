@@ -1037,10 +1037,7 @@ feature {NONE} -- Drawing
 						ring_buffer [2 * k + 2] := oy + sy * a.ring [a.ring.lower + 2 * k + 1]
 						k := k + 1
 					end
-					a_p.set_color_alpha (hue_color (a.hue), area_fill_alpha (a_p.theme))
-					a_p.polygon_fill_flat (ring_buffer, n)
-					a_p.set_color_alpha (hue_color (a.hue), 0.8)
-					a_p.polygon_stroke_flat (ring_buffer, n, 1.2)
+					a_p.polygon_fill_stroke_flat (ring_buffer, n, hue_color (a.hue), area_fill_alpha (a_p.theme), hue_color (a.hue), 0.8, 1.2)
 					areas_drawn := areas_drawn + 1
 				end
 			end
