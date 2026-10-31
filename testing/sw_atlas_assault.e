@@ -185,6 +185,142 @@ feature -- Sites
 				and across a.drawn_labels as d some d.text.same_string ("Nineveh") end)
 		end
 
+feature -- Scale
+
+	test_atlas_scale_reads_true_distances
+			-- Larry, 2026-10-31: a scale in miles, kilometers and nautical miles. Each bar is a
+			-- round length that fits; and the kilometer bar measures Jerusalem to Damascus at about
+			-- 217 kilometers (great circle), within 3 percent.
+		local
+			w: SW_WINDOW
+			a: SW_ATLAS
+			l_km_per_px, l_dist_px, l_km: REAL_64
+		do
+			w := atlas_window (create {SW_THEME}.make_light, 900, 600)
+			a := atlas_of (w)
+			a.set_view (40.0, 35.8, 32.6)
+			w.request_render
+			assert_integers_equal ("three labels", 3, a.scale_labels.count)
+			assert_true ("miles spelled out", a.scale_labels [1].ends_with ("miles") or a.scale_labels [1].ends_with ("mile"))
+			assert_true ("kilometers spelled out", a.scale_labels [2].has_substring ("kilometer"))
+			assert_true ("nautical miles spelled out", a.scale_labels [3].has_substring ("nautical mile"))
+			assert_true ("each bar fits", a.scale_length (a.Mile) <= a.Scale_max_px + 0.001 and a.scale_length (a.Kilometer) <= a.Scale_max_px + 0.001
+				and a.scale_length (a.Nautical_mile) <= a.Scale_max_px + 0.001)
+			assert_true ("a round length", is_round (a.scale_value (a.Kilometer)) and is_round (a.scale_value (a.Mile)) and is_round (a.scale_value (a.Nautical_mile)))
+			l_km_per_px := a.scale_value (a.Kilometer) / a.scale_length (a.Kilometer)
+			l_dist_px := ((a.x_of_lon (36.2920) - a.x_of_lon (35.2345)) ^ 2 + (a.y_of_lat (33.5131) - a.y_of_lat (31.7767)) ^ 2) ^ 0.5
+			l_km := l_dist_px * l_km_per_px
+			io.put_string ("    atlas scale: " + a.scale_labels [1].to_string_8 + ", " + a.scale_labels [2].to_string_8 + ", " + a.scale_labels [3].to_string_8 + "; Jerusalem to Damascus " + l_km.rounded.out + " kilometers%N")
+			assert_reals_equal ("Jerusalem to Damascus by the scale", 217.0, l_km, 217.0 * 0.03)
+		end
+
+feature -- The measuring tool (Larry, 2026-10-31)
+
+	test_atlas_measures_point_to_point
+			-- Start, click Jerusalem then Damascus: 217 kilometers great-circle (216.98); a drag
+			-- places no point; undo takes the last back; end keeps the path and clicks stop placing
+			-- points; delete removes it entirely.
+		local
+			w: SW_WINDOW
+			a: SW_ATLAS
+		do
+			w := atlas_window (create {SW_THEME}.make_light, 900, 600)
+			a := atlas_of (w)
+			a.set_view (40.0, 35.8, 32.6)
+			w.request_render
+			a.start_measuring
+			click (a, 35.2345, 31.7767)
+			click (a, 36.2920, 33.5131)
+			assert_integers_equal ("two points", 2, a.measure_points.count)
+			assert_reals_equal ("Jerusalem to Damascus, great circle", 216982.55, a.measured_length_m, 216982.55 * 0.002)
+			a.handle_click (a.x_of_lon (35.5), a.y_of_lat (32.0)).do_nothing
+			a.handle_drag (a.x_of_lon (35.5) + 30.0, a.y_of_lat (32.0))
+			a.handle_release ((a.x_of_lon (35.5) + 30.0).truncated_to_integer, a.y_of_lat (32.0).truncated_to_integer)
+			assert_integers_equal ("a drag places no point", 2, a.measure_points.count)
+			click (a, 35.5, 32.0)
+			a.undo_point
+			assert_integers_equal ("undo takes the last back", 2, a.measure_points.count)
+			w.request_render
+			assert_true ("the readout in all three units", across a.readout_lines as l some l.has_substring ("miles") end
+				and across a.readout_lines as l some l.has_substring ("kilometers") end and across a.readout_lines as l some l.has_substring ("nautical miles") end)
+			assert_true ("217 kilometers read out", across a.readout_lines as l some l.has_substring ("217 kilometers") end)
+			a.end_measuring
+			click (a, 35.0, 31.0)
+			assert_integers_equal ("ended: clicks place no point", 2, a.measure_points.count)
+			assert_true ("the path kept", a.measure_state = a.Measure_ended)
+			a.delete_measure
+			w.request_render
+			assert_true ("deleted entirely", a.measure_points.is_empty and a.measure_state = a.Measure_idle and a.readout_lines.is_empty)
+		end
+
+	test_atlas_measures_a_shape_and_its_area
+			-- Four corners of the box 30 to 31 east, 40 to 41 north, then a click on the first point:
+			-- closed, 9,401.8 square kilometers (exact on the sphere), read out as 9,400 square
+			-- kilometers, 3,630 square miles and 2,740 square nautical miles.
+		local
+			w: SW_WINDOW
+			a: SW_ATLAS
+		do
+			w := atlas_window (create {SW_THEME}.make_light, 900, 600)
+			a := atlas_of (w)
+			a.set_view (60.0, 30.5, 40.5)
+			w.request_render
+			a.start_measuring
+			click (a, 30.0, 40.0)
+			click (a, 31.0, 40.0)
+			click (a, 31.0, 41.0)
+			click (a, 30.0, 41.0)
+			assert_true ("three points or more can close", a.can_close)
+			click (a, 30.0, 40.0)
+			assert_true ("a click on the first point closes the shape", a.is_measure_closed and a.measure_points.count = 4)
+			assert_reals_equal ("the box's area on the sphere", 9401.80e6, a.measured_area_m2, 9401.80e6 * 0.001)
+			w.request_render
+			assert_true ("square kilometers", across a.readout_lines as l some l.has_substring ("9,400 square kilometers") end)
+			assert_true ("square miles", across a.readout_lines as l some l.has_substring ("3,630 square miles") end)
+			assert_true ("square nautical miles", across a.readout_lines as l some l.has_substring ("2,740 square nautical miles") end)
+			assert_true ("a perimeter", across a.readout_lines as l some l.same_string ("Perimeter") end)
+		end
+
+	test_atlas_area_of_a_shape_on_the_map
+			-- An empire's card and a press on it give its area in all three units, summed over all
+			-- its outlines in the year.
+		local
+			w: SW_WINDOW
+			a: SW_ATLAS
+			l_one: INTEGER
+		do
+			w := atlas_window (create {SW_THEME}.make_light, 900, 600)
+			a := atlas_of (w)
+			l_one := a.add_area ("Box Kingdom", <<30.0, 40.0, 31.0, 40.0, 31.0, 41.0, 30.0, 41.0>>, -900, -600, 1, "")
+			a.add_area ("Box Kingdom", <<32.0, 40.0, 33.0, 40.0, 33.0, 41.0, 32.0, 41.0>>, -900, -600, 1, "").do_nothing
+			a.set_view (30.0, 31.5, 40.5)
+			a.set_year (-700)
+			w.request_render
+			assert_reals_equal ("both outlines counted", 2.0 * 9401.80e6, a.polity_area_m2 (l_one), 2.0 * 9401.80e6 * 0.001)
+			assert_true ("in three units", a.area_lines (l_one).count = 3 and a.area_lines (l_one).i_th (2).has_substring ("18,800 square kilometers"))
+			if attached a.hover_card_at (a.x_of_lon (30.5), a.y_of_lat (40.5)) as al_card then
+				assert_strings_equal ("an area's card", "area", a.last_card_kind)
+			end
+			a.handle_click (a.x_of_lon (30.5), a.y_of_lat (40.5)).do_nothing
+			w.request_render
+			assert_integers_equal ("pressed: selected", l_one, a.selected_area)
+			assert_true ("the plate names it and its area", a.readout_lines.first.same_string ("Box Kingdom")
+				and across a.readout_lines as l some l.has_substring ("square nautical miles") end)
+		end
+
+	test_atlas_amounts_read_to_three_figures
+		local
+			a: SW_ATLAS
+		do
+			create a.make
+			assert_strings_equal ("thousands", "9,400", a.amount_text (9401.8))
+			assert_strings_equal ("tens", "45.6", a.amount_text (45.61))
+			assert_strings_equal ("units", "4.56", a.amount_text (4.561))
+			assert_strings_equal ("below one", "0.456", a.amount_text (0.4561))
+			assert_strings_equal ("a hundred", "217", a.amount_text (216.98))
+			assert_strings_equal ("millions", "1,230,000", a.amount_text (1234567.0))
+		end
+
 feature -- Aspect
 
 	test_atlas_keeps_a_true_aspect_and_the_wheel_its_anchor
@@ -244,6 +380,22 @@ feature -- Budget
 feature {NONE} -- Helpers
 
 	picked: INTEGER
+
+	click (a: SW_ATLAS; a_lon, a_lat: REAL_64)
+			-- A still press and release at (`a_lon', `a_lat').
+		do
+			a.handle_click (a.x_of_lon (a_lon), a.y_of_lat (a_lat)).do_nothing
+			a.handle_release (a.x_of_lon (a_lon).rounded, a.y_of_lat (a_lat).rounded)
+		end
+
+	is_round (a_value: REAL_64): BOOLEAN
+			-- Is `a_value' 1, 2 or 5 times a power of ten?
+		local
+			m: REAL_64
+		do
+			m := a_value / (10.0 ^ {DOUBLE_MATH}.log10 (a_value).floor)
+			Result := (m - 1.0).abs < 0.0001 or (m - 2.0).abs < 0.0001 or (m - 5.0).abs < 0.0001
+		end
 
 	atlas_window (a_theme: SW_THEME; a_w, a_h: INTEGER): SW_WINDOW
 		local

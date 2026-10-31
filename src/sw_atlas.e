@@ -19,6 +19,27 @@ note
 		Hover cards on sites, routes and areas (spike S6). Routes added with
 		`add_timed_route' follow the year as well.
 
+		A SCALE (Larry, 2026-10-31: "a scale in US Miles, Kilometers, and
+		perhaps Nautical Miles"): three bars in the plot's lower right, each a
+		round length (1, 2 or 5 times a power of ten) as long as fits, measured
+		across the map at the view's center latitude, labeled in words.
+
+		MEASURING (Larry, 2026-10-31): `start_measuring', then each click on
+		the map (a press and release that did not pan) places the next point,
+		point to point to point; `undo_point' takes the last back;
+		`end_measuring' keeps the path shown; `close_shape' (or a click on the
+		first point once there are three) joins it into a shape with a
+		perimeter and an area; `delete_measure' removes it entirely. The
+		readout, on a plate in the plot's upper right, is in miles,
+		kilometers and nautical miles, and square miles, square kilometers
+		and square nautical miles. Distances are great-circle (haversine);
+		areas are spherical (the polygon formula GIS uses, exact for a box of
+		latitude and longitude).
+
+		AN AREA FOR EVERY SHAPE: an empire's hover card gives its area in all
+		three units (every outline the polity has in the year shown); a press
+		on it selects it, outlines it and shows the same on the plate.
+
 		A TRUE ASPECT: SW_MAP shows 360 by 180 degrees over any plot, which
 		stretched a tall dock panel; here a degree of latitude takes 1 / cos
 		of `standard_parallel' the pixels of a degree of longitude, whatever
@@ -31,7 +52,7 @@ class
 inherit
 	SW_MAP
 		redefine
-			make, span_lat, handle_click, dwell_ms, hover_card_at,
+			make, span_lat, handle_click, handle_release, handle_double_click, dwell_ms, hover_card_at,
 			route_shown, draw_under_routes, draw_over_places, land_color
 		end
 
@@ -54,7 +75,11 @@ feature {NONE} -- Initialization
 			create era.make
 			create last_card_kind.make_empty
 			create name_widths.make (64)
+			create scale_labels.make (3)
+			create measure_points.make (8)
+			create readout_lines.make (8)
 			set_standard_parallel (32.0)
+			shows_scale := True
 		end
 
 feature -- The year shown
@@ -117,6 +142,350 @@ feature -- Aspect
 				Result := Precursor
 			end
 		end
+
+feature -- Scale
+
+	shows_scale: BOOLEAN
+			-- Is the scale drawn?
+
+	set_shows_scale (a_on: BOOLEAN)
+		do
+			shows_scale := a_on
+		ensure
+			set: shows_scale = a_on
+		end
+
+	Mile: REAL_64 = 1609.344
+			-- A US (statute) mile in meters.
+
+	Kilometer: REAL_64 = 1000.0
+
+	Nautical_mile: REAL_64 = 1852.0
+
+	Scale_max_px: REAL_64 = 140.0
+			-- The longest a scale bar may be.
+
+	meters_per_pixel: REAL_64
+			-- Meters a pixel spans across the map at the view's center latitude.
+		do
+			Result := span_lon * Meters_per_degree * math.cosine (view_cy * Degree) / plot_w.max (1.0)
+		ensure
+			positive: Result > 0.0
+		end
+
+	scale_value (a_unit: REAL_64): REAL_64
+			-- The round length, in units of `a_unit' meters (1, 2 or 5 times a power of ten), whose
+			-- bar is the longest within `Scale_max_px'.
+		require
+			positive: a_unit > 0.0
+		local
+			l_most, l_power: REAL_64
+		do
+			l_most := Scale_max_px * meters_per_pixel / a_unit
+			l_power := 10.0 ^ math.log10 (l_most).floor
+			if 5.0 * l_power <= l_most then
+				Result := 5.0 * l_power
+			elseif 2.0 * l_power <= l_most then
+				Result := 2.0 * l_power
+			else
+				Result := l_power
+			end
+		ensure
+			fits: Result * a_unit / meters_per_pixel <= Scale_max_px * 1.000001
+			not_short: Result * a_unit / meters_per_pixel >= Scale_max_px / 5.000001
+		end
+
+	scale_length (a_unit: REAL_64): REAL_64
+			-- The bar of `scale_value (a_unit)', in pixels.
+		require
+			positive: a_unit > 0.0
+		do
+			Result := scale_value (a_unit) * a_unit / meters_per_pixel
+		end
+
+	grouped (a_number: INTEGER_64): STRING_32
+			-- `a_number' with a comma every three digits from four on ("9,400"; SW_ERA_YEARS leaves
+			-- four-digit numbers whole, as years read).
+		local
+			l_digits: STRING_32
+			i: INTEGER
+		do
+			l_digits := a_number.abs.out.to_string_32
+			create Result.make (l_digits.count + l_digits.count // 3 + 1)
+			from i := 1 until i > l_digits.count loop
+				if i > 1 and (l_digits.count - i + 1) \\ 3 = 0 then
+					Result.append_character (',')
+				end
+				Result.append_character (l_digits [i])
+				i := i + 1
+			end
+			if a_number < 0 then
+				Result.prepend_character ('-')
+			end
+		end
+
+	scale_text (a_value: REAL_64; a_unit: REAL_64): STRING_32
+			-- "50 miles", "1 kilometer", "0.5 nautical miles": spelled out (no abbreviations).
+		do
+			if a_value >= 1.0 then
+				Result := grouped (a_value.rounded)
+			else
+				create Result.make_from_string_general (a_value.out)
+			end
+			Result.append_character (' ')
+			if a_unit = Mile then
+				Result.append (if a_value = 1.0 then {STRING_32} "mile" else {STRING_32} "miles" end)
+			elseif a_unit = Nautical_mile then
+				Result.append (if a_value = 1.0 then {STRING_32} "nautical mile" else {STRING_32} "nautical miles" end)
+			else
+				Result.append (if a_value = 1.0 then {STRING_32} "kilometer" else {STRING_32} "kilometers" end)
+			end
+		end
+
+	scale_labels: ARRAYED_LIST [STRING_32]
+			-- The scale's labels as the last frame drew them.
+
+feature -- Measuring on the sphere
+
+	Earth_radius_m: REAL_64 = 6371008.8
+			-- The mean radius of the earth.
+
+	Square_mile: REAL_64 = 2589988.110336
+	Square_kilometer: REAL_64 = 1000000.0
+	Square_nautical_mile: REAL_64 = 3429904.0
+
+	distance_m (a_lon1, a_lat1, a_lon2, a_lat2: REAL_64): REAL_64
+			-- The great-circle distance between two points (haversine).
+		local
+			l_a: REAL_64
+		do
+			l_a := math.sine ((a_lat2 - a_lat1) * Degree / 2.0) ^ 2
+				+ math.cosine (a_lat1 * Degree) * math.cosine (a_lat2 * Degree) * math.sine ((a_lon2 - a_lon1) * Degree / 2.0) ^ 2
+			Result := 2.0 * Earth_radius_m * math.arc_sine (l_a.min (1.0).max (0.0) ^ 0.5)
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	ring_area_m2 (a_ring: ARRAY [REAL_64]): REAL_64
+			-- The area inside a flat [lon1, lat1, ...] ring on the sphere: half the radius squared
+			-- times the sum over its edges of the change in longitude times (2 + the sines of the
+			-- two latitudes), in radians.
+		require
+			pairs: a_ring.count \\ 2 = 0
+		local
+			i, j, n: INTEGER
+			l_sum: REAL_64
+		do
+			n := a_ring.count // 2
+			if n >= 3 then
+				from i := 0 until i >= n loop
+					j := (i + 1) \\ n
+					l_sum := l_sum + (a_ring [a_ring.lower + 2 * j] - a_ring [a_ring.lower + 2 * i]) * Degree
+						* (2.0 + math.sine (a_ring [a_ring.lower + 2 * i + 1] * Degree) + math.sine (a_ring [a_ring.lower + 2 * j + 1] * Degree))
+					i := i + 1
+				end
+				Result := (l_sum * Earth_radius_m * Earth_radius_m / 2.0).abs
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	polity_area_m2 (a_area: INTEGER): REAL_64
+			-- The area of every outline of `a_area''s polity that holds the year shown (or, with no
+			-- year, the outlines of the same name and years).
+		require
+			known: a_area >= 1 and a_area <= areas.count
+		local
+			a: like areas.item
+		do
+			a := areas.i_th (a_area)
+			across areas as ic loop
+				if ic.name.same_string (a.name) and then (if has_year then year >= ic.year_from and year <= ic.year_to else ic.year_from = a.year_from and ic.year_to = a.year_to end) then
+					Result := Result + ring_area_m2 (ic.ring)
+				end
+			end
+		end
+
+	area_lines (a_area: INTEGER): ARRAYED_LIST [STRING_32]
+			-- The polity's area in the three units, a line each.
+		require
+			known: a_area >= 1 and a_area <= areas.count
+		do
+			Result := square_lines (polity_area_m2 (a_area))
+		end
+
+	length_lines (a_meters: REAL_64): ARRAYED_LIST [STRING_32]
+			-- "12.3 miles", "19.8 kilometers", "10.7 nautical miles".
+		do
+			create Result.make (3)
+			Result.extend (amount_text (a_meters / Mile) + (if (a_meters / Mile - 1.0).abs < 0.0005 then {STRING_32} " mile" else {STRING_32} " miles" end))
+			Result.extend (amount_text (a_meters / Kilometer) + (if (a_meters / Kilometer - 1.0).abs < 0.0005 then {STRING_32} " kilometer" else {STRING_32} " kilometers" end))
+			Result.extend (amount_text (a_meters / Nautical_mile) + (if (a_meters / Nautical_mile - 1.0).abs < 0.0005 then {STRING_32} " nautical mile" else {STRING_32} " nautical miles" end))
+		end
+
+	square_lines (a_square_meters: REAL_64): ARRAYED_LIST [STRING_32]
+			-- "3,630 square miles", "9,400 square kilometers", "2,740 square nautical miles".
+		do
+			create Result.make (3)
+			Result.extend (amount_text (a_square_meters / Square_mile) + {STRING_32} " square miles")
+			Result.extend (amount_text (a_square_meters / Square_kilometer) + {STRING_32} " square kilometers")
+			Result.extend (amount_text (a_square_meters / Square_nautical_mile) + {STRING_32} " square nautical miles")
+		end
+
+	amount_text (a_value: REAL_64): STRING_32
+			-- `a_value' to three significant figures, with thousands separators: "9,400", "45.6",
+			-- "4.56", "0.456".
+		local
+			l_digits, l_int: INTEGER
+			l_scaled: INTEGER_64
+			l_frac: STRING_32
+		do
+			if a_value <= 0.0 then
+				Result := {STRING_32} "0"
+			elseif a_value >= 100.0 then
+				l_digits := math.log10 (a_value).floor - 2
+				Result := grouped (((a_value / (10.0 ^ l_digits)).rounded * (10.0 ^ l_digits)).rounded_real_64.truncated_to_integer_64)
+			else
+					-- decimals so three figures show: 2 below 10, 1 below 100, more below 1
+				l_digits := (2 - math.log10 (a_value).floor).max (1).min (6)
+				l_scaled := (a_value * (10.0 ^ l_digits)).rounded_real_64.truncated_to_integer_64
+				l_int := (l_scaled // (10 ^ l_digits).truncated_to_integer_64).to_integer_32
+				create l_frac.make_filled ('0', l_digits)
+				l_frac.append ((l_scaled \\ (10 ^ l_digits).truncated_to_integer_64).out)
+				Result := l_int.out.to_string_32 + {STRING_32} "." + l_frac.substring (l_frac.count - l_digits + 1, l_frac.count)
+			end
+		end
+
+feature -- The measuring tool
+
+	Measure_idle: INTEGER = 0
+	Measure_running: INTEGER = 1
+	Measure_ended: INTEGER = 2
+
+	measure_state: INTEGER
+			-- Idle (nothing measured), running (clicks place points) or ended (the result shown).
+
+	is_measuring: BOOLEAN
+			-- Do clicks place points?
+		do
+			Result := measure_state = Measure_running
+		end
+
+	measure_points: ARRAYED_LIST [TUPLE [lon, lat: REAL_64]]
+			-- The points placed, in order.
+
+	is_measure_closed: BOOLEAN
+			-- Was the path joined into a shape?
+
+	start_measuring
+			-- A new measurement: the old one removed, clicks place points.
+		do
+			measure_points.wipe_out
+			is_measure_closed := False
+			measure_state := Measure_running
+			selected_area := 0
+		ensure
+			running: is_measuring and measure_points.is_empty and not is_measure_closed
+		end
+
+	place_point (a_lon, a_lat: REAL_64)
+			-- The next point; a click on the first point once there are three closes the shape; a
+			-- click on the last point again (a double-click's second press) adds nothing.
+		require
+			running: is_measuring
+		do
+			if measure_points.count >= 3 and then near_point (measure_points.first, a_lon, a_lat) then
+				close_shape
+			elseif measure_points.is_empty or else not near_point (measure_points.last, a_lon, a_lat) then
+				measure_points.extend ([a_lon, a_lat])
+			end
+		end
+
+	undo_point
+			-- The last point taken back.
+		require
+			running: is_measuring
+			a_point: not measure_points.is_empty
+		do
+			measure_points.finish
+			measure_points.remove
+		ensure
+			one_less: measure_points.count = old measure_points.count - 1
+		end
+
+	can_close: BOOLEAN
+			-- Can the path be joined into a shape?
+		do
+			Result := is_measuring and measure_points.count >= 3
+		end
+
+	end_measuring
+			-- The path kept shown, clicks no longer placing points.
+		require
+			running: is_measuring
+		do
+			measure_state := Measure_ended
+		ensure
+			ended: measure_state = Measure_ended
+		end
+
+	close_shape
+			-- The last point joined to the first: a shape with a perimeter and an area.
+		require
+			closable: can_close
+		do
+			is_measure_closed := True
+			measure_state := Measure_ended
+		ensure
+			closed: is_measure_closed and measure_state = Measure_ended
+		end
+
+	delete_measure
+			-- The measurement removed entirely.
+		do
+			measure_points.wipe_out
+			is_measure_closed := False
+			measure_state := Measure_idle
+		ensure
+			idle: measure_state = Measure_idle and measure_points.is_empty
+		end
+
+	measured_length_m: REAL_64
+			-- The path's length, with the closing edge when it is a shape.
+		local
+			i: INTEGER
+		do
+			from i := 2 until i > measure_points.count loop
+				Result := Result + distance_m (measure_points [i - 1].lon, measure_points [i - 1].lat, measure_points [i].lon, measure_points [i].lat)
+				i := i + 1
+			end
+			if is_measure_closed and measure_points.count >= 3 then
+				Result := Result + distance_m (measure_points.last.lon, measure_points.last.lat, measure_points.first.lon, measure_points.first.lat)
+			end
+		end
+
+	measured_area_m2: REAL_64
+			-- The shape's area; 0 for an open path.
+		local
+			l_ring: ARRAY [REAL_64]
+			i: INTEGER
+		do
+			if is_measure_closed and measure_points.count >= 3 then
+				create l_ring.make_filled (0.0, 1, 2 * measure_points.count)
+				from i := 1 until i > measure_points.count loop
+					l_ring [2 * i - 1] := measure_points [i].lon
+					l_ring [2 * i] := measure_points [i].lat
+					i := i + 1
+				end
+				Result := ring_area_m2 (l_ring)
+			end
+		end
+
+	readout_lines: ARRAYED_LIST [STRING_32]
+			-- The plate's lines as the last frame drew them (the measurement, else the area chosen).
+
+	selected_area: INTEGER
+			-- The area last pressed on; 0 for none.
 
 feature -- Areas
 
@@ -467,17 +836,48 @@ feature -- Marks and selection
 		end
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
-			-- A press on a site selects it; anywhere else grabs the ground for panning.
+			-- While measuring, a press grabs the ground and its release places a point (unless the
+			-- pointer moved: that was a pan). Otherwise a press on a site selects it; on an area,
+			-- selects the area; anywhere, grabs the ground for panning.
 		local
 			l_site: INTEGER
 		do
-			l_site := site_at (a_px, a_py)
-			if l_site > 0 then
+			press_px := a_px
+			press_py := a_py
+			is_press_pending := True
+			if is_measuring then
 				begin_pan (a_px, a_py)
-				selected_site := l_site
-				if attached on_site_select as al_select then
-					al_select.call (l_site)
+				Result := True
+			else
+				l_site := site_at (a_px, a_py)
+				if l_site > 0 then
+					begin_pan (a_px, a_py)
+					selected_site := l_site
+					if attached on_site_select as al_select then
+						al_select.call (l_site)
+					end
+					Result := True
+				else
+					selected_area := area_at (a_px, a_py)
+					Result := Precursor (a_px, a_py)
 				end
+			end
+		end
+
+	handle_release (a_x, a_y: INTEGER)
+			-- A still press while measuring places the next point where it landed.
+		do
+			if is_measuring and is_press_pending and then ((a_x - press_px) ^ 2 + (a_y - press_py) ^ 2) ^ 0.5 < 4.0 then
+				place_point (lon_at_x (press_px), lat_at_y (press_py))
+			end
+			is_press_pending := False
+		end
+
+	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
+			-- While measuring, a double-click ends the path; otherwise the whole world (SW_MAP).
+		do
+			if is_measuring then
+				end_measuring
 				Result := True
 			else
 				Result := Precursor (a_px, a_py)
@@ -578,6 +978,10 @@ feature -- Hover cards
 						if not areas.i_th (l_area).line.is_empty then
 							l_lines.extend (areas.i_th (l_area).line)
 						end
+						l_lines.extend ((if has_year then {STRING_32} "Its area in " + era.label (year) else {STRING_32} "Its area" end) + {STRING_32} ", about:")
+						across area_lines (l_area) as ic_line loop
+							l_lines.extend ({STRING_32} "  " + ic_line)
+						end
 						Result := card (areas.i_th (l_area).name, l_lines)
 						Result.set_anchor (a_px - 6.0, a_py - 6.0, 12.0, 12.0)
 						last_card_kind := "area"
@@ -629,6 +1033,172 @@ feature {NONE} -- Drawing
 			draw_sites (a_p, True)
 			draw_sites (a_p, False)
 			draw_area_names (a_p)
+			draw_selected_area (a_p)
+			draw_measure (a_p)
+			draw_readout (a_p)
+			if shows_scale then
+				draw_scale (a_p)
+			end
+		end
+
+	draw_selected_area (a_p: SW_PAINTER)
+			-- The chosen polity's outlines in the year, drawn heavy in the ink.
+		local
+			k, n: INTEGER
+			a: like areas.item
+		do
+			if selected_area > 0 and selected_area <= areas.count then
+				a_p.set_color (a_p.theme.ink)
+				across areas as ic loop
+					if ic.name.same_string (areas.i_th (selected_area).name) and then has_year and then year >= ic.year_from and then year <= ic.year_to then
+						a := ic
+						n := a.ring.count // 2
+						from k := 0 until k >= n loop
+							ring_buffer [2 * k + 1] := x_of_lon (a.ring [a.ring.lower + 2 * k])
+							ring_buffer [2 * k + 2] := y_of_lat (a.ring [a.ring.lower + 2 * k + 1])
+							k := k + 1
+						end
+						a_p.polygon_stroke_flat (ring_buffer, n, 2.5)
+					end
+				end
+			end
+		end
+
+	draw_measure (a_p: SW_PAINTER)
+			-- The path through the points (closed and tinted when a shape), each point a dot; while
+			-- running with three points or more, the first point ringed: a click there closes it.
+		local
+			t: SW_THEME
+			l_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
+			l_flat: ARRAY [REAL_64]
+			i: INTEGER
+		do
+			t := a_p.theme
+			if not measure_points.is_empty then
+				create l_pts.make (measure_points.count + 1)
+				create l_flat.make_filled (0.0, 1, 2 * measure_points.count)
+				from i := 1 until i > measure_points.count loop
+					l_pts.extend ([x_of_lon (measure_points [i].lon), y_of_lat (measure_points [i].lat)])
+					l_flat [2 * i - 1] := l_pts.last.px
+					l_flat [2 * i] := l_pts.last.py
+					i := i + 1
+				end
+				if is_measure_closed then
+					a_p.set_color_alpha (t.accent, 0.18)
+					a_p.polygon_fill_flat (l_flat, measure_points.count)
+					l_pts.extend (l_pts.first)
+				end
+				if l_pts.count >= 2 then
+					a_p.set_color (t.ink_accent)
+					a_p.dashed_polyline (l_pts, 2.5, a_p.Stroke_solid)
+				end
+				across l_pts as ic loop
+					a_p.set_color (t.ink_accent)
+					a_p.circle_fill (ic.px, ic.py, 4.0)
+					a_p.set_color (t.surface)
+					a_p.circle_stroke (ic.px, ic.py, 4.5)
+				end
+				if can_close then
+					a_p.set_color (t.ink_accent)
+					a_p.circle_stroke (l_pts.first.px, l_pts.first.py, 8.0)
+				end
+			end
+		end
+
+	draw_readout (a_p: SW_PAINTER)
+			-- The plate in the plot's upper right: the measurement while there is one, else the
+			-- area chosen.
+		local
+			t: SW_THEME
+			lh, lw, x0, y0, l_h: REAL_64
+			i: INTEGER
+		do
+			t := a_p.theme
+			readout_lines.wipe_out
+			if measure_state /= Measure_idle then
+				if is_measuring then
+					readout_lines.extend ({STRING_32} "Measuring: " + measure_points.count.out + (if measure_points.count = 1 then {STRING_32} " point" else {STRING_32} " points" end))
+				end
+				if measure_points.count < 2 and is_measuring then
+					readout_lines.extend ({STRING_32} "Click the map to place points")
+				else
+					readout_lines.extend (if is_measure_closed then {STRING_32} "Perimeter" else {STRING_32} "Distance" end)
+					across length_lines (measured_length_m) as ic loop
+						readout_lines.extend ({STRING_32} "  " + ic)
+					end
+					if is_measure_closed then
+						readout_lines.extend ({STRING_32} "Area")
+						across square_lines (measured_area_m2) as ic loop
+							readout_lines.extend ({STRING_32} "  " + ic)
+						end
+					end
+				end
+			elseif selected_area > 0 and selected_area <= areas.count and then has_year
+				and then year >= areas.i_th (selected_area).year_from and then year <= areas.i_th (selected_area).year_to
+			then
+				readout_lines.extend (areas.i_th (selected_area).name)
+				readout_lines.extend ({STRING_32} "Its area in " + era.label (year) + {STRING_32} ", about:")
+				across area_lines (selected_area) as ic loop
+					readout_lines.extend ({STRING_32} "  " + ic)
+				end
+			end
+			if not readout_lines.is_empty then
+				lh := a_p.text_extent
+				across readout_lines as ic loop
+					lw := lw.max (a_p.advance (ic))
+				end
+				l_h := readout_lines.count * (lh + 2.0) + 12.0
+				x0 := plot_x + plot_w - lw - 24.0
+				y0 := plot_y + 8.0
+				a_p.set_color_alpha (t.surface, 0.9)
+				a_p.rrect_fill (x0, y0, lw + 16.0, l_h, t.radius)
+				a_p.set_color (t.outline)
+				a_p.rrect_stroke (x0 + 0.5, y0 + 0.5, lw + 15.0, l_h - 1.0, t.radius)
+				a_p.set_color (t.ink)
+				from i := 1 until i > readout_lines.count loop
+					a_p.text (x0 + 8.0, y0 + 6.0 + (i - 1) * (lh + 2.0) + a_p.font_ascent, readout_lines [i])
+					i := i + 1
+				end
+			end
+		end
+
+	draw_scale (a_p: SW_PAINTER)
+			-- Three bars on a plate in the plot's lower right: miles, kilometers, nautical miles.
+		local
+			t: SW_THEME
+			l_units: ARRAY [REAL_64]
+			lh, lw, l_plate_w, l_plate_h, x0, y0, l_len, ly: REAL_64
+			i: INTEGER
+		do
+			t := a_p.theme
+			l_units := <<Mile, Kilometer, Nautical_mile>>
+			scale_labels.wipe_out
+			across l_units as u loop
+				scale_labels.extend (scale_text (scale_value (u), u))
+			end
+			lh := a_p.text_extent
+			across scale_labels as s loop
+				lw := lw.max (a_p.advance (s))
+			end
+			l_plate_w := 8.0 + Scale_max_px + 8.0 + lw + 8.0
+			l_plate_h := 3.0 * (lh + 6.0) + 6.0
+			x0 := plot_x + plot_w - l_plate_w - 8.0
+			y0 := plot_y + plot_h - l_plate_h - 8.0
+			a_p.set_color_alpha (t.surface, 0.85)
+			a_p.rrect_fill (x0, y0, l_plate_w, l_plate_h, t.radius)
+			a_p.set_color (t.outline)
+			a_p.rrect_stroke (x0 + 0.5, y0 + 0.5, l_plate_w - 1.0, l_plate_h - 1.0, t.radius)
+			from i := 1 until i > 3 loop
+				l_len := scale_length (l_units [i])
+				ly := y0 + 6.0 + (i - 1) * (lh + 6.0) + lh / 2.0
+				a_p.set_color (t.ink)
+				a_p.fill_rect (x0 + 8.0, ly - 1.0, l_len, 2.0)
+				a_p.fill_rect (x0 + 8.0, ly - 4.0, 1.5, 8.0)
+				a_p.fill_rect (x0 + 8.0 + l_len - 1.5, ly - 4.0, 1.5, 8.0)
+				a_p.fill_rect (x0 + 8.0 + l_len / 2.0 - 0.75, ly - 3.0, 1.5, 3.0)
+				a_p.text (x0 + 8.0 + Scale_max_px + 8.0, ly - lh / 2.0 + a_p.font_ascent, scale_labels [i])
+				i := i + 1
+			end
 		end
 
 	draw_sites (a_p: SW_PAINTER; a_marked: BOOLEAN)
@@ -777,6 +1347,18 @@ feature {NONE} -- Drawing
 		end
 
 feature {NONE} -- Implementation
+
+	press_px, press_py: REAL_64
+			-- Where the last press landed.
+
+	is_press_pending: BOOLEAN
+			-- Has the last press not yet been released?
+
+	near_point (a_point: TUPLE [lon, lat: REAL_64]; a_lon, a_lat: REAL_64): BOOLEAN
+			-- Is (`a_lon', `a_lat') within `Reach' pixels of `a_point' on screen?
+		do
+			Result := ((x_of_lon (a_point.lon) - x_of_lon (a_lon)) ^ 2 + (y_of_lat (a_point.lat) - y_of_lat (a_lat)) ^ 2) ^ 0.5 <= Reach
+		end
 
 	ring_buffer: ARRAY [REAL_64]
 			-- Screen points of the area being drawn, reused frame to frame.
