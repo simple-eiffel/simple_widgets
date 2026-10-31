@@ -52,6 +52,14 @@ feature -- Areas
 			fill_gate (create {SW_THEME}.make_dark, "dark")
 		end
 
+	test_atlas_land_is_not_the_panel
+			-- In a dock panel SW_MAP's land (the surface) read as empty panel: the Atlas's land
+			-- differs from the surface beside it, in light and dark.
+		do
+			land_gate (create {SW_THEME}.make_light, "light")
+			land_gate (create {SW_THEME}.make_dark, "dark")
+		end
+
 	test_atlas_smallest_area_answers_a_hover
 		local
 			w: SW_WINDOW
@@ -276,6 +284,22 @@ feature {NONE} -- Helpers
 		do
 			Result := a.x_of_lon (a_lon) >= a.plot_x and a.x_of_lon (a_lon) <= a.plot_x + a.plot_w
 				and a.y_of_lat (a_lat) >= a.plot_y and a.y_of_lat (a_lat) <= a.plot_y + a.plot_h
+		end
+
+	land_gate (a_theme: SW_THEME; a_name: STRING)
+			-- The Arabian desert's pixel stands apart from the panel's surface beside the plot.
+		local
+			w: SW_WINDOW
+			a: SW_ATLAS
+			l_land, l_panel: NATURAL_32
+		do
+			w := atlas_window (a_theme, 900, 600)
+			a := atlas_of (w)
+			w.request_render
+			l_land := map_pixel (w, a, 46.7, 24.7)
+			l_panel := a_theme.surface & 0xFFFFFF
+			io.put_string ("    atlas " + a_name + ": land " + l_land.to_hex_string + ", panel " + l_panel.to_hex_string + "%N")
+			assert_false (a_name + ": the land is not the panel", near (l_land, l_panel, 8))
 		end
 
 	fill_gate (a_theme: SW_THEME; a_name: STRING)
