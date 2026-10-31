@@ -32,7 +32,8 @@ inherit
 	SW_WIDGET
 		redefine
 			widget_at, pebble_at, accepts_pebble, receive_pebble, arrange, handle_click, handle_double_click,
-			accessible_children, accessible_role, default_accessible_name, context_menu, wants_hover_point
+			accessible_children, accessible_role, default_accessible_name, context_menu, wants_hover_point,
+			refresh_enabling
 		end
 
 	SW_TAB_STRIP
@@ -344,6 +345,20 @@ feature -- Menu
 						z := z + 1
 					end
 				end
+			end
+		end
+
+feature -- Enabling
+
+	refresh_enabling
+			-- Its own condition, then every panel's in the zone: the panels are not `sub_widgets'
+			-- (the zone draws them and routes to them itself), so the window's enabling pass stopped
+			-- here and a docked button kept the state it was made with (2026-10-31: the Atlas's
+			-- Undo point, End, Close shape and Delete; only Start, made enabled, worked).
+		do
+			Precursor
+			across host.panels_in (zone_id) as ic loop
+				host.panels.i_th (ic).content.refresh_enabling
 			end
 		end
 

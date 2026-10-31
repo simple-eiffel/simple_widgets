@@ -77,6 +77,7 @@ feature {NONE} -- Initialization
 			create name_widths.make (64)
 			create scale_labels.make (3)
 			create measure_points.make (8)
+			create measure_actions.make (2)
 			create readout_lines.make (8)
 			set_standard_parallel (32.0)
 			shows_scale := True
@@ -377,6 +378,20 @@ feature -- The measuring tool
 	is_measure_closed: BOOLEAN
 			-- Was the path joined into a shape?
 
+	measure_actions: ARRAYED_LIST [PROCEDURE]
+			-- Agents called after every change to the measurement: started, a point placed or taken
+			-- back, ended, closed, deleted. The state pushes to its listeners (Larry, 2026-10-31:
+			-- state machines through agent collections), so a button that follows it needs no
+			-- walk of the widget tree to hear.
+
+	on_measure_change (a_action: PROCEDURE)
+			-- Call `a_action' after every change to the measurement.
+		do
+			measure_actions.extend (a_action)
+		ensure
+			kept: measure_actions.has (a_action)
+		end
+
 	start_measuring
 			-- A new measurement: the old one removed, clicks place points.
 		do
@@ -384,6 +399,7 @@ feature -- The measuring tool
 			is_measure_closed := False
 			measure_state := Measure_running
 			selected_area := 0
+			tell_measure_change
 		ensure
 			running: is_measuring and measure_points.is_empty and not is_measure_closed
 		end
@@ -398,6 +414,7 @@ feature -- The measuring tool
 				close_shape
 			elseif measure_points.is_empty or else not near_point (measure_points.last, a_lon, a_lat) then
 				measure_points.extend ([a_lon, a_lat])
+				tell_measure_change
 			end
 		end
 
@@ -409,6 +426,7 @@ feature -- The measuring tool
 		do
 			measure_points.finish
 			measure_points.remove
+			tell_measure_change
 		ensure
 			one_less: measure_points.count = old measure_points.count - 1
 		end
@@ -425,6 +443,7 @@ feature -- The measuring tool
 			running: is_measuring
 		do
 			measure_state := Measure_ended
+			tell_measure_change
 		ensure
 			ended: measure_state = Measure_ended
 		end
@@ -436,6 +455,7 @@ feature -- The measuring tool
 		do
 			is_measure_closed := True
 			measure_state := Measure_ended
+			tell_measure_change
 		ensure
 			closed: is_measure_closed and measure_state = Measure_ended
 		end
@@ -446,6 +466,7 @@ feature -- The measuring tool
 			measure_points.wipe_out
 			is_measure_closed := False
 			measure_state := Measure_idle
+			tell_measure_change
 		ensure
 			idle: measure_state = Measure_idle and measure_points.is_empty
 		end
@@ -1347,6 +1368,14 @@ feature {NONE} -- Drawing
 		end
 
 feature {NONE} -- Implementation
+
+	tell_measure_change
+			-- Every agent in `measure_actions', in the order given.
+		do
+			across measure_actions as ic loop
+				ic.call ([])
+			end
+		end
 
 	press_px, press_py: REAL_64
 			-- Where the last press landed.

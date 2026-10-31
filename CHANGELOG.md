@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.48.2 - docked buttons follow their state)
+
+- `SW_DOCK_ZONE.refresh_enabling` passes the window's enabling pass on to every panel in the zone: the panels are not `sub_widgets`, so a docked button's `enabled_when` condition was asked once and never again (the Atlas's Undo point, End, Close shape and Delete stayed greyed in Simple Bible 0.7.43; only Start, made enabled, worked). Before: `dock_panel_buttons_follow_their_conditions` FAILED; after: passed.
+- `SW_ATLAS.on_measure_change`: an agent collection the measurement calls after every change (start, a point placed or taken back, end, close, delete), so state pushes to what follows it (Larry, 2026-10-31: state machines through agent collections). `atlas_tells_every_measure_change`. 601 pass.
+
 ### Added (0.48.1 - the Atlas measures: a scale, a measuring tool, the area of every shape)
 
 - A scale (Larry, 2026-10-31): three bars in the plot's lower right in miles (US statute), kilometers and nautical miles, each a round length (1, 2 or 5 times a power of ten) that fits, measured across the map at the view's center latitude, labeled in words. Jerusalem to Damascus measures 216 kilometers by the scale against 217 great-circle.
