@@ -834,6 +834,11 @@ feature {NONE} -- Test runners
 			run_test (agent sw_atlas_tests.test_atlas_sites_and_timed_routes_follow_the_year, "atlas_sites_and_timed_routes_follow_the_year")
 			run_test (agent sw_atlas_tests.test_atlas_marked_sites_come_into_view_labeled, "atlas_marked_sites_come_into_view_labeled")
 			run_test (agent sw_atlas_tests.test_atlas_keeps_a_true_aspect_and_the_wheel_its_anchor, "atlas_keeps_a_true_aspect_and_the_wheel_its_anchor")
+			run_test (agent sw_atlas_tests.test_atlas_scale_reads_true_distances, "atlas_scale_reads_true_distances")
+			run_test (agent sw_atlas_tests.test_atlas_measures_point_to_point, "atlas_measures_point_to_point")
+			run_test (agent sw_atlas_tests.test_atlas_measures_a_shape_and_its_area, "atlas_measures_a_shape_and_its_area")
+			run_test (agent sw_atlas_tests.test_atlas_area_of_a_shape_on_the_map, "atlas_area_of_a_shape_on_the_map")
+			run_test (agent sw_atlas_tests.test_atlas_amounts_read_to_three_figures, "atlas_amounts_read_to_three_figures")
 			run_test (agent sw_atlas_tests.test_atlas_three_thousand_areas_hold_the_frame_budget, "atlas_three_thousand_areas_hold_the_frame_budget")
 			print ("%N=== GW-19 REGIONAL MAP ===%N")
 			create atlas_tests
