@@ -521,6 +521,39 @@ feature -- Paths
 			context.set_line_width (1.0).do_nothing
 		end
 
+	polygon_fill_stroke_flat (a_xy: ARRAY [REAL_64]; a_count: INTEGER; a_fill: NATURAL_32; a_fill_alpha: REAL_64;
+			a_stroke: NATURAL_32; a_stroke_alpha, a_width: REAL_64)
+			-- Fill the polygon of the first `a_count' SCREEN points of flat `a_xy' in `a_fill', then
+			-- outline the same path in `a_stroke', `a_width' wide: one path built, not two (the
+			-- Atlas's areas, 2026-10-31: tracing each outline twice put 3,000 areas at the edge of the
+			-- frame budget).
+		require
+			enough: a_count >= 3
+			fits: a_count * 2 <= a_xy.count
+			alphas: a_fill_alpha >= 0.0 and a_fill_alpha <= 1.0 and a_stroke_alpha >= 0.0 and a_stroke_alpha <= 1.0
+			positive_width: a_width > 0.0
+		local
+			i: INTEGER
+		do
+			context.new_path.do_nothing
+			context.move_to (a_xy [a_xy.lower], a_xy [a_xy.lower + 1]).do_nothing
+			from
+				i := 1
+			until
+				i >= a_count
+			loop
+				context.line_to (a_xy [a_xy.lower + i * 2], a_xy [a_xy.lower + i * 2 + 1]).do_nothing
+				i := i + 1
+			end
+			context.close_path.do_nothing
+			set_color_alpha (a_fill, a_fill_alpha)
+			context.fill_preserve.do_nothing
+			set_color_alpha (a_stroke, a_stroke_alpha)
+			context.set_line_width (a_width).do_nothing
+			context.stroke.do_nothing
+			context.set_line_width (1.0).do_nothing
+		end
+
 	polygon_fill_flat (a_xy: ARRAY [REAL_64]; a_count: INTEGER)
 			-- Fill the polygon whose SCREEN points are the first
 			-- `a_count' (x, y) pairs of flat `a_xy' - the zero-

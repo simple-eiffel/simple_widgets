@@ -20,106 +20,31 @@ note
 		`text_scale'; the bar's own insets and corners scale with them.
 		Lifted (0.20.0) from six widgets that each carried a copy, from
 		SW_CHAT_THREAD's, the one that kept the grab point and paged on a
-		track press.
+		track press. Its arithmetic moved up to SW_SCROLLBAR (0.49.0) when
+		the River of Time needed a bar across time (SW_HSCROLLBAR); the
+		names here are the vertical ones.
 	]"
 	author: "Larry Rix"
 
 class
 	SW_VSCROLLBAR
 
+inherit
+	SW_SCROLLBAR
+		rename
+			track_start as track_y,
+			track_length as track_h,
+			thumb_length as thumb_height,
+			thumb_start as thumb_top
+		end
+
 create
 	make
 
-feature {NONE} -- Initialization
-
-	make
-			-- A bar at 1x, nowhere yet, with nothing to scroll.
-		do
-			bar_width := 12.0
-			min_thumb := 24.0
-			scale := 1.0
-			track_h := 1.0
-		ensure
-			nothing_to_scroll: not is_needed
-			not_dragging: not is_dragging
-		end
-
-feature -- Constants
-
-	Wheel_lines: INTEGER = 3
-			-- Lines one wheel notch scrolls (the Windows default).
-
-	Track_inset: REAL_64 = 2.0
-			-- The track's gap from the owner's top and bottom edges, at 1x.
-
 feature -- Geometry
 
-	bar_width: REAL_64
-			-- The column the bar takes at the owner's right edge.
-
-	min_thumb: REAL_64
-			-- The thumb is never shorter, so it stays grabbable.
-
-	scale: REAL_64
-			-- The theme's `text_scale' at the last `place'.
-
 	track_x: REAL_64
-	track_y: REAL_64
-	track_h: REAL_64
-
-	viewport: REAL_64
-			-- The height the owner shows.
-
-	content: REAL_64
-			-- The height of everything it could show.
-
-	max_scroll: REAL_64
-			-- How far the scroll position can go.
-		do
-			Result := (content - viewport).max (0.0)
-		ensure
-			non_negative: Result >= 0.0
-		end
-
-	is_needed: BOOLEAN
-			-- Does the content overflow, so the bar draws and answers?
-		do
-			Result := max_scroll > 0.0
-		end
-
-	clamped (a_scroll: REAL_64): REAL_64
-			-- `a_scroll' kept inside 0 .. `max_scroll'.
-		do
-			Result := a_scroll.max (0.0).min (max_scroll)
-		ensure
-			low: Result >= 0.0
-			high: Result <= max_scroll
-		end
-
-	thumb_height: REAL_64
-			-- The viewport's share of the track, never below `min_thumb'
-			-- nor above the track.
-		do
-			if content > 0.0 then
-				Result := viewport / content * track_h
-			end
-			Result := Result.max (min_thumb).min (track_h)
-		ensure
-			fits_track: Result > 0.0 and Result <= track_h
-		end
-
-	thumb_top (a_scroll: REAL_64): REAL_64
-			-- The thumb's top for scroll position `a_scroll'.
-		do
-			if max_scroll > 0.0 then
-				Result := track_y + (clamped (a_scroll) / max_scroll) * (track_h - thumb_height)
-			else
-				Result := track_y
-			end
-		ensure
-			inside_track: Result >= track_y - 0.001
-				and Result + thumb_height <= track_y + track_h + 0.001
-		end
+			-- The bar's left edge.
 
 	contains (a_px, a_py: REAL_64): BOOLEAN
 			-- Is (`a_px', `a_py') on the bar's column, while it is needed?
@@ -128,11 +53,6 @@ feature -- Geometry
 				and then a_py >= track_y - Track_inset * scale
 				and then a_py <= track_y + track_h + Track_inset * scale
 		end
-
-feature -- Status
-
-	is_dragging: BOOLEAN
-			-- Is the thumb held?
 
 feature -- Placement
 
@@ -146,80 +66,8 @@ feature -- Placement
 			track_x := a_x + a_width - bar_width
 			track_y := a_y + Track_inset * scale
 			track_h := (a_height - 2.0 * Track_inset * scale).max (1.0)
-		ensure
+		ensure then
 			at_right_edge: track_x = a_x + a_width - bar_width
-			width_from_theme: bar_width = a_theme.scrollbar_width
-		end
-
-	set_extent (a_viewport, a_content: REAL_64)
-			-- The owner shows `a_viewport' of `a_content'.
-		require
-			non_negative: a_viewport >= 0.0 and a_content >= 0.0
-		do
-			viewport := a_viewport
-			content := a_content
-		ensure
-			viewport_set: viewport = a_viewport
-			content_set: content = a_content
-		end
-
-feature -- Pointer
-
-	press (a_py, a_scroll: REAL_64): REAL_64
-			-- The scroll position after a press at `a_py' on the bar: on
-			-- the thumb a drag begins and nothing moves yet; above or below
-			-- it the view pages that way.
-		require
-			needed: is_needed
-		local
-			l_top: REAL_64
-		do
-			l_top := thumb_top (a_scroll)
-			Result := clamped (a_scroll)
-			if a_py >= l_top and a_py <= l_top + thumb_height then
-				is_dragging := True
-				grab_offset := a_py - l_top
-			elseif a_py < l_top then
-				Result := clamped (a_scroll - viewport)
-			else
-				Result := clamped (a_scroll + viewport)
-			end
-		ensure
-			in_range: Result >= 0.0 and Result <= max_scroll
-		end
-
-	drag_to (a_py: REAL_64): REAL_64
-			-- The scroll position with the thumb held at `a_py', the grab
-			-- point kept under the pointer.
-		require
-			dragging: is_dragging
-		local
-			l_span: REAL_64
-		do
-			l_span := (track_h - thumb_height).max (1.0)
-			Result := clamped ((a_py - grab_offset - track_y) / l_span * max_scroll)
-		ensure
-			in_range: Result >= 0.0 and Result <= max_scroll
-		end
-
-	release
-			-- Let go of the thumb.
-		do
-			is_dragging := False
-		ensure
-			not_dragging: not is_dragging
-		end
-
-	wheel_scroll (a_scroll: REAL_64; a_delta: INTEGER; a_line: REAL_64): REAL_64
-			-- The scroll position after a wheel turn of `a_delta' (120 a
-			-- notch, positive away from the reader), `Wheel_lines' lines of
-			-- `a_line' pixels a notch.
-		require
-			line_positive: a_line > 0.0
-		do
-			Result := clamped (a_scroll - a_delta / 120.0 * Wheel_lines * a_line)
-		ensure
-			in_range: Result >= 0.0 and Result <= max_scroll
 		end
 
 feature -- Drawing
@@ -243,15 +91,5 @@ feature -- Drawing
 					thumb_height, 3.0 * scale)
 			end
 		end
-
-feature {NONE} -- Implementation
-
-	grab_offset: REAL_64
-			-- Where on the thumb the press landed.
-
-invariant
-	sizes_positive: bar_width > 0.0 and min_thumb > 0.0 and scale > 0.0
-	track_positive: track_h > 0.0
-	extent_non_negative: viewport >= 0.0 and content >= 0.0
 
 end

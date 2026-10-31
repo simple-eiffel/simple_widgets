@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.49.0 - a bar across time; SW_SCROLLBAR)
+
+- `SW_SCROLLBAR` (deferred): the arithmetic every scrollbar shares, lifted from `SW_VSCROLLBAR` (viewport, content, thumb, paging, the held thumb's grab point, the wheel). `SW_VSCROLLBAR` is its vertical heir (renames keep `track_y`, `track_h`, `thumb_height`, `thumb_top`; every client unchanged); `SW_HSCROLLBAR` is the new horizontal heir.
+- `SW_LANE_TIMELINE` gets a bar across time at its bottom (Larry, 2026-10-31: "a left-to-right slider for walking time forward and back"): all the data's years as its track and the view as its thumb, in the bent coordinate under the lens; the first and last years of the data labeled at its ends; drag, page, Home (earliest), End (latest), Shift+Home (everything); `show_years`, `show_earliest`, `show_latest`, `data_earliest`, `data_latest`.
+- `SW_LANE_TIMELINE.view_changed`: an `SW_EVENT` told once each time the years in view change, whatever changed them (state by agents).
+- `SW_ERA_YEARS.is_year_text` / `year_of_text`: years as people type them ("1446 BC", "1446 B.C.", "586 BCE", "AD 70", "70 AD", "30 CE", "200,000 BC", "135", "-1446"); year zero refused.
+- `SW_PAINTER.polygon_fill_stroke_flat`: fill and outline one path. The Atlas budget test now uses rings that meet rather than stack, as real borders do (it piled 150 translucent fills and hovered at the budget's edge under load): 16.5 to 17.9 ms against 33.3. 3 new tests; 604 pass.
+
 ### Fixed (0.48.2 - docked buttons follow their state)
 
 - `SW_DOCK_ZONE.refresh_enabling` passes the window's enabling pass on to every panel in the zone: the panels are not `sub_widgets`, so a docked button's `enabled_when` condition was asked once and never again (the Atlas's Undo point, End, Close shape and Delete stayed greyed in Simple Bible 0.7.43; only Start, made enabled, worked). Before: `dock_panel_buttons_follow_their_conditions` FAILED; after: passed.
