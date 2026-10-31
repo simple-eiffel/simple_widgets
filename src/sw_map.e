@@ -206,9 +206,12 @@ feature -- Zoom (the wheel at the pointer; drag pans; double-click resets)
 					k := k + 1
 				end
 				nz := (effective_zoom * f).max (1.0).min (Max_zoom)
+					-- the spans at the new zoom (read through `span_lon' and `span_lat', so an
+					-- heir that keeps a true aspect still holds the point under the cursor)
+				zoom := nz
 				set_view (nz,
-					l - (anchor_x - plot_x) / plot_w * (360.0 / nz) + (360.0 / nz) / 2.0,
-					la + (anchor_y - plot_y) / plot_h * (180.0 / nz) - (180.0 / nz) / 2.0)
+					l - (anchor_x - plot_x) / plot_w * span_lon + span_lon / 2.0,
+					la + (anchor_y - plot_y) / plot_h * span_lat - span_lat / 2.0)
 				Result := True
 			end
 		end
@@ -566,6 +569,7 @@ feature -- Drawing
 			if is_region_drawn then
 				draw_region (a_p)
 			end
+			draw_under_routes (a_p)
 			if is_layer_shown (Layer_routes) then
 				draw_routes (a_p)
 			end
@@ -594,6 +598,7 @@ feature -- Drawing
 					y_of_lat (markers.i_th (r).lat), 4.0)
 				r := r + 1
 			end
+			draw_over_places (a_p)
 			a_p.pop_clip
 			if hot > 0 then
 				create chip.make (32)
@@ -726,29 +731,53 @@ feature {NONE} -- The coarse world
 		end
 
 	draw_routes (a_p: SW_PAINTER)
-			-- Each route in the route ink, dashed when uncertain.
+			-- Each route shown (`route_shown') in the route ink, dashed when uncertain.
 		local
 			t: SW_THEME
-			k, n: INTEGER
+			i, k, n: INTEGER
+			rt: like routes.item
 			l_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
 		do
 			t := a_p.theme
-			across
-				routes as rt
-			loop
-				n := rt.points.count // 2
-				create l_pts.make (n)
-				from k := 0 until k >= n loop
-					l_pts.extend ([x_of_lon (rt.points [rt.points.lower + k * 2]), y_of_lat (rt.points [rt.points.lower + k * 2 + 1])])
-					k := k + 1
+			from i := 1 until i > routes.count loop
+				rt := routes.i_th (i)
+				if route_shown (i) then
+					n := rt.points.count // 2
+					create l_pts.make (n)
+					from k := 0 until k >= n loop
+						l_pts.extend ([x_of_lon (rt.points [rt.points.lower + k * 2]), y_of_lat (rt.points [rt.points.lower + k * 2 + 1])])
+						k := k + 1
+					end
+					a_p.set_color (route_color (t))
+					if rt.is_certain then
+						a_p.dashed_polyline (l_pts, 2.0, a_p.Stroke_solid)
+					else
+						a_p.dashed_polyline (l_pts, 2.0, a_p.Stroke_dashed)
+					end
 				end
-				a_p.set_color (route_color (t))
-				if rt.is_certain then
-					a_p.dashed_polyline (l_pts, 2.0, a_p.Stroke_solid)
-				else
-					a_p.dashed_polyline (l_pts, 2.0, a_p.Stroke_dashed)
-				end
+				i := i + 1
 			end
+		end
+
+	route_shown (a_route: INTEGER): BOOLEAN
+			-- Is route `a_route' drawn now? Always here; an heir that keeps time (SW_ATLAS)
+			-- answers by its year.
+		require
+			known: a_route >= 1 and a_route <= routes.count
+		do
+			Result := True
+		end
+
+	draw_under_routes (a_p: SW_PAINTER)
+			-- A layer over the land and under the routes, inside the plot clip: nothing here;
+			-- an heir draws its own (SW_ATLAS: areas by year).
+		do
+		end
+
+	draw_over_places (a_p: SW_PAINTER)
+			-- A layer over the places and markers, inside the plot clip: nothing here; an heir
+			-- draws its own (SW_ATLAS: sites with their doubt, marks, area names).
+		do
 		end
 
 	draw_places (a_p: SW_PAINTER)

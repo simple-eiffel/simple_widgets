@@ -823,6 +823,17 @@ feature {NONE} -- Test runners
 			run_test (agent timeline_tests.test_river_a_lean_keeps_its_room, "river_a_lean_keeps_its_room")
 			run_test (agent timeline_tests.test_river_lens_spans_deep_time_and_turns_linear, "river_lens_spans_deep_time_and_turns_linear")
 			run_test (agent timeline_tests.test_river_hover_card_on_an_item, "river_hover_card_on_an_item")
+				-- SW_ATLAS (Plan 22 phase 3, 2026-10-31)
+			create sw_atlas_tests
+			run_test (agent sw_atlas_tests.test_atlas_areas_follow_the_year_and_the_view, "atlas_areas_follow_the_year_and_the_view")
+			run_test (agent sw_atlas_tests.test_atlas_area_fill_is_not_the_water, "atlas_area_fill_is_not_the_water")
+			run_test (agent sw_atlas_tests.test_atlas_smallest_area_answers_a_hover, "atlas_smallest_area_answers_a_hover")
+			run_test (agent sw_atlas_tests.test_atlas_disputed_site_shows_every_candidate, "atlas_disputed_site_shows_every_candidate")
+			run_test (agent sw_atlas_tests.test_atlas_press_on_a_site_selects_and_does_not_pan, "atlas_press_on_a_site_selects_and_does_not_pan")
+			run_test (agent sw_atlas_tests.test_atlas_sites_and_timed_routes_follow_the_year, "atlas_sites_and_timed_routes_follow_the_year")
+			run_test (agent sw_atlas_tests.test_atlas_marked_sites_come_into_view_labeled, "atlas_marked_sites_come_into_view_labeled")
+			run_test (agent sw_atlas_tests.test_atlas_keeps_a_true_aspect_and_the_wheel_its_anchor, "atlas_keeps_a_true_aspect_and_the_wheel_its_anchor")
+			run_test (agent sw_atlas_tests.test_atlas_three_thousand_areas_hold_the_frame_budget, "atlas_three_thousand_areas_hold_the_frame_budget")
 			print ("%N=== GW-19 REGIONAL MAP ===%N")
 			create atlas_tests
 			run_test (agent atlas_tests.test_gw19_land_and_water_stay_apart, "gw19_land_and_water_stay_apart")
@@ -953,6 +964,8 @@ feature {NONE} -- Test runners
 	motion_tests: SW_REDUCED_MOTION_ASSAULT
 	strokes_tests: SW_STROKES_ASSAULT
 	timeline_tests: SW_LANE_TIMELINE_ASSAULT
+	sw_atlas_tests: SW_ATLAS_ASSAULT
+
 	atlas_tests: SW_REGIONAL_MAP_ASSAULT
 	layered_tests: SW_LAYERED_DIAGRAM_ASSAULT
 
