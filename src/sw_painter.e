@@ -494,6 +494,33 @@ feature -- Paths
 			context.set_line_width (1.0).do_nothing
 		end
 
+	polygon_stroke_flat (a_xy: ARRAY [REAL_64]; a_count: INTEGER; a_width: REAL_64)
+			-- Outline the closed polygon whose SCREEN points are the first `a_count' (x, y)
+			-- pairs of flat `a_xy', `a_width' wide: the zero-allocation sibling of
+			-- `polygon_fill_flat' (the Atlas's area outlines, 2026-10-31).
+		require
+			enough: a_count >= 2
+			fits: a_count * 2 <= a_xy.count
+			positive_width: a_width > 0.0
+		local
+			i: INTEGER
+		do
+			context.new_path.do_nothing
+			context.set_line_width (a_width).do_nothing
+			context.move_to (a_xy [a_xy.lower], a_xy [a_xy.lower + 1]).do_nothing
+			from
+				i := 1
+			until
+				i >= a_count
+			loop
+				context.line_to (a_xy [a_xy.lower + i * 2], a_xy [a_xy.lower + i * 2 + 1]).do_nothing
+				i := i + 1
+			end
+			context.close_path.do_nothing
+			context.stroke.do_nothing
+			context.set_line_width (1.0).do_nothing
+		end
+
 	polygon_fill_flat (a_xy: ARRAY [REAL_64]; a_count: INTEGER)
 			-- Fill the polygon whose SCREEN points are the first
 			-- `a_count' (x, y) pairs of flat `a_xy' - the zero-

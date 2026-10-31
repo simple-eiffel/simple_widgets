@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.48.0 - the Atlas: SW_ATLAS, Plan 22 phase 3)
+
+- `SW_ATLAS` (an heir of `SW_MAP`): areas that hold a span of years, drawn only when the year shown (`set_year`) falls inside, largest first so the smallest answers a hover, each in one of eight earth hues with an outline (never a tint near the water: the dark theme fills at 0.4, since 0.22 left `4A4A45` over water `26384D`); sites whose location is a claim (one candidate a dot, several dashed rings each labeled with its holder, the lean solid), with spans of years; marked sites ringed and always labeled, `fit_marked` brings them into view; a press on a site selects it (`on_site_select`) instead of panning; timed routes; hover cards on sites, routes and areas; a true aspect at `standard_parallel` (32 degrees north by default) whatever the panel's shape; a label that collides tries the left, then above, then below. 9 tests (`SW_ATLAS_ASSAULT`), including 3,000 areas in the frame budget (28.8 ms median in the contract build, budget 33.3).
+- `SW_MAP`: `draw_under_routes` and `draw_over_places` layers for heirs, `route_shown`; the wheel reads `span_lon` / `span_lat`, so an heir's aspect keeps the point under the cursor (unchanged for `SW_MAP`, whose tests all pass).
+- `SW_PAINTER.polygon_stroke_flat`: the zero-allocation outline beside `polygon_fill_flat`.
+
 ### Fixed (0.47.1 - River of Time labels, found in the first seeded snapshot)
 
 - A band mostly off the left edge put its label inside the sliver still in view, so the label started left of the plot and was clipped ("eriod" for a period). It now labels inside only when the part in view holds the whole label, and otherwise after its end. Before: `river_band_label_stays_in_view` (new sliver case) FAILED; after: passed.

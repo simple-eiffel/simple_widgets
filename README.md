@@ -44,6 +44,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.48.0 | - | The Atlas: SW_ATLAS - areas by year in earth hues, sites with disputed candidates, marks and selection, timed routes, hover cards, a true aspect |
 | 0.47.1 | - | River of Time labels: a band mostly off the edge labels itself after its end; a lean's wording keeps its room |
 | 0.47.0 | - | The River of Time: the lane timeline at 10,000 items within 60 Hz, the lens from 200,000 years ago to AD 135, hover cards, labels kept in view, deep-time year separators |
 | 0.46.3 | - | A column takes space back from its growers only when asked (`fitting`); 0.46.2 did it for every column and broke dock panels |
