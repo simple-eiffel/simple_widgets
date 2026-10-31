@@ -32,7 +32,7 @@ inherit
 	SW_MAP
 		redefine
 			make, span_lat, handle_click, dwell_ms, hover_card_at,
-			route_shown, draw_under_routes, draw_over_places
+			route_shown, draw_under_routes, draw_over_places, land_color
 		end
 
 create
@@ -265,6 +265,13 @@ feature -- Areas
 			else
 				Result := 0.22
 			end
+		end
+
+	land_color (a_theme: SW_THEME): NATURAL_32
+			-- The land a step from the panel's surface toward the ink: SW_MAP's land is the surface
+			-- itself, so in a dock panel the desert and the panel read as one (2026-10-31).
+		do
+			Result := a_theme.mixed (a_theme.surface, a_theme.ink, 0.08)
 		end
 
 feature -- Sites

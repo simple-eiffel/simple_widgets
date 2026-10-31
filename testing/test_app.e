@@ -827,6 +827,7 @@ feature {NONE} -- Test runners
 			create sw_atlas_tests
 			run_test (agent sw_atlas_tests.test_atlas_areas_follow_the_year_and_the_view, "atlas_areas_follow_the_year_and_the_view")
 			run_test (agent sw_atlas_tests.test_atlas_area_fill_is_not_the_water, "atlas_area_fill_is_not_the_water")
+			run_test (agent sw_atlas_tests.test_atlas_land_is_not_the_panel, "atlas_land_is_not_the_panel")
 			run_test (agent sw_atlas_tests.test_atlas_smallest_area_answers_a_hover, "atlas_smallest_area_answers_a_hover")
 			run_test (agent sw_atlas_tests.test_atlas_disputed_site_shows_every_candidate, "atlas_disputed_site_shows_every_candidate")
 			run_test (agent sw_atlas_tests.test_atlas_press_on_a_site_selects_and_does_not_pan, "atlas_press_on_a_site_selects_and_does_not_pan")
