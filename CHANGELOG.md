@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.47.1 - River of Time labels, found in the first seeded snapshot)
+
+- A band mostly off the left edge put its label inside the sliver still in view, so the label started left of the plot and was clipped ("eriod" for a period). It now labels inside only when the part in view holds the whole label, and otherwise after its end. Before: `river_band_label_stays_in_view` (new sliver case) FAILED; after: passed.
+- A lean's marker and wording ("shown first") are drawn after the label, but rows were claimed only to the label's end, so the next item in the lane was laid over the wording. Rows now keep room for it. Before: `river_a_lean_keeps_its_room` FAILED; after: passed.
+
 ### Added (0.47.0 - the River of Time: SW_LANE_TIMELINE at scale, the lens, hover cards)
 
 - `SW_LANE_TIMELINE` keeps an index as items are added (each lane's items by start, binary-search insertion, stable; each lane's disputes with their positions) and lays rows and envelopes out from it in one pass, remembering what it placed (`shown_ids`); only items in the visible rows are drawn; label widths are measured once per item and size. The same boxes as before (every existing GW-17 and scan-15 test passes). 10,000 items: a wheel frame took 2,334 ms in the contract build, now 20 ms (Plan 22 spike S1: 753 ms to 10.7 ms lean). Before: `river_ten_thousand_items_hold_the_frame_budget` FAILED; after: passed.

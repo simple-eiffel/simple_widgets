@@ -571,8 +571,10 @@ feature -- Measurement (after arrange)
 			b: TUPLE [bx, by, bw, bh: REAL_64]
 		do
 			b := item_boxes.i_th (a_item.id)
-			if not a_item.is_point and then b.bw >= label_widths.i_th (a_item.id) + 8.0 then
-				Result := (b.bx + 4.0).max ((plot_left + 4.0).min (b.bx + b.bw - label_widths.i_th (a_item.id) - 4.0))
+				-- inside only when the part of the box in view holds the whole label; a band mostly
+				-- off the left edge labels itself after its end, as a short item does
+			if not a_item.is_point and then (b.bx + b.bw) - b.bx.max (plot_left) >= label_widths.i_th (a_item.id) + 8.0 then
+				Result := b.bx.max (plot_left) + 4.0
 			else
 				Result := b.bx + b.bw + 4.0
 			end
@@ -1209,6 +1211,11 @@ feature {NONE} -- Implementation
 			else
 				Result := [x1, x2 - x1, x2 + l_text]
 			end
+				-- a lean's marker and wording are drawn after the label: the row keeps room for them
+			if attached a_item.lean_note as al_note then
+				a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+				Result.reach := Result.reach.max (x1 + l_text) + 12.0 + a_p.advance (al_note) + 8.0
+			end
 		end
 
 	item_label (a_item: SW_TIMELINE_ITEM): STRING_32
@@ -1251,7 +1258,7 @@ feature {NONE} -- Implementation
 			b := item_boxes.i_th (a_item.id)
 			l_label := item_label (a_item)
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
-			l_inside := not a_item.is_point and then b.bw >= label_width (a_p, a_item) + 8.0
+			l_inside := label_width (a_p, a_item) > 0.0 and then label_left (a_item) < b.bx + b.bw
 			inspect a_item.certainty
 			when {SW_TIMELINE_ITEM}.Class_b, {SW_TIMELINE_ITEM}.Class_c then
 				if a_item.is_point then

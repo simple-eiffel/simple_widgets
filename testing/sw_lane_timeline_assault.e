@@ -399,6 +399,40 @@ feature -- The river (Plan 22 phase 1, 2026-10-30)
 			w.request_render
 			assert_true ("the band is laid out from left of the plot", tl.item_boxes.i_th (l_band.id).bx < tl.plot_left)
 			assert_true ("its label starts inside the plot", tl.label_left (l_band) >= tl.plot_left)
+				-- mostly off the edge: too little of it in view for its label, which follows its end
+			tl.set_view (-545.0, -245.0)
+			w.request_render
+			assert_reals_equal ("a sliver of band labels itself after its end",
+				tl.item_boxes.i_th (l_band.id).bx + tl.item_boxes.i_th (l_band.id).bw + 4.0, tl.label_left (l_band), 0.001)
+		end
+
+	test_river_a_lean_keeps_its_room
+			-- A lean's marker and wording are drawn after the label; an item that starts in the
+			-- middle of that wording must go to another row (the seed's "shown first" ran into
+			-- "Ashurbanipal sacks Susa").
+		local
+			w: SW_WINDOW
+			tl: SW_LANE_TIMELINE
+			d: INTEGER
+			p, q: SW_TIMELINE_ITEM
+			l_mid: REAL_64
+		do
+			create w.make ("river-lean", 0, 0, 1200, 300, create {SW_THEME}.make_light)
+			create tl.make
+			tl.add_lane ("Mesopotamia", "Near East").do_nothing
+			d := tl.add_dispute ("Fall of Ur", -2003, -1939)
+			p := tl.add_position (d, 1, "Fall of Ur: Middle chronology", -2003, -2003, {SW_TIMELINE_ITEM}.Class_c)
+			p.set_lean ("shown first")
+			tl.set_view (-2100.0, -1700.0)
+			w.set_root (tl)
+			w.request_render
+				-- the middle of the wording, measured as the timeline draws it
+			w.painter.font ({SW_PAINTER}.Role_ui, w.painter.theme.size_label, False)
+			l_mid := tl.label_left (p) + w.painter.advance (p.title) + 8.0 + 12.0 + w.painter.advance ("shown first") / 2.0
+			q := tl.add_item (1, "Ashurbanipal sacks Susa", tl.year_at (l_mid).floor, tl.year_at (l_mid).floor, {SW_TIMELINE_ITEM}.Class_b)
+			w.request_render
+			assert_true ("the item starts inside the wording", tl.item_boxes.i_th (q.id).bx < l_mid + 4.0)
+			assert_true ("so it is not on the lean's row", tl.item_boxes.i_th (q.id).by /= tl.item_boxes.i_th (p.id).by)
 		end
 
 	test_river_lens_spans_deep_time_and_turns_linear
