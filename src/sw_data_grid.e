@@ -32,7 +32,7 @@ inherit
 		redefine
 			handle_click, handle_double_click, handle_drag, handle_wheel,
 			handle_key, wants_hover_point, accepts_focus, cursor_kind, handle_release,
-			accessible_role, context_menu
+			accessible_role, context_menu, dwell_ms, hover_card_at
 		end
 
 	SW_COPYING
@@ -311,6 +311,52 @@ feature -- Element change
 			rebuild_view
 		end
 
+	hover_card_provider: detachable FUNCTION [G, INTEGER, detachable SW_HOVER_CARD]
+			-- A card for a row and the column under the pointer, asked after a dwell (0.54.0: a meme's
+			-- picture over its icon); Void for none.
+
+	set_hover_card (a_provider: detachable FUNCTION [G, INTEGER, detachable SW_HOVER_CARD])
+			-- Rows offer the card `a_provider' gives for a row and a column (Void for none there).
+		do
+			hover_card_provider := a_provider
+		ensure
+			set: hover_card_provider = a_provider
+		end
+
+	dwell_ms: INTEGER
+			-- A grid with a card provider asks for a dwell.
+		do
+			if hover_card_provider /= Void then
+				Result := Card_dwell_ms
+			end
+		end
+
+	Card_dwell_ms: INTEGER = 400
+			-- How long the pointer rests on a cell before its card opens.
+
+	hover_card_at (a_px, a_py: REAL_64): detachable SW_HOVER_CARD
+			-- The card the provider gives for the row and column under the point, anchored on that cell.
+		local
+			r, c, i: INTEGER
+			cx: REAL_64
+		do
+			if attached hover_card_provider as al_provider then
+				r := view_row_at (a_py)
+				c := header_column_at (a_px)
+				if r > 0 and c > 0 then
+					Result := al_provider.item ([rows.i_th (view.i_th (r)), c])
+					if attached Result as al_card then
+						cx := x - scroll_x
+						from i := 1 until i >= c loop
+							cx := cx + shown_width (i)
+							i := i + 1
+						end
+						al_card.set_anchor (cx, y + Header_h + (r - 1) * Row_h - scroll_y, shown_width (c), Row_h)
+					end
+				end
+			end
+		end
+
 	pinned: detachable FUNCTION [G, BOOLEAN]
 			-- Rows that stay before the rest whatever the sort (0.53.0: a reader's favorite memes);
 			-- Void for none.
@@ -505,6 +551,12 @@ feature -- Drawing
 								-- a favorite (0.50.0): the star, then the text past it
 							a_p.set_color (t.star)
 							a_p.glyph ({SW_PAINTER}.Glyph_star, cx + 15.0, ry + Row_h / 2.0, 12.0)
+							a_p.set_color (t.ink)
+							a_p.text (cell_left (a_p, s, col.alignment, cx + 16.0, shown_width (ci) - 16.0), ry + Row_h - 8.0, s)
+						elseif col.glyph_of (rows.i_th (view.i_th (i))) > 0 then
+								-- a glyph (0.54.0), muted, then the text past it
+							a_p.set_color (t.ink_muted)
+							a_p.glyph (col.glyph_of (rows.i_th (view.i_th (i))), cx + 15.0, ry + Row_h / 2.0, 13.0)
 							a_p.set_color (t.ink)
 							a_p.text (cell_left (a_p, s, col.alignment, cx + 16.0, shown_width (ci) - 16.0), ry + Row_h - 8.0, s)
 						else

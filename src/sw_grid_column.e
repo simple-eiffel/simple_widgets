@@ -60,6 +60,30 @@ feature -- Access
 			Result := attached starred as al_starred and then al_starred.item ([a_row])
 		end
 
+	glyph: detachable FUNCTION [G, INTEGER]
+			-- Each row's glyph before its text ({SW_PAINTER}.Glyph_*; 0: none), drawn muted (0.54.0: a
+			-- picture to hover); Void for none. A star stays `starred''s.
+
+	with_glyph (a_glyph: FUNCTION [G, INTEGER]): like Current
+			-- Fluent: rows show the glyph `a_glyph' names before their text.
+		do
+			glyph := a_glyph
+			Result := Current
+		ensure
+			set: glyph = a_glyph
+			chained: Result = Current
+		end
+
+	glyph_of (a_row: G): INTEGER
+			-- `a_row''s glyph (0: none).
+		do
+			if attached glyph as al_glyph then
+				Result := al_glyph.item ([a_row])
+			end
+		ensure
+			known: Result >= 0 and Result <= {SW_PAINTER}.Glyph_last
+		end
+
 	alignment: INTEGER
 			-- How cells sit in the column: a SHAPING_CONSTANTS Align_* code.
 			-- Align_start (the default) is left for left-to-right text and
