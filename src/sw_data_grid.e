@@ -292,6 +292,10 @@ feature -- Element change
 					view.extend (l_model)
 				end
 			end
+			if pinned /= Void then
+					-- a pinned row may belong ahead of the place the sort gave it
+				rebuild_view
+			end
 			sync_bar
 		ensure
 			grew: rows.count = old rows.count + 1
@@ -305,6 +309,25 @@ feature -- Element change
 				rows.extend (r)
 			end
 			rebuild_view
+		end
+
+	pinned: detachable FUNCTION [G, BOOLEAN]
+			-- Rows that stay before the rest whatever the sort (0.53.0: a reader's favorite memes);
+			-- Void for none.
+
+	set_pinned (a_predicate: detachable FUNCTION [G, BOOLEAN])
+			-- Rows `a_predicate' holds for come first, in sort order among themselves; Void clears it.
+		do
+			pinned := a_predicate
+			rebuild_view
+		ensure
+			set: pinned = a_predicate
+		end
+
+	is_pinned (a_row: G): BOOLEAN
+			-- Does `a_row' stay before the rest?
+		do
+			Result := attached pinned as al_pinned and then al_pinned.item ([a_row])
 		end
 
 	set_filter (a_predicate: detachable FUNCTION [G, BOOLEAN])
@@ -770,6 +793,27 @@ feature {NONE} -- Engine
 			end
 		end
 
+	pin_view
+			-- The pinned rows first, each part keeping its order (a stable partition).
+		local
+			l_first, l_rest: ARRAYED_LIST [INTEGER]
+		do
+			create l_first.make (8)
+			create l_rest.make (view.count)
+			across view as ic loop
+				if is_pinned (rows.i_th (ic)) then
+					l_first.extend (ic)
+				else
+					l_rest.extend (ic)
+				end
+			end
+			view.wipe_out
+			view.append (l_first)
+			view.append (l_rest)
+		ensure
+			same_rows: view.count = old view.count
+		end
+
 	merge_sort_view
 			-- Stable bottom-up merge over the view's model indices:
 			-- O(n log n) for the thousands the virtualized DRAW
@@ -907,6 +951,9 @@ feature {NONE} -- Engine
 			end
 			if sort_column >= 1 and sort_column <= columns.count then
 				merge_sort_view
+			end
+			if pinned /= Void then
+				pin_view
 			end
 			if selected_model > 0 and then selected_view_position = 0 then
 				selected_model := 0
