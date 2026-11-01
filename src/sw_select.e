@@ -95,6 +95,17 @@ feature -- Element change
 			chained: Result = Current
 		end
 
+	clear_options
+			-- No options and nothing selected (0.53.0: a list whose options follow another choice).
+		do
+			options.wipe_out
+			option_enabled.wipe_out
+			separators_after.wipe_out
+			selected_index := 0
+		ensure
+			none: options.is_empty and selected_index = 0
+		end
+
 	select_index (a_i: INTEGER)
 		require
 			in_range: a_i >= 1 and a_i <= options.count

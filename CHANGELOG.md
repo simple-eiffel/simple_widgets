@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.53.0 - pinned rows)
+
+- `SW_DATA_GRID.set_pinned` / `is_pinned`: rows a predicate names stay before the rest whatever the sort, in sort order among themselves (simple_bible's favorite memes); `add_row` keeps them first.
+- `SW_SELECT.clear_options`: a select whose options follow another choice. Test `pinned_rows_stay_first_under_any_sort`.
+
 ### Added (0.52.0 - a wrapping line)
 
 - `SW_TEXT_BOX.make_wrapping_line` / `is_one_paragraph`: one paragraph that wraps on screen and grows a line at a time, yet is a field: focus selects it all, Enter adds no line break and pasted breaks become spaces (Larry, 2026-11-01: a long highlight reason ran out of sight in a single-line box). Test `a_wrapping_line_wraps_and_breaks_no_line`.

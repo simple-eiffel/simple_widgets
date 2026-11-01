@@ -175,6 +175,40 @@ feature -- Tests
 			assert_false ("Enter adds no line break", l_line.text.has ('%N'))
 		end
 
+	test_pinned_rows_stay_first_under_any_sort
+			-- 0.53.0: pinned rows (a reader's favorites) come first whatever the sort, in sort order
+			-- among themselves; and a select's options can be cleared.
+		local
+			g: SW_DATA_GRID [STRING_32]
+			l_rows: ARRAYED_LIST [STRING_32]
+			sel: SW_SELECT
+		do
+			create g.make (200.0)
+			g.add_column (create {SW_GRID_COLUMN [STRING_32]}.make ("Name", 120.0, agent (s: STRING_32): STRING_32 do Result := s end))
+			create l_rows.make (4)
+			l_rows.extend ({STRING_32} "delta")
+			l_rows.extend ({STRING_32} "alpha")
+			l_rows.extend ({STRING_32} "charlie")
+			l_rows.extend ({STRING_32} "bravo")
+			g.set_rows (l_rows)
+			g.set_pinned (agent (s: STRING_32): BOOLEAN do Result := s.same_string ("charlie") or s.same_string ("delta") end)
+			assert_true ("unsorted: the pinned first, in model order", g.rows.i_th (g.view.i_th (1)).same_string ("delta") and g.rows.i_th (g.view.i_th (2)).same_string ("charlie"))
+			g.sort_by (1, False)
+			assert_true ("ascending: charlie, delta, then alpha, bravo",
+				g.rows.i_th (g.view.i_th (1)).same_string ("charlie") and g.rows.i_th (g.view.i_th (2)).same_string ("delta")
+				and g.rows.i_th (g.view.i_th (3)).same_string ("alpha") and g.rows.i_th (g.view.i_th (4)).same_string ("bravo"))
+			g.sort_by (1, True)
+			assert_true ("descending: the pinned still first", g.rows.i_th (g.view.i_th (1)).same_string ("delta") and g.rows.i_th (g.view.i_th (3)).same_string ("bravo"))
+			g.add_row ({STRING_32} "echo")
+			assert_true ("an added row behind the pinned", g.is_pinned (g.rows.i_th (g.view.i_th (2))) and not g.is_pinned (g.rows.i_th (g.view.i_th (3))))
+			create sel.make
+			sel.add_option ("one")
+			sel.add_option ("two")
+			sel.select_index (2)
+			sel.clear_options
+			assert_true ("a select cleared", sel.options.is_empty and sel.selected_index = 0)
+		end
+
 feature {NONE} -- Pixels
 
 	colour_pixels (a_window: SW_WINDOW; a_widget: SW_WIDGET; a_colour: NATURAL_32): INTEGER
