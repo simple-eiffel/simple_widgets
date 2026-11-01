@@ -49,6 +49,10 @@ feature -- Access
 
 	label_provider: detachable FUNCTION [G, STRING_32]
 
+	icon_provider: detachable FUNCTION [G, INTEGER]
+			-- Each node's glyph ({SW_PAINTER}.Glyph_*; 0 for none), drawn before its label (0.50.0:
+			-- folders and starred favorites). A star is drawn in the theme's gold.
+
 	viewport_height: REAL_64
 
 	Row_h: REAL_64 = 26.0
@@ -130,6 +134,24 @@ feature -- Element change
 			label_provider := a_provider
 		ensure
 			set: label_provider = a_provider
+		end
+
+	set_icon (a_provider: FUNCTION [G, INTEGER])
+			-- Nodes show the glyph `a_provider' names before their labels.
+		do
+			icon_provider := a_provider
+		ensure
+			set: icon_provider = a_provider
+		end
+
+	icon_of (a_node: G): INTEGER
+			-- `a_node''s glyph (0: none).
+		do
+			if attached icon_provider as al_icon then
+				Result := al_icon.item ([a_node])
+			end
+		ensure
+			known: Result >= 0 and Result <= {SW_PAINTER}.Glyph_last
 		end
 
 	set_on_select (a_action: PROCEDURE [G])
@@ -256,6 +278,7 @@ feature -- Drawing
 			row: TUPLE [node: G; depth: INTEGER; has_kids: BOOLEAN]
 			lbl: STRING_32
 			sel: BOOLEAN
+			l_icon: INTEGER
 		do
 			t := a_p.theme
 			bar.place (x, y, width, height, t)
@@ -302,12 +325,20 @@ feature -- Drawing
 					else
 						create lbl.make_empty
 					end
-					if sel or not row.has_kids then
+					l_icon := icon_of (row.node)
+					if l_icon > 0 then
+						if l_icon = {SW_PAINTER}.Glyph_star then
+							a_p.set_color (t.star)
+						else
+							a_p.set_color (t.ink_muted)
+						end
+						a_p.glyph (l_icon, ix + 21.0, ry + Row_h / 2.0, 13.0)
 						a_p.set_color (t.ink)
+						a_p.text (ix + 32.0, ry + Row_h - 8.0, lbl)
 					else
 						a_p.set_color (t.ink)
+						a_p.text (ix + 14.0, ry + Row_h - 8.0, lbl)
 					end
-					a_p.text (ix + 14.0, ry + Row_h - 8.0, lbl)
 					i := i + 1
 				end
 			end

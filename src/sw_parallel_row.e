@@ -60,6 +60,16 @@ feature -- Access
 	label: STRING_32
 			-- The verse's label; empty for a note.
 
+	is_starred: BOOLEAN
+			-- Does a gold star stand under the label (a favorite, 0.50.0)?
+
+	set_starred (a_starred: BOOLEAN)
+		do
+			is_starred := a_starred
+		ensure
+			set: is_starred = a_starred
+		end
+
 	is_note: BOOLEAN
 			-- A note across every column rather than a verse?
 

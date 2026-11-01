@@ -236,6 +236,26 @@ feature -- Rows
 			one_more: row_count = old row_count + 1
 		end
 
+	is_row_starred (a_row: INTEGER): BOOLEAN
+			-- Does verse row `a_row' carry the star?
+		require
+			valid_row: a_row >= 1 and a_row <= row_count
+		do
+			Result := rows.i_th (a_row).is_starred
+		end
+
+	set_row_starred (a_row: INTEGER; a_starred: BOOLEAN)
+			-- A gold star under row `a_row''s label, or none (0.50.0: a favorite verse). Drawn in
+			-- the label gutter, so the layout does not change.
+		require
+			valid_row: a_row >= 1 and a_row <= row_count
+			verse_row: not is_note_row (a_row)
+		do
+			rows.i_th (a_row).set_starred (a_starred)
+		ensure
+			set: is_row_starred (a_row) = a_starred
+		end
+
 	add_note (a_text: READABLE_STRING_GENERAL): INTEGER
 			-- A note row reading `a_text'; its number.
 		do
@@ -576,6 +596,11 @@ feature {NONE} -- Drawing implementation
 				a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
 				a_p.set_color (t.ink_muted)
 				a_p.text (x + margin, l_top + cell_pad + a_p.font_ascent, rows.i_th (a_i).label)
+				if rows.i_th (a_i).is_starred then
+					a_p.set_color (t.star)
+					a_p.glyph ({SW_PAINTER}.Glyph_star, x + margin + a_p.advance (rows.i_th (a_i).label) / 2.0,
+						l_top + cell_pad + a_p.font_ascent + 9.0 * t.text_scale, 11.0 * t.text_scale)
+				end
 			end
 			from
 				k := 1

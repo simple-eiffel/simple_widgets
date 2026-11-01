@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.50.0 - stars)
+
+- `SW_THEME.star`: a favorite's gold (light, dark, and kept readable in high contrast).
+- `SW_PAINTER.Glyph_star` (a filled five-pointed star, from the existing `star_fill`) and `Glyph_last`, which every glyph precondition now checks against (`SW_BUTTON`, `SW_EMPTY_STATE`, `SW_SEGMENTED`, `SW_TOOLBAR`, `glyph`).
+- `SW_PARALLEL_TEXT.set_row_starred` / `is_row_starred`: a star under a verse row's label, drawn in the label gutter so the layout does not change.
+- `SW_GRID_COLUMN.with_star` / `is_starred`: rows whose cell begins with a star (the text moves past it).
+- `SW_TREE.set_icon` / `icon_of`: a glyph before each node's label; a star is drawn in the theme's gold.
+- Tests: `SW_STAR_ASSAULT` (4), each counting the star's pixels in a rendered image. An unused local removed from `SW_CHROME_ASSAULT` (its build warning).
+
 ### Added (0.49.0 - a bar across time; SW_SCROLLBAR)
 
 - `SW_SCROLLBAR` (deferred): the arithmetic every scrollbar shares, lifted from `SW_VSCROLLBAR` (viewport, content, thumb, paging, the held thumb's grab point, the wheel). `SW_VSCROLLBAR` is its vertical heir (renames keep `track_y`, `track_h`, `thumb_height`, `thumb_top`; every client unchanged); `SW_HSCROLLBAR` is the new horizontal heir.

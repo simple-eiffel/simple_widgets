@@ -69,7 +69,7 @@ feature -- Element change
 	add_icon_segment (a_glyph: INTEGER)
 			-- A drawn-glyph segment (no text).
 		require
-			glyph_known: a_glyph >= 1 and a_glyph <= {SW_PAINTER}.Glyph_error
+			glyph_known: a_glyph >= 1 and a_glyph <= {SW_PAINTER}.Glyph_last
 		local
 			s: STRING_32
 		do
@@ -86,7 +86,7 @@ feature -- Element change
 
 	with_icon_segment (a_glyph: INTEGER): like Current
 		require
-			glyph_known: a_glyph >= 1 and a_glyph <= {SW_PAINTER}.Glyph_error
+			glyph_known: a_glyph >= 1 and a_glyph <= {SW_PAINTER}.Glyph_last
 		do
 			add_icon_segment (a_glyph)
 			Result := Current
