@@ -58,6 +58,65 @@ feature -- Units
 			Result := units.count
 		end
 
+	standing_ranges: ARRAYED_LIST [TUPLE [from_item, from_offset, to_item, to_offset: INTEGER]]
+			-- Spans washed in the theme's gold under the text, apart from the selection (0.51.0: a
+			-- reader's quoted parts), each from its start to its end in reading order.
+		attribute
+			create Result.make (0)
+		end
+
+	add_standing_range (a_from_item, a_from_offset, a_to_item, a_to_offset: INTEGER)
+			-- Wash characters `a_from_offset' + 1 of item `a_from_item' through `a_to_offset' of item
+			-- `a_to_item' (caret offsets, as a selection's).
+		require
+			valid_from: is_valid_item (a_from_item)
+			valid_to: is_valid_item (a_to_item)
+			offsets: a_from_offset >= 0 and a_to_offset >= 0
+			in_order: a_from_item < a_to_item or (a_from_item = a_to_item and a_from_offset <= a_to_offset)
+		do
+			standing_ranges.extend ([a_from_item, a_from_offset, a_to_item, a_to_offset])
+		ensure
+			one_more: standing_ranges.count = old standing_ranges.count + 1
+		end
+
+	clear_standing_ranges
+			-- No standing ranges.
+		do
+			standing_ranges.wipe_out
+		ensure
+			none: standing_ranges.is_empty
+		end
+
+	standing_in (a_item: INTEGER): ARRAYED_LIST [TUPLE [lo, hi: INTEGER]]
+			-- The standing spans inside item `a_item', as caret offsets (characters `lo' + 1 .. `hi').
+		require
+			valid_item: is_valid_item (a_item)
+		local
+			n, l_lo, l_hi: INTEGER
+		do
+			n := text_of (a_item).count
+			create Result.make (1)
+			across standing_ranges as r loop
+				if a_item >= r.from_item and a_item <= r.to_item then
+					if a_item = r.from_item then
+						l_lo := r.from_offset.min (n)
+					else
+						l_lo := 0
+					end
+					if a_item = r.to_item then
+						l_hi := r.to_offset.min (n)
+					else
+						l_hi := n
+					end
+					if l_lo < l_hi then
+						Result.extend ([l_lo, l_hi])
+					end
+				end
+			end
+		ensure
+			in_text: across Result as sp all 0 <= sp.lo and sp.lo < sp.hi and sp.hi <= text_of (a_item).count end
+		end
+
 	unit_block (a_unit: INTEGER): INTEGER
 			-- The document block unit `a_unit' belongs to.
 		require
@@ -788,7 +847,7 @@ feature {NONE} -- Unit implementation
 		end
 
 	paint_unit_selection (a_p: SW_PAINTER; a_unit: INTEGER; a_ox, a_oy: REAL_64)
-			-- The selection's wash under unit `a_unit''s selected characters.
+			-- The standing ranges' gold wash, then the selection's, under unit `a_unit''s characters.
 		require
 			valid: is_valid_item (a_unit)
 		local
@@ -797,6 +856,12 @@ feature {NONE} -- Unit implementation
 		do
 			g := units.i_th (a_unit).geometry
 			if g.count = units.i_th (a_unit).content.count then
+				a_p.set_color (a_p.theme.wash_star)
+				across standing_in (a_unit) as sp loop
+					across g.segments (sp.lo, sp.hi) as sg loop
+						a_p.fill_rect (a_ox + sg.left, a_oy + g.top_of_line (sg.line), sg.width, g.height_of_line (sg.line))
+					end
+				end
 				l_sel := selection_in (a_unit)
 				if l_sel.lo < l_sel.hi then
 					a_p.set_color (a_p.theme.selection)

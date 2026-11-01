@@ -137,9 +137,11 @@ feature -- Element change
 			scroll_y := 0.0
 			forget_pending_scroll
 			clear_selection
+			clear_standing_ranges
 		ensure
 			set: document = a_document
 			at_top: scroll_y = 0.0
+			no_standing_ranges: standing_ranges.is_empty
 			nothing_selected: not has_selection
 		end
 

@@ -2381,7 +2381,7 @@ feature {NONE} -- Popup lifecycle
 				if not a_double then
 					cw.set_pressed (True)
 					if attached cw.take_pending_menu as pm then
-						show_popup (pm, cw.x.truncated_to_integer,
+						show_popup (pm, cw.menu_left.truncated_to_integer,
 							(cw.y + cw.height + 2.0).truncated_to_integer)
 					end
 				end

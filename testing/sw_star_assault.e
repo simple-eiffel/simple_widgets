@@ -23,7 +23,7 @@ feature -- Tests
 		local
 			b: SW_BUTTON
 		do
-			assert_integers_equal ("the star is the last glyph", {SW_PAINTER}.Glyph_star, {SW_PAINTER}.Glyph_last)
+			assert_true ("the star and the quotation mark are glyphs", {SW_PAINTER}.Glyph_star <= {SW_PAINTER}.Glyph_last and {SW_PAINTER}.Glyph_quote <= {SW_PAINTER}.Glyph_last)
 			create b.make ("", Void)
 			b.set_glyph ({SW_PAINTER}.Glyph_star)
 			assert_integers_equal ("a button takes it", {SW_PAINTER}.Glyph_star, b.glyph_kind)
@@ -99,7 +99,57 @@ feature -- Tests
 			assert_true ("the favorite's star is drawn in gold", star_pixels (w, t) > 10)
 		end
 
+	test_a_standing_range_washes_its_text
+			-- 0.51.0: a reader's quoted part is washed in the theme's gold, apart from the selection,
+			-- and a new document starts with none.
+		local
+			w: SW_WINDOW
+			v: SW_DOCUMENT_VIEW
+			d: SIMPLE_DOCUMENT
+		do
+			create w.make ("standing", 0, 0, 500, 300, create {SW_THEME}.make_light)
+			create d.make
+			d.add_paragraph ("For God so loved the world, that he gave his only begotten Son.").do_nothing
+			d.add_paragraph ("For God sent not his Son into the world to condemn the world.").do_nothing
+			create v.make (250.0)
+			v.set_document (d)
+			w.set_root (v)
+			w.request_render
+			assert_integers_equal ("no wash yet", 0, colour_pixels (w, v, w.theme.wash_star))
+			v.add_standing_range (1, 4, 2, 10)
+			assert_integers_equal ("the first item's part", 1, v.standing_in (1).count)
+			assert_true ("from its fifth character", v.standing_in (1).first.lo = 4)
+			assert_true ("the second item to its tenth", v.standing_in (2).first.lo = 0 and v.standing_in (2).first.hi = 10)
+			w.request_render
+			assert_true ("the gold wash is drawn", colour_pixels (w, v, w.theme.wash_star) > 50)
+			v.set_document (d)
+			assert_true ("a new document has none", v.standing_ranges.is_empty)
+		end
+
 feature {NONE} -- Pixels
+
+	colour_pixels (a_window: SW_WINDOW; a_widget: SW_WIDGET; a_colour: NATURAL_32): INTEGER
+			-- Pixels of `a_widget''s image within 6 levels of `a_colour'.
+		local
+			img: CAIRO_SURFACE
+			mp: MANAGED_POINTER
+			px, py: INTEGER
+		do
+			img := a_window.widget_image (a_widget, Void, 1.0)
+			img.flush.do_nothing
+			create mp.share_from_pointer (img.data, img.stride * img.height)
+			from py := 0 until py >= img.height loop
+				from px := 0 until px >= img.width loop
+					if near (mp.read_natural_32 (py * img.stride + px * 4) & 0xFFFFFF, a_colour & 0xFFFFFF, 6) then
+						Result := Result + 1
+					end
+					px := px + 1
+				end
+				py := py + 1
+			end
+			img.destroy
+		end
+
 
 	star_pixels (a_window: SW_WINDOW; a_widget: SW_WIDGET): INTEGER
 			-- Pixels of `a_widget''s image within 24 levels of the theme's star colour.

@@ -663,6 +663,13 @@ feature -- Input
 			consumed: pending_menu = Void
 		end
 
+	menu_left: REAL_64
+			-- Where a menu this widget offers (`take_pending_menu') drops: its left edge. A widget
+			-- that offers menus from parts of itself says which part (SW_MENU_BAR, 0.51.0).
+		do
+			Result := x
+		end
+
 	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
 			-- The menu this widget offers at the point, if any. The
 			-- window presents it; every widget is right-clickable, and

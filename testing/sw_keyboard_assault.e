@@ -413,6 +413,37 @@ feature -- Menus: mnemonics
 				+ ", Edit at " + b.left.out + "%N")
 		end
 
+	test_a_click_drops_the_menu_under_its_pad
+			-- Larry, 2026-11-01: the Window menu opened under File. A click offered the pad's menu
+			-- through SW_WINDOW.bubble_click, which dropped every offered menu at the clicked
+			-- widget's own left edge - for the menu bar, File's. The keyboard door asked
+			-- `pad_bounds' and was right; a click on the third pad must land under the third pad.
+		local
+			w: SW_WINDOW
+			th: SW_THEME
+			bar: SW_MENU_BAR
+			root: SW_COLUMN
+			b: TUPLE [left, width: REAL_64]
+		do
+			create th.make_light
+			create w.make ("menu click", 0, 0, 600, 300, th)
+			create bar.make
+			bar.add_menu ("&File", agent built_menu)
+			bar.add_menu ("&Edit", agent built_menu)
+			bar.add_menu ("&Window", agent built_menu)
+			create root.make
+			root.put (bar)
+			w.set_root (root)
+			w.set_menu_bar (bar)
+			w.request_render
+			b := bar.pad_bounds (w.painter, 3)
+			w.dispatch (2, (b.left + b.width / 2.0).truncated_to_integer, (bar.y + bar.height / 2.0).truncated_to_integer)
+			assert_attached ("the click opens the menu", w.open_popup)
+			if attached w.open_popup as pm then
+				assert_reals_equal ("it is dropped under the Window pad, not the File pad", b.left, pm.x, 6.0)
+			end
+		end
+
 	test_alt_letter_on_the_key_down_door_opens_the_menu
 			-- THE ALT DOOR, CLOSED. simple_shell 1.9.3 delivers Alt+F as
 			-- the ORDINARY key-down event (type 4, virtual key 70) with
