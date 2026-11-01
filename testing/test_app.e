@@ -856,6 +856,7 @@ feature {NONE} -- Test runners
 			run_test (agent star_tests.test_a_standing_range_shows_over_a_cell_mark, "a_standing_range_shows_over_a_cell_mark")
 			run_test (agent star_tests.test_a_wrapping_line_wraps_and_breaks_no_line, "a_wrapping_line_wraps_and_breaks_no_line")
 			run_test (agent star_tests.test_pinned_rows_stay_first_under_any_sort, "pinned_rows_stay_first_under_any_sort")
+			run_test (agent star_tests.test_a_grid_offers_a_card_for_a_cell, "a_grid_offers_a_card_for_a_cell")
 			print ("%N=== GW-19 REGIONAL MAP ===%N")
 			create atlas_tests
 			run_test (agent atlas_tests.test_gw19_land_and_water_stay_apart, "gw19_land_and_water_stay_apart")

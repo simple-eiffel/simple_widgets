@@ -44,6 +44,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.27.0 | GW-12 | The query builder clause tree: `SW_QUERY_NODE` with heirs `SW_QUERY_GROUP`, `SW_QUERY_CONDITION` and `SW_QUERY_PROXIMITY`, typed value pickers; the fifth scan's fixes (`SW_CHART.draw_chip`, a chassis-drawn legend, eight series colors) |
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
+| 0.54.0 | - | A hover card for a grid cell; a glyph column; a picture glyph |
 | 0.53.0 | - | Pinned grid rows (favorites first under any sort); clearing a select's options |
 | 0.52.0 | - | A wrapping line: a field whose one paragraph wraps and grows as it is typed |
 | 0.51.1 | - | Parallel text: quoted parts and the selection show over a cell's marks |

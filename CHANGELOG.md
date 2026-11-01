@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.54.0 - a card for a grid cell; a picture glyph)
+
+- `SW_DATA_GRID.set_hover_card`: after a dwell, the card an agent gives for the row and column under the pointer, anchored on that cell (simple_bible's meme pictures, loaded only when hovered).
+- `SW_GRID_COLUMN.with_glyph` / `glyph_of`: a muted glyph before a cell's text.
+- `SW_PAINTER.Glyph_picture` (a framed picture); `Glyph_last` moves to it. Test `a_grid_offers_a_card_for_a_cell`.
+
 ### Added (0.53.0 - pinned rows)
 
 - `SW_DATA_GRID.set_pinned` / `is_pinned`: rows a predicate names stay before the rest whatever the sort, in sort order among themselves (simple_bible's favorite memes); `add_row` keeps them first.

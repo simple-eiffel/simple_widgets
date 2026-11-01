@@ -209,6 +209,43 @@ feature -- Tests
 			assert_true ("a select cleared", sel.options.is_empty and sel.selected_index = 0)
 		end
 
+	test_a_grid_offers_a_card_for_a_cell
+			-- 0.54.0: a grid with a card provider asks for a dwell and offers the card the provider
+			-- gives for the row and column under the pointer, anchored on that cell; a column can show a
+			-- glyph (a picture to hover) before its text.
+		local
+			w: SW_WINDOW
+			g: SW_DATA_GRID [STRING_32]
+			l_rows: ARRAYED_LIST [STRING_32]
+			l_card: detachable SW_HOVER_CARD
+		do
+			create w.make ("cards", 0, 0, 500, 300, create {SW_THEME}.make_light)
+			create g.make (200.0)
+			g.add_column ((create {SW_GRID_COLUMN [STRING_32]}.make ("", 40.0, agent (s: STRING_32): STRING_32 do create Result.make_empty end)).with_glyph (agent (s: STRING_32): INTEGER do Result := {SW_PAINTER}.Glyph_picture end))
+			g.add_column ((create {SW_GRID_COLUMN [STRING_32]}.make ("Title", 200.0, agent (s: STRING_32): STRING_32 do Result := s end)).growing)
+			create l_rows.make (2)
+			l_rows.extend ({STRING_32} "first")
+			l_rows.extend ({STRING_32} "second")
+			g.set_rows (l_rows)
+			w.set_root (g)
+			w.request_render
+			assert_integers_equal ("no provider, no dwell", 0, g.dwell_ms)
+			g.set_hover_card (agent (a_row: STRING_32; a_column: INTEGER): detachable SW_HOVER_CARD
+				do
+					if a_column = 1 then
+						create Result.make (create {SW_LABEL}.make_ui (a_row), 120.0)
+					end
+				end)
+			assert_true ("a provider asks for a dwell", g.dwell_ms > 0)
+			assert_integers_equal ("the first column's glyph", {SW_PAINTER}.Glyph_picture, g.columns.first.glyph_of ({STRING_32} "first"))
+			l_card := g.hover_card_at (g.x + 10.0, g.y + 30.0 + 26.0 * 1.5)
+			assert_true ("a card over the second row's icon", attached l_card as al_card and then al_card.has_anchor)
+			if attached l_card as al_card and then attached {SW_LABEL} al_card.content as al_label then
+				assert_true ("for that row", al_label.text.same_string ("second"))
+			end
+			assert_true ("none over the title", g.hover_card_at (g.x + 100.0, g.y + 30.0 + 26.0 * 1.5) = Void)
+		end
+
 feature {NONE} -- Pixels
 
 	colour_pixels (a_window: SW_WINDOW; a_widget: SW_WIDGET; a_colour: NATURAL_32): INTEGER

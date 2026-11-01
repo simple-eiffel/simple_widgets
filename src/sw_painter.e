@@ -1061,7 +1061,10 @@ feature -- Glyphs (R7-pure: primitives, no font gambling)
 	Glyph_quote: INTEGER = 27
 			-- A filled quotation mark (0.51.0): a quoted passage.
 
-	Glyph_last: INTEGER = 27
+	Glyph_picture: INTEGER = 28
+			-- A framed picture, a hill and a sun (0.54.0): a picture to look at.
+
+	Glyph_last: INTEGER = 28
 			-- The highest glyph code: what every glyph precondition checks against.
 
 	glyph (a_kind: INTEGER; a_cx, a_cy, a_s: REAL_64)
@@ -1221,6 +1224,15 @@ feature -- Glyphs (R7-pure: primitives, no font gambling)
 				circle_fill (a_cx + h * 0.38, a_cy - h * 0.15, h * 0.3)
 				line (a_cx - h * 0.12, a_cy - h * 0.1, a_cx - h * 0.5, a_cy + h * 0.6, lw)
 				line (a_cx + h * 0.64, a_cy - h * 0.1, a_cx + h * 0.26, a_cy + h * 0.6, lw)
+			when 28 then
+				rrect_stroke (a_cx - h * 0.85, a_cy - h * 0.7, h * 1.7, h * 1.4, h * 0.15)
+				circle_fill (a_cx + h * 0.4, a_cy - h * 0.3, h * 0.17)
+				create pts.make (4)
+				pts.extend ([a_cx - h * 0.7, a_cy + h * 0.55])
+				pts.extend ([a_cx - h * 0.2, a_cy - h * 0.05])
+				pts.extend ([a_cx + h * 0.15, a_cy + h * 0.3])
+				pts.extend ([a_cx + h * 0.7, a_cy + h * 0.55])
+				polyline (pts, lw)
 			end
 		end
 
