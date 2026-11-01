@@ -49,7 +49,7 @@ feature -- Access
 
 	set_glyph_kind (a_glyph: INTEGER)
 		require
-			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_error
+			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_last
 		do
 			glyph_kind := a_glyph
 		ensure

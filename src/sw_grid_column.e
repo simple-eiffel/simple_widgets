@@ -41,6 +41,25 @@ feature -- Access
 
 	Min_width: REAL_64 = 40.0
 
+	starred: detachable PREDICATE [G]
+			-- Rows whose cell begins with a gold star (0.50.0: favorites); Void for none.
+
+	with_star (a_starred: PREDICATE [G]): like Current
+			-- Fluent: `a_starred' rows begin with a gold star.
+		do
+			starred := a_starred
+			Result := Current
+		ensure
+			set: starred = a_starred
+			chained: Result = Current
+		end
+
+	is_starred (a_row: G): BOOLEAN
+			-- Does `a_row''s cell begin with the star?
+		do
+			Result := attached starred as al_starred and then al_starred.item ([a_row])
+		end
+
 	alignment: INTEGER
 			-- How cells sit in the column: a SHAPING_CONSTANTS Align_* code.
 			-- Align_start (the default) is left for left-to-right text and

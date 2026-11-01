@@ -38,6 +38,7 @@ feature {NONE} -- Initialization
 			success := 0x1D6B52
 			warning := 0x8A5A0B
 			danger := 0xAF3A22
+			star := 0xC98F0A
 			neutral := 0xD3DAE3
 			wash_accent := 0xC7DAF1
 			wash_success := 0xE0F0E9
@@ -83,6 +84,7 @@ feature {NONE} -- Initialization
 			success := 0x35C46F
 			warning := 0xD6A344
 			danger := 0xE0563A
+			star := 0xF2C14E
 			neutral := 0x3A4250
 			wash_accent := 0x24344A
 			wash_success := 0x1D3A2C
@@ -188,6 +190,7 @@ feature {NONE} -- Initialization
 			success := l_base.success
 			warning := l_base.warning
 			danger := l_base.danger
+			star := readable_on (l_base.star, a_window)
 			ink_on_success := readable_on (l_base.ink_on_success, success)
 			ink_on_warning := readable_on (l_base.ink_on_warning, warning)
 			ink_on_danger := readable_on (l_base.ink_on_danger, danger)
@@ -260,6 +263,10 @@ feature -- Semantic colours
 	success: NATURAL_32
 	warning: NATURAL_32
 	danger: NATURAL_32
+
+	star: NATURAL_32
+			-- A favorite's gold star (0.50.0, simple_bible's Favorites).
+
 	neutral: NATURAL_32
 	wash_accent: NATURAL_32
 	wash_success: NATURAL_32

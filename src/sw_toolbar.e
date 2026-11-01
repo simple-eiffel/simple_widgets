@@ -82,7 +82,7 @@ feature -- Element change
 			-- A drawn-glyph button: the icon IS the face, the label
 			-- demoted to its tooltip (the toolbar's destiny).
 		require
-			glyph_known: a_glyph >= 1 and a_glyph <= {SW_PAINTER}.Glyph_error
+			glyph_known: a_glyph >= 1 and a_glyph <= {SW_PAINTER}.Glyph_last
 		local
 			l, h: STRING_32
 		do

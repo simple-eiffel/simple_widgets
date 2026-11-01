@@ -1055,6 +1055,11 @@ feature -- Glyphs (R7-pure: primitives, no font gambling)
 	Glyph_tray: INTEGER = 23
 	Glyph_offline: INTEGER = 24
 	Glyph_error: INTEGER = 25
+	Glyph_star: INTEGER = 26
+			-- A filled five-pointed star (0.50.0): a favorite.
+
+	Glyph_last: INTEGER = 26
+			-- The highest glyph code: what every glyph precondition checks against.
 
 	glyph (a_kind: INTEGER; a_cx, a_cy, a_s: REAL_64)
 			-- Draw glyph `a_kind' centred at (a_cx, a_cy) inside a
@@ -1062,7 +1067,7 @@ feature -- Glyphs (R7-pure: primitives, no font gambling)
 			-- primitives so every face ships on every machine - no
 			-- font-glyph gambling (R7).
 		require
-			known: a_kind >= Glyph_plus and a_kind <= Glyph_error
+			known: a_kind >= Glyph_plus and a_kind <= Glyph_last
 			positive: a_s > 0.0
 		local
 			m: DOUBLE_MATH
@@ -1206,6 +1211,8 @@ feature -- Glyphs (R7-pure: primitives, no font gambling)
 				circle_stroke (a_cx, a_cy, h * 0.8)
 				line (a_cx, a_cy - h * 0.45, a_cx, a_cy + h * 0.05, lw)
 				circle_fill (a_cx, a_cy + h * 0.4, lw * 0.7)
+			when 26 then
+				star_fill (a_cx, a_cy, h * 0.95)
 			end
 		end
 

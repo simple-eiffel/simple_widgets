@@ -442,7 +442,7 @@ feature -- Spacing from the theme (Vision2 tokens)
 			w: SW_WINDOW
 			root: SW_COLUMN
 			l_box: SW_LABEL
-			l_r, l_hint: TUPLE [x, y, w, h: REAL_64]
+			l_hint: TUPLE [x, y, w, h: REAL_64]
 			l_theme: SW_THEME
 		do
 			create l_theme.make_light

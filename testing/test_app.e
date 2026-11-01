@@ -845,6 +845,12 @@ feature {NONE} -- Test runners
 			run_test (agent sw_atlas_tests.test_atlas_area_of_a_shape_on_the_map, "atlas_area_of_a_shape_on_the_map")
 			run_test (agent sw_atlas_tests.test_atlas_amounts_read_to_three_figures, "atlas_amounts_read_to_three_figures")
 			run_test (agent sw_atlas_tests.test_atlas_three_thousand_areas_hold_the_frame_budget, "atlas_three_thousand_areas_hold_the_frame_budget")
+			print ("%N=== STARS (0.50.0) ===%N")
+			create star_tests
+			run_test (agent star_tests.test_star_is_a_glyph, "star_is_a_glyph")
+			run_test (agent star_tests.test_a_starred_row_draws_its_star, "a_starred_row_draws_its_star")
+			run_test (agent star_tests.test_a_starred_grid_cell_draws_its_star, "a_starred_grid_cell_draws_its_star")
+			run_test (agent star_tests.test_a_tree_node_draws_its_glyph, "a_tree_node_draws_its_glyph")
 			print ("%N=== GW-19 REGIONAL MAP ===%N")
 			create atlas_tests
 			run_test (agent atlas_tests.test_gw19_land_and_water_stay_apart, "gw19_land_and_water_stay_apart")
@@ -976,6 +982,8 @@ feature {NONE} -- Test runners
 	strokes_tests: SW_STROKES_ASSAULT
 	timeline_tests: SW_LANE_TIMELINE_ASSAULT
 	sw_atlas_tests: SW_ATLAS_ASSAULT
+
+	star_tests: SW_STAR_ASSAULT
 
 	atlas_tests: SW_REGIONAL_MAP_ASSAULT
 	layered_tests: SW_LAYERED_DIAGRAM_ASSAULT

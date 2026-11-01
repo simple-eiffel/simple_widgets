@@ -65,7 +65,7 @@ feature -- Access
 
 	set_glyph (a_glyph: INTEGER)
 		require
-			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_error
+			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_last
 		do
 			glyph_kind := a_glyph
 		ensure
@@ -75,7 +75,7 @@ feature -- Access
 	with_glyph (a_glyph: INTEGER): like Current
 			-- Fluent face: `create b.make ("Save", agent ...).with_glyph (...)'.
 		require
-			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_error
+			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_last
 		do
 			set_glyph (a_glyph)
 			Result := Current

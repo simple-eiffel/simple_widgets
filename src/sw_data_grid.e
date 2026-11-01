@@ -478,8 +478,16 @@ feature -- Drawing
 						col := columns.i_th (ci)
 						s := col.value.item ([rows.i_th (view.i_th (i))])
 						a_p.push_clip (cx + 1.0, ry, shown_width (ci) - 2.0, Row_h)
-						a_p.set_color (t.ink)
-						a_p.text (cell_left (a_p, s, col.alignment, cx, shown_width (ci)), ry + Row_h - 8.0, s)
+						if col.is_starred (rows.i_th (view.i_th (i))) then
+								-- a favorite (0.50.0): the star, then the text past it
+							a_p.set_color (t.star)
+							a_p.glyph ({SW_PAINTER}.Glyph_star, cx + 15.0, ry + Row_h / 2.0, 12.0)
+							a_p.set_color (t.ink)
+							a_p.text (cell_left (a_p, s, col.alignment, cx + 16.0, shown_width (ci) - 16.0), ry + Row_h - 8.0, s)
+						else
+							a_p.set_color (t.ink)
+							a_p.text (cell_left (a_p, s, col.alignment, cx, shown_width (ci)), ry + Row_h - 8.0, s)
+						end
 						a_p.pop_clip
 						cx := cx + shown_width (ci)
 						ci := ci + 1
