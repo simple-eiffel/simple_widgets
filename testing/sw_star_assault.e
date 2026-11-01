@@ -126,6 +126,30 @@ feature -- Tests
 			assert_true ("a new document has none", v.standing_ranges.is_empty)
 		end
 
+	test_a_standing_range_shows_over_a_cell_mark
+			-- 0.51.1: in a parallel text a quoted part shows on a cell washed by a mark (the selected
+			-- verse's blue); the mark's wash was painted over it.
+		local
+			w: SW_WINDOW
+			v: SW_PARALLEL_TEXT
+			r, u: INTEGER
+		do
+			create w.make ("over", 0, 0, 600, 300, create {SW_THEME}.make_light)
+			create v.make (250.0)
+			v.add_column ("KJV").do_nothing
+			r := v.add_row ("16")
+			v.set_cell (r, 1, "For God so loved the world, that he gave his only begotten Son")
+			v.cell_marks (r, 1).mark_range_with (0, v.cell (r, 1).count, "selected verse", (create {SW_MARK}.make ({SW_MARK}.Hue_blue)).with_wash).do_nothing
+			w.set_root (v)
+			w.request_render
+			from u := 1 until u > v.unit_count or else v.unit_block (u) = r loop
+				u := u + 1
+			end
+			v.add_standing_range (u, 0, u, 20)
+			w.request_render
+			assert_true ("the gold wash shows on the marked cell", colour_pixels (w, v, w.theme.wash_star) > 50)
+		end
+
 feature {NONE} -- Pixels
 
 	colour_pixels (a_window: SW_WINDOW; a_widget: SW_WIDGET; a_colour: NATURAL_32): INTEGER

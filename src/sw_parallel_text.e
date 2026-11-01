@@ -614,10 +614,12 @@ feature {NONE} -- Drawing implementation
 				ox := unit_origin_x (u)
 				oy := unit_origin_y (u)
 				l_marks := rows.i_th (a_i).cell_marks (l_unit.column.max (1))
-				paint_unit_selection (a_p, u, ox, oy)
+					-- the cell's marks first, then the standing ranges and the selection over them: a
+					-- quoted part and a selection show on the selected verse's wash too (0.51.1)
 				if l_marks.text_count = l_unit.geometry.count then
 					mark_painter.paint_under (a_p, l_unit.geometry, l_marks, legend, ox, oy)
 				end
+				paint_unit_selection (a_p, u, ox, oy)
 				draw_unit_text (a_p, u, ox, oy)
 				if l_marks.text_count = l_unit.geometry.count then
 					mark_painter.paint_over (a_p, l_unit.geometry, l_marks, legend, ox, oy,
