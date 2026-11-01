@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.52.0 - a wrapping line)
+
+- `SW_TEXT_BOX.make_wrapping_line` / `is_one_paragraph`: one paragraph that wraps on screen and grows a line at a time, yet is a field: focus selects it all, Enter adds no line break and pasted breaks become spaces (Larry, 2026-11-01: a long highlight reason ran out of sight in a single-line box). Test `a_wrapping_line_wraps_and_breaks_no_line`.
+
 ### Fixed (0.51.1)
 
 - `SW_PARALLEL_TEXT` paints a cell's marks first, then the standing ranges and the selection over them: a quoted part (and a text selection) showed nothing on a verse washed by a mark (simple_bible's selected verse). Test `a_standing_range_shows_over_a_cell_mark`, seen failing first.

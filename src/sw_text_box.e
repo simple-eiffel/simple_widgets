@@ -46,7 +46,7 @@ inherit
 	SW_COPYING
 
 create
-	make, make_single_line, make_password
+	make, make_single_line, make_wrapping_line, make_password
 
 feature {NONE} -- Initialization
 
@@ -73,6 +73,20 @@ feature {NONE} -- Initialization
 			is_single_line := True
 		ensure
 			single: is_single_line
+		end
+
+	make_wrapping_line (a_text: READABLE_STRING_GENERAL)
+			-- One paragraph that wraps on screen and grows a line at a time (0.52.0: a reason, an
+			-- answer): a field, so focus selects it all, but never a line break - Enter adds none and
+			-- pasted breaks become spaces (Larry, 2026-11-01: typing on, the words ran out of sight).
+		do
+			make (a_text)
+			is_one_paragraph := True
+			is_focus_select_requested := True
+		ensure
+			one_paragraph: is_one_paragraph
+			wraps: not is_single_line
+			a_field: selects_all_on_focus
 		end
 
 	make_password (a_text: READABLE_STRING_GENERAL)
@@ -135,6 +149,9 @@ feature -- Access
 			-- Additional selected ranges beyond the primary one - the
 			-- fruit of Invert Selection. Each covers characters
 			-- lo+1 .. hi; kept sorted, disjoint and non-empty.
+
+	is_one_paragraph: BOOLEAN
+			-- Does it wrap but never break a line (`make_wrapping_line')?
 
 	is_single_line: BOOLEAN
 
@@ -427,7 +444,7 @@ feature -- Clipboard and selection commands
 				create clip
 				s := clip.text
 				s.prune_all ('%R')
-				if is_single_line then
+				if is_single_line or is_one_paragraph then
 					s.replace_substring_all ({STRING_32} "%N", {STRING_32} " ")
 				end
 				if not s.is_empty then
@@ -947,7 +964,7 @@ feature -- Input
 						sel_anchor := caret
 					end
 					changed
-				elseif a_code >= 32 or else (a_code = 13 and not is_single_line) then
+				elseif a_code >= 32 or else (a_code = 13 and not is_single_line and not is_one_paragraph) then
 					remember (Kind_typing)
 					if has_selection then
 						delete_selection
