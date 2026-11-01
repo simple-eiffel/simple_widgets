@@ -150,6 +150,31 @@ feature -- Tests
 			assert_true ("the gold wash shows on the marked cell", colour_pixels (w, v, w.theme.wash_star) > 50)
 		end
 
+	test_a_wrapping_line_wraps_and_breaks_no_line
+			-- 0.52.0: a wrapping line grows taller as its text wraps, like a multi-line box, yet Enter
+			-- adds no line break and focus selects it all, like a field.
+		local
+			w: SW_WINDOW
+			col: SW_COLUMN
+			l_line, l_single: SW_TEXT_BOX
+			l_long: STRING_32
+		do
+			l_long := {STRING_32} "The two are not a part of the eleven. There are other disciples and those with them in the room."
+			create w.make ("wrapping", 0, 0, 300, 400, create {SW_THEME}.make_light)
+			create l_line.make_wrapping_line (l_long)
+			create l_single.make_single_line (l_long)
+			create col.make
+			col.put (l_line)
+			col.put (l_single)
+			w.set_root (col)
+			w.request_render
+			assert_true ("it wraps: taller than one line (" + l_line.height.out + " against " + l_single.height.out + ")", l_line.height > l_single.height + 4.0)
+			assert_true ("a field: focus selects it all", l_line.selects_all_on_focus)
+			l_line.set_caret (l_line.text.count)
+			l_line.handle_char (13)
+			assert_false ("Enter adds no line break", l_line.text.has ('%N'))
+		end
+
 feature {NONE} -- Pixels
 
 	colour_pixels (a_window: SW_WINDOW; a_widget: SW_WIDGET; a_colour: NATURAL_32): INTEGER
