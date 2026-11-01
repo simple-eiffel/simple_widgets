@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (0.51.1)
+
+- `SW_PARALLEL_TEXT` paints a cell's marks first, then the standing ranges and the selection over them: a quoted part (and a text selection) showed nothing on a verse washed by a mark (simple_bible's selected verse). Test `a_standing_range_shows_over_a_cell_mark`, seen failing first.
+
 ### Added (0.51.0 - standing ranges, a quotation glyph; a menu-bar fix)
 
 - `SW_DOC_UNITS.add_standing_range` / `clear_standing_ranges` / `standing_in`: spans washed in the new `SW_THEME.wash_star` under the text, apart from the selection (a reader's quoted parts), in every doc-units widget (`SW_DOCUMENT_VIEW`, `SW_PARALLEL_TEXT`, `SW_INTERLINEAR`). New content (`set_document`, `wipe_out`) starts with none.

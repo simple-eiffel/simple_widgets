@@ -853,6 +853,7 @@ feature {NONE} -- Test runners
 			run_test (agent star_tests.test_a_starred_grid_cell_draws_its_star, "a_starred_grid_cell_draws_its_star")
 			run_test (agent star_tests.test_a_tree_node_draws_its_glyph, "a_tree_node_draws_its_glyph")
 			run_test (agent star_tests.test_a_standing_range_washes_its_text, "a_standing_range_washes_its_text")
+			run_test (agent star_tests.test_a_standing_range_shows_over_a_cell_mark, "a_standing_range_shows_over_a_cell_mark")
 			print ("%N=== GW-19 REGIONAL MAP ===%N")
 			create atlas_tests
 			run_test (agent atlas_tests.test_gw19_land_and_water_stay_apart, "gw19_land_and_water_stay_apart")
