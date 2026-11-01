@@ -599,6 +599,7 @@ feature {NONE} -- Test runners
 			run_test (agent keyboard_tests.test_a_disabled_pad_does_not_answer_alt, "a_disabled_pad_does_not_answer_alt")
 			run_test (agent keyboard_tests.test_an_open_menu_answers_a_bare_letter, "an_open_menu_answers_a_bare_letter")
 			run_test (agent keyboard_tests.test_the_window_opens_the_pad_the_mnemonic_names, "the_window_opens_the_pad_the_mnemonic_names")
+			run_test (agent keyboard_tests.test_a_click_drops_the_menu_under_its_pad, "a_click_drops_the_menu_under_its_pad")
 			run_test (agent keyboard_tests.test_the_highlight_steps_over_separators_and_disabled_items, "the_highlight_steps_over_separators_and_disabled_items")
 			run_test (agent keyboard_tests.test_a_menu_with_nothing_to_choose_cannot_spin, "a_menu_with_nothing_to_choose_cannot_spin")
 			run_test (agent keyboard_tests.test_the_open_menu_answers_the_arrow_keys_and_enter, "the_open_menu_answers_the_arrow_keys_and_enter")
@@ -851,6 +852,7 @@ feature {NONE} -- Test runners
 			run_test (agent star_tests.test_a_starred_row_draws_its_star, "a_starred_row_draws_its_star")
 			run_test (agent star_tests.test_a_starred_grid_cell_draws_its_star, "a_starred_grid_cell_draws_its_star")
 			run_test (agent star_tests.test_a_tree_node_draws_its_glyph, "a_tree_node_draws_its_glyph")
+			run_test (agent star_tests.test_a_standing_range_washes_its_text, "a_standing_range_washes_its_text")
 			print ("%N=== GW-19 REGIONAL MAP ===%N")
 			create atlas_tests
 			run_test (agent atlas_tests.test_gw19_land_and_water_stay_apart, "gw19_land_and_water_stay_apart")

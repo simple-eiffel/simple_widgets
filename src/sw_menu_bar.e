@@ -24,7 +24,7 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click, wants_hover_point,
-			accessible_role, preferred_width
+			accessible_role, preferred_width, menu_left
 		end
 
 create
@@ -404,6 +404,19 @@ feature -- Input
 					i := i + 1
 				end
 				Result := True
+			end
+		end
+
+feature -- Placement
+
+	menu_left: REAL_64
+			-- Under the pad opened last (`pad_bounds', the one geometry), not the bar's left edge:
+			-- 2026-11-01, a click dropped the Window menu under File.
+		do
+			if last_opened_pad >= 1 and last_opened_pad <= labels.count and then attached probe_painter as al_painter then
+				Result := pad_bounds (al_painter, last_opened_pad).left
+			else
+				Result := x
 			end
 		end
 

@@ -1058,7 +1058,10 @@ feature -- Glyphs (R7-pure: primitives, no font gambling)
 	Glyph_star: INTEGER = 26
 			-- A filled five-pointed star (0.50.0): a favorite.
 
-	Glyph_last: INTEGER = 26
+	Glyph_quote: INTEGER = 27
+			-- A filled quotation mark (0.51.0): a quoted passage.
+
+	Glyph_last: INTEGER = 27
 			-- The highest glyph code: what every glyph precondition checks against.
 
 	glyph (a_kind: INTEGER; a_cx, a_cy, a_s: REAL_64)
@@ -1213,6 +1216,11 @@ feature -- Glyphs (R7-pure: primitives, no font gambling)
 				circle_fill (a_cx, a_cy + h * 0.4, lw * 0.7)
 			when 26 then
 				star_fill (a_cx, a_cy, h * 0.95)
+			when 27 then
+				circle_fill (a_cx - h * 0.38, a_cy - h * 0.15, h * 0.3)
+				circle_fill (a_cx + h * 0.38, a_cy - h * 0.15, h * 0.3)
+				line (a_cx - h * 0.12, a_cy - h * 0.1, a_cx - h * 0.5, a_cy + h * 0.6, lw)
+				line (a_cx + h * 0.64, a_cy - h * 0.1, a_cx + h * 0.26, a_cy + h * 0.6, lw)
 			end
 		end
 

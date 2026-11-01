@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.51.0 - standing ranges, a quotation glyph; a menu-bar fix)
+
+- `SW_DOC_UNITS.add_standing_range` / `clear_standing_ranges` / `standing_in`: spans washed in the new `SW_THEME.wash_star` under the text, apart from the selection (a reader's quoted parts), in every doc-units widget (`SW_DOCUMENT_VIEW`, `SW_PARALLEL_TEXT`, `SW_INTERLINEAR`). New content (`set_document`, `wipe_out`) starts with none.
+- `SW_PAINTER.Glyph_quote` (a filled quotation mark); `Glyph_last` moves to it.
+- Fixed: a click on a menu-bar pad dropped its menu at the bar's left edge, under File (Larry, 2026-11-01: the Window menu). `SW_WIDGET.menu_left` says where an offered menu drops; `SW_MENU_BAR` answers with the opened pad's `pad_bounds`, the geometry the keyboard door already used. Test `a_click_drops_the_menu_under_its_pad`, seen failing first.
+
 ### Added (0.50.0 - stars)
 
 - `SW_THEME.star`: a favorite's gold (light, dark, and kept readable in high contrast).

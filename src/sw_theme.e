@@ -44,6 +44,7 @@ feature {NONE} -- Initialization
 			wash_success := 0xE0F0E9
 			wash_warning := 0xFAF1DD
 			wash_danger := 0xF8E7E2
+			wash_star := 0xFBF0CC
 				-- GW-28 (2026-10-22): the tokens the simple_bible mockups
 				-- needed, light values as drawn in the approved light page.
 			ink_on_accent := 0xFFFFFF
@@ -90,6 +91,7 @@ feature {NONE} -- Initialization
 			wash_success := 0x1D3A2C
 			wash_warning := 0x3D330E
 			wash_danger := 0x40231C
+			wash_star := 0x45380F
 				-- GW-28 (2026-10-22): dark values as drawn in the approved
 				-- dark page. Fills brighten in dark, so their text goes dark.
 			ink_on_accent := 0x0B1220
@@ -201,6 +203,7 @@ feature {NONE} -- Initialization
 			wash_success := a_window
 			wash_warning := a_window
 			wash_danger := a_window
+			wash_star := a_window
 			scrim := l_base.scrim
 			set_contrast_ramp (a_window)
 			init_families
@@ -272,6 +275,9 @@ feature -- Semantic colours
 	wash_success: NATURAL_32
 	wash_warning: NATURAL_32
 	wash_danger: NATURAL_32
+
+	wash_star: NATURAL_32
+			-- Under a reader's kept passage in a text: a quoted part (0.51.0).
 
 feature -- Ink on filled controls (GW-28)
 

@@ -288,9 +288,11 @@ feature -- Rows
 			scroll_y := 0.0
 			forget_pending_scroll
 			clear_selection
+			clear_standing_ranges
 			forget_hover
 		ensure
 			empty: row_count = 0
+			no_standing_ranges: standing_ranges.is_empty
 		end
 
 	on_cell_click: detachable PROCEDURE [INTEGER, INTEGER]
