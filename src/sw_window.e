@@ -2015,27 +2015,50 @@ feature {NONE} -- Popup lifecycle
 
 	dispatch_in_pick (a_type, a_x, a_y: INTEGER)
 			-- Pick-and-drop mode: the pointer carries a pebble. A left
-			-- click on a welcoming hole drops it; right-click, Escape
-			-- or a click anywhere else cancels; moves redraw the
-			-- trajectory.
-		local
-			w: detachable SW_WIDGET
+			-- click on a welcoming hole drops it (unless the spot under the
+			-- pointer uses the click itself: a folder's arrow, a tab); a
+			-- pick begun by a drag drops where the button is released;
+			-- right-click, Escape or a drop anywhere else cancels; moves
+			-- and drags follow the pointer, the heartbeat times spring-open
+			-- spots, and the wheel scrolls what is under the pointer
+			-- (0.55.0).
 		do
 			inspect a_type
 			when Event_window_press then
 				if attached pick_pebble as pb then
-					w := target_at (a_x, a_y)
-					if attached w as tw and then tw.is_enabled and then tw.accepts_pebble (pb) then
-						end_pick
-						tw.receive_pebble (pb)
+					if attached pick_spot_at (pb, a_x, a_y) as al_spot and then al_spot.pick_click (pb, a_x, a_y) then
+						follow_pick (a_x, a_y)
 					else
-						end_pick
+						drop_pick (a_x, a_y)
 					end
 				end
 				after_input
-			when Event_window_move then
-				pick_cur_x := a_x
-				pick_cur_y := a_y
+			when Event_window_move, Event_window_drag then
+				follow_pick (a_x, a_y)
+				after_input
+			when Event_window_release then
+				if attached capture as cw then
+					if cw.is_pressed then
+						cw.set_pressed (False)
+					end
+					cw.handle_release (a_x, a_y)
+					capture := Void
+				end
+				if pick_by_drag then
+					drop_pick (a_x, a_y)
+				end
+				after_input
+			when Event_tick then
+				if attached pick_pebble as pb and then attached pick_spot as al_spot
+					and then al_spot.pick_tick (pb)
+				then
+					after_input
+				end
+			when Event_window_wheel then
+				if attached target_at (a_x, a_y) as w then
+					spine_wheel (w, event_extra)
+				end
+				follow_pick (a_x, a_y)
 				after_input
 			when Event_window_char then
 				if a_x = 27 then
@@ -2058,20 +2081,135 @@ feature {NONE} -- Popup lifecycle
 
 	begin_pick (a_pebble: ANY; a_x, a_y: INTEGER)
 		do
-			pick_pebble := a_pebble
-			pick_x := a_x
-			pick_y := a_y
-			pick_cur_x := a_x
-			pick_cur_y := a_y
+			begin_pick_with (a_pebble, "", a_x, a_y, False)
 		ensure
 			picking: pick_pebble = a_pebble
 		end
 
+	begin_pick_with (a_pebble: ANY; a_card: READABLE_STRING_GENERAL; a_x, a_y: INTEGER; a_by_drag: BOOLEAN)
+			-- Lift `a_pebble' at the point, with its card; `a_by_drag': it
+			-- drops where the button is released.
+		do
+			if pick_pebble /= Void then
+				end_pick
+			end
+			pick_pebble := a_pebble
+			pick_card := a_card.to_string_32
+			pick_by_drag := a_by_drag
+			pick_x := a_x
+			pick_y := a_y
+			pick_cur_x := a_x
+			pick_cur_y := a_y
+			pick_spot := Void
+			pick_visited.wipe_out
+		ensure
+			picking: pick_pebble = a_pebble
+			by_drag: pick_by_drag = a_by_drag
+		end
+
 	end_pick
+			-- Cancel: the pebble goes nowhere.
 		do
 			pick_pebble := Void
+			finish_pick
 		ensure
 			idle: pick_pebble = Void
+		end
+
+	drop_pick (a_x, a_y: INTEGER)
+			-- Drop the pebble at the point: on the first widget, leaf
+			-- upward, that welcomes it there; anywhere else it goes
+			-- nowhere. The hole receives it before the spots it passed put
+			-- away what they sprang open, so it lands among the rows the
+			-- reader saw.
+		local
+			l_target: detachable SW_WIDGET
+		do
+			if attached pick_pebble as pb then
+				l_target := pick_target_at (pb, a_x, a_y)
+				pick_pebble := Void
+				if attached l_target as al_target then
+					al_target.receive_pebble_at (pb, a_x, a_y)
+				end
+			end
+			finish_pick
+		ensure
+			idle: pick_pebble = Void
+		end
+
+	finish_pick
+			-- Tell every spot the pick passed over that it is over.
+		local
+			l_visited: ARRAYED_LIST [SW_WIDGET]
+		do
+			l_visited := pick_visited.twin
+			pick_visited.wipe_out
+			pick_spot := Void
+			pick_by_drag := False
+			create pick_card.make_empty
+			across l_visited as ic loop
+				ic.pick_ended
+			end
+		ensure
+			none_visited: pick_visited.is_empty
+			no_spot: pick_spot = Void
+		end
+
+	follow_pick (a_x, a_y: INTEGER)
+			-- The pointer moved while picking: the spot under it lights
+			-- where the pebble would land.
+		do
+			pick_cur_x := a_x
+			pick_cur_y := a_y
+			last_pointer_x := a_x
+			last_pointer_y := a_y
+			if attached pick_pebble as pb then
+				pick_spot := pick_spot_at (pb, a_x, a_y)
+				if attached pick_spot as al_spot then
+					if not pick_visited.has (al_spot) then
+						pick_visited.extend (al_spot)
+					end
+					al_spot.pick_hover (pb, a_x, a_y)
+				end
+			end
+		end
+
+	pick_target_at (a_pebble: ANY; a_x, a_y: INTEGER): detachable SW_WIDGET
+			-- The first enabled widget under the point, leaf upward, that
+			-- welcomes `a_pebble' there.
+		local
+			w: detachable SW_WIDGET
+		do
+			from
+				w := target_at (a_x, a_y)
+			until
+				Result /= Void or w = Void
+			loop
+				if w.is_enabled and then w.accepts_pebble_at (a_pebble, a_x, a_y) then
+					Result := w
+				else
+					w := w.parent
+				end
+			end
+		end
+
+	pick_spot_at (a_pebble: ANY; a_x, a_y: INTEGER): detachable SW_WIDGET
+			-- The first enabled widget under the point, leaf upward, that
+			-- acts while `a_pebble' passes over it.
+		local
+			w: detachable SW_WIDGET
+		do
+			from
+				w := target_at (a_x, a_y)
+			until
+				Result /= Void or w = Void
+			loop
+				if w.is_enabled and then w.responds_to_pick (a_pebble, a_x, a_y) then
+					Result := w
+				else
+					w := w.parent
+				end
+			end
 		end
 
 	dispatch_plain (a_type, a_x, a_y: INTEGER)
@@ -2203,6 +2341,12 @@ feature {NONE} -- Popup lifecycle
 					after_input
 				elseif attached capture as w then
 					w.handle_drag (a_x, a_y)
+					if attached w.take_pick_request as al_pick then
+							-- 0.55.0: the drag left a selection or a row and
+							-- carries it; the release drops it
+						begin_pick_with (al_pick.pebble, al_pick.card, a_x, a_y, True)
+						follow_pick (a_x, a_y)
+					end
 					after_input
 				end
 			when Event_window_release then
@@ -2461,7 +2605,8 @@ feature {NONE} -- Popup lifecycle
 				pick_pebble /= Void or w = Void
 			loop
 				if w.is_enabled and then attached w.pebble_at (a_x, a_y) as pb then
-					begin_pick (pb, a_x, a_y)
+					begin_pick_with (pb, w.pebble_card_at (a_x, a_y), a_x, a_y, False)
+					follow_pick (a_x, a_y)
 				else
 					w := w.parent
 				end
@@ -2897,20 +3042,21 @@ feature {NONE} -- Rendering
 
 	draw_pick_trajectory (a_pebble: ANY)
 			-- The pick line: origin dot, line to the pointer, and a
-			-- ring on the widget under the pointer - accent when it
-			-- welcomes the pebble, danger when it does not.
+			-- ring - accent on the widget that would take the pebble here
+			-- (leaf upward, 0.55.0), danger on the widget under the pointer
+			-- when none would; then the card beside the pointer.
 		local
 			w: detachable SW_WIDGET
-			ok: BOOLEAN
+			cw, ch, cx, cy: REAL_64
 		do
-			w := target_at (pick_cur_x, pick_cur_y)
+			w := pick_target_at (a_pebble, pick_cur_x, pick_cur_y)
+			if attached w then
+				painter.set_color (theme.accent)
+			else
+				w := target_at (pick_cur_x, pick_cur_y)
+				painter.set_color (theme.danger)
+			end
 			if attached w as tw then
-				ok := tw.is_enabled and then tw.accepts_pebble (a_pebble)
-				if ok then
-					painter.set_color (theme.accent)
-				else
-					painter.set_color (theme.danger)
-				end
 				painter.set_line_width (2.0)
 				painter.rrect_stroke (tw.x - 2.0, tw.y - 2.0, tw.width + 4.0, tw.height + 4.0, theme.radius + 2.0)
 				painter.set_line_width (1.0)
@@ -2919,6 +3065,21 @@ feature {NONE} -- Rendering
 			painter.line (pick_x, pick_y, pick_cur_x, pick_cur_y, 2.0)
 			painter.rrect_fill (pick_x - 4.0, pick_y - 4.0, 8.0, 8.0, 4.0)
 			painter.rrect_fill (pick_cur_x - 3.0, pick_cur_y - 3.0, 6.0, 6.0, 3.0)
+			if not pick_card.is_empty then
+				painter.font ({SW_PAINTER}.Role_ui, theme.size_label, False)
+				cw := (painter.advance (pick_card) + 16.0).min (360.0)
+				ch := painter.text_extent + 10.0
+				cx := (pick_cur_x + 16.0).min (win_w - cw - 4.0).max (4.0)
+				cy := (pick_cur_y + 18.0).min (win_h - ch - 4.0).max (4.0)
+				painter.set_color (theme.surface)
+				painter.rrect_fill (cx, cy, cw, ch, theme.radius)
+				painter.set_color (theme.accent)
+				painter.rrect_stroke (cx + 0.5, cy + 0.5, cw - 1.0, ch - 1.0, theme.radius)
+				painter.push_clip (cx, cy, cw - 6.0, ch)
+				painter.set_color (theme.ink)
+				painter.text (cx + 8.0, cy + ch - 5.0 - painter.font_descent, pick_card)
+				painter.pop_clip
+			end
 		end
 
 	draw_tooltip (a_w: SW_WIDGET)
@@ -3531,6 +3692,54 @@ feature -- Drawer tab (peek and pin)
 			-- The pebble in flight, when pick-and-drop is active.
 
 	pick_x, pick_y, pick_cur_x, pick_cur_y: INTEGER
+
+	pick_card: STRING_32
+			-- The words beside the pointer while picking; empty for none.
+		attribute
+			create Result.make_empty
+		end
+
+	pick_by_drag: BOOLEAN
+			-- Was the pick in flight begun by a drag (it drops on release)?
+
+	pick_spot: detachable SW_WIDGET
+			-- The widget the pebble is over that acts while it passes.
+
+	pick_visited: ARRAYED_LIST [SW_WIDGET]
+			-- Every spot the pick in flight has passed over.
+		attribute
+			create Result.make (4)
+		end
+
+	is_picking: BOOLEAN
+			-- Is a pebble in flight?
+		do
+			Result := pick_pebble /= Void
+		end
+
+	start_pick (a_pebble: ANY; a_card: READABLE_STRING_GENERAL; a_x, a_y: INTEGER)
+			-- Lift `a_pebble' at the point from code (a menu's Pick up): it
+			-- follows the pointer with no button held, so the reader can
+			-- scroll, change tabs and open folders before dropping it; a
+			-- click on a welcoming spot drops it, Escape or a right-click
+			-- cancels (0.55.0).
+		do
+			begin_pick_with (a_pebble, a_card, a_x, a_y, False)
+			follow_pick (a_x, a_y)
+			request_render
+		ensure
+			picking: pick_pebble = a_pebble
+			by_click: not pick_by_drag
+		end
+
+	cancel_pick
+			-- Put the pebble down nowhere.
+		do
+			end_pick
+			request_render
+		ensure
+			idle: not is_picking
+		end
 
 	dwell_ticks: INTEGER
 			-- Timer ticks the pointer has rested on the hovered widget.

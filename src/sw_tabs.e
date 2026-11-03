@@ -47,7 +47,8 @@ inherit
 			sub_widgets,
 			arrange, widget_at, handle_click, wants_hover_point,
 			handle_drag, handle_release, handle_wheel,
-			accessible_role, accessible_value, accessible_children
+			accessible_role, accessible_value, accessible_children,
+			responds_to_pick, pick_hover, pick_tick, pick_click, pick_ended
 		end
 
 	SW_TAB_STRIP
@@ -547,7 +548,8 @@ feature -- Drawing
 						tx := tab_lefts.i_th (i)
 						l_ink := draw_tab_ground (a_p, i, i = selected_index,
 							shows_hover and then hover_py < y + bar_h and then hover_px >= tx and then hover_px <= tx + tw)
-						if is_dragging and then i = drag_index then
+						if (is_dragging and then i = drag_index) or else i = spring_tab then
+								-- 0.55.0: also the tab a pick rests on
 							draw_tab_outline (a_p, i)
 						end
 						a_p.set_color (l_ink)
@@ -577,6 +579,91 @@ feature -- Drawing
 				pg.draw (a_p)
 			end
 		end
+
+feature -- Under a pick (0.55.0)
+
+	Spring_beats: INTEGER = 2
+			-- Heartbeats (250 ms each) a pick must rest on a tab before it
+			-- springs open: about half a second.
+
+	spring_tab: INTEGER
+			-- The tab a pick rests on; 0 = none.
+
+	tab_before_spring: INTEGER
+			-- The tab shown before a pick sprang another open; 0 = none
+			-- sprang.
+
+	responds_to_pick (a_pebble: ANY; a_px, a_py: REAL_64): BOOLEAN
+			-- A pick over a tab in the bar.
+		do
+			Result := is_enabled and then is_placed and then contains (a_px, a_py)
+				and then a_py < y + bar_h and then tab_index_at (a_px, a_py) > 0
+		end
+
+	pick_hover (a_pebble: ANY; a_px, a_py: REAL_64)
+		local
+			k: INTEGER
+		do
+			if is_placed then
+				k := tab_index_at (a_px, a_py)
+			end
+			if k /= spring_tab then
+				spring_tab := k
+				spring_count := 0
+			end
+		end
+
+	pick_tick (a_pebble: ANY): BOOLEAN
+			-- After `Spring_beats', the tab rested on opens.
+		do
+			if spring_tab > 0 and then spring_tab /= selected_index and then spring_tab <= labels.count then
+				spring_count := spring_count + 1
+				if spring_count >= Spring_beats then
+					if tab_before_spring = 0 then
+						tab_before_spring := selected_index
+					end
+					select_tab (spring_tab)
+					spring_count := 0
+					Result := True
+				end
+			end
+		end
+
+	pick_click (a_pebble: ANY; a_px, a_py: REAL_64): BOOLEAN
+			-- A press on a tab opens it, and it stays open after the drop.
+		local
+			k: INTEGER
+		do
+			if is_placed then
+				k := tab_index_at (a_px, a_py)
+				if k > 0 then
+					select_tab (k)
+					tab_before_spring := 0
+					Result := True
+				end
+			end
+		end
+
+	pick_ended
+			-- A tab the pick sprang open closes again: the one shown before
+			-- returns.
+		do
+			if tab_before_spring > 0 and then tab_before_spring <= labels.count
+				and then tab_before_spring /= selected_index
+			then
+				select_tab (tab_before_spring)
+			end
+			tab_before_spring := 0
+			spring_tab := 0
+			spring_count := 0
+		ensure then
+			none_resting: spring_tab = 0
+		end
+
+feature {NONE} -- Pick internals
+
+	spring_count: INTEGER
+			-- Beats the pick has rested on `spring_tab'.
 
 feature -- Hit testing
 
