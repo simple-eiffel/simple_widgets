@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.56.0 - a notice with an action; shortcuts that yield to typing)
+
+- `SW_WINDOW.toast_with_action`: a notice that offers one action ("Undo") at its end, outlined; a click on it runs the action once and closes the notice. It lives about 8 seconds (`Action_toast_life`). `toast_action_spots` / `toast_action_at` say where the actions were drawn.
+- `SW_WINDOW.register_accelerator_yielding` and `is_typing`: a shortcut that steps aside while the focused widget `takes_typing` (Ctrl+Z as a program's Undo everywhere except inside a text box, where it undoes the typing). The plain table is asked first.
+- `SW_WIDGET.takes_typing` (False); `SW_TEXT_BOX` answers True unless read-only.
+- Tests: `SW_NOTICE_ACTION_ASSAULT` (3).
+
 ### Added (0.55.0 - carry and drop)
 
 - `SW_WINDOW.start_pick` / `cancel_pick` / `is_picking` / `pick_card`: a pick begun from code (a menu's Pick up) follows the pointer with no button held; a click on a welcoming spot drops it. A pick begun by a drag (`SW_WIDGET.request_pick`, consumed after the drag event) drops where the button is released. During a pick the wheel scrolls what is under the pointer, the heartbeat reaches the spot under it, and a card of words travels beside the pointer.

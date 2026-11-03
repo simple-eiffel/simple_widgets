@@ -980,6 +980,11 @@ feature {NONE} -- Test runners
 			run_test (agent carry_tests.test_a_row_dragged_to_another_folder_moves, "a_row_dragged_to_another_folder_moves")
 			run_test (agent carry_tests.test_a_drop_that_takes_rows_away_draws_safely, "a_drop_that_takes_rows_away_draws_safely")
 			run_test (agent carry_tests.test_a_tab_springs_open_and_the_one_before_returns, "a_tab_springs_open_and_the_one_before_returns")
+			print ("%N=== NOTICE ACTIONS AND YIELDING KEYS (0.56.0) ===%N")
+			create notice_tests
+			run_test (agent notice_tests.test_a_notices_action_runs_once_and_closes_it, "a_notices_action_runs_once_and_closes_it")
+			run_test (agent notice_tests.test_a_plain_notice_offers_no_action, "a_plain_notice_offers_no_action")
+			run_test (agent notice_tests.test_a_yielding_shortcut_steps_aside_for_typing, "a_yielding_shortcut_steps_aside_for_typing")
 		end
 
 	mark_tests: SW_MARK_ASSAULT
@@ -1009,6 +1014,8 @@ feature {NONE} -- Test runners
 	star_tests: SW_STAR_ASSAULT
 
 	carry_tests: SW_CARRY_DROP_ASSAULT
+
+	notice_tests: SW_NOTICE_ACTION_ASSAULT
 
 	atlas_tests: SW_REGIONAL_MAP_ASSAULT
 	layered_tests: SW_LAYERED_DIAGRAM_ASSAULT

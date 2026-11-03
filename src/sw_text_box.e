@@ -36,7 +36,7 @@ inherit
 			accepts_focus, preferred_width, handle_click, handle_double_click,
 			handle_triple_click, handle_drag, handle_char, handle_key,
 			context_menu, accepts_pebble, receive_pebble, cursor_kind,
-			accessible_role, accessible_value, set_focused
+			accessible_role, accessible_value, set_focused, takes_typing
 		end
 
 	SW_CLUSTER_MATH
@@ -162,6 +162,13 @@ feature -- Access
 			-- `set_selects_all_on_focus' choices over the single-line default.
 
 	is_read_only: BOOLEAN
+
+	takes_typing: BOOLEAN
+			-- An editable box keeps Ctrl+Z and Ctrl+Y for its own undo and
+			-- redo (0.56.0).
+		do
+			Result := not is_read_only
+		end
 
 	on_change: detachable PROCEDURE
 			-- Fired after every edit.
