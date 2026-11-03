@@ -1546,6 +1546,32 @@ feature -- Accelerators
 			grew: accelerators.count = old accelerators.count + 1
 		end
 
+	register_accelerator_yielding (a_vk: INTEGER; a_ctrl, a_alt, a_shift: BOOLEAN; a_action: PROCEDURE)
+			-- As `register_accelerator', but stepping aside while the
+			-- focused widget `takes_typing': Ctrl+Z as the program's Undo
+			-- everywhere except inside a text box, where it undoes the
+			-- typing (0.56.0). The plain table is asked first.
+		require
+			key_named: a_vk > 0
+			modified: a_ctrl or a_alt or is_function_key (a_vk)
+		do
+			yielding_accelerators.extend ([a_vk, a_ctrl, a_alt, a_shift, a_action])
+		ensure
+			grew: yielding_accelerators.count = old yielding_accelerators.count + 1
+		end
+
+	yielding_accelerators: ARRAYED_LIST [TUPLE [vk: INTEGER; ctrl, alt, shift: BOOLEAN; action: PROCEDURE]]
+			-- Accelerators that yield to typing.
+		attribute
+			create Result.make (4)
+		end
+
+	is_typing: BOOLEAN
+			-- Does the focused widget keep its keys for typing?
+		do
+			Result := attached focused as al_focused and then al_focused.takes_typing
+		end
+
 	is_function_key (a_vk: INTEGER): BOOLEAN
 			-- Is `a_vk' one of F1-F12 (virtual keys 112..123)?
 		do
@@ -1602,9 +1628,16 @@ feature -- Accelerators
 			if i > 0 then
 				Result := True
 				accelerators.i_th (i).action.call
+			elseif not is_typing then
+				across yielding_accelerators as ic until Result loop
+					if ic.vk = a_vk and then ic.ctrl = a_ctrl and then ic.alt = a_alt and then ic.shift = a_shift then
+						Result := True
+						ic.action.call
+					end
+				end
 			end
 		ensure
-			definition: Result = (accelerator_for (a_vk, a_ctrl, a_alt, a_shift) > 0)
+			claimed: accelerator_for (a_vk, a_ctrl, a_alt, a_shift) > 0 implies Result
 		end
 
 feature -- Menu bar and mnemonics
@@ -2224,7 +2257,16 @@ feature {NONE} -- Popup lifecycle
 						-- GW-09: a click off the card closes it and still lands
 					close_hover_card
 				end
-				if point_on_pin (a_x, a_y) then
+				if attached toast_action_at (a_x, a_y) as al_act then
+						-- 0.56.0: a notice's action (Undo); the notice goes
+					across toast_action_spots as ic loop
+						if ic.toast.act = al_act then
+							toasts.prune_all (ic.toast)
+						end
+					end
+					toast_action_spots.wipe_out
+					al_act.call
+				elseif point_on_pin (a_x, a_y) then
 					drawer_pinned := not drawer_pinned
 				elseif point_on_sheet_close (a_x, a_y) then
 					close_sheet
@@ -3302,14 +3344,49 @@ feature -- Notifications
 			s: STRING_32
 		do
 			create s.make_from_string_general (a_text)
-			toasts.extend ([s, a_kind, Toast_life])
+			toasts.extend ([s, a_kind, Toast_life, create {STRING_32}.make_empty, Void])
 			after_input
 		ensure
 			queued: toasts.count = old toasts.count + 1
 		end
 
+	toast_with_action (a_text: READABLE_STRING_GENERAL; a_kind: INTEGER; a_label: READABLE_STRING_GENERAL; a_action: PROCEDURE)
+			-- A notification that offers one action ("Undo") at its end; a
+			-- click on it runs `a_action' and closes the notice. It lives
+			-- longer than a plain one, so there is time to reach it
+			-- (0.56.0).
+		require
+			labeled: not a_label.is_empty
+		do
+			toasts.extend ([a_text.to_string_32, a_kind, Action_toast_life, a_label.to_string_32, a_action])
+			after_input
+		ensure
+			queued: toasts.count = old toasts.count + 1
+		end
+
+	toast_action_spots: ARRAYED_LIST [TUPLE [x, y, w, h: REAL_64; toast: TUPLE [txt: STRING_32; tkind: INTEGER; life: INTEGER; act_label: STRING_32; act: detachable PROCEDURE]]]
+			-- Where each shown notice's action was drawn, last frame.
+		attribute
+			create Result.make (2)
+		end
+
+	toast_action_at (a_x, a_y: INTEGER): detachable PROCEDURE
+			-- The action of the notice whose action is under the point.
+		do
+			across toast_action_spots as ic until Result /= Void loop
+				if a_x >= ic.x and then a_x <= ic.x + ic.w and then a_y >= ic.y and then a_y <= ic.y + ic.h
+					and then toasts.has (ic.toast)
+				then
+					Result := ic.toast.act
+				end
+			end
+		end
+
 	Toast_life: INTEGER = 14
 			-- Timer ticks a toast lives (about 3.5 seconds).
+
+	Action_toast_life: INTEGER = 32
+			-- Timer ticks a notice with an action lives (about 8 seconds).
 
 feature {NONE} -- Notification internals
 
@@ -3339,12 +3416,13 @@ feature {NONE} -- Notification internals
 	draw_toasts
 		local
 			t: SW_THEME
-			ty, tw: REAL_64
+			ty, tw, aw, ax: REAL_64
 			i: INTEGER
-			it: TUPLE [txt: STRING_32; tkind: INTEGER; life: INTEGER]
+			it: TUPLE [txt: STRING_32; tkind: INTEGER; life: INTEGER; act_label: STRING_32; act: detachable PROCEDURE]
 			kc: NATURAL_32
 		do
 			t := theme
+			toast_action_spots.wipe_out
 			ty := win_h - 18.0
 			from
 				i := toasts.count
@@ -3354,6 +3432,13 @@ feature {NONE} -- Notification internals
 				it := toasts.i_th (i)
 				painter.font ({SW_PAINTER}.Role_ui, 11.5, False)
 				tw := painter.advance (it.txt) + 40.0
+				aw := 0.0
+				if not it.act_label.is_empty then
+					painter.font ({SW_PAINTER}.Role_ui, 11.5, True)
+					aw := painter.advance (it.act_label) + 20.0
+					tw := tw + aw + 8.0
+					painter.font ({SW_PAINTER}.Role_ui, 11.5, False)
+				end
 				ty := ty - 36.0
 				painter.set_color (t.ink)
 				painter.rrect_fill (win_w - 18.0 - tw, ty, tw, 30.0, t.radius)
@@ -3371,6 +3456,15 @@ feature {NONE} -- Notification internals
 				painter.fill_rect (win_w - 18.0 - tw, ty + 3.0, 4.0, 24.0)
 				painter.set_color (t.background)
 				painter.text (win_w - 18.0 - tw + 14.0, ty + 20.0, it.txt)
+				if aw > 0.0 then
+						-- 0.56.0: the action, outlined, at the notice's end
+					ax := win_w - 18.0 - aw - 8.0
+					painter.rrect_stroke (ax + 0.5, ty + 4.5, aw - 1.0, 21.0, 4.0)
+					painter.font ({SW_PAINTER}.Role_ui, 11.5, True)
+					painter.text (ax + 10.0, ty + 20.0, it.act_label)
+					painter.font ({SW_PAINTER}.Role_ui, 11.5, False)
+					toast_action_spots.extend ([ax, ty + 4.0, aw, 22.0, it])
+				end
 				ty := ty - 8.0
 				i := i - 1
 			end
@@ -3672,7 +3766,7 @@ feature -- Drawer tab (peek and pin)
 	dialog: detachable SW_DIALOG
 			-- The open modal dialog; owns all input while present.
 
-	toasts: ARRAYED_LIST [TUPLE [txt: STRING_32; tkind: INTEGER; life: INTEGER]]
+	toasts: ARRAYED_LIST [TUPLE [txt: STRING_32; tkind: INTEGER; life: INTEGER; act_label: STRING_32; act: detachable PROCEDURE]]
 		attribute
 			create Result.make (4)
 		end

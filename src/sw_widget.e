@@ -690,6 +690,13 @@ feature -- Input
 			consumed: pick_request = Void
 		end
 
+	takes_typing: BOOLEAN
+			-- Holding the keyboard, does this widget keep Ctrl+Z, Ctrl+Y and
+			-- their kin for its own typing (an editable text box)? A window's
+			-- yielding accelerators step aside for it (0.56.0).
+		do
+		end
+
 	Drag_distance: INTEGER = 4
 			-- Pixels the pointer must move with the button held before a
 			-- press becomes a drag: Windows' default SM_CXDRAG and
