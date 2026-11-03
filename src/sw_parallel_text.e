@@ -391,6 +391,7 @@ feature -- Input
 		local
 			l_cell: TUPLE [row, column: INTEGER]
 		do
+			settle_carry_press
 			if is_selecting and then not has_selection and then pressed_cell.row > 0 then
 				l_cell := cell_at (a_x, a_y)
 				if l_cell.row = pressed_cell.row and l_cell.column = pressed_cell.column

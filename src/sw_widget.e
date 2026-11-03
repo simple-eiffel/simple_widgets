@@ -599,6 +599,102 @@ feature -- Input
 		do
 		end
 
+	accepts_pebble_at (a_pebble: ANY; a_px, a_py: REAL_64): BOOLEAN
+			-- Would this widget welcome `a_pebble' dropped at the point
+			-- (window space)? By default the pointless `accepts_pebble'; a
+			-- hole whose answer depends on the point (a tree row, a folder)
+			-- redefines this AND `receive_pebble_at' together (0.55.0).
+		do
+			Result := accepts_pebble (a_pebble)
+		end
+
+	receive_pebble_at (a_pebble: ANY; a_px, a_py: REAL_64)
+			-- Accept the drop at the point (window space). By default the
+			-- pointless `receive_pebble'.
+		require
+			welcome: accepts_pebble_at (a_pebble, a_px, a_py)
+			enabled: is_enabled
+		do
+			if accepts_pebble (a_pebble) then
+				receive_pebble (a_pebble)
+			end
+		end
+
+	pebble_card_at (a_px, a_py: REAL_64): STRING_32
+			-- A few words that travel beside the pointer with the pebble
+			-- offered at the point (the quote's opening words and its
+			-- source); empty for none (0.55.0).
+		do
+			create Result.make_empty
+		ensure
+			answered: Result /= Void
+		end
+
+	responds_to_pick (a_pebble: ANY; a_px, a_py: REAL_64): BOOLEAN
+			-- Does this widget act while a pebble passes over the point,
+			-- though it may not take it (a tab that springs open, a
+			-- folder's arrow)? The window sends `pick_hover', `pick_tick'
+			-- and `pick_click' to the first widget, leaf upward, that
+			-- responds. By default: if it would take the pebble there.
+		do
+			Result := accepts_pebble_at (a_pebble, a_px, a_py)
+		end
+
+	pick_hover (a_pebble: ANY; a_px, a_py: REAL_64)
+			-- A pebble is over the point (window space): light the spot it
+			-- would land on. Called on every move while this widget
+			-- responds.
+		do
+		end
+
+	pick_tick (a_pebble: ANY): BOOLEAN
+			-- The window's heartbeat while a pebble rests over this widget:
+			-- time a spring-open or scroll near an edge. True when it
+			-- changed what it shows.
+		do
+		end
+
+	pick_click (a_pebble: ANY; a_px, a_py: REAL_64): BOOLEAN
+			-- A press at the point while picking: True when this widget used
+			-- the press for itself (opened a folder by its arrow, chose a
+			-- tab) and the pebble stays in flight; False lets it drop.
+		do
+		end
+
+	pick_ended
+			-- The pick that passed over this widget dropped or was
+			-- cancelled: put away what it sprang open or lit.
+		do
+		end
+
+	pick_request: detachable TUPLE [pebble: ANY; card: STRING_32]
+			-- A pick this widget asked to start (a drag out of a
+			-- selection), consumed by the window after the event that
+			-- raised it - the handshake `pending_menu' uses (0.55.0).
+
+	request_pick (a_pebble: ANY; a_card: READABLE_STRING_GENERAL)
+			-- Ask the window to lift `a_pebble' under the pointer; it drops
+			-- where the button is released.
+		do
+			pick_request := [a_pebble, a_card.to_string_32]
+		ensure
+			asked: attached pick_request as al_asked and then al_asked.pebble = a_pebble
+		end
+
+	take_pick_request: detachable TUPLE [pebble: ANY; card: STRING_32]
+			-- One-shot: the pending pick request, consumed on read.
+		do
+			Result := pick_request
+			pick_request := Void
+		ensure
+			consumed: pick_request = Void
+		end
+
+	Drag_distance: INTEGER = 4
+			-- Pixels the pointer must move with the button held before a
+			-- press becomes a drag: Windows' default SM_CXDRAG and
+			-- SM_CYDRAG.
+
 	pebble_item: detachable ANY
 			-- Stored pebble behind the default `pebble'.
 

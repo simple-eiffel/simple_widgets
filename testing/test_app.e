@@ -963,6 +963,23 @@ feature {NONE} -- Test runners
 			run_test (agent marked_edit_tests.test_textbox_paints_marks_both_engines, "marks_textbox_paints_both_engines")
 			run_test (agent marked_edit_tests.test_paragraphs_share_marks_with_the_editor, "marks_paragraphs_share_with_editor")
 			run_test (agent marked_edit_tests.test_paragraphs_marks_travel_with_mutation, "marks_paragraphs_travel_with_mutation")
+			print ("%N=== CARRY AND DROP (0.55.0) ===%N")
+			create carry_tests
+			run_test (agent carry_tests.test_a_selection_dragged_out_drops_in_the_folder_under_the_release, "a_selection_dragged_out_drops_in_the_folder_under_the_release")
+			run_test (agent carry_tests.test_a_press_on_the_selection_that_never_moves_clears_it, "a_press_on_the_selection_that_never_moves_clears_it")
+			run_test (agent carry_tests.test_a_drop_off_every_hole_goes_nowhere, "a_drop_off_every_hole_goes_nowhere")
+			run_test (agent carry_tests.test_middle_click_lifts_the_selection_with_its_card, "middle_click_lifts_the_selection_with_its_card")
+			run_test (agent carry_tests.test_pick_up_follows_the_pointer_and_a_click_drops, "pick_up_follows_the_pointer_and_a_click_drops")
+			run_test (agent carry_tests.test_escape_and_right_click_cancel, "escape_and_right_click_cancel")
+			run_test (agent carry_tests.test_a_resting_pick_springs_a_folder_that_closes_after, "a_resting_pick_springs_a_folder_that_closes_after")
+			run_test (agent carry_tests.test_a_sprung_folder_stays_open_when_the_item_lands_in_it, "a_sprung_folder_stays_open_when_the_item_lands_in_it")
+			run_test (agent carry_tests.test_a_folders_arrow_opens_it_without_dropping, "a_folders_arrow_opens_it_without_dropping")
+			run_test (agent carry_tests.test_a_folders_new_folder_button_makes_a_folder_inside_it, "a_folders_new_folder_button_makes_a_folder_inside_it")
+			run_test (agent carry_tests.test_the_last_row_makes_a_folder_at_the_top_level, "the_last_row_makes_a_folder_at_the_top_level")
+			run_test (agent carry_tests.test_below_the_rows_is_the_top_level, "below_the_rows_is_the_top_level")
+			run_test (agent carry_tests.test_a_row_dragged_to_another_folder_moves, "a_row_dragged_to_another_folder_moves")
+			run_test (agent carry_tests.test_a_drop_that_takes_rows_away_draws_safely, "a_drop_that_takes_rows_away_draws_safely")
+			run_test (agent carry_tests.test_a_tab_springs_open_and_the_one_before_returns, "a_tab_springs_open_and_the_one_before_returns")
 		end
 
 	mark_tests: SW_MARK_ASSAULT
@@ -990,6 +1007,8 @@ feature {NONE} -- Test runners
 	sw_atlas_tests: SW_ATLAS_ASSAULT
 
 	star_tests: SW_STAR_ASSAULT
+
+	carry_tests: SW_CARRY_DROP_ASSAULT
 
 	atlas_tests: SW_REGIONAL_MAP_ASSAULT
 	layered_tests: SW_LAYERED_DIAGRAM_ASSAULT

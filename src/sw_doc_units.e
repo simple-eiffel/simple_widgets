@@ -37,7 +37,7 @@ inherit
 			item_text_count, forget_hover,
 			set_hover_point, set_hovered, handle_wheel, handle_click, handle_double_click,
 			handle_drag, handle_release, handle_key, handle_char, cursor_kind,
-			print_height, clean_break, context_menu
+			print_height, clean_break, context_menu, pebble_at, pebble_card_at
 		end
 
 	SW_TEXT_SELECTION
@@ -45,7 +45,7 @@ inherit
 			dwell_ms, handle_dwell, hover_card_at, accepts_focus, wants_hover_point,
 			set_hover_point, set_hovered, handle_wheel, handle_click, handle_double_click,
 			handle_drag, handle_release, handle_key, handle_char, cursor_kind,
-			print_height, clean_break, context_menu
+			print_height, clean_break, context_menu, pebble_at, pebble_card_at
 		redefine
 			item_separator
 		end
@@ -550,6 +550,88 @@ feature -- Input (SW_WIDGET)
 			update_link_hover
 		end
 
+feature -- Carrying the selection (0.55.0)
+
+	selection_offer: detachable FUNCTION [detachable TUPLE [pebble: ANY; card: STRING_32]]
+			-- What the selection carries when it is dragged out (a press
+			-- inside it, then a move past `Drag_distance') or middle-clicked,
+			-- with the words that travel beside the pointer; Void, or an
+			-- answer of Void, when it is not carried.
+
+	set_selection_offer (a_offer: like selection_offer)
+		do
+			selection_offer := a_offer
+		ensure
+			set: selection_offer = a_offer
+		end
+
+	offered_selection: detachable TUPLE [pebble: ANY; card: STRING_32]
+			-- The selection's offer now, if any.
+		do
+			if has_selection and then attached selection_offer as al_offer then
+				Result := al_offer.item ([])
+			end
+		end
+
+	point_in_selection (a_px, a_py: REAL_64): BOOLEAN
+			-- Is the point (window space) on the selected text?
+		local
+			u, l_offset: INTEGER
+			l_part: TUPLE [lo, hi: INTEGER]
+		do
+			if has_selection then
+				u := pointed_item (a_px, a_py)
+				if u > 0 then
+					l_offset := offset_at_point (u, a_px, a_py)
+					l_part := selection_in (u)
+					Result := l_part.lo < l_part.hi and then l_offset >= l_part.lo and then l_offset <= l_part.hi
+				end
+			end
+		end
+
+	pebble_at (a_px, a_py: REAL_64): detachable ANY
+			-- On the selection, what it carries; elsewhere the widget's own.
+		do
+			if point_in_selection (a_px, a_py) and then attached offered_selection as al_offer then
+				Result := al_offer.pebble
+			else
+				Result := Precursor {SW_STACKED_POINTING} (a_px, a_py)
+			end
+		end
+
+	pebble_card_at (a_px, a_py: REAL_64): STRING_32
+			-- On the selection, the words that travel with it.
+		do
+			if point_in_selection (a_px, a_py) and then attached offered_selection as al_offer then
+				Result := al_offer.card
+			else
+				Result := Precursor {SW_STACKED_POINTING} (a_px, a_py)
+			end
+		end
+
+	is_carry_pressed: BOOLEAN
+			-- Was the button pressed on the selection, not yet moved past
+			-- `Drag_distance' nor released?
+
+feature {NONE} -- Carrying internals
+
+	carry_x, carry_y: REAL_64
+	carry_item, carry_offset: INTEGER
+			-- Where the press on the selection fell.
+
+	settle_carry_press
+			-- A press on the selection that never became a drag is, at
+			-- release, the press it would have been anywhere else: a new
+			-- empty selection there (a click on a link still follows it).
+		do
+			if is_carry_pressed then
+				is_carry_pressed := False
+				begin_selection (carry_item, carry_offset)
+			end
+		ensure
+			settled: not is_carry_pressed
+		end
+
 feature {NONE} -- Reading with the pointer
 
 	unit_press (a_px, a_py: REAL_64): BOOLEAN
@@ -560,8 +642,19 @@ feature {NONE} -- Reading with the pointer
 			u: INTEGER
 		do
 			create pressed_link.make_empty
+			is_carry_pressed := False
 			u := pointed_item (a_px, a_py)
-			if u > 0 then
+			if u > 0 and then selection_offer /= Void and then point_in_selection (a_px, a_py) then
+					-- 0.55.0: a press on the selection may carry it; the
+					-- selection stands until the pointer moves or lets go
+				is_carry_pressed := True
+				carry_x := a_px
+				carry_y := a_py
+				carry_item := u
+				carry_offset := offset_at_point (u, a_px, a_py)
+				pressed_link := link_target_at_point (a_px, a_py)
+				Result := True
+			elseif u > 0 then
 				begin_selection (u, offset_at_point (u, a_px, a_py))
 				pressed_link := link_target_at_point (a_px, a_py)
 				Result := True
@@ -591,7 +684,15 @@ feature {NONE} -- Reading with the pointer
 		local
 			u: INTEGER
 		do
-			if is_selecting then
+			if is_carry_pressed then
+				if (a_px - carry_x).abs > Drag_distance or else (a_py - carry_y).abs > Drag_distance then
+						-- 0.55.0: the press became a drag of the selection
+					is_carry_pressed := False
+					if attached offered_selection as al_offer then
+						request_pick (al_offer.pebble, al_offer.card)
+					end
+				end
+			elseif is_selecting then
 				u := pointed_item (a_px, a_py)
 				if u > 0 then
 					extend_selection (u, offset_at_point (u, a_px, a_py))
@@ -605,6 +706,7 @@ feature {NONE} -- Reading with the pointer
 		local
 			l_target: STRING_32
 		do
+			settle_carry_press
 			if is_selecting then
 				end_selection
 				if not has_selection and then not pressed_link.is_empty
@@ -620,6 +722,7 @@ feature {NONE} -- Reading with the pointer
 			create pressed_link.make_empty
 		ensure
 			not_selecting: not is_selecting
+			settled: not is_carry_pressed
 		end
 
 	unit_cursor_kind: INTEGER

@@ -16,7 +16,9 @@ inherit
 		redefine
 			handle_click, handle_double_click, handle_wheel, handle_key,
 			wants_hover_point, accepts_focus, handle_drag, handle_release,
-			accessible_role, context_menu
+			accessible_role, context_menu, pebble_at, pebble_card_at,
+			accepts_pebble_at, receive_pebble_at, responds_to_pick, pick_hover,
+			pick_tick, pick_click, pick_ended
 		end
 
 	SW_COPYING
@@ -34,6 +36,8 @@ feature {NONE} -- Initialization
 			create roots.make (4)
 			create open_nodes.make (16)
 			create visible.make (32)
+			create sprung.make (4)
+			chip_w := 110.0
 			create bar.make
 		ensure
 			kept: viewport_height = a_viewport_height
@@ -248,14 +252,55 @@ feature -- Layout
 		end
 
 	row_at (a_py: REAL_64): INTEGER
-			-- Visible row under widget-space y; 0 outside (the sign
-			-- guard: truncation rounds toward zero).
+			-- Visible row under widget-space y; 0 outside, and 0 on the
+			-- New folder row a pick shows.
+		local
+			d: INTEGER
+		do
+			d := display_at (a_py)
+			if d > 0 then
+				Result := visible_index (d)
+			end
+		ensure
+			in_range: Result >= 0 and Result <= visible.count
+		end
+
+	display_at (a_py: REAL_64): INTEGER
+			-- Shown row under widget-space y (the New folder row counted);
+			-- 0 outside (the sign guard: truncation rounds toward zero).
 		do
 			if a_py >= y then
 				Result := (((a_py - y + scroll_y) / Row_h).truncated_to_integer + 1)
-				if Result < 1 or Result > visible.count then
+				if Result < 1 or Result > display_count then
 					Result := 0
 				end
+			end
+		ensure
+			in_range: Result >= 0 and Result <= display_count
+		end
+
+	display_count: INTEGER
+			-- Rows shown: the visible nodes, and the New folder row while a
+			-- pick shows one.
+		do
+			Result := visible.count
+			if new_row_at > 0 then
+				Result := Result + 1
+			end
+		end
+
+	visible_index (a_display: INTEGER): INTEGER
+			-- The visible node row shown at `a_display'; 0 for the New
+			-- folder row.
+		require
+			shown: a_display >= 1 and a_display <= display_count
+		do
+			if new_row_at > 0 and then a_display = new_row_at then
+				Result := 0
+			elseif new_row_at > 0 and then a_display > new_row_at then
+				Result := a_display - 1
+			else
+				Result := a_display
 			end
 		ensure
 			in_range: Result >= 0 and Result <= visible.count
@@ -263,7 +308,7 @@ feature -- Layout
 
 	max_scroll: REAL_64
 		do
-			Result := (visible.count * Row_h - height).max (0.0)
+			Result := (display_count * Row_h - height).max (0.0)
 		ensure
 			non_negative: Result >= 0.0
 		end
@@ -278,25 +323,29 @@ feature -- Drawing
 			row: TUPLE [node: G; depth: INTEGER; has_kids: BOOLEAN]
 			lbl: STRING_32
 			sel: BOOLEAN
-			l_icon: INTEGER
+			l_icon, k: INTEGER
 		do
 			t := a_p.theme
 			bar.place (x, y, width, height, t)
-			bar.set_extent (height, visible.count * Row_h)
+			bar.set_extent (height, display_count * Row_h)
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			a_p.push_clip (x, y, width, height)
-			if visible.count > 0 then
-				first_v := ((scroll_y / Row_h).truncated_to_integer + 1).max (1).min (visible.count)
-				last_v := (((scroll_y + height) / Row_h).truncated_to_integer + 1).min (visible.count)
+			if display_count > 0 then
+				first_v := ((scroll_y / Row_h).truncated_to_integer + 1).max (1).min (display_count)
+				last_v := (((scroll_y + height) / Row_h).truncated_to_integer + 1).min (display_count)
 				a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
 				from
 					i := first_v
 				until
 					i > last_v
 				loop
-					row := visible.i_th (i)
 					ry := y + ((i - 1) * Row_h - scroll_y)
+					k := visible_index (i)
+					if k = 0 then
+						draw_new_folder_row (a_p, ry)
+					else
+					row := visible.i_th (k)
 					sel := attached selected_node as sn and then sn = row.node
 					if sel then
 						a_p.set_color (t.wash_accent)
@@ -305,9 +354,20 @@ feature -- Drawing
 						a_p.set_color (t.surface_variant)
 						a_p.fill_rect (x, ry, width, Row_h)
 					end
-					if i = context_row then
+					if k = context_row then
 						a_p.set_color (t.accent)
 						a_p.rrect_stroke (x + 1.5, ry + 0.5, width - 3.0, Row_h - 1.0, 2.0)
+					end
+					if k = drop_row and then new_row_at > 0 then
+							-- 0.55.0: the folder a pick would land in, and its
+							-- New folder button
+						if not is_on_new_folder_row then
+							a_p.set_color (t.accent)
+							a_p.set_line_width (2.0)
+							a_p.rrect_stroke (x + 2.0, ry + 1.0, width - 4.0, Row_h - 2.0, 3.0)
+							a_p.set_line_width (1.0)
+						end
+						draw_new_folder_chip (a_p, ry)
 					end
 					ix := x + 8.0 + row.depth * Indent_w
 					if row.has_kids then
@@ -339,6 +399,7 @@ feature -- Drawing
 						a_p.set_color (t.ink)
 						a_p.text (ix + 14.0, ry + Row_h - 8.0, lbl)
 					end
+					end
 					i := i + 1
 				end
 			end
@@ -357,13 +418,14 @@ feature -- Input
 			row: TUPLE [node: G; depth: INTEGER; has_kids: BOOLEAN]
 			ix: REAL_64
 		do
-			bar.set_extent (height, visible.count * Row_h)
+			bar.set_extent (height, display_count * Row_h)
 			if is_enabled and then bar.contains (a_px, a_py) then
 				scroll_y := bar.press (a_py, scroll_y)
 				Result := True
 			elseif is_enabled then
 				context_row := 0
 				i := row_at (a_py)
+				press_row := 0
 				if i > 0 then
 					row := visible.i_th (i)
 					ix := x + 8.0 + row.depth * Indent_w
@@ -371,6 +433,12 @@ feature -- Input
 						toggle_node (row.node)
 					else
 						select_node (row.node)
+						if row_offer /= Void then
+								-- 0.55.0: the press may become a drag of the row
+							press_row := i
+							press_x := a_px
+							press_y := a_py
+						end
 					end
 				end
 				Result := True
@@ -432,23 +500,32 @@ feature -- Input
 
 	handle_wheel (a_delta: INTEGER): BOOLEAN
 		do
-			bar.set_extent (height, visible.count * Row_h)
+			bar.set_extent (height, display_count * Row_h)
 			scroll_y := bar.wheel_scroll (scroll_y, a_delta, Row_h)
 			Result := True
 		end
 
 	handle_drag (a_px, a_py: REAL_64)
-			-- Drag the thumb, wherever the pointer is.
+			-- Drag the thumb, wherever the pointer is; a press on a row
+			-- moved past `Drag_distance' carries the row (0.55.0).
 		do
 			if bar.is_dragging then
 				scroll_y := bar.drag_to (a_py)
+			elseif press_row > 0 and then press_row <= visible.count
+				and then ((a_px - press_x).abs > Drag_distance or else (a_py - press_y).abs > Drag_distance)
+			then
+				if attached row_offer as al_offer and then attached al_offer.item ([visible.i_th (press_row).node]) as al_o then
+					request_pick (al_o.pebble, al_o.card)
+				end
+				press_row := 0
 			end
 		end
 
 	handle_release (a_x, a_y: INTEGER)
-			-- Let go of the scrollbar thumb.
+			-- Let go of the scrollbar thumb, or of a row.
 		do
 			bar.release
+			press_row := 0
 		ensure then
 			released: not bar.is_dragging
 		end
@@ -531,7 +608,7 @@ feature {NONE} -- Engine
 				append_subtree (r, 0)
 			end
 			scroll_y := scroll_y.min (max_scroll)
-			bar.set_extent (height, visible.count * Row_h)
+			bar.set_extent (height, display_count * Row_h)
 		end
 
 	open_subtree (a_node: G)
@@ -570,6 +647,394 @@ feature {NONE} -- Engine
 			end
 		end
 
+
+feature -- Carrying and dropping (0.55.0)
+
+	drop_welcome: detachable FUNCTION [ANY, detachable G, BOOLEAN]
+			-- Would the tree take this pebble into this folder (Void: the
+			-- top level)? Void: every pebble is welcome where `drop_action'
+			-- is set.
+
+	drop_action: detachable PROCEDURE [ANY, detachable G, BOOLEAN]
+			-- Take the pebble into the folder (Void: the top level); True:
+			-- into a new folder made inside it (the New folder row). Void:
+			-- the tree takes no drops.
+
+	folder_test: detachable PREDICATE [G]
+			-- Is the node a folder (it takes drops, springs open and gets a
+			-- New folder row)? Void: a node with children is.
+
+	row_offer: detachable FUNCTION [G, detachable TUPLE [pebble: ANY; card: STRING_32]]
+			-- What a row carries when dragged or middle-clicked; Void, or an
+			-- answer of Void, when it stays put.
+
+	set_drop_handler (a_welcome: like drop_welcome; a_action: like drop_action)
+		do
+			drop_welcome := a_welcome
+			drop_action := a_action
+		ensure
+			set: drop_welcome = a_welcome and drop_action = a_action
+		end
+
+	set_folder_test (a_test: like folder_test)
+		do
+			folder_test := a_test
+		ensure
+			set: folder_test = a_test
+		end
+
+	set_row_offer (a_offer: like row_offer)
+		do
+			row_offer := a_offer
+		ensure
+			set: row_offer = a_offer
+		end
+
+	is_folder (a_node: G): BOOLEAN
+		do
+			if attached folder_test as al_test then
+				Result := al_test.item ([a_node])
+			else
+				Result := has_children (a_node)
+			end
+		end
+
+	Spring_ticks: INTEGER = 3
+			-- Heartbeats (250 ms each) a closed folder must be hovered by a
+			-- pick before it springs open: about 0.7 seconds.
+
+	New_folder_label: STRING_32 = "New folder"
+
+	drop_folder: detachable G
+			-- The folder a pick in flight would land in (Void: the top
+			-- level, or no pick over the tree).
+
+	drop_row: INTEGER
+			-- The visible row of `drop_folder'; 0 for the top level or none.
+
+	is_on_new_folder_row: BOOLEAN
+			-- Is a pick over a New folder target: the lit folder's "New
+			-- folder" button, or the New folder row at the end of the tree?
+
+	new_row_at: INTEGER
+			-- The shown row the top level's New folder row takes during a
+			-- pick (always the last, so no row moves under the pointer);
+			-- 0 = none. Worked out from the rows there are now: a drop that
+			-- takes rows away cannot leave it standing past them.
+		do
+			if shows_new_row then
+				Result := visible.count + 1
+			end
+		ensure
+			last_or_none: Result = 0 or Result = visible.count + 1
+		end
+
+	shows_new_row: BOOLEAN
+			-- Does a pick over the tree show the New folder row?
+
+	new_row_depth: INTEGER
+			-- Its indent (the top level: 0).
+
+	new_folder_chip_left: REAL_64
+			-- Where the lit folder row's "New folder" button begins (window
+			-- space). A row that moved to the end of whichever folder the
+			-- pointer was in made every row below it jump as the pointer
+			-- crossed into the next folder (2026-11-03); the button stays on
+			-- the folder's own row.
+		do
+			Result := x + width - chip_w - 16.0
+		end
+
+	sprung: ARRAYED_LIST [G]
+			-- Folders the pick in flight sprang open.
+
+	responds_to_pick (a_pebble: ANY; a_px, a_py: REAL_64): BOOLEAN
+			-- A tree that takes drops acts anywhere inside it: it lights
+			-- rows, springs folders and scrolls at its edges.
+		do
+			Result := drop_action /= Void and then is_enabled and then contains (a_px, a_py)
+		end
+
+	accepts_pebble_at (a_pebble: ANY; a_px, a_py: REAL_64): BOOLEAN
+		do
+			if drop_action /= Void and then contains (a_px, a_py) then
+				if attached drop_welcome as al_welcome then
+					Result := al_welcome.item ([a_pebble, drop_spot_at (a_px, a_py).folder])
+				else
+					Result := True
+				end
+			end
+		end
+
+	receive_pebble_at (a_pebble: ANY; a_px, a_py: REAL_64)
+			-- Into the folder under the point, or a new folder there.
+		local
+			l_spot: like drop_spot_at
+		do
+			l_spot := drop_spot_at (a_px, a_py)
+			landed := l_spot.folder
+			if attached drop_action as al_action then
+				al_action.call ([a_pebble, l_spot.folder, l_spot.new_folder])
+			end
+		end
+
+	pick_hover (a_pebble: ANY; a_px, a_py: REAL_64)
+			-- Light the folder the pebble would land in, and stand the New
+			-- folder row at its end.
+		local
+			l_spot: like drop_spot_at
+			d, k: INTEGER
+		do
+			pick_px := a_px
+			pick_py := a_py
+				-- the New folder row first: the spot is read on the rows as shown
+			shows_new_row := True
+			new_row_depth := 0
+			l_spot := drop_spot_at (a_px, a_py)
+			drop_folder := l_spot.folder
+			drop_row := l_spot.row
+			is_on_new_folder_row := l_spot.new_folder
+			d := display_at (a_py)
+			if d > 0 then
+				k := visible_index (d)
+			end
+			if k /= spring_row then
+				spring_row := k
+				spring_count := 0
+			end
+		end
+
+	pick_tick (a_pebble: ANY): BOOLEAN
+			-- Spring the hovered closed folder open after `Spring_ticks';
+			-- scroll a row near the top or bottom edge.
+		local
+			l_node: G
+		do
+			if pick_py < y + Row_h * 0.75 and then scroll_y > 0.0 then
+				scroll_y := (scroll_y - Row_h).max (0.0)
+				Result := True
+			elseif pick_py > y + height - Row_h * 0.75 and then scroll_y < max_scroll then
+				scroll_y := (scroll_y + Row_h).min (max_scroll)
+				Result := True
+			end
+			if spring_row > 0 and then spring_row <= visible.count then
+				l_node := visible.i_th (spring_row).node
+				if visible.i_th (spring_row).has_kids and then not is_expanded (l_node) and then is_folder (l_node) then
+					spring_count := spring_count + 1
+					if spring_count >= Spring_ticks then
+						expand_node (l_node)
+						sprung.extend (l_node)
+						spring_count := 0
+						Result := True
+					end
+				end
+			end
+			if Result then
+				pick_hover (a_pebble, pick_px, pick_py)
+			end
+		end
+
+	pick_click (a_pebble: ANY; a_px, a_py: REAL_64): BOOLEAN
+			-- A press on a folder's arrow opens or closes it; the pebble
+			-- stays in flight.
+		local
+			k: INTEGER
+			ix: REAL_64
+		do
+			shows_new_row := True
+			k := row_at (a_py)
+			if k > 0 and then visible.i_th (k).has_kids then
+				ix := x + 8.0 + visible.i_th (k).depth * Indent_w
+				if a_px >= ix - 4.0 and then a_px <= ix + 12.0 then
+					toggle_node (visible.i_th (k).node)
+					pick_hover (a_pebble, a_px, a_py)
+					Result := True
+				end
+			end
+		end
+
+	pick_ended
+			-- Folders the pick sprang open close again, except the path to
+			-- where it landed.
+		local
+			l_keep: ARRAYED_LIST [G]
+			k: INTEGER
+			l_none: detachable G
+		do
+			create l_keep.make (4)
+			if attached landed as al_landed then
+				from
+					k := visible_row_of (al_landed)
+				until
+					k = 0
+				loop
+					l_keep.extend (visible.i_th (k).node)
+					k := parent_row (k)
+				end
+			end
+			across sprung as ic loop
+				if not l_keep.has (ic) then
+					open_nodes.prune_all (ic)
+				end
+			end
+			sprung.wipe_out
+			landed := l_none
+			drop_folder := l_none
+			drop_row := 0
+			is_on_new_folder_row := False
+			shows_new_row := False
+			spring_row := 0
+			spring_count := 0
+			rebuild_visible
+		ensure then
+			none_sprung: sprung.is_empty
+			no_new_row: new_row_at = 0
+		end
+
+	pebble_at (a_px, a_py: REAL_64): detachable ANY
+			-- The row's offer under the point, else the tree's own.
+		local
+			k: INTEGER
+		do
+			k := row_at (a_py)
+			if k > 0 and then attached row_offer as al_offer and then attached al_offer.item ([visible.i_th (k).node]) as al_o then
+				Result := al_o.pebble
+			else
+				Result := Precursor (a_px, a_py)
+			end
+		end
+
+	pebble_card_at (a_px, a_py: REAL_64): STRING_32
+		local
+			k: INTEGER
+		do
+			k := row_at (a_py)
+			if k > 0 and then attached row_offer as al_offer and then attached al_offer.item ([visible.i_th (k).node]) as al_o then
+				Result := al_o.card
+			else
+				Result := Precursor (a_px, a_py)
+			end
+		end
+
+feature {NONE} -- Carrying internals
+
+	landed: detachable G
+			-- The folder the last drop went into, until the pick ends.
+
+	pick_px, pick_py: REAL_64
+			-- Where the pick in flight last passed over the tree.
+
+	spring_row, spring_count: INTEGER
+			-- The visible row the pick rests on, and for how many beats.
+
+	press_row: INTEGER
+	press_x, press_y: REAL_64
+			-- The row a press fell on, while it may yet become a drag.
+
+	drop_spot_at (a_px, a_py: REAL_64): TUPLE [folder: detachable G; new_folder: BOOLEAN; row: INTEGER]
+			-- Where a pebble at the point lands: a folder row is its own
+			-- folder (its "New folder" button, a new folder inside it); any
+			-- other row, the folder it is in; the New folder row at the end,
+			-- a new folder at the top level; below the rows, the top level.
+		local
+			d, k, p: INTEGER
+			l_none: detachable G
+		do
+			Result := [l_none, False, 0]
+			d := display_at (a_py)
+			if d > 0 then
+				k := visible_index (d)
+				if k = 0 then
+					Result := [l_none, True, 0]
+				elseif is_folder (visible.i_th (k).node) then
+					Result := [visible.i_th (k).node, a_px >= new_folder_chip_left, k]
+				else
+					p := parent_row (k)
+					if p > 0 then
+						Result := [visible.i_th (p).node, False, p]
+					end
+				end
+			end
+		end
+
+	chip_w: REAL_64
+			-- The "New folder" button's width, measured when drawn.
+
+	parent_row (a_row: INTEGER): INTEGER
+			-- The visible row of the folder holding the row; 0 = the top level.
+		require
+			valid: a_row >= 1 and a_row <= visible.count
+		local
+			j: INTEGER
+		do
+			from
+				j := a_row - 1
+			until
+				j < 1 or Result > 0
+			loop
+				if visible.i_th (j).depth < visible.i_th (a_row).depth then
+					Result := j
+				end
+				j := j - 1
+			end
+		ensure
+			above: Result >= 0 and Result < a_row
+		end
+
+	visible_row_of (a_node: G): INTEGER
+			-- The visible row showing `a_node'; 0 = not shown.
+		local
+			j: INTEGER
+		do
+			from
+				j := 1
+			until
+				j > visible.count or Result > 0
+			loop
+				if visible.i_th (j).node = a_node then
+					Result := j
+				end
+				j := j + 1
+			end
+		end
+
+	draw_new_folder_chip (a_p: SW_PAINTER; a_ry: REAL_64)
+			-- The lit folder row's "New folder" button at its right end,
+			-- filled when the pick is over it.
+		local
+			cx: REAL_64
+		do
+			chip_w := a_p.advance (New_folder_label) + 30.0
+			cx := new_folder_chip_left
+			if is_on_new_folder_row then
+				a_p.set_color (a_p.theme.wash_accent)
+				a_p.rrect_fill (cx, a_ry + 3.0, chip_w, Row_h - 6.0, 4.0)
+			end
+			a_p.set_color (a_p.theme.accent)
+			a_p.rrect_stroke (cx + 0.5, a_ry + 3.5, chip_w - 1.0, Row_h - 7.0, 4.0)
+			a_p.line (cx + 7.0, a_ry + Row_h / 2.0, cx + 15.0, a_ry + Row_h / 2.0, 1.6)
+			a_p.line (cx + 11.0, a_ry + Row_h / 2.0 - 4.0, cx + 11.0, a_ry + Row_h / 2.0 + 4.0, 1.6)
+			a_p.set_color (a_p.theme.ink)
+			a_p.text (cx + 20.0, a_ry + Row_h - 8.0, New_folder_label)
+		end
+
+	draw_new_folder_row (a_p: SW_PAINTER; a_ry: REAL_64)
+			-- The New folder row: a plus and the words, washed when a pick
+			-- is over it.
+		local
+			ix: REAL_64
+		do
+			ix := x + 8.0 + new_row_depth * Indent_w
+			if is_on_new_folder_row then
+				a_p.set_color (a_p.theme.wash_accent)
+				a_p.fill_rect (x, a_ry, width, Row_h)
+			end
+			a_p.set_color (a_p.theme.accent)
+			a_p.line (ix + 1.0, a_ry + Row_h / 2.0, ix + 9.0, a_ry + Row_h / 2.0, 1.6)
+			a_p.line (ix + 5.0, a_ry + Row_h / 2.0 - 4.0, ix + 5.0, a_ry + Row_h / 2.0 + 4.0, 1.6)
+			a_p.set_color (a_p.theme.ink_muted)
+			a_p.text (ix + 14.0, a_ry + Row_h - 8.0, New_folder_label)
+		end
 
 feature -- Accessibility (GW-14)
 

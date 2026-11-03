@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (0.55.0 - carry and drop)
+
+- `SW_WINDOW.start_pick` / `cancel_pick` / `is_picking` / `pick_card`: a pick begun from code (a menu's Pick up) follows the pointer with no button held; a click on a welcoming spot drops it. A pick begun by a drag (`SW_WIDGET.request_pick`, consumed after the drag event) drops where the button is released. During a pick the wheel scrolls what is under the pointer, the heartbeat reaches the spot under it, and a card of words travels beside the pointer.
+- `SW_WIDGET`: point-aware holes `accepts_pebble_at` / `receive_pebble_at` (defaults call the pointless ones), `pebble_card_at`, and spots that act while a pebble passes (`responds_to_pick`, `pick_hover`, `pick_tick`, `pick_click`, `pick_ended`); `Drag_distance` (4 pixels, Windows' default).
+- `SW_DOC_UNITS` (documents, parallel and interlinear texts): `set_selection_offer`. A press on the selection keeps it and, moved past `Drag_distance`, carries it; released without moving, it is the ordinary click it was. Middle-click on the selection lifts the same offer.
+- `SW_TREE`: `set_drop_handler`, `set_folder_test`, `set_row_offer`. The folder under the pointer is lit; a closed folder rested on for `Spring_ticks` springs open and closes after the drop unless the item landed in it; a folder's arrow opens it without dropping; a lit folder row carries a "New folder" button and the top level a fixed New folder row at the end (no row moves under the pointer); the tree scrolls near its edges; rows drag to other folders.
+- `SW_TABS`: a tab rested on by a pick for `Spring_beats` opens, and the tab shown before returns when the pick ends (unless the tab was clicked).
+- Tests: `SW_CARRY_DROP_ASSAULT` (14), all through the window's own dispatch.
+
 ### Added (0.54.0 - a card for a grid cell; a picture glyph)
 
 - `SW_DATA_GRID.set_hover_card`: after a dwell, the card an agent gives for the row and column under the pointer, anchored on that cell (simple_bible's meme pictures, loaded only when hovered).
