@@ -83,6 +83,40 @@ feature -- Tests
 			assert ("named by their text", l_found)
 		end
 
+	test_every_row_is_published_beyond_the_viewport
+			-- A list longer than its viewport reports as many items as rows (AppKit and GTK
+			-- do); the selected row says so.
+		local
+			w: SW_WINDOW
+			l: SW_TEXT_LIST
+			acc: SW_ACCESSIBILITY
+			i, l_items: INTEGER
+			l_selected_found: BOOLEAN
+		do
+			create w.make ("many rows", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			create l.make (90.0)
+			from i := 1 until i > 50 loop
+				l.extend ("row " + i.out)
+				i := i + 1
+			end
+			l.select_row_quietly (42)
+			w.set_root (l)
+			w.request_render
+			w.publish_accessibility
+			acc := w.accessibility
+			from i := 1 until i > acc.served_rows loop
+				if acc.served_role (i) = {SW_ACCESSIBILITY}.Role_list_item then
+					l_items := l_items + 1
+					if acc.served_name (i).same_string ("row 42") then
+						l_selected_found := acc.served_has_value (i) and then acc.served_value (i).same_string ("selected")
+					end
+				end
+				i := i + 1
+			end
+			assert_integers_equal ("items = rows", 50, l_items)
+			assert ("the selected row says so", l_selected_found)
+		end
+
 	test_prelayout_scroll_regression
 			-- scroll_to_row before any layout killed the file dialog;
 			-- it must degrade honestly now.
