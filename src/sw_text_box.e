@@ -36,7 +36,8 @@ inherit
 			accepts_focus, preferred_width, handle_click, handle_double_click,
 			handle_triple_click, handle_drag, handle_char, handle_key,
 			context_menu, accepts_pebble, receive_pebble, cursor_kind,
-			accessible_role, accessible_value, set_focused, takes_typing
+			accessible_role, accessible_value, set_focused, takes_typing,
+			can_edit, perform_edit
 		end
 
 	SW_CLUSTER_MATH
@@ -475,6 +476,54 @@ feature -- Clipboard and selection commands
 					sel_anchor := caret
 					changed
 				end
+			end
+		end
+
+feature -- Edit commands (W8)
+
+	can_edit (a_command: INTEGER): BOOLEAN
+			-- Undo and redo when there is a step; cut when a selection can be removed; copy
+			-- when one can be read (never from a masked box); paste when the box is writable
+			-- and the clipboard holds text; select all when there is text.
+		local
+			l_clip: SW_CLIPBOARD
+		do
+			inspect a_command
+			when Edit_undo then
+				Result := not is_read_only and can_undo
+			when Edit_redo then
+				Result := not is_read_only and can_redo
+			when Edit_cut then
+				Result := not is_read_only and has_selection and not is_masked
+			when Edit_copy then
+				Result := has_selection and not is_masked
+			when Edit_paste then
+				if not is_read_only then
+					create l_clip
+					Result := l_clip.has_text
+				end
+			when Edit_select_all then
+				Result := text.count > 0
+			else
+			end
+		end
+
+	perform_edit (a_command: INTEGER)
+		do
+			inspect a_command
+			when Edit_undo then
+				undo
+			when Edit_redo then
+				redo
+			when Edit_cut then
+				cut_selection
+			when Edit_copy then
+				copy_selection
+			when Edit_paste then
+				paste_clipboard
+			when Edit_select_all then
+				select_all
+			else
 			end
 		end
 

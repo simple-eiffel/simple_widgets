@@ -265,6 +265,37 @@ feature -- Direction and placement (W4c)
 			kept_when_not_mirrored: not mirrors_layout implies Result = a_x
 		end
 
+feature -- Edit commands (W8)
+
+	Edit_undo: INTEGER = 10
+	Edit_redo: INTEGER = 11
+	Edit_cut: INTEGER = 12
+	Edit_copy: INTEGER = 13
+	Edit_paste: INTEGER = 14
+	Edit_select_all: INTEGER = 15
+			-- simple_gui's edit roles: an Edit menu's items act on the focused widget.
+
+	is_edit_command (a_command: INTEGER): BOOLEAN
+		do
+			Result := a_command >= Edit_undo and a_command <= Edit_select_all
+		end
+
+	can_edit (a_command: INTEGER): BOOLEAN
+			-- Would `perform_edit' do something now? (An Edit menu grays the item when not.)
+			-- Nothing, by default; a text box redefines it.
+		require
+			known: is_edit_command (a_command)
+		do
+		end
+
+	perform_edit (a_command: INTEGER)
+			-- Carry out edit command `a_command'.
+		require
+			known: is_edit_command (a_command)
+			possible: can_edit (a_command)
+		do
+		end
+
 feature -- Layout
 
 	preferred_width (a_p: SW_PAINTER): REAL_64

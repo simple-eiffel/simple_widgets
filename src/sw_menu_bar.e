@@ -101,6 +101,21 @@ feature -- Element change
 			conditioned: conditions.i_th (labels.count) = a_when
 		end
 
+	set_title (i: INTEGER; a_label: READABLE_STRING_GENERAL)
+			-- Relabel pad `i' (simple_gui's menu_set_title); its builder and condition stay.
+		require
+			in_range: i >= 1 and i <= labels.count
+		local
+			l: STRING_32
+		do
+			create l.make_from_string_general (a_label)
+			raw_labels [i] := l.twin
+			labels [i] := mnemonics.plain (l)
+		ensure
+			declared: raw_labels.i_th (i).same_string_general (a_label)
+			same_count: labels.count = old labels.count
+		end
+
 feature -- Mnemonics
 
 	mnemonics: SW_MNEMONIC

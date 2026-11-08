@@ -126,6 +126,10 @@ feature {NONE} -- Test runners
 
 	a11y_w10_tests: SW_A11Y_W10_ASSAULT
 
+	modal_w9_tests: SW_MODAL_W9_ASSAULT
+
+	menu_w8_tests: SW_MENU_W8_ASSAULT
+
 	chrome_tests: SW_CHROME_ASSAULT
 
 	fd_tests: SW_FILE_DIALOG_ASSAULT
@@ -150,6 +154,15 @@ feature {NONE} -- Test runners
 			run_test (agent a11y_w10_tests.test_the_tree_reads_in_the_shared_vocabulary, "the_tree_reads_in_the_shared_vocabulary")
 			run_test (agent a11y_w10_tests.test_a_description_is_published, "a_description_is_published")
 			run_test (agent a11y_w10_tests.test_role_names, "role_names")
+			create modal_w9_tests
+			run_test (agent modal_w9_tests.test_run_modal_until_returns_without_a_window, "run_modal_until_returns_without_a_window")
+			run_test (agent modal_w9_tests.test_ask_shows_ok_and_cancel, "ask_shows_ok_and_cancel")
+			run_test (agent modal_w9_tests.test_choose_file_offers_the_filtered_dialog, "choose_file_offers_the_filtered_dialog")
+			create menu_w8_tests
+			run_test (agent menu_w8_tests.test_neutral_shortcuts_parse, "neutral_shortcuts_parse")
+			run_test (agent menu_w8_tests.test_a_registered_shortcut_runs_its_action, "a_registered_shortcut_runs_its_action")
+			run_test (agent menu_w8_tests.test_edit_commands_reach_the_focused_text_box, "edit_commands_reach_the_focused_text_box")
+			run_test (agent menu_w8_tests.test_a_menu_title_is_relabeled, "a_menu_title_is_relabeled")
 			create canvas_present_tests
 			run_test (agent canvas_present_tests.test_a_presented_image_is_drawn_one_to_one, "a_presented_image_is_drawn_one_to_one")
 			run_test (agent canvas_present_tests.test_pointer_events_carry_kind_button_and_modifiers, "pointer_events_carry_kind_button_and_modifiers")

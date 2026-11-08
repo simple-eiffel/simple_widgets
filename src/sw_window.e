@@ -948,6 +948,89 @@ feature -- Dialogs
 			closed: dialog = Void
 		end
 
+	run_modal_until (a_done: FUNCTION [BOOLEAN])
+			-- Pump this window's events, nested inside the event being handled, until `a_done'
+			-- answers True or the window closes (W9: the synchronous face of a drawn dialog).
+			-- simple_shell's queue pops each event once, so the nesting is safe. Without an
+			-- open native window (headless) it returns at once.
+		do
+			from
+			until
+				a_done.item ([]) or not is_window_open
+			loop
+				shell_turn (50)
+			end
+		end
+
+	ask (a_kind: INTEGER; a_title, a_message: READABLE_STRING_GENERAL; a_confirm: BOOLEAN): BOOLEAN
+			-- Show a drawn dialog with OK (and Cancel when `a_confirm') and wait for the choice:
+			-- True when OK was chosen. Escape answers Cancel. Headless, the dialog is shown and the
+			-- answer is False at once.
+		require
+			kind_known: a_kind >= {SW_DIALOG}.Kind_info and a_kind <= {SW_DIALOG}.Kind_danger
+		local
+			l_dialog: SW_DIALOG
+			l_ok: CELL [BOOLEAN]
+		do
+			create l_ok.put (False)
+			create l_dialog.make (a_kind, a_title, a_message)
+			l_dialog.add_button ("OK", True, agent l_ok.put (True))
+			if a_confirm then
+				l_dialog.add_button ("Cancel", False, Void)
+			end
+			show_dialog (l_dialog)
+			run_modal_until (agent dialog_is_not (l_dialog))
+			Result := l_ok.item
+		end
+
+	choose_file (a_save: BOOLEAN; a_start_dir, a_suggested, a_extensions: READABLE_STRING_GENERAL): detachable STRING_32
+			-- Show the drawn file dialog (Open, or Save suggesting `a_suggested') in the sheet,
+			-- listing files with the suffixes in `a_extensions' ("txt;md"; empty: every file),
+			-- and wait: the chosen path, or Void when canceled or closed. Headless, Void at once.
+		local
+			l_dialog: SW_FILE_DIALOG
+			l_path: CELL [detachable STRING_32]
+		do
+			create l_path.put (Void)
+			if a_save then
+				create l_dialog.make_save (a_start_dir, a_suggested)
+			else
+				create l_dialog.make_open (a_start_dir)
+			end
+			if not a_extensions.is_empty then
+				l_dialog.set_extension_filter (a_extensions)
+			end
+			l_dialog.set_on_accept (agent take_path (?, l_path))
+			l_dialog.set_on_cancel (agent close_sheet)
+			show_sheet (l_dialog, 560.0)
+			run_modal_until (agent sheet_is_not (l_dialog))
+			if sheet = l_dialog then
+				close_sheet
+			end
+			Result := l_path.item
+		end
+
+feature {NONE} -- Modal internals (W9)
+
+	dialog_is_not (a_dialog: SW_DIALOG): BOOLEAN
+			-- Has `a_dialog' gone (a button or Escape closed it)?
+		do
+			Result := dialog /= a_dialog
+		end
+
+	sheet_is_not (a_sheet: SW_WIDGET): BOOLEAN
+			-- Has `a_sheet' gone?
+		do
+			Result := sheet /= a_sheet
+		end
+
+	take_path (a_path: STRING_32; a_cell: CELL [detachable STRING_32])
+			-- The file dialog's accept: keep the path, close the sheet.
+		do
+			a_cell.put (a_path)
+			close_sheet
+		end
+
 feature {NONE} -- Accessibility internals (GW-14)
 
 	is_accessibility_off: BOOLEAN
@@ -1563,6 +1646,41 @@ feature -- Focus traversal
 			-- Tab's mirror: backwards through the same ring.
 		do
 			shift_focus (-1)
+		end
+
+feature -- Edit commands and shortcuts (W8)
+
+	can_edit_focused (a_command: INTEGER): BOOLEAN
+			-- Can the focused widget carry out edit command `a_command' now?
+		require
+			known: a_command >= {SW_WIDGET}.Edit_undo and a_command <= {SW_WIDGET}.Edit_select_all
+		do
+			Result := attached focused as al_f and then al_f.can_edit (a_command)
+		end
+
+	edit_focused (a_command: INTEGER)
+			-- An Edit menu's item: the focused widget carries out `a_command', when it can.
+		require
+			known: a_command >= {SW_WIDGET}.Edit_undo and a_command <= {SW_WIDGET}.Edit_select_all
+		do
+			if attached focused as al_f and then al_f.can_edit (a_command) then
+				al_f.perform_edit (a_command)
+				after_input
+			end
+		end
+
+	register_shortcut (a_spec: READABLE_STRING_GENERAL; a_action: PROCEDURE)
+			-- Run `a_action' on the keys `a_spec' names in simple_gui's neutral form
+			-- ("primary+O", "alt+F4", "F5"), anywhere in this window.
+		require
+			registrable: (create {SW_SHORTCUT}.make (a_spec)).is_registrable
+		local
+			l_s: SW_SHORTCUT
+		do
+			create l_s.make (a_spec)
+			register_accelerator (l_s.vk, l_s.has_control, l_s.has_alt, l_s.has_shift, a_action)
+		ensure
+			grew: accelerators.count = old accelerators.count + 1
 		end
 
 feature -- Accelerators

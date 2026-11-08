@@ -291,9 +291,9 @@ feature -- Studio
 			end
 			if attached lb as lab then
 				s.mesh.handle_click (s.mesh.nodes.i_th (k).px, s.mesh.nodes.i_th (k).py).do_nothing
-				s.set_edit_text ("relabelled live")
+				s.set_edit_text ("relabeled live")
 				s.apply_edit
-				assert_strings_equal ("labels live-edit too", "relabelled live", lab.text)
+				assert_strings_equal ("labels live-edit too", "relabeled live", lab.text)
 			else
 				assert ("fixture holds the label", False)
 			end

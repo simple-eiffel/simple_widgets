@@ -63,7 +63,7 @@ paragraph list. The pointing, stack, scroll and shaping come from SW_DOC_UNITS; 
 
 Drift between the three heirs (all HIGH, findings 1, 2, 4, 5):
 
-| Behaviour | DOCUMENT_VIEW | PARALLEL_TEXT | INTERLINEAR |
+| Behavior | DOCUMENT_VIEW | PARALLEL_TEXT | INTERLINEAR |
 |---|---|---|---|
 | Selection wash | doc_view.e:686 paint_unit_selection | parallel_text.e:583 | NEVER (draw_stacked_item 625-664) |
 | Clear hover on content change | set_document :135 | wipe_out :258 | wipe_out :125-134 does not |
@@ -217,7 +217,7 @@ does the same: consistent, so LOW).
 | Double click a word | on_token_select twice | 12 |
 | Right-to-left, word wider than the view | negative left, hangs off the edge | 16 |
 Checked and fine by reading: RTL arithmetic for cells that fit (right edge at flow_width - l_x, units_left = x + margin, label side
-and line centring agree); left/right keys mirror correctly (interlinear.e:322-326); lines hidden or empty have no unit (cannot
+and line centering agree); left/right keys mirror correctly (interlinear.e:322-326); lines hidden or empty have no unit (cannot
 be hit); pinned band hit test and scroll (Q1); selection_in_range invariant after wipe_out.
 
 ## Q4. Hard-coded pixels that should be theme tokens
@@ -232,7 +232,7 @@ SW_DOC_UNITS: 274 `laid_px.max (8) * 1.5` (theme.line_height exists, sw_theme.e:
 SW_STACKED_ITEMS 251: `x + 1.0, y + 1.0, width - 2.0, height - 2.0` (push_frame_clip with border_width).
 SW_PARALLEL_TEXT: 342, 614, 629 (`+ 1.0`, `- 2.0`, `- 0.5`), 565 `.floor - 0.5` rule, 526 `l_gap / 2.0`, 415 `32.0`, 421/428 `16.0`
 (unchanged since the last report).
-Not hard-coded: all text sizes (size_body, size_label, size_chip), colours (wash_accent, accent, ink_accent, ink_muted, divider),
+Not hard-coded: all text sizes (size_body, size_label, size_chip), colors (wash_accent, accent, ink_accent, ink_muted, divider),
 radius, padding, border_width in the interlinear are from the theme.
 
 ## Q5. Still-open earlier items (one line each)
