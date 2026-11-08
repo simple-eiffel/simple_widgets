@@ -8,7 +8,7 @@
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
 ![Tests](https://img.shields.io/badge/tests-685%2F685-brightgreen.svg)
-![Windows: tests pass](https://img.shields.io/badge/Windows-685%2F685-0078D6?logo=windows&logoColor=white) ![macOS: 677 of 685](https://img.shields.io/badge/macOS-677%2F685-555555?logo=apple&logoColor=white) ![Linux: next](https://img.shields.io/badge/Linux-next-lightgray?logo=linux&logoColor=white)
+![Windows: tests pass](https://img.shields.io/badge/Windows-685%2F685-0078D6?logo=windows&logoColor=white) ![macOS: 678 of 685](https://img.shields.io/badge/macOS-678%2F685-555555?logo=apple&logoColor=white) ![Linux: next](https://img.shields.io/badge/Linux-next-lightgray?logo=linux&logoColor=white)
 
 A drawn widget toolkit for Eiffel — no Vision2, no native controls. Every pixel is
 the toolkit's own, drawn with cairo. The platform layer is
@@ -42,11 +42,10 @@ simple_shell:
 
 And for simple_gui 0.2: hooks on `SW_DATA_GRID`, `SW_TREE`, `SW_SPLITTER` and `SW_TABS`.
 
-On macOS, simple_shell's AppKit half carries simple_widgets unchanged: 677 of the 685
-tests pass there on main (2026-11-08). The 8 that do not: Windows drive letters (3), the
+On macOS, simple_shell's AppKit half carries simple_widgets unchanged: 678 of the 685
+tests pass there on main (2026-11-08). The 7 that do not: Windows drive letters (3), the
 screen grab (macOS's Screen Recording permission), an accessibility test that needs a
-listening screen reader, two 100,000-row timing checks, and a face-name check that
-simple_shaping #2 fixes (with it, that check passes on macOS). Not yet on macOS: VoiceOver for the drawn controls,
+listening screen reader, and two 100,000-row timing checks. Not yet on macOS: VoiceOver for the drawn controls,
 printing, spelling.
 
 **0.9.0 - 0.40.1: the simple_bible gap program** (tracker in simple_bible,
