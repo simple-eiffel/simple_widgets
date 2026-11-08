@@ -124,6 +124,8 @@ feature {NONE} -- Test runners
 
 	canvas_present_tests: SW_CANVAS_PRESENT_ASSAULT
 
+	a11y_w10_tests: SW_A11Y_W10_ASSAULT
+
 	chrome_tests: SW_CHROME_ASSAULT
 
 	fd_tests: SW_FILE_DIALOG_ASSAULT
@@ -144,6 +146,10 @@ feature {NONE} -- Test runners
 
 	run_list_tests
 		do
+			create a11y_w10_tests
+			run_test (agent a11y_w10_tests.test_the_tree_reads_in_the_shared_vocabulary, "the_tree_reads_in_the_shared_vocabulary")
+			run_test (agent a11y_w10_tests.test_a_description_is_published, "a_description_is_published")
+			run_test (agent a11y_w10_tests.test_role_names, "role_names")
 			create canvas_present_tests
 			run_test (agent canvas_present_tests.test_a_presented_image_is_drawn_one_to_one, "a_presented_image_is_drawn_one_to_one")
 			run_test (agent canvas_present_tests.test_pointer_events_carry_kind_button_and_modifiers, "pointer_events_carry_kind_button_and_modifiers")
