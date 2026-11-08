@@ -116,6 +116,8 @@ feature {NONE} -- Test runners
 
 	list_tests: SW_LIST_ASSAULT
 
+	layout_grid_tests: SW_LAYOUT_GRID_ASSAULT
+
 	chrome_tests: SW_CHROME_ASSAULT
 
 	fd_tests: SW_FILE_DIALOG_ASSAULT
@@ -136,6 +138,11 @@ feature {NONE} -- Test runners
 
 	run_list_tests
 		do
+			create layout_grid_tests
+			run_test (agent layout_grid_tests.test_columns_take_their_widest_child, "grid_columns_take_their_widest_child")
+			run_test (agent layout_grid_tests.test_homogeneous_columns_are_equal, "grid_homogeneous_columns_are_equal")
+			run_test (agent layout_grid_tests.test_a_stretching_column_takes_the_spare_width, "grid_a_stretching_column_takes_the_spare_width")
+			run_test (agent layout_grid_tests.test_a_spanning_child_covers_its_cells, "grid_a_spanning_child_covers_its_cells")
 			create list_tests
 			run_test (agent list_tests.test_prelayout_scroll_regression, "prelayout_scroll (the postcondition kill)")
 			run_test (agent list_tests.test_row_at_bounds, "row_at_bounds")
