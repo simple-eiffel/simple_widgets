@@ -1527,6 +1527,41 @@ feature -- Focus traversal
 			shift_focus (-1)
 		end
 
+feature -- Edit commands and shortcuts (W8)
+
+	can_edit_focused (a_command: INTEGER): BOOLEAN
+			-- Can the focused widget carry out edit command `a_command' now?
+		require
+			known: a_command >= {SW_WIDGET}.Edit_undo and a_command <= {SW_WIDGET}.Edit_select_all
+		do
+			Result := attached focused as al_f and then al_f.can_edit (a_command)
+		end
+
+	edit_focused (a_command: INTEGER)
+			-- An Edit menu's item: the focused widget carries out `a_command', when it can.
+		require
+			known: a_command >= {SW_WIDGET}.Edit_undo and a_command <= {SW_WIDGET}.Edit_select_all
+		do
+			if attached focused as al_f and then al_f.can_edit (a_command) then
+				al_f.perform_edit (a_command)
+				after_input
+			end
+		end
+
+	register_shortcut (a_spec: READABLE_STRING_GENERAL; a_action: PROCEDURE)
+			-- Run `a_action' on the keys `a_spec' names in simple_gui's neutral form
+			-- ("primary+O", "alt+F4", "F5"), anywhere in this window.
+		require
+			registrable: (create {SW_SHORTCUT}.make (a_spec)).is_registrable
+		local
+			l_s: SW_SHORTCUT
+		do
+			create l_s.make (a_spec)
+			register_accelerator (l_s.vk, l_s.has_control, l_s.has_alt, l_s.has_shift, a_action)
+		ensure
+			grew: accelerators.count = old accelerators.count + 1
+		end
+
 feature -- Accelerators
 
 	accelerators: ARRAYED_LIST [TUPLE [vk: INTEGER; ctrl, alt, shift: BOOLEAN; action: PROCEDURE]]
