@@ -160,8 +160,10 @@ feature -- Tests
 			w.request_render
 			w.give_focus (t1)
 			t1.set_visible (False)
-			w.dispatch ({SHELL_EVENTS}.Event_window_char, 27, 0)
+			w.dispatch ({SHELL_EVENTS}.Event_window_char, ('x').code, 0)
 			assert ("the key went to the next box", w.focused = t2 and not t1.is_focused)
+			assert ("the hidden box typed nothing", t1.text.is_empty)
+			assert_strings_equal ("the next box has it", "x", t2.text)
 		end
 
 end
