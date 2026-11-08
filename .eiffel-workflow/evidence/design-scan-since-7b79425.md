@@ -18,13 +18,13 @@ Nothing is HIGH. The new code is not a copy of anything: it lives in the shared 
 
 | # | Priority | Category | Classes | Opportunity |
 |---|----------|----------|---------|-------------|
-| 1 | MEDIUM | A4 | SW_STACKED_ITEMS | The pending request is never cancelled and its contract is loose |
+| 1 | MEDIUM | A4 | SW_STACKED_ITEMS | The pending request is never canceled and its contract is loose |
 | 2 | LOW | A1/A4 | SW_PARALLEL_TEXT, SW_PARAGRAPH_LIST, SW_DOCUMENT_VIEW, SW_INTERLINEAR | Four delegations to scroll_item_into_view, only one with a postcondition |
 | 3 | LOW | A5 | SW_LIST, SW_STACKED_ITEMS | A second "bring row into view" outside the shared ancestor |
 
 ## Detailed Findings
 
-### Finding 1: Pending scroll is never cancelled
+### Finding 1: Pending scroll is never canceled
 **Priority:** MEDIUM. **Category:** A4 (contract gap) with a latent defect.
 **Evidence:**
 - sw_stacked_items.e:156-170: `scroll_item_into_view` scrolls at once when laid out and then ALWAYS sets `pending_scroll_item := a_i`, even when the immediate scroll just succeeded. The postcondition `remembered` only states the attribute was set.
