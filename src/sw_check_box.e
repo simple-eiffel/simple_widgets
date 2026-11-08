@@ -58,6 +58,14 @@ feature -- Element change
 			set: is_checked = a_checked
 		end
 
+	set_label (a_label: READABLE_STRING_GENERAL)
+			-- Show `a_label' beside the box (simple_gui's check_box_set_text on Windows).
+		do
+			create label.make_from_string_general (a_label)
+		ensure
+			set: label.same_string_general (a_label)
+		end
+
 	set_on_change (a_action: PROCEDURE)
 		do
 			on_change := a_action
