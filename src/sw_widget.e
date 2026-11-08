@@ -70,6 +70,26 @@ feature -- Geometry
 			sized: width = a_w and height = a_h
 		end
 
+	is_hidden: BOOLEAN
+			-- Taken out by the program (W4b): absent from layout, drawing, hit tests and the
+			-- accessibility tree until shown again.
+
+	is_visible: BOOLEAN
+		do
+			Result := not is_hidden
+		end
+
+	set_visible (a_on: BOOLEAN)
+			-- Show or hide this widget; its container closes the gap at the next layout.
+		do
+			is_hidden := not a_on
+			if is_hidden then
+				vanish
+			end
+		ensure
+			set: is_visible = a_on
+		end
+
 	vanish
 			-- Take this widget and everything below it off the surface:
 			-- no extent where it stands, so pills, hover and hit tests
@@ -874,10 +894,15 @@ feature -- Accessibility (GW-14)
 
 	accessible_children: ARRAYED_LIST [SW_WIDGET]
 			-- The widgets a screen reader can reach below this one: those it
-			-- shows (`sub_widgets' by default; a notebook redefines it to its
-			-- shown page only).
+			-- shows (`sub_widgets' by default, without hidden ones; a notebook
+			-- redefines it to its shown page only).
 		do
-			Result := sub_widgets
+			create Result.make (sub_widgets.count)
+			across sub_widgets as ic loop
+				if not ic.is_hidden then
+					Result.extend (ic)
+				end
+			end
 		end
 
 	set_accessible_name (a_name: READABLE_STRING_GENERAL)

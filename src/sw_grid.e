@@ -162,10 +162,14 @@ feature -- Layout
 			l_x := starts (x, l_widths, l_cg)
 			l_y := starts (y, l_heights, l_rg)
 			across cells as ic loop
-				l_w := spanned (l_widths, ic.column, ic.columns, l_cg)
-				l_h := spanned (l_heights, ic.row, ic.rows, l_rg)
-				ic.widget.set_bounds (l_x.i_th (ic.column), l_y.i_th (ic.row), l_w, l_h)
-				ic.widget.arrange (a_p)
+				if ic.widget.is_hidden then
+					ic.widget.vanish
+				else
+					l_w := spanned (l_widths, ic.column, ic.columns, l_cg)
+					l_h := spanned (l_heights, ic.row, ic.rows, l_rg)
+					ic.widget.set_bounds (l_x.i_th (ic.column), l_y.i_th (ic.row), l_w, l_h)
+					ic.widget.arrange (a_p)
+				end
 			end
 			i := 0
 		end
@@ -175,7 +179,9 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		do
 			across children as ic loop
-				ic.draw (a_p)
+				if not ic.is_hidden then
+					ic.draw (a_p)
+				end
 			end
 		end
 
@@ -185,7 +191,9 @@ feature -- Hit testing
 		do
 			if contains (a_px, a_py) then
 				across children as ic until Result /= Void loop
-					Result := ic.widget_at (a_px, a_py)
+					if not ic.is_hidden then
+						Result := ic.widget_at (a_px, a_py)
+					end
 				end
 				if Result = Void then
 					Result := Current
@@ -235,7 +243,7 @@ feature {NONE} -- Implementation
 			n := column_count
 			create Result.make_filled (n)
 			across cells as ic loop
-				if ic.columns = 1 then
+				if ic.columns = 1 and not ic.widget.is_hidden then
 					Result.put_i_th (Result.i_th (ic.column).max (ic.widget.clamped_width (ic.widget.preferred_width (a_p))), ic.column)
 				end
 			end
@@ -290,7 +298,7 @@ feature {NONE} -- Implementation
 			l_cg := effective_column_gap (a_p)
 			create Result.make_filled (row_count)
 			across cells as ic loop
-				if ic.rows = 1 then
+				if ic.rows = 1 and not ic.widget.is_hidden then
 					Result.put_i_th (Result.i_th (ic.row).max (ic.widget.clamped_height (
 						ic.widget.preferred_height (a_p, spanned (a_widths, ic.column, ic.columns, l_cg)))), ic.row)
 				end
