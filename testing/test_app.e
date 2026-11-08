@@ -179,6 +179,7 @@ feature {NONE} -- Test runners
 			run_test (agent stage2_tests.test_several_rows_select_quietly, "several_rows_select_quietly")
 			run_test (agent stage2_tests.test_a_users_expansion_is_reported, "a_users_expansion_is_reported")
 			run_test (agent stage2_tests.test_a_splitter_mirrors, "a_splitter_mirrors")
+			run_test (agent stage2_tests.test_tabs_grid_and_tree_read_their_parts, "tabs_grid_and_tree_read_their_parts")
 			create canvas_present_tests
 			run_test (agent canvas_present_tests.test_a_presented_image_is_drawn_one_to_one, "a_presented_image_is_drawn_one_to_one")
 			run_test (agent canvas_present_tests.test_pointer_events_carry_kind_button_and_modifiers, "pointer_events_carry_kind_button_and_modifiers")

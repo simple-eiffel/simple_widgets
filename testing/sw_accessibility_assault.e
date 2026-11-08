@@ -33,7 +33,8 @@ feature -- The published tree
 			w.request_render
 			acc := w.accessibility
 			assert_true ("published", w.is_accessibility_published and acc.is_serving)
-			assert_integers_equal ("one row per laid-out widget plus the window", w.accessible_widgets.count + 1, acc.served_rows)
+			assert_integers_equal ("one row per laid-out widget plus the window, plus their items (a notebook's tabs)",
+				w.accessible_widgets.count + 1 + w.accessible_item_total, acc.served_rows)
 			assert_true ("the window is node 0, named by its title",
 				acc.served_id (1) = 0 and acc.served_name (1).same_string ("Study"))
 			assert_role_name (w, f.lb, {SW_ACCESSIBILITY}.Role_text, "Genesis 1:1")

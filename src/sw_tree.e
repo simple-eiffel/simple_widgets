@@ -17,6 +17,7 @@ inherit
 			handle_click, handle_double_click, handle_wheel, handle_key,
 			wants_hover_point, accepts_focus, handle_drag, handle_release,
 			accessible_role, context_menu, pebble_at, pebble_card_at,
+			accessible_item_count, publish_accessible_items,
 			accepts_pebble_at, receive_pebble_at, responds_to_pick, pick_hover,
 			pick_tick, pick_click, pick_ended
 		end
@@ -1084,6 +1085,27 @@ feature -- Accessibility (GW-14)
 	accessible_role: INTEGER
 		do
 			Result := {SW_ACCESSIBILITY}.Role_tree
+		end
+
+	accessible_item_count: INTEGER
+			-- The shown nodes, published as tree items.
+		do
+			Result := visible.count.min (2_047)
+		end
+
+	publish_accessible_items (a_accessibility: SW_ACCESSIBILITY)
+		local
+			i: INTEGER
+		do
+			from
+				i := 1
+			until
+				i > accessible_item_count
+			loop
+				a_accessibility.add_node (accessible_item_id (i), accessible_node_id, {SW_ACCESSIBILITY}.Role_tree_item,
+					label_of (visible.i_th (i).node), Void, x, y + (i - 1) * Row_h - scroll_y, width, Row_h, False, is_enabled)
+				i := i + 1
+			end
 		end
 
 invariant

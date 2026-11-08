@@ -32,7 +32,8 @@ inherit
 		redefine
 			handle_click, handle_double_click, handle_drag, handle_wheel,
 			handle_key, wants_hover_point, accepts_focus, cursor_kind, handle_release,
-			accessible_role, context_menu, dwell_ms, hover_card_at
+			accessible_role, context_menu, dwell_ms, hover_card_at,
+			accessible_item_count, publish_accessible_items
 		end
 
 	SW_COPYING
@@ -1174,6 +1175,55 @@ feature -- Accessibility (GW-14)
 	accessible_role: INTEGER
 		do
 			Result := {SW_ACCESSIBILITY}.Role_data_grid
+		end
+
+	accessible_item_count: INTEGER
+			-- The column headers, then the rows in view order, up to the block's size.
+		do
+			Result := (columns.count + view.count).min (2_047)
+		end
+
+	publish_accessible_items (a_accessibility: SW_ACCESSIBILITY)
+			-- Each column header ("column-header: Book"), then each row, named by its cells.
+		local
+			i, k, c: INTEGER
+			l_name: STRING_32
+			cx: REAL_64
+		do
+			cx := x - scroll_x
+			from
+				c := 1
+			until
+				c > columns.count or k >= accessible_item_count
+			loop
+				k := k + 1
+				a_accessibility.add_node (accessible_item_id (k), accessible_node_id, {SW_ACCESSIBILITY}.Role_header_item,
+					columns.i_th (c).title, Void, cx, y, shown_width (c), Header_h, False, is_enabled)
+				cx := cx + shown_width (c)
+				c := c + 1
+			end
+			from
+				i := 1
+			until
+				i > view.count or k >= accessible_item_count
+			loop
+				k := k + 1
+				create l_name.make (32)
+				from
+					c := 1
+				until
+					c > columns.count
+				loop
+					if c > 1 then
+						l_name.append_character (' ')
+					end
+					l_name.append (cell_text (view.i_th (i), c))
+					c := c + 1
+				end
+				a_accessibility.add_node (accessible_item_id (k), accessible_node_id, {SW_ACCESSIBILITY}.Role_data_item,
+					l_name, Void, x, y + Header_h + (i - 1) * Row_h - scroll_y, width, Row_h, False, is_enabled)
+				i := i + 1
+			end
 		end
 
 invariant

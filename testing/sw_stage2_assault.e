@@ -89,6 +89,48 @@ feature -- Tests
 			assert_strings_equal ("Left closes, reported", "1 False", l_log.i_th (2))
 		end
 
+	test_tabs_grid_and_tree_read_their_parts
+			-- What simple_gui's shared tests read: each tab, the grid's headers and rows, the
+			-- tree's shown nodes.
+		local
+			w: SW_WINDOW
+			col: SW_COLUMN
+			tabs: SW_TABS
+			g: SW_DATA_GRID [STRING_32]
+			t: SW_TREE [INTEGER]
+			l_rows: ARRAYED_LIST [STRING_32]
+			l_roots: ARRAYED_LIST [INTEGER]
+			l_tree: STRING_32
+		do
+			create w.make ("parts", 0, 0, 600, 600, create {SW_THEME}.make_light)
+			create col.make
+			create tabs.make
+			tabs.add_page ("First", create {SW_LABEL}.make_ui ("one"))
+			tabs.add_page ("Zweite", create {SW_LABEL}.make_ui ("two"))
+			create g.make (150.0)
+			g.add_column (create {SW_GRID_COLUMN [STRING_32]}.make ("Book", 150.0, agent (s: STRING_32): STRING_32 do Result := s end))
+			create l_rows.make (2)
+			l_rows.extend ("Genesis")
+			l_rows.extend ("Exodus")
+			g.set_rows (l_rows)
+			create t.make (120.0)
+			create l_roots.make (1)
+			l_roots.extend (7)
+			t.set_roots (l_roots)
+			t.set_children (agent (n: INTEGER): ARRAYED_LIST [INTEGER] do create Result.make (0) end)
+			t.set_label (agent (n: INTEGER): STRING_32 do Result := {STRING_32} "Prophets" end)
+			col.put (tabs)
+			col.put (g)
+			col.put (t)
+			w.set_root (col)
+			w.request_render
+			l_tree := w.describe_accessibility
+			assert ("each tab: " + l_tree.to_string_8, l_tree.has_substring ("tab: First") and l_tree.has_substring ("tab: Zweite"))
+			assert ("the grid's header", l_tree.has_substring ("column-header: Book"))
+			assert ("its rows", l_tree.has_substring ("row: Exodus"))
+			assert ("the tree's nodes", l_tree.has_substring ("tree-item: Prophets"))
+		end
+
 	test_a_splitter_mirrors
 		local
 			w: SW_WINDOW
