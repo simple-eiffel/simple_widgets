@@ -240,6 +240,13 @@ feature -- Element change
 			if selected_model > rows.count then
 				selected_model := 0
 			end
+			from also_selected.start until also_selected.after loop
+				if also_selected.item > rows.count then
+					also_selected.remove
+				else
+					also_selected.forth
+				end
+			end
 			context_model := 0
 			rebuild_view
 		ensure
@@ -410,6 +417,92 @@ feature -- Element change
 			selected: selected_model = a_model
 		end
 
+	on_header_click: detachable PROCEDURE [INTEGER, BOOLEAN]
+			-- When set, a header click is reported - (column, ascending) - and the grid does not
+			-- sort: the program sorts, the grid only shows `indicator_column' (simple_gui's rule).
+
+	indicator_column: INTEGER
+			-- The column whose header shows the sort arrow in that mode (0: none).
+
+	indicator_descending: BOOLEAN
+
+	set_on_header_click (a_action: PROCEDURE [INTEGER, BOOLEAN])
+		do
+			on_header_click := a_action
+		ensure
+			set: on_header_click = a_action
+		end
+
+	set_sort_indicator (a_column: INTEGER; a_ascending: BOOLEAN)
+			-- Show the arrow on `a_column' (0: none), without sorting.
+		require
+			in_range: a_column >= 0 and a_column <= columns.count
+		do
+			indicator_column := a_column
+			indicator_descending := not a_ascending
+		ensure
+			set: indicator_column = a_column and indicator_descending = not a_ascending
+		end
+
+	is_multiple: BOOLEAN
+			-- May several rows be selected (Ctrl+click adds or removes one)?
+
+	set_multiple (a_on: BOOLEAN)
+		do
+			is_multiple := a_on
+			also_selected.wipe_out
+		ensure
+			set: is_multiple = a_on
+		end
+
+	also_selected: ARRAYED_LIST [INTEGER]
+			-- Model rows selected besides `selected_model' (multiple mode).
+		attribute
+			create Result.make (4)
+		end
+
+	is_row_selected (a_model: INTEGER): BOOLEAN
+		do
+			Result := a_model > 0 and then (a_model = selected_model or else also_selected.has (a_model))
+		end
+
+	selected_count: INTEGER
+		do
+			if selected_model > 0 then
+				Result := 1 + also_selected.count
+			end
+		end
+
+	selected_at (a_i: INTEGER): INTEGER
+			-- The `a_i'th selected model row, in the order they were selected.
+		require
+			in_range: a_i >= 1 and a_i <= selected_count
+		do
+			if a_i = 1 then
+				Result := selected_model
+			else
+				Result := also_selected.i_th (a_i - 1)
+			end
+		end
+
+	select_model_row_quietly (a_model: INTEGER; a_extend: BOOLEAN)
+			-- Select `a_model' as the program, reporting nothing; with `a_extend' (multiple mode)
+			-- add it to the selection.
+		require
+			in_range: a_model >= 0 and a_model <= rows.count
+		do
+			if a_extend and is_multiple and selected_model > 0 and a_model > 0 then
+				if a_model /= selected_model and not also_selected.has (a_model) then
+					also_selected.extend (a_model)
+				end
+			else
+				also_selected.wipe_out
+				selected_model := a_model
+			end
+		ensure
+			selected: is_row_selected (a_model) or a_model = 0
+		end
+
 	set_on_select (a_action: PROCEDURE [INTEGER])
 		do
 			on_select := a_action
@@ -527,7 +620,7 @@ feature -- Drawing
 					i > last_v
 				loop
 					ry := y + Header_h + ((i - 1) * Row_h - scroll_y)
-					if view.i_th (i) = selected_model then
+					if is_row_selected (view.i_th (i)) then
 						a_p.set_color (t.wash_accent)
 						a_p.fill_rect (x, ry, width, Row_h)
 					elseif i \\ 2 = 0 then
@@ -584,9 +677,9 @@ feature -- Drawing
 				a_p.push_clip (cx + 1.0, y, shown_width (ci) - 2.0, Header_h)
 				a_p.set_color (t.ink)
 				a_p.text (cx + 8.0, y + Header_h - 10.0, col.title)
-				if ci = sort_column then
+				if ci = shown_sort_column then
 					a_p.set_color (t.accent)
-					if is_descending then
+					if shown_descending then
 						a_p.line (cx + shown_width (ci) - 20.0, y + 12.0, cx + shown_width (ci) - 15.0, y + 19.0, 1.8)
 						a_p.line (cx + shown_width (ci) - 15.0, y + 19.0, cx + shown_width (ci) - 10.0, y + 12.0, 1.8)
 					else
@@ -673,7 +766,9 @@ feature -- Input
 						resizing_column := edge
 					else
 						hc := header_column_at (a_px)
-						if hc > 0 then
+						if hc > 0 and then attached on_header_click as al_report then
+							al_report.call (hc, not (indicator_column = hc and not indicator_descending))
+						elseif hc > 0 then
 							if sort_column = hc then
 								if is_descending then
 									sort_by (0, False)
@@ -689,7 +784,10 @@ feature -- Input
 					resizing_column := 0
 					context_model := 0
 					vr := view_row_at (a_py)
-					if vr > 0 then
+					if vr > 0 and is_multiple and (create {SW_KEYS}).control_down then
+						toggle_extra (view.i_th (vr))
+					elseif vr > 0 then
+						also_selected.wipe_out
 						select_model_row (view.i_th (vr))
 					end
 				end
@@ -864,6 +962,54 @@ feature {NONE} -- Engine
 			view.append (l_rest)
 		ensure
 			same_rows: view.count = old view.count
+		end
+
+	shown_sort_column: INTEGER
+			-- The column whose header shows the arrow: the indicator in report mode, else the sort.
+		do
+			if on_header_click /= Void then
+				Result := indicator_column
+			else
+				Result := sort_column
+			end
+		end
+
+	shown_descending: BOOLEAN
+		do
+			if on_header_click /= Void then
+				Result := indicator_descending
+			else
+				Result := is_descending
+			end
+		end
+
+	toggle_extra (a_model: INTEGER)
+			-- Ctrl+click in multiple mode: add `a_model' to the selection or take it out.
+		do
+			if selected_model = 0 then
+				select_model_row (a_model)
+			elseif a_model = selected_model then
+				if also_selected.is_empty then
+					selected_model := 0
+				else
+					selected_model := also_selected.first
+					also_selected.start
+					also_selected.remove
+				end
+				if attached on_select as al_s then
+					al_s.call (a_model)
+				end
+			elseif also_selected.has (a_model) then
+				also_selected.prune_all (a_model)
+				if attached on_select as al_s then
+					al_s.call (a_model)
+				end
+			else
+				also_selected.extend (a_model)
+				if attached on_select as al_s then
+					al_s.call (a_model)
+				end
+			end
 		end
 
 	merge_sort_view

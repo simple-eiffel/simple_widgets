@@ -172,6 +172,26 @@ feature -- Element change
 			set: on_activate = a_action
 		end
 
+	on_expansion: detachable PROCEDURE [G, BOOLEAN]
+			-- The user opened (True) or closed (False) a node: a click on its triangle, a double
+			-- click, the arrow keys or the tree's own menu. The program's `expand_node' and
+			-- `collapse_node' report nothing.
+
+	set_on_expansion (a_action: PROCEDURE [G, BOOLEAN])
+		do
+			on_expansion := a_action
+		ensure
+			set: on_expansion = a_action
+		end
+
+	select_node_quietly (a_node: detachable G)
+			-- Select `a_node' as the program, reporting nothing.
+		do
+			selected_node := a_node
+		ensure
+			selected: selected_node = a_node
+		end
+
 	expand_node (a_node: G)
 		do
 			if not open_nodes.has (a_node) then
@@ -196,6 +216,29 @@ feature -- Element change
 				collapse_node (a_node)
 			else
 				expand_node (a_node)
+			end
+		end
+
+	user_toggle (a_node: G)
+			-- The user's toggle: reported through `on_expansion'.
+		do
+			toggle_node (a_node)
+			if attached on_expansion as al_e then
+				al_e.call (a_node, is_expanded (a_node))
+			end
+		end
+
+	user_expand (a_node: G)
+		do
+			if not is_expanded (a_node) then
+				user_toggle (a_node)
+			end
+		end
+
+	user_collapse (a_node: G)
+		do
+			if is_expanded (a_node) then
+				user_toggle (a_node)
 			end
 		end
 
@@ -430,7 +473,7 @@ feature -- Input
 					row := visible.i_th (i)
 					ix := x + 8.0 + row.depth * Indent_w
 					if row.has_kids and then a_px >= ix - 4.0 and then a_px <= ix + 12.0 then
-						toggle_node (row.node)
+						user_toggle (row.node)
 					else
 						select_node (row.node)
 						if row_offer /= Void then
@@ -461,9 +504,9 @@ feature -- Input
 			create Result.make
 			if attached l_node as al_node and then visible.i_th (i).has_kids then
 				if is_expanded (al_node) then
-					Result.add_item ("Collapse", "", True, agent collapse_node (al_node))
+					Result.add_item ("Collapse", "", True, agent user_collapse (al_node))
 				else
-					Result.add_item ("Expand", "", True, agent expand_node (al_node))
+					Result.add_item ("Expand", "", True, agent user_expand (al_node))
 				end
 			end
 			Result.add_item ("Expand all", "", not roots.is_empty, agent expand_all)
@@ -489,7 +532,7 @@ feature -- Input
 					row := visible.i_th (i)
 					select_node (row.node)
 					if row.has_kids then
-						toggle_node (row.node)
+						user_toggle (row.node)
 					elseif attached on_activate as act then
 						act.call (row.node)
 					end
@@ -548,13 +591,13 @@ feature -- Input
 				end
 			when 39 then
 				if pos > 0 and then visible.i_th (pos).has_kids then
-					expand_node (visible.i_th (pos).node)
+					user_expand (visible.i_th (pos).node)
 				end
 			when 37 then
 				if pos > 0 and then visible.i_th (pos).has_kids
 					and then is_expanded (visible.i_th (pos).node)
 				then
-					collapse_node (visible.i_th (pos).node)
+					user_collapse (visible.i_th (pos).node)
 				end
 			else
 			end
