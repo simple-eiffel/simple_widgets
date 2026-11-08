@@ -93,7 +93,7 @@ when `clients_listening` is true. A client that only polls (Accessibility Insigh
 ### Finding 10: Unnamed controls (MEDIUM)
 **Where:** `default_accessible_name` in sw_widget.e:681-685 returns empty; the text box, select, combo, slider, progress bar and image do not override it. The assault test pins the empty name (`assert_role_name (w, f.tx, ..., "")`).
 **Failure scenario:** a labeled field (a label drawn beside a text box) announces as just "edit"; the screen-reader user must guess. `set_accessible_name` exists but nothing links a label to its field.
-**Suggested fix:** a `labelled_by: detachable SW_WIDGET` on SW_WIDGET (name taken from that label), set by SW_FORM-style helpers when a label and a field are added together; an image alternative text parameter.
+**Suggested fix:** a `labeled_by: detachable SW_WIDGET` on SW_WIDGET (name taken from that label), set by SW_FORM-style helpers when a label and a field are added together; an image alternative text parameter.
 
 ### Finding 11: Global C state under per-window objects (MEDIUM)
 **Where:** `accessibility` is `once ("OBJECT")` (sw_window.e:208), so each window object has a facade, but every facade drives the same C table, handle and staging area (simple_shell scan finding 3). `set_accessible (False)` disables (:221-225); closing the window does not.

@@ -36,7 +36,7 @@
 | 1 | HIGH | D1/defect | SW_BAR_CHART negative values: invisible bar, ring and chip off the plot |
 | 2 | HIGH | D1 | Bar hover chip has no frame clamp; line and scatter have one |
 | 3 | HIGH | defect | emphasized_series survives set_series, can exceed series_count |
-| 4 | HIGH | defect | Quiet series colour ink_soft is the loudest ink, not quiet |
+| 4 | HIGH | defect | Quiet series color ink_soft is the loudest ink, not quiet |
 | 5 | HIGH | defect | series_color cycles 4: series 5 equals series 1 (grouped charts want 5+) |
 | 6 | HIGH | A5/T1/D1 | Hover chip drawn five times with different sizes; bar uses size_chip, the rest 11.0 |
 | 7 | HIGH | D1 | Legend: bar draws it before the data (draw_x_axis), line after (draw_hover); no overflow guard |
@@ -59,7 +59,7 @@ and `series_color` is redefined so the shared legend follows emphasis. Category-
 
 ### 6. HIGH A5/T1/D1 - hover chip copied five times
 Same rrect_fill + text block (rect = advance + 10, height 16 or 17, radius 3, text 5 px in):
-- sw_bar_chart.e:324-329 (font size_chip, centred, NO clamp)
+- sw_bar_chart.e:324-329 (font size_chip, centered, NO clamp)
 - sw_line_chart.e:218-224 and sw_scatter_chart.e:140-146 (font literal 11.0, `.min (x + width - adv - 14.0)` clamp, height 16.0)
 - sw_pie_chart.e:285-290 and sw_heatmap.e:254-258 (11.0, height 17.0, fixed bottom-left x+10, y+height-24)
 Drift: height 16 vs 17; font 11.0 vs size_chip (SW_THEME.size_chip = 11.0 today, sw_theme.e:133, so equal until a theme changes);
@@ -68,7 +68,7 @@ with theme.size_chip and one height; five callers drop about 30 lines. Effort: 1
 
 ### 2. HIGH D1 - bar chip off the frame
 sw_bar_chart.e:326-329: left = bx + bar_width/2 - adv/2 - 5 with no min/max against x or x+width.
-Input: add_group x12, set_series (<<"target","control 1">>), pointer on group 12: chip "control 1: 12.5" (about 90 px) centred on a
+Input: add_group x12, set_series (<<"target","control 1">>), pointer on group 12: chip "control 1: 12.5" (about 90 px) centered on a
 bar near the right edge overhangs x+width (hover is drawn outside the clip, sw_chart.e:112). First group: left edge below x.
 Line/scatter clamp the right side only; bar needs both. Fix in the shared draw_chip.
 
@@ -98,13 +98,13 @@ Line/scatter clamp the right side only; bar needs both. Fix in the shared draw_c
    (317) and chip (326-329) are drawn outside the clip, below the axis over the category labels. Fix: precondition or a signed baseline.
 2. HIGH emphasis index: set_series (158-170) neither resets nor checks emphasized_series; there is no invariant.
    Input: set_series (<<"a","b","c">>), set_emphasized_series (3), set_series (<<"a">>) (legal, zero groups): emphasized_series = 3 >
-   series_count = 1, so series_color (1, p) (146-154) takes the quiet branch: the only series is grey and nothing is emphasized.
+   series_count = 1, so series_color (1, p) (146-154) takes the quiet branch: the only series is gray and nothing is emphasized.
    Fix: set_series sets emphasized_series := 0; invariant emphasized_series <= series_count.
-3. HIGH quiet colour: series_color 150 returns theme.ink_soft. ink_soft is a TEXT ink proven at body contrast (sw_theme.e:250-253):
+3. HIGH quiet color: series_color 150 returns theme.ink_soft. ink_soft is a TEXT ink proven at body contrast (sw_theme.e:250-253):
    0x3A4452 on the light theme (near black) and 0xC9D1DC on the dark (near white). Input: light theme, set_emphasized_series (1):
    controls are the darkest marks on the chart, the target (accent) the lighter: the emphasis is inverted. Use outline, divider,
    or a ramp_* step (or a new `quiet_series` token), so quiet = lower contrast.
-4. HIGH colour cycle: SW_CHART.series_color (sw_chart.e:204-217) is `index \\ 4`: 1 accent, 2 success, 3 warning, 0 and 4 danger, 5 accent
+4. HIGH color cycle: SW_CHART.series_color (sw_chart.e:204-217) is `index \\ 4`: 1 accent, 2 success, 3 warning, 0 and 4 danger, 5 accent
    again. Input: set_series with 5 names ("target" + 4 controls) and no emphasis: series 1 and 5 identical, the legend dots equal;
    with the census use ("target" vs several controls) five or more series are the point of GW-10. Fix: fall back to the ramp or a
    lightness-stepped accent past 4, or add `series_count <= 4` as a contract.
@@ -117,7 +117,7 @@ Line/scatter clamp the right side only; bar needs both. Fix in the shared draw_c
    a short bar rings it and shows its chip. Line/scatter hit-test in both axes. Add `hover_py >= by`.
 8. MEDIUM labels: draw_x_axis 288-296 never elides or skips labels: 12 groups at 300 px (slot 20 px) with "Genesis" overlap.
 Checked and fine: zero categories (bar_at 94 guards, bar_width 141 guards, group_width 245 guards, draw loops skip, precondition
-protects bar_left from division by zero, x_scale domain 0..1); single series keeps the old 0.62 slot and one accent colour;
+protects bar_left from division by zero, x_scale domain 0..1); single series keeps the old 0.62 slot and one accent color;
 add_group with a lower bound other than 1 (187); parallel invariant (335).
 
 ## Interlinear / SW_DOC_UNITS items
