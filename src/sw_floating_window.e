@@ -27,9 +27,23 @@ inherit
 		end
 
 create
-	make
+	make, make_document
 
 feature {NONE} -- Initialization
+
+	make_document (a_owner: SW_WINDOW; a_content: SW_WIDGET; a_title: READABLE_STRING_GENERAL; a_x, a_y, a_width, a_height: INTEGER)
+			-- As `make', but a DOCUMENT window (simple_shell's open_document, W3): its own taskbar
+			-- button and Alt+Tab entry, minimize and maximize boxes, no owner - simple_gui's second
+			-- and later windows.
+		require
+			content_free: a_content.parent = Void
+			sane_size: a_width > 0 and a_height > 0
+		do
+			is_document := True
+			make (a_owner, a_content, a_title, a_x, a_y, a_width, a_height)
+		ensure
+			document: is_document
+		end
 
 	make (a_owner: SW_WINDOW; a_content: SW_WIDGET; a_title: READABLE_STRING_GENERAL; a_x, a_y, a_width, a_height: INTEGER)
 			-- A floating window titled `a_title' around `a_content', hidden,
@@ -42,7 +56,11 @@ feature {NONE} -- Initialization
 			owner := a_owner
 			content := a_content
 			create panel.make
-			panel.open_framed (a_x, a_y, a_width, a_height, a_title)
+			if is_document then
+				panel.open_document (a_x, a_y, a_width, a_height, a_title)
+			else
+				panel.open_framed (a_x, a_y, a_width, a_height, a_title)
+			end
 			create cairo.make
 			if panel.is_open then
 				client_width := panel.client_width.max (1)
@@ -106,6 +124,9 @@ feature -- Access
 		do
 			Result := not offscreen.is_valid
 		end
+
+	is_document: BOOLEAN
+			-- Was it opened as a document window (`make_document')?
 
 	on_close_request: detachable PROCEDURE
 			-- Run when the user asks the window to close (its close box, Alt+F4).

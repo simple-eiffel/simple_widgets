@@ -400,6 +400,28 @@ feature -- Floating windows (GW-22)
 			registered: Result.is_open implies floating_windows.has (Result)
 		end
 
+	float_document (a_content: SW_WIDGET; a_title: READABLE_STRING_GENERAL; a_x, a_y, a_width, a_height: INTEGER): SW_FLOATING_WINDOW
+			-- As `float_widget', as a document window of its own (taskbar button, Alt+Tab,
+			-- minimize and maximize): simple_gui's second and later windows (W3).
+		require
+			content_free: a_content.parent = Void
+			not_floating: not is_floating_content (a_content)
+			sane_size: a_width > 0 and a_height > 0
+		do
+			let_go_of (a_content)
+			create Result.make_document (Current, a_content, a_title, a_x, a_y, a_width, a_height)
+			if Result.is_open then
+				floating_windows.extend (Result)
+				Result.render
+				if is_window_shown then
+					Result.show
+				end
+			end
+		ensure
+			registered: Result.is_open implies floating_windows.has (Result)
+			document: Result.is_document
+		end
+
 	unfloat (a_float: SW_FLOATING_WINDOW)
 			-- Close `a_float' and forget it; its content is free again.
 		require

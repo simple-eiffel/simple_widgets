@@ -966,6 +966,7 @@ feature {NONE} -- Test runners
 			run_test (agent floating_tests.test_gw22_floating_panel_light, "gw22_floating_panel_light")
 			run_test (agent floating_tests.test_gw22_floating_panel_dark, "gw22_floating_panel_dark")
 			run_test (agent floating_tests.test_scan19_an_accelerator_runs_once_from_a_floating_window, "scan19_an_accelerator_runs_once_from_a_floating_window")
+			run_test (agent floating_tests.test_a_document_window_floats_and_reports_its_close, "a_document_window_floats_and_reports_its_close")
 			run_test (agent floating_tests.test_scan19_closing_gives_the_frame_back, "scan19_closing_gives_the_frame_back")
 			run_test (agent floating_tests.test_scan19_a_floating_panel_stays_out_of_its_zone, "scan19_a_floating_panel_stays_out_of_its_zone")
 			print ("%N=== GW-20 PRINTING ===%N")
