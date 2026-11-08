@@ -396,6 +396,8 @@ feature {NONE} -- Test runners
 	run_deepening_tests
 		do
 			create deepening_tests
+			run_test (agent deepening_tests.test_enter_activates_a_single_line_box, "enter_activates_a_single_line_box")
+			run_test (agent deepening_tests.test_placeholder_shows_only_while_empty, "placeholder_shows_only_while_empty")
 			run_test (agent deepening_tests.test_textbox_undo_redo, "textbox_undo_redo")
 			run_test (agent deepening_tests.test_select_option_enablement, "select_option_enablement")
 			run_test (agent deepening_tests.test_radio_vertical_and_enablement, "radio_vertical_and_enablement")

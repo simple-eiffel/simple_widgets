@@ -173,6 +173,16 @@ feature -- Access
 	on_change: detachable PROCEDURE
 			-- Fired after every edit.
 
+	on_activate: detachable PROCEDURE
+			-- Fired when Enter is pressed in a single-line or one-paragraph box (W5, for
+			-- simple_gui's activate event). Enter inserts nothing there.
+
+	placeholder: STRING_32
+			-- A hint drawn in the muted ink while the box is empty (never the accessible name).
+		attribute
+			create Result.make_empty
+		end
+
 feature -- Status
 
 	has_selection: BOOLEAN
@@ -512,6 +522,22 @@ feature -- Element change
 			no_stale_extras: extra_ranges.is_empty
 		end
 
+	set_on_activate (a_action: detachable PROCEDURE)
+			-- Run `a_action' when Enter is pressed in a single-line or one-paragraph box.
+		do
+			on_activate := a_action
+		ensure
+			set: on_activate = a_action
+		end
+
+	set_placeholder (a_text: READABLE_STRING_GENERAL)
+			-- Show `a_text' in the muted ink while the box is empty.
+		do
+			placeholder := a_text.to_string_32
+		ensure
+			set: placeholder.same_string_general (a_text)
+		end
+
 	set_on_change (a_action: PROCEDURE)
 		do
 			on_change := a_action
@@ -698,6 +724,10 @@ feature -- Drawing
 				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
 			end
 			n := text.count
+			if n = 0 and then not placeholder.is_empty and then not is_hiding then
+				a_p.set_color (t.ink_muted)
+				a_p.text (ox, oy + asc, placeholder)
+			end
 			if marks.text_count /= n then
 					-- a host that wrote `text' directly: never a crash
 				marks.clamp_to (n)
@@ -971,6 +1001,10 @@ feature -- Input
 						sel_anchor := caret
 					end
 					changed
+				elseif a_code = 13 and (is_single_line or is_one_paragraph) then
+					if attached on_activate as a then
+						a.call
+					end
 				elseif a_code >= 32 or else (a_code = 13 and not is_single_line and not is_one_paragraph) then
 					remember (Kind_typing)
 					if has_selection then

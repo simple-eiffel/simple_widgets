@@ -12,6 +12,70 @@ class
 inherit
 	TEST_SET_BASE
 
+feature -- Placeholder and Enter (W5, for simple_gui)
+
+	test_enter_activates_a_single_line_box
+			-- Enter in a single-line box runs on_activate and inserts nothing; in a
+			-- multi-line box it still inserts a line break and activates nothing.
+		local
+			b, m: SW_TEXT_BOX
+			l_count: CELL [INTEGER]
+		do
+			create l_count.put (0)
+			create b.make_single_line ("")
+			b.set_on_activate (agent (c: CELL [INTEGER]) do c.put (c.item + 1) end (l_count))
+			b.handle_char (97)
+			b.handle_char (13)
+			assert_integers_equal ("activated once", 1, l_count.item)
+			assert_strings_equal ("nothing inserted", "a", b.text)
+			create m.make ("")
+			m.set_on_activate (agent (c: CELL [INTEGER]) do c.put (c.item + 1) end (l_count))
+			m.handle_char (13)
+			assert_integers_equal ("multi-line does not activate", 1, l_count.item)
+			assert_strings_equal ("multi-line breaks the line", "%N", m.text)
+		end
+
+	test_placeholder_shows_only_while_empty
+			-- Drawn pixels differ with a placeholder while empty, and not once there is text.
+		local
+			w: SW_WINDOW
+			b: SW_TEXT_BOX
+			l_plain, l_hinted, l_typed_plain, l_typed_hinted: CAIRO_SURFACE
+		do
+			create w.make ("w5", 0, 0, 400, 200, create {SW_THEME}.make_light)
+			create b.make_single_line ("")
+			w.set_root (b)
+			w.request_render
+			l_plain := w.widget_image (b, Void, 1.0)
+			b.set_placeholder ("Your name")
+			assert_strings_equal ("placeholder kept", "Your name", b.placeholder)
+			l_hinted := w.widget_image (b, Void, 1.0)
+			assert ("the hint is drawn", not same_pixels (l_plain, l_hinted))
+			b.set_text ("Larry")
+			l_typed_hinted := w.widget_image (b, Void, 1.0)
+			b.set_placeholder ("")
+			l_typed_plain := w.widget_image (b, Void, 1.0)
+			assert ("with text, no hint", same_pixels (l_typed_plain, l_typed_hinted))
+			l_plain.destroy
+			l_hinted.destroy
+			l_typed_plain.destroy
+			l_typed_hinted.destroy
+		end
+
+	same_pixels (a, b: CAIRO_SURFACE): BOOLEAN
+			-- Same size and the same bytes?
+		do
+			a.flush.do_nothing
+			b.flush.do_nothing
+			Result := a.width = b.width and a.height = b.height and a.stride = b.stride
+				and then c_same_bytes (a.data, b.data, a.stride * a.height)
+		end
+
+	c_same_bytes (a, b: POINTER; n: INTEGER): BOOLEAN
+		external "C inline use <string.h>"
+		alias "return memcmp($a, $b, (size_t) $n) == 0 ? EIF_TRUE : EIF_FALSE;"
+		end
+
 feature -- Text box undo (the most-missed feature)
 
 	test_textbox_undo_redo
