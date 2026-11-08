@@ -120,6 +120,10 @@ feature {NONE} -- Test runners
 
 	visibility_tests: SW_VISIBILITY_ASSAULT
 
+	rtl_layout_tests: SW_RTL_LAYOUT_ASSAULT
+
+	canvas_present_tests: SW_CANVAS_PRESENT_ASSAULT
+
 	chrome_tests: SW_CHROME_ASSAULT
 
 	fd_tests: SW_FILE_DIALOG_ASSAULT
@@ -140,6 +144,19 @@ feature {NONE} -- Test runners
 
 	run_list_tests
 		do
+			create canvas_present_tests
+			run_test (agent canvas_present_tests.test_a_presented_image_is_drawn_one_to_one, "a_presented_image_is_drawn_one_to_one")
+			run_test (agent canvas_present_tests.test_pointer_events_carry_kind_button_and_modifiers, "pointer_events_carry_kind_button_and_modifiers")
+			run_test (agent canvas_present_tests.test_a_drag_that_ends_outside_still_releases_the_canvas, "a_drag_that_ends_outside_still_releases_the_canvas")
+			run_test (agent canvas_present_tests.test_resize_is_told_when_the_size_changes, "resize_is_told_when_the_size_changes")
+			run_test (agent canvas_present_tests.test_device_scale_follows_the_theme, "device_scale_follows_the_theme")
+			create rtl_layout_tests
+			run_test (agent rtl_layout_tests.test_a_row_places_from_the_right, "a_row_places_from_the_right")
+			run_test (agent rtl_layout_tests.test_a_wrapping_row_starts_each_line_at_the_right, "a_wrapping_row_starts_each_line_at_the_right")
+			run_test (agent rtl_layout_tests.test_a_start_aligned_button_moves_to_the_right_edge, "a_start_aligned_button_moves_to_the_right_edge")
+			run_test (agent rtl_layout_tests.test_a_grid_mirrors_its_columns, "a_grid_mirrors_its_columns")
+			run_test (agent rtl_layout_tests.test_direction_is_inherited_unless_set, "direction_is_inherited_unless_set")
+			run_test (agent rtl_layout_tests.test_a_row_child_can_sit_at_the_bottom, "a_row_child_can_sit_at_the_bottom")
 			create visibility_tests
 			run_test (agent visibility_tests.test_a_hidden_child_leaves_no_gap_in_a_row, "a_hidden_child_leaves_no_gap_in_a_row")
 			run_test (agent visibility_tests.test_a_hidden_child_leaves_no_gap_in_a_column, "a_hidden_child_leaves_no_gap_in_a_column")
@@ -529,6 +546,10 @@ feature {NONE} -- Test runners
 			run_test (agent shaping_tests.test_gw02_geometry_sets_hebrew_flush_right, "gw02_geometry_sets_hebrew_flush_right")
 			run_test (agent shaping_tests.test_gw02_text_box_hebrew_flush_right_light, "gw02_text_box_hebrew_flush_right_light")
 			run_test (agent shaping_tests.test_gw02_text_box_hebrew_flush_right_dark, "gw02_text_box_hebrew_flush_right_dark")
+			run_test (agent shaping_tests.test_rtl_layout_puts_english_text_at_the_right, "rtl_layout_puts_english_text_at_the_right")
+			run_test (agent shaping_tests.test_rtl_list_rows_at_the_right_and_the_bar_at_the_left, "rtl_list_rows_at_the_right_and_the_bar_at_the_left")
+			run_test (agent shaping_tests.test_arrows_move_visually_in_hebrew, "arrows_move_visually_in_hebrew")
+			run_test (agent shaping_tests.test_rtl_list_bar_is_pressed_and_dragged_at_the_left, "rtl_list_bar_is_pressed_and_dragged_at_the_left")
 			run_test (agent shaping_tests.test_gw02_paragraph_list_gutter_follows_reading_light, "gw02_paragraph_list_gutter_follows_reading_light")
 			run_test (agent shaping_tests.test_gw02_paragraph_list_gutter_follows_reading_dark, "gw02_paragraph_list_gutter_follows_reading_dark")
 			run_test (agent shaping_tests.test_gw03_faces_cover_and_marks_attach, "gw03_faces_cover_and_marks_attach")

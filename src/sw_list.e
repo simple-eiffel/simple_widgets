@@ -62,7 +62,7 @@ feature -- Element change (bounds)
 			-- Place the list and its bar.
 		do
 			Precursor (a_x, a_y, a_w, a_h)
-			bar.place (x, y, width, height, bar_theme)
+			place_bar (bar_theme)
 			bar.set_extent (height, content_height)
 		end
 
@@ -321,15 +321,16 @@ feature -- Drawing
 		local
 			t: SW_THEME
 			i: INTEGER
-			ry, inner_w: REAL_64
+			ry, inner_w, rx: REAL_64
 		do
 			t := a_p.theme
 			bar_theme := t
-			bar.place (x, y, width, height, t)
+			place_bar (t)
 			bar.set_extent (height, content_height)
 			scroll_y := scroll_y.min (max_scroll)
 			a_p.push_clip (x, y, width, height)
 			inner_w := width - bar.bar_width - 4.0
+			rx := rows_x
 			if row_count > 0 and then attached row_renderer as rr then
 				from
 					i := first_visible
@@ -339,19 +340,38 @@ feature -- Drawing
 					ry := y + (i - 1) * row_height - scroll_y
 					if i = selected_index then
 						a_p.set_color (t.wash_accent)
-						a_p.fill_rect (x, ry, inner_w, row_height)
+						a_p.fill_rect (rx, ry, inner_w, row_height)
 					elseif shows_hover and then not bar.contains (hover_px, hover_py)
 						and then hover_py >= ry and then hover_py < ry + row_height
 					then
 						a_p.set_color (t.surface_variant)
-						a_p.fill_rect (x, ry, inner_w, row_height)
+						a_p.fill_rect (rx, ry, inner_w, row_height)
 					end
-					rr.call (a_p, i, x, ry, inner_w, row_height)
+					rr.call (a_p, i, rx, ry, inner_w, row_height)
 					i := i + 1
 				end
 			end
 			a_p.pop_clip
 			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
+		end
+
+	place_bar (a_theme: SW_THEME)
+			-- The scrollbar at the right edge, or the left one in right-to-left layout (W4c).
+		do
+			if mirrors_layout then
+				bar.place_at_left (x, y, width, height, a_theme)
+			else
+				bar.place (x, y, width, height, a_theme)
+			end
+		end
+
+	rows_x: REAL_64
+			-- Where rows begin: the list's left edge, or past the bar in right-to-left layout.
+		do
+			Result := x
+			if mirrors_layout then
+				Result := x + bar.bar_width + 4.0
+			end
 		end
 
 feature -- Hit testing

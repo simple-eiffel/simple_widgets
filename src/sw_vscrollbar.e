@@ -70,6 +70,16 @@ feature -- Placement
 			at_right_edge: track_x = a_x + a_width - bar_width
 		end
 
+	place_at_left (a_x, a_y, a_width, a_height: REAL_64; a_theme: SW_THEME)
+			-- As `place', at the owner's LEFT edge: right-to-left layout (W4c; GTK, AppKit
+			-- and Win32 mirrored windows all put the vertical scrollbar there).
+		do
+			place (a_x, a_y, a_width, a_height, a_theme)
+			track_x := a_x
+		ensure
+			at_left_edge: track_x = a_x
+		end
+
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER; a_scroll: REAL_64; a_hot: BOOLEAN)
