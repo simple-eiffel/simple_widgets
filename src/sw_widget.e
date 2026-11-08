@@ -591,6 +591,13 @@ feature -- Input
 		do
 		end
 
+	perform_click
+			-- Click this widget's middle as a user would (W11, simple_gui's test door): what
+			-- `handle_click' does there, with no window, focus or keystrokes needed.
+		do
+			handle_click (x + width / 2.0, y + height / 2.0).do_nothing
+		end
+
 	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
 		do
 			Result := handle_click (a_px, a_py)
