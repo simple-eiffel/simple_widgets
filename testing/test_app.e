@@ -124,6 +124,8 @@ feature {NONE} -- Test runners
 
 	canvas_present_tests: SW_CANVAS_PRESENT_ASSAULT
 
+	wrap_chars_tests: SW_WRAP_CHARS_ASSAULT
+
 	a11y_w10_tests: SW_A11Y_W10_ASSAULT
 
 	modal_w9_tests: SW_MODAL_W9_ASSAULT
@@ -163,6 +165,8 @@ feature {NONE} -- Test runners
 			run_test (agent menu_w8_tests.test_a_registered_shortcut_runs_its_action, "a_registered_shortcut_runs_its_action")
 			run_test (agent menu_w8_tests.test_edit_commands_reach_the_focused_text_box, "edit_commands_reach_the_focused_text_box")
 			run_test (agent menu_w8_tests.test_a_menu_title_is_relabeled, "a_menu_title_is_relabeled")
+			create wrap_chars_tests
+			run_test (agent wrap_chars_tests.test_a_label_wraps_at_about_n_characters, "a_label_wraps_at_about_n_characters")
 			create canvas_present_tests
 			run_test (agent canvas_present_tests.test_a_presented_image_is_drawn_one_to_one, "a_presented_image_is_drawn_one_to_one")
 			run_test (agent canvas_present_tests.test_pointer_events_carry_kind_button_and_modifiers, "pointer_events_carry_kind_button_and_modifiers")

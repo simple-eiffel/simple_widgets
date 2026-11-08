@@ -82,6 +82,11 @@ feature -- Access
 	is_wrapping: BOOLEAN
 			-- Break into as many lines as the width demands? Body
 			-- labels wrap by default; chrome labels stay single-line.
+
+	wrap_chars: INTEGER
+			-- Wrap at about this many characters (0: at the laid-out width only). Its natural
+			-- width is at most this many average characters, and lines break there even when
+			-- the label is laid out wider - simple_gui's GUI_LABEL.set_wrap_width.
 	custom_color: NATURAL_32
 			-- 0 means: theme ink (or muted ink).
 
@@ -125,7 +130,7 @@ feature -- Shaped text
 		do
 			if takes_shaped_path (a_p) and then attached a_p.shaping as al_kit then
 				if is_wrapping then
-					Result := al_kit.layout_styled (text, a_width.floor.max (0), pixel_size (a_p), role, is_bold)
+					Result := al_kit.layout_styled (text, wrap_width (a_p, a_width).floor.max (0), pixel_size (a_p), role, is_bold)
 				else
 					Result := shaped.layout_styled_of (al_kit, text, pixel_size (a_p), role, is_bold)
 				end
@@ -186,6 +191,18 @@ feature -- Element change
 			custom_color := a_rgb
 		end
 
+	set_wrap_chars (a_chars: INTEGER)
+			-- Wrap at about `a_chars' characters; 0 goes back to one line.
+		require
+			non_negative: a_chars >= 0
+		do
+			wrap_chars := a_chars
+			is_wrapping := a_chars > 0
+		ensure
+			set: wrap_chars = a_chars
+			wraps_when_set: is_wrapping = (a_chars > 0)
+		end
+
 	with_wrap: like Current
 			-- Fluent: wrapping variant of Current.
 		do
@@ -233,6 +250,28 @@ feature -- Layout
 			else
 				a_p.font (role, size, is_bold)
 				Result := a_p.advance (text)
+			end
+			if wrap_chars > 0 then
+				Result := Result.min (wrap_chars * average_char_width (a_p))
+			end
+		end
+
+	average_char_width (a_p: SW_PAINTER): REAL_64
+			-- The advance of an average lowercase letter in this label's font.
+		do
+			a_p.font (role, size, is_bold)
+			Result := a_p.advance ("abcdefghijklmnopqrstuvwxyz") / 26.0
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	wrap_width (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- The width lines break at: `a_width', or less when `wrap_chars' caps it
+			-- (`a_width' under one pixel means unbounded, and stays so).
+		do
+			Result := a_width
+			if wrap_chars > 0 and a_width >= 1.0 then
+				Result := a_width.min (wrap_chars * average_char_width (a_p))
 			end
 		end
 
@@ -307,7 +346,7 @@ feature -- Layout
 				if line.is_empty then
 					line := w.twin
 					cx := ww
-				elseif cx + space_advance (a_p) + ww > a_width then
+				elseif cx + space_advance (a_p) + ww > wrap_width (a_p, a_width) then
 					Result.extend (line)
 					line := w.twin
 					cx := ww
