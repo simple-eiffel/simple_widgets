@@ -268,14 +268,11 @@ feature -- Layout
 					i > line_end
 				loop
 					ch := heights.i_th (i)
-					if cross_axis = Cross_stretch then
+					if cross_axis = Cross_stretch and l_kids.i_th (i).cross_alignment = Place_fill then
 						ch := line_h
 					end
-					if cross_axis = Cross_center then
-						l_kids.i_th (i).set_bounds (cx, cy + (line_h - ch) / 2.0, widths.i_th (i), ch)
-					else
-						l_kids.i_th (i).set_bounds (cx, cy, widths.i_th (i), ch)
-					end
+					l_kids.i_th (i).set_bounds (mirrored_x (cx, widths.i_th (i)),
+						cy + vertical_offset (l_kids.i_th (i), line_h, ch), widths.i_th (i), ch)
 					l_kids.i_th (i).arrange (a_p)
 					cx := cx + widths.i_th (i) + gp
 					i := i + 1
@@ -321,17 +318,31 @@ feature -- Layout
 				end
 				ch := l_kids.i_th (i).clamped_height
 					(l_kids.i_th (i).preferred_height (a_p, cw))
-				if cross_axis = Cross_stretch or ch > height then
+				if (cross_axis = Cross_stretch and l_kids.i_th (i).cross_alignment = Place_fill) or ch > height then
 					ch := height
 				end
-				if cross_axis = Cross_top or cross_axis = Cross_stretch then
-					l_kids.i_th (i).set_bounds (cx, y, cw, ch)
-				else
-					l_kids.i_th (i).set_bounds (cx, y + (height - ch) / 2.0, cw, ch)
-				end
+				l_kids.i_th (i).set_bounds (mirrored_x (cx, cw), y + vertical_offset (l_kids.i_th (i), height, ch), cw, ch)
 				l_kids.i_th (i).arrange (a_p)
 				cx := cx + cw + gp
 				i := i + 1
+			end
+		end
+
+	vertical_offset (a_child: SW_WIDGET; a_line_h, a_h: REAL_64): REAL_64
+			-- How far below the line's top `a_child' (`a_h' tall) sits in a line `a_line_h' tall:
+			-- by its own `cross_alignment', else by `cross_axis'.
+		do
+			inspect a_child.cross_alignment
+			when Place_start then
+				Result := 0.0
+			when Place_center then
+				Result := (a_line_h - a_h) / 2.0
+			when Place_end then
+				Result := a_line_h - a_h
+			else
+				if cross_axis = Cross_center then
+					Result := (a_line_h - a_h) / 2.0
+				end
 			end
 		end
 

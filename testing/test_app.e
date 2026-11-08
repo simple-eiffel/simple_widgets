@@ -120,6 +120,8 @@ feature {NONE} -- Test runners
 
 	visibility_tests: SW_VISIBILITY_ASSAULT
 
+	rtl_layout_tests: SW_RTL_LAYOUT_ASSAULT
+
 	chrome_tests: SW_CHROME_ASSAULT
 
 	fd_tests: SW_FILE_DIALOG_ASSAULT
@@ -140,6 +142,13 @@ feature {NONE} -- Test runners
 
 	run_list_tests
 		do
+			create rtl_layout_tests
+			run_test (agent rtl_layout_tests.test_a_row_places_from_the_right, "a_row_places_from_the_right")
+			run_test (agent rtl_layout_tests.test_a_wrapping_row_starts_each_line_at_the_right, "a_wrapping_row_starts_each_line_at_the_right")
+			run_test (agent rtl_layout_tests.test_a_start_aligned_button_moves_to_the_right_edge, "a_start_aligned_button_moves_to_the_right_edge")
+			run_test (agent rtl_layout_tests.test_a_grid_mirrors_its_columns, "a_grid_mirrors_its_columns")
+			run_test (agent rtl_layout_tests.test_direction_is_inherited_unless_set, "direction_is_inherited_unless_set")
+			run_test (agent rtl_layout_tests.test_a_row_child_can_sit_at_the_bottom, "a_row_child_can_sit_at_the_bottom")
 			create visibility_tests
 			run_test (agent visibility_tests.test_a_hidden_child_leaves_no_gap_in_a_row, "a_hidden_child_leaves_no_gap_in_a_row")
 			run_test (agent visibility_tests.test_a_hidden_child_leaves_no_gap_in_a_column, "a_hidden_child_leaves_no_gap_in_a_column")

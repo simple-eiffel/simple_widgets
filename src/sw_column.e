@@ -179,8 +179,8 @@ feature -- Layout
 			-- back from them by weight, down to each one's `min_height'.
 		local
 			l_kids: ARRAYED_LIST [SW_WIDGET]
-			cy, inner, ch, natural, leftover, total_grow, pad, gp: REAL_64
-			heights: ARRAYED_LIST [REAL_64]
+			cy, cx, cw, inner, ch, natural, leftover, total_grow, pad, gp: REAL_64
+			heights, widths: ARRAYED_LIST [REAL_64]
 			i: INTEGER
 		do
 			l_kids := laid_out
@@ -188,10 +188,16 @@ feature -- Layout
 			gp := effective_gap (a_p)
 			inner := (width - 2.0 * pad).max (0.0)
 			create heights.make (l_kids.count)
+			create widths.make (l_kids.count)
 			across
 				l_kids as c
 			loop
-				heights.extend (c.clamped_height (c.preferred_height (a_p, inner)))
+				if c.cross_alignment = Place_fill then
+					widths.extend (inner)
+				else
+					widths.extend (c.clamped_width (c.preferred_width (a_p)).min (inner))
+				end
+				heights.extend (c.clamped_height (c.preferred_height (a_p, widths.last)))
 				natural := natural + heights.last
 				total_grow := total_grow + c.grow
 			end
@@ -218,7 +224,16 @@ feature -- Layout
 					ch := (ch + leftover * l_kids.i_th (i).grow / total_grow)
 						.max (l_kids.i_th (i).min_height)
 				end
-				l_kids.i_th (i).set_bounds (x + pad, cy, inner, ch)
+				cw := widths.i_th (i)
+				inspect l_kids.i_th (i).cross_alignment
+				when Place_center then
+					cx := x + pad + (inner - cw) / 2.0
+				when Place_end then
+					cx := x + pad + inner - cw
+				else
+					cx := x + pad
+				end
+				l_kids.i_th (i).set_bounds (mirrored_x (cx, cw), cy, cw, ch)
 				l_kids.i_th (i).arrange (a_p)
 				cy := cy + ch + gp
 				i := i + 1
