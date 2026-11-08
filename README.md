@@ -8,6 +8,7 @@
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
 ![Tests](https://img.shields.io/badge/tests-440%2F441-brightgreen.svg)
+![Windows: tests pass](https://img.shields.io/badge/Windows-tests%20pass-0078D6?logo=windows&logoColor=white) ![Linux and macOS: in progress](https://img.shields.io/badge/Linux%20%7C%20macOS-in%20progress-lightgrey)
 
 A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
 controls. Every pixel is the toolkit's own.
