@@ -122,6 +122,8 @@ feature {NONE} -- Test runners
 
 	rtl_layout_tests: SW_RTL_LAYOUT_ASSAULT
 
+	canvas_present_tests: SW_CANVAS_PRESENT_ASSAULT
+
 	chrome_tests: SW_CHROME_ASSAULT
 
 	fd_tests: SW_FILE_DIALOG_ASSAULT
@@ -142,6 +144,11 @@ feature {NONE} -- Test runners
 
 	run_list_tests
 		do
+			create canvas_present_tests
+			run_test (agent canvas_present_tests.test_a_presented_image_is_drawn_one_to_one, "a_presented_image_is_drawn_one_to_one")
+			run_test (agent canvas_present_tests.test_pointer_events_carry_kind_button_and_modifiers, "pointer_events_carry_kind_button_and_modifiers")
+			run_test (agent canvas_present_tests.test_resize_is_told_when_the_size_changes, "resize_is_told_when_the_size_changes")
+			run_test (agent canvas_present_tests.test_device_scale_follows_the_theme, "device_scale_follows_the_theme")
 			create rtl_layout_tests
 			run_test (agent rtl_layout_tests.test_a_row_places_from_the_right, "a_row_places_from_the_right")
 			run_test (agent rtl_layout_tests.test_a_wrapping_row_starts_each_line_at_the_right, "a_wrapping_row_starts_each_line_at_the_right")
