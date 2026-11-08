@@ -1081,7 +1081,10 @@ feature {NONE} -- Engine
 			create dst.make_filled (0, n)
 			from w := 0 until w >= n loop
 				src [w] := view.i_th (w + 1)
-				l_keys [src [w]] := l_column.sort_key (rows.i_th (src [w]))
+					-- A fresh copy of each key: the copies lie together, so the merge reads
+					-- compact memory however scattered the rows' own strings are (a long-
+					-- running heap made the same sort six times slower, GW-29 on macOS).
+				l_keys [src [w]] := l_column.sort_key (rows.i_th (src [w])).twin
 				w := w + 1
 			end
 			from
