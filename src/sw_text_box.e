@@ -1126,6 +1126,24 @@ feature -- Input
 			end
 		end
 
+	type_text (a_text: READABLE_STRING_GENERAL)
+			-- Replace the text as a user would (W11, simple_gui's test door): one undo step,
+			-- and `on_change' runs - unlike `set_text', which is the program's and silent.
+		require
+			writable: not is_read_only
+		do
+			select_all
+			if not a_text.is_empty then
+				receive_pebble (a_text)
+			elseif has_selection then
+				remember (Kind_block)
+				delete_selection
+				changed
+			end
+		ensure
+			typed: text.same_string_general (a_text)
+		end
+
 	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
 			-- The standard text menu. A right-click outside the current
 			-- selection moves the caret there first, as every editor does.

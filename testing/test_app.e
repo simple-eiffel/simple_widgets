@@ -124,6 +124,8 @@ feature {NONE} -- Test runners
 
 	canvas_present_tests: SW_CANVAS_PRESENT_ASSAULT
 
+	doors_w11_tests: SW_DOORS_W11_ASSAULT
+
 	wrap_chars_tests: SW_WRAP_CHARS_ASSAULT
 
 	a11y_w10_tests: SW_A11Y_W10_ASSAULT
@@ -165,6 +167,9 @@ feature {NONE} -- Test runners
 			run_test (agent menu_w8_tests.test_a_registered_shortcut_runs_its_action, "a_registered_shortcut_runs_its_action")
 			run_test (agent menu_w8_tests.test_edit_commands_reach_the_focused_text_box, "edit_commands_reach_the_focused_text_box")
 			run_test (agent menu_w8_tests.test_a_menu_title_is_relabeled, "a_menu_title_is_relabeled")
+			create doors_w11_tests
+			run_test (agent doors_w11_tests.test_perform_click_needs_no_window, "perform_click_needs_no_window")
+			run_test (agent doors_w11_tests.test_type_text_reports_and_undoes, "type_text_reports_and_undoes")
 			create wrap_chars_tests
 			run_test (agent wrap_chars_tests.test_a_label_wraps_at_about_n_characters, "a_label_wraps_at_about_n_characters")
 			create canvas_present_tests
