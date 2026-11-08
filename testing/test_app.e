@@ -137,6 +137,9 @@ feature {NONE} -- Test runners
 	run_list_tests
 		do
 			create list_tests
+			run_test (agent list_tests.test_select_row_quietly_runs_no_agent, "select_row_quietly_runs_no_agent")
+			run_test (agent list_tests.test_text_list_holds_its_rows, "text_list_holds_its_rows")
+			run_test (agent list_tests.test_text_list_rows_are_list_items, "text_list_rows_are_list_items")
 			run_test (agent list_tests.test_prelayout_scroll_regression, "prelayout_scroll (the postcondition kill)")
 			run_test (agent list_tests.test_row_at_bounds, "row_at_bounds")
 			run_test (agent list_tests.test_shrink_count_clears_selection, "shrink_count_clears_selection")
