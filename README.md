@@ -46,7 +46,7 @@ On macOS, simple_shell's AppKit half carries simple_widgets unchanged: 677 of th
 tests pass there on main (2026-11-08). The 8 that do not: Windows drive letters (3), the
 screen grab (macOS's Screen Recording permission), an accessibility test that needs a
 listening screen reader, two 100,000-row timing checks, and a face-name check that
-simple_shaping #2 fixes (678 of 685 with it). Not yet on macOS: VoiceOver for the drawn controls,
+simple_shaping #2 fixes (with it, that check passes on macOS). Not yet on macOS: VoiceOver for the drawn controls,
 printing, spelling.
 
 **0.9.0 - 0.40.1: the simple_bible gap program** (tracker in simple_bible,
