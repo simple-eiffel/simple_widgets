@@ -499,10 +499,32 @@ feature {NONE} -- Implementation
 			in_range: Result >= 0 and Result <= spans.count
 		end
 
+	has_unique_ids: BOOLEAN
+			-- Does every span carry its own id? One pass, with a hash table.
+			-- (The invariant once asked `index_of (s.id) > 0' for every span:
+			-- O(n^2) per call, so adding n spans cost O(n^3), and always true,
+			-- since `index_of' finds the first match even for a duplicate.)
+		local
+			l_seen: HASH_TABLE [BOOLEAN, INTEGER]
+			i: INTEGER
+		do
+			create l_seen.make (spans.count.max (1))
+			Result := True
+			from
+				i := 1
+			until
+				i > spans.count or not Result
+			loop
+				l_seen.put (True, spans.i_th (i).id)
+				Result := l_seen.inserted
+				i := i + 1
+			end
+		end
+
 invariant
 	size_non_negative: text_count >= 0
 	spans_inside: across spans as s all s.hi <= text_count end
 	next_id_positive: next_id >= 1
-	ids_unique: across spans as s all index_of (s.id) > 0 end
+	ids_unique: has_unique_ids
 
 end
