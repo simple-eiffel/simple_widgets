@@ -146,6 +146,7 @@ feature {NONE} -- Test runners
 			run_test (agent visibility_tests.test_a_hidden_widget_is_not_published, "a_hidden_widget_is_not_published")
 			run_test (agent visibility_tests.test_a_hidden_grid_cell_takes_no_width, "a_hidden_grid_cell_takes_no_width")
 			run_test (agent visibility_tests.test_hiding_the_focused_widget_passes_the_focus_on, "hiding_the_focused_widget_passes_the_focus_on")
+			run_test (agent visibility_tests.test_a_key_after_hiding_reaches_the_next_widget, "a_key_after_hiding_reaches_the_next_widget")
 			create layout_grid_tests
 			run_test (agent layout_grid_tests.test_homogeneous_wins_over_a_stretching_column, "homogeneous_wins_over_a_stretching_column")
 			run_test (agent layout_grid_tests.test_an_empty_column_takes_no_gaps, "an_empty_column_takes_no_gaps")
