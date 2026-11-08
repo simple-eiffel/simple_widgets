@@ -907,6 +907,18 @@ feature -- Accessibility (GW-14)
 			end
 		end
 
+	accessible_item_count: INTEGER
+			-- Nodes this widget publishes below its own that are not widgets (a list's rows).
+		do
+		ensure
+			non_negative: Result >= 0
+		end
+
+	publish_accessible_items (a_accessibility: SW_ACCESSIBILITY)
+			-- Add those `accessible_item_count' nodes under this widget's node (W6).
+		do
+		end
+
 	set_accessible_name (a_name: READABLE_STRING_GENERAL)
 			-- Name this widget for screen readers (an icon button, a field
 			-- whose label is drawn beside it).

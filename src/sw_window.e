@@ -294,7 +294,7 @@ feature -- Accessibility (GW-14)
 			if attached sheet as al_sheet then
 				collect_accessible (al_sheet, 0, l_parents)
 			end
-			accessibility.begin_tree (accessible_widgets.count + 1 + floating_node_count)
+			accessibility.begin_tree (accessible_widgets.count + 1 + floating_node_count + accessible_item_total)
 			accessibility.add_node (0, 0, {SW_ACCESSIBILITY}.Role_window, title, Void, 0.0, 0.0, win_w, win_h, False, True)
 			from
 				i := 1
@@ -304,6 +304,7 @@ feature -- Accessibility (GW-14)
 				w := accessible_widgets.i_th (i)
 				accessibility.add_node (w.accessible_node_id, l_parents.i_th (i), w.accessible_role, w.accessible_name,
 					w.accessible_value, w.x, w.y, w.width, w.height, w.accepts_focus, w.is_enabled)
+				w.publish_accessible_items (accessibility)
 				i := i + 1
 			end
 			add_floating_nodes
@@ -312,6 +313,14 @@ feature -- Accessibility (GW-14)
 			tell_accessible_focus
 		ensure
 			published: is_accessibility_published
+		end
+
+	accessible_item_total: INTEGER
+			-- The non-widget nodes the collected widgets will publish (a list's rows).
+		do
+			across accessible_widgets as ic loop
+				Result := Result + ic.accessible_item_count
+			end
 		end
 
 	Floating_ids: INTEGER = 1_000_000_000
