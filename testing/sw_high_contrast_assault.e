@@ -31,7 +31,7 @@ feature -- Themes
 		end
 
 	test_gw16_an_unreadable_palette_is_mended
-			-- Grey text on a grey window, white text on a pale highlight: the
+			-- Gray text on a gray window, white text on a pale highlight: the
 			-- theme is still readable, with the ink and the text on accent
 			-- fills replaced by black or white.
 		local
@@ -241,7 +241,7 @@ feature -- Chips and badges
 			-- Every kind of chip and badge draws its text at 4.5:1 on its
 			-- ground, in light, dark and the four Windows contrast palettes
 			-- (the GW-16 scan: badges wrote `surface' on the fill and chips the
-			-- fill colour on its wash, ignoring the ink-on-fill tokens).
+			-- fill color on its wash, ignoring the ink-on-fill tokens).
 		local
 			l_themes: ARRAYED_LIST [TUPLE [name: STRING; theme: SW_THEME]]
 			chip: SW_CHIP

@@ -1712,7 +1712,7 @@ feature -- Menu bar and mnemonics
 			-- Down and Up move the highlight over separators and disabled
 			-- items, Home and End jump to the ends, Enter runs what is
 			-- highlighted, Escape closes, and Left and Right step to the
-			-- neighbouring pad and open ITS menu. True when the key was
+			-- neighboring pad and open ITS menu. True when the key was
 			-- consumed, so the caller knows whether to redraw.
 			--
 			-- Public for the same reason `activate_mnemonic' is: it is the
@@ -1751,16 +1751,16 @@ feature -- Menu bar and mnemonics
 					end
 					Result := True
 				when 39 then -- RIGHT
-					Result := open_neighbour_pad (1)
+					Result := open_neighbor_pad (1)
 				when 37 then -- LEFT
-					Result := open_neighbour_pad (-1)
+					Result := open_neighbor_pad (-1)
 				else
 						-- anything else stays swallowed, as it always was
 				end
 			end
 		end
 
-	open_neighbour_pad (a_step: INTEGER): BOOLEAN
+	open_neighbor_pad (a_step: INTEGER): BOOLEAN
 			-- Close the open menu and open the one `a_step' along the bar,
 			-- wrapping. Nothing happens, and nothing closes, when there is
 			-- no bar or no other enabled pad to go to.
@@ -1771,7 +1771,7 @@ feature -- Menu bar and mnemonics
 			b: TUPLE [left, width: REAL_64]
 		do
 			if attached menu_bar as mb and then mb.is_enabled then
-				idx := mb.neighbour_pad (mb.last_opened_pad, a_step)
+				idx := mb.neighbor_pad (mb.last_opened_pad, a_step)
 				if idx > 0 then
 					close_popup
 					mb.open_menu (painter, idx)
@@ -2087,7 +2087,7 @@ feature {NONE} -- Focus internals
 				r.focusables (fs)
 			end
 			if not fs.is_empty then
-				l_next := ring_neighbour (fs, focused, a_dir)
+				l_next := ring_neighbor (fs, focused, a_dir)
 				if attached focused as prev then
 					prev.set_focused (False)
 				end
@@ -3700,11 +3700,11 @@ feature -- Drawer tab (peek and pin)
 		end
 
 	pin_x, pin_y: REAL_64
-			-- The pin glyph's centre on an open drawer panel,
+			-- The pin glyph's center on an open drawer panel,
 			-- refreshed every render; (0,0) when no drawer is up.
 
 	close_x, close_y: REAL_64
-			-- The close pearl's centre on a centered sheet - the modal's
+			-- The close pearl's center on a centered sheet - the modal's
 			-- one visible exit (Escape works too, but an affordance you
 			-- cannot see is not an affordance). Refreshed every render.
 
@@ -3814,7 +3814,7 @@ feature -- Drawer tab (peek and pin)
 			-- points outside its panel hit the live page - the
 			-- EiffelStudio-debugger dock (the tool watches while the
 			-- program stays interactive). Unpinned drawers and
-			-- popovers keep their dismiss-on-outside behaviour, and
+			-- popovers keep their dismiss-on-outside behavior, and
 			-- centered sheets stay truly modal.
 		do
 			if attached hover_card as al_card and then point_in_hover_card (a_x, a_y) then

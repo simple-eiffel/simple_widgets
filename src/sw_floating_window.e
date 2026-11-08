@@ -370,7 +370,7 @@ feature {NONE} -- Input internals
 			create l_ring.make (8)
 			content.focusables (l_ring)
 			if not l_ring.is_empty then
-				move_focus (ring_neighbour (l_ring, focused, a_dir))
+				move_focus (ring_neighbor (l_ring, focused, a_dir))
 			end
 		end
 

@@ -253,7 +253,7 @@ feature -- Direction and placement (W4c)
 
 	mirrored_x (a_x, a_w: REAL_64): REAL_64
 			-- The left edge for a child `a_w' wide that left-to-right layout would put at `a_x':
-			-- `a_x' itself, or reflected about this widget's vertical centre line when this
+			-- `a_x' itself, or reflected about this widget's vertical center line when this
 			-- widget `mirrors_layout'.
 		do
 			if mirrors_layout then
@@ -759,7 +759,7 @@ feature -- Input
 
 	pick_ended
 			-- The pick that passed over this widget dropped or was
-			-- cancelled: put away what it sprang open or lit.
+			-- canceled: put away what it sprang open or lit.
 		do
 		end
 

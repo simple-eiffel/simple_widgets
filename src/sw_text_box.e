@@ -488,7 +488,7 @@ feature -- Alignment (GW-02)
 
 	effective_text_alignment: INTEGER
 			-- `text_alignment' as drawn: left and right swap when this widget `mirrors_layout'
-			-- (W4c; GTK mirrors a label's xalign the same way). Start and centre are unchanged.
+			-- (W4c; GTK mirrors a label's xalign the same way). Start and center are unchanged.
 		do
 			Result := text_alignment
 			if mirrors_layout then
@@ -868,7 +868,7 @@ feature -- Drawing
 
 	draw_text_at (a_p: SW_PAINTER; a_dx, a_dy: REAL_64)
 			-- The whole text shifted by (a_dx, a_dy) from its origin, in
-			-- the painter's current colour - what the highlight painter
+			-- the painter's current color - what the highlight painter
 			-- redraws through for its effects.
 		do
 			geometry.draw (a_p, text, is_hiding, x + Pad_x + a_dx, y + Pad_y + a_dy)
@@ -960,7 +960,7 @@ feature -- Input
 				c := offset_at (a_px, a_py)
 				lo := c.max (1).min (n)
 					-- on whitespace, snap to the nearer word instead of
-					-- swallowing both neighbours
+					-- swallowing both neighbors
 				if text.item (lo) = ' ' and then lo < n and then text.item (lo + 1) /= ' ' then
 					lo := lo + 1
 				end
@@ -1538,7 +1538,7 @@ feature {NONE} -- Engine
 
 	learn_word (a_lo, a_hi: INTEGER)
 			-- Teach the word permanently: it joins the user's
-			-- Windows dictionary, honoured system-wide.
+			-- Windows dictionary, honored system-wide.
 		require
 			sane: a_lo >= 0 and a_hi <= text.count and a_lo < a_hi
 		local

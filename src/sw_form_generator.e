@@ -1,7 +1,7 @@
 note
 	description: "[
 		Forms from specs: declare fields (text, number, check,
-		choice) and the generator builds the labelled column - the
+		choice) and the generator builds the labeled column - the
 		whole input fleet reused, nothing hand-laid. The VALUES
 		read back as a name->text table (value_of / values_table),
 		and required fields report through is_complete - the model
@@ -90,7 +90,7 @@ feature -- Access
 feature -- Element change
 
 	add_field (a_name: READABLE_STRING_GENERAL; a_kind: INTEGER; a_required: BOOLEAN)
-			-- Declare and build one labelled row.
+			-- Declare and build one labeled row.
 		require
 			kind_known: a_kind >= Kind_text and a_kind <= Kind_choice
 		local

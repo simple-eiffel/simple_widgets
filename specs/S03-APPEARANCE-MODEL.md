@@ -17,7 +17,7 @@ alignment take no tokens, so swapping a theme can never move anything.
 
 | Vector | Definition | Home in simple_widgets |
 |---|---|---|
-| THEME | State-independent vocabulary of named values: colours, type roles, metrics, radii. | SW_THEME. Programmable via set_surfaces / set_semantics / set_washes / set_families; light and dark shipped; TOML themes planned. WCAG contrast is a class INVARIANT: an unreadable theme cannot exist. |
+| THEME | State-independent vocabulary of named values: colors, type roles, metrics, radii. | SW_THEME. Programmable via set_surfaces / set_semantics / set_washes / set_families; light and dark shipped; TOML themes planned. WCAG contrast is a class INVARIANT: an unreadable theme cannot exist. |
 | STRUCTURE | The parts a control is made of. | Per-part draw features: SW_BUTTON.draw_background / draw_border / draw_label. Redefining a part feature is this library's ControlTemplate - and inherited contracts survive the reskin. |
 | STYLE | The rules assigning tokens to parts, keyed by (kind, state). | Style queries: SW_BUTTON.fill_color / border_color / label_color (theme): NATURAL_32. A descendant restyles by redefining a QUERY, never a draw body. |
 | STATE | Dynamic, machine-driven condition. | SW_WIDGET: is_enabled, is_hovered, is_pressed, is_focused - maintained by SW_WINDOW (hover via pump mouse-move/leave events, pressed via pointer capture, focus via click transitions). Contract: pressed_only_when_enabled. Disabled widgets are inert: dispatch bubbles PAST them. |
@@ -25,7 +25,7 @@ alignment take no tokens, so swapping a theme can never move anything.
 
 ## Rules of the model
 
-1. No literal colour below the theme. A widget names tokens only.
+1. No literal color below the theme. A widget names tokens only.
 2. No token below the style queries. Draw parts call the queries.
 3. State setters live on SW_WIDGET; only SW_WINDOW calls them.
 4. Kind never changes from input; state never changes from the author.

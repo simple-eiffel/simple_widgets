@@ -134,7 +134,7 @@ feature -- Artwork
 			shaped_p, plain_p: SW_PAINTER
 			lb: SW_LABEL
 			assets: STRING_32
-			x0, y0, x1, y1, shaped_colour, plain_colour: INTEGER
+			x0, y0, x1, y1, shaped_color, plain_color: INTEGER
 		do
 			assets := shaping_assets
 			assert_false ("the Noto png/128 assets were located", assets.is_empty)
@@ -162,11 +162,11 @@ feature -- Artwork
 			y0 := lb.y.floor
 			x1 := (lb.x + lb.width).ceiling
 			y1 := (lb.y + lb.height).ceiling
-			shaped_colour := colour_in (shaped_surf, x0, y0, x1, y1)
-			plain_colour := colour_in (plain_surf, x0, y0, x1, y1)
-			print ("    saturated pixels - shaped " + shaped_colour.out + ", toy " + plain_colour.out + "%N")
-			assert_greater_than ("the SHAPED label carries real colour artwork", shaped_colour, 100)
-			assert_less_than ("the TOY label carries essentially none", plain_colour, 10)
+			shaped_color := color_in (shaped_surf, x0, y0, x1, y1)
+			plain_color := color_in (plain_surf, x0, y0, x1, y1)
+			print ("    saturated pixels - shaped " + shaped_color.out + ", toy " + plain_color.out + "%N")
+			assert_greater_than ("the SHAPED label carries real color artwork", shaped_color, 100)
+			assert_less_than ("the TOY label carries essentially none", plain_color, 10)
 		end
 
 feature -- What stays on the toy path
@@ -371,7 +371,7 @@ feature {NONE} -- Ink
 			Result := hi - lo > Saturated
 		end
 
-	colour_in (a_surface: CAIRO_SURFACE; a_x0, a_y0, a_x1, a_y1: INTEGER): INTEGER
+	color_in (a_surface: CAIRO_SURFACE; a_x0, a_y0, a_x1, a_y1: INTEGER): INTEGER
 			-- Saturated pixels inside [`a_x0', `a_x1') x [`a_y0', `a_y1').
 		require
 			valid: a_surface.is_valid

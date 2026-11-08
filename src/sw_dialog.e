@@ -60,7 +60,7 @@ feature -- Element change
 feature -- Geometry
 
 	measure (a_p: SW_PAINTER; a_win_w, a_win_h: REAL_64)
-			-- Wrap the message, size the card, centre it. '%N' breaks
+			-- Wrap the message, size the card, center it. '%N' breaks
 			-- a line and a blank line stands as a paragraph gap - it
 			-- used to survive word-splitting and draw as a missing
 			-- glyph (the 1.9.0 About tofu).

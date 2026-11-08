@@ -149,7 +149,7 @@ feature -- Layout
 	Separator_width: REAL_64 = 13.0
 	Glyph_tool_width: REAL_64 = 28.0
 	Label_tool_padding: REAL_64 = 22.0
-			-- A labelled tool is its text plus this.
+			-- A labeled tool is its text plus this.
 	Tool_spacing: REAL_64 = 3.0
 			-- Between a tool and the next.
 

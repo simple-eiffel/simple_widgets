@@ -267,7 +267,7 @@ feature {NONE} -- Steps
 	order_layers
 			-- Start in id order (real nodes, then dummies); then four barycenter
 			-- sweeps, down and up, each layer sorted by the mean place of its
-			-- neighbours in the layer before (ties by id).
+			-- neighbors in the layer before (ties by id).
 		local
 			l_sweep, l_layer, l_top: INTEGER
 		do

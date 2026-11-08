@@ -30,8 +30,8 @@
     <main>
         <section id="description">
             <h2>Description</h2>
-            <p>Labelled slices swept clockwise from twelve o'clock. <code>make_donut</code> gives a hole at 55% of the radius - a TRUE ring: SW_PAINTER grew <code>wedge_fill</code>/<code>wedge_stroke</code> (arc out, <code>arc_negative</code> back, close, fill), no surface-coloured overlay fakery. The palette runs eight distinguishable steps: the four theme semantics, then their washes.</p>
-            <p>A side legend lists every slice with its colour dot and SHARE (percent of the whole); hovering a slice outlines its wedge, brightens its legend row, and a chip restates label, value and share. The math is public and assaulted headless: <code>slice_at</code> (radius band + clockwise angle walk, with the atan2 quadrant dance written out), <code>percent_of</code> (shares sum to 100), <code>angle_of</code> (normalized 0..2pi from twelve, y-down).</p>
+            <p>Labeled slices swept clockwise from twelve o'clock. <code>make_donut</code> gives a hole at 55% of the radius - a TRUE ring: SW_PAINTER grew <code>wedge_fill</code>/<code>wedge_stroke</code> (arc out, <code>arc_negative</code> back, close, fill), no surface-colored overlay fakery. The palette runs eight distinguishable steps: the four theme semantics, then their washes.</p>
+            <p>A side legend lists every slice with its color dot and SHARE (percent of the whole); hovering a slice outlines its wedge, brightens its legend row, and a chip restates label, value and share. The math is public and assaulted headless: <code>slice_at</code> (radius band + clockwise angle walk, with the atan2 quadrant dance written out), <code>percent_of</code> (shares sum to 100), <code>angle_of</code> (normalized 0..2pi from twelve, y-down).</p>
             <p>An empty pie says <em>no data yet</em> instead of pretending.</p>
             <p class="muted"><em>Source: <code>src/sw_pie_chart.e</code> &middot; since Wave 4, Proportions (2026-08-22).
             Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
@@ -53,7 +53,7 @@ pie.slice_at (px, py)       <span class="comment">-- which wedge is under a poin
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>Eight palette steps; a ninth slice reuses colours - group small slices first.</li>
+                <li>Eight palette steps; a ninth slice reuses colors - group small slices first.</li>
                 <li>No exploded slices or per-slice offsets.</li>
             </ul>
         </section>

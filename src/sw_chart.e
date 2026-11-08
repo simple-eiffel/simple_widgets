@@ -1,9 +1,9 @@
 note
 	description: "[
 		The chart chassis every plot rides: two SW_SCALE axes, a
-		plot rectangle inside labelled insets, y-gridlines and tick
+		plot rectangle inside labeled insets, y-gridlines and tick
 		labels from the 1/2/5 ladder, a clip around the data layer
-		so nothing bleeds, and the theme's semantic colours cycling
+		so nothing bleeds, and the theme's semantic colors cycling
 		per series. Descendants declare their data, refresh the
 		domains, and draw inside the plot - the frame, axes and
 		hygiene are chassis business. Wave 4 opens here.
@@ -153,7 +153,7 @@ feature -- Drawing
 		end
 
 	draw_legend_row (a_p: SW_PAINTER; a_names: ARRAYED_LIST [STRING_32])
-			-- The shared legend machinery: colour dots + names in a
+			-- The shared legend machinery: color dots + names in a
 			-- right-aligned row inside the frame's top band - as many as fit
 			-- beside the title, then "+n" for the rest.
 		local
@@ -241,7 +241,7 @@ feature -- Drawing
 		end
 
 	draw_chip_above (a_p: SW_PAINTER; a_text: READABLE_STRING_GENERAL; a_cx, a_py: REAL_64)
-			-- A chip centred over x `a_cx', above y `a_py'.
+			-- A chip centered over x `a_cx', above y `a_py'.
 		do
 			draw_chip (a_p, a_text, a_cx - chip_width (a_p, a_text) / 2.0, a_py - a_p.theme.padding * 2.75)
 		end
@@ -293,7 +293,7 @@ feature -- Formatting
 feature -- Series palette
 
 	series_color (a_index: INTEGER; a_p: SW_PAINTER): NATURAL_32
-			-- The theme's semantic colours, then their strong inks: eight
+			-- The theme's semantic colors, then their strong inks: eight
 			-- apart before they cycle.
 		do
 			inspect (a_index - 1) \\ 8 + 1

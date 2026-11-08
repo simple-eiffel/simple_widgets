@@ -52,7 +52,7 @@ feature -- Grouped bars
 			c.set_emphasized_series (1)
 			w.set_root (c)
 			w.request_render
-			assert_true ("the target keeps its colour", c.series_color (1, w.painter) = w.theme.accent)
+			assert_true ("the target keeps its color", c.series_color (1, w.painter) = w.theme.accent)
 			assert_true ("the controls go quiet: a pale ramp tone, not a text ink",
 				c.series_color (2, w.painter) = w.theme.ramp (2)
 				and c.series_color (3, w.painter) = w.theme.ramp (2)
@@ -71,8 +71,8 @@ feature -- Grouped bars
 			assert_integers_equal ("no emphasis on new series", 0, c.emphasized_series)
 		end
 
-	test_gw10_series_colours_stay_apart
-			-- Eight series, eight colours: the fifth is not the first again.
+	test_gw10_series_colors_stay_apart
+			-- Eight series, eight colors: the fifth is not the first again.
 		local
 			w: SW_WINDOW
 			c: SW_BAR_CHART

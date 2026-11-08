@@ -11,7 +11,7 @@ note
 		    bold, italic  the type's weight and slant
 
 		Every combination is legal; `is_plain' is the empty one. The
-		hue is required because every visible aspect needs a colour,
+		hue is required because every visible aspect needs a color,
 		and the palette (SW_MARK_PALETTE) is what turns a hue into an
 		ink or a wash that stays readable on a light or a dark theme.
 
@@ -108,7 +108,7 @@ feature -- Hues
 feature -- Access
 
 	hue: INTEGER
-			-- 1 .. `Hue_count'; the palette says what colour that is.
+			-- 1 .. `Hue_count'; the palette says what color that is.
 
 	has_wash: BOOLEAN
 			-- A tint behind the text.

@@ -1,11 +1,11 @@
 note
 	description: "[
-		The token vocabulary of a face: surfaces, semantic colours,
+		The token vocabulary of a face: surfaces, semantic colors,
 		washes, type roles, metrics. Widgets take every visual decision
 		from here; an application restyles by swapping the theme, never
 		by editing a widget.
 
-		Colours are 0xRRGGBB. The semantic slots are generic - accent,
+		Colors are 0xRRGGBB. The semantic slots are generic - accent,
 		success, warning, danger - so no application vocabulary leaks
 		into the toolkit.
 
@@ -260,7 +260,7 @@ feature -- Surfaces
 	ink: NATURAL_32
 	ink_muted: NATURAL_32
 
-feature -- Semantic colours
+feature -- Semantic colors
 
 	accent: NATURAL_32
 	success: NATURAL_32
@@ -352,7 +352,7 @@ feature -- Status (GW-28)
 			-- Was this theme painted from a Windows contrast theme (GW-16)?
 
 	reduces_motion: BOOLEAN
-			-- Should widgets hold still - no shimmer, no travelling bands
+			-- Should widgets hold still - no shimmer, no traveling bands
 			-- (GW-14)? Set by the application, or live by a window following
 			-- Windows' animation setting.
 
@@ -772,7 +772,7 @@ feature {NONE} -- Contrast mending (GW-16)
 feature {NONE} -- Contrast mending (GW-16, continued)
 
 	set_contrast_ramp (a_ground: NATURAL_32)
-			-- A grey ramp from `a_ground' toward black (light grounds) or
+			-- A gray ramp from `a_ground' toward black (light grounds) or
 			-- white (dark grounds): every channel moves the same way, so each
 			-- step stands further from the ground than the last.
 		local

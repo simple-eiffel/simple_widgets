@@ -1,7 +1,7 @@
 note
 	description: "[
 		The pipeline as trapezoids: stages narrow with their values,
-		centred symmetrically, each band joined to the next by its
+		centered symmetrically, each band joined to the next by its
 		slanted sides (polygon_fill earns its keep). Every band
 		names itself, its value and its CONVERSION from the first
 		stage - the number funnels exist to show. Hover brightens a

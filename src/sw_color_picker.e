@@ -1,6 +1,6 @@
 note
 	description: "[
-		Colour, drawn: a saturation/value field banded from the
+		Color, drawn: a saturation/value field banded from the
 		current hue, a hue bar, a live swatch and hex readout.
 		HSV in the model, RGB at the border - on_change delivers
 		0xRRGGBB. Every conversion is contract-clamped.
@@ -62,7 +62,7 @@ feature -- Access
 
 	from_hex (a_hex: READABLE_STRING_GENERAL): BOOLEAN
 			-- Parse '#RRGGBB', 'RRGGBB' or '#RGB' and adopt the
-			-- colour; False (and no change) on anything else.
+			-- color; False (and no change) on anything else.
 		local
 			s: STRING_32
 			i, v, d: INTEGER
@@ -134,7 +134,7 @@ feature -- Access
 		end
 
 	rgb: NATURAL_32
-			-- The current colour as 0xRRGGBB.
+			-- The current color as 0xRRGGBB.
 		do
 			Result := hsv_to_rgb (hue, saturation, brightness)
 		end

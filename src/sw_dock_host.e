@@ -3,7 +3,7 @@ note
 		True docking, as promised when the overlap law was declared:
 		workbench panels that REFLOW content instead of floating
 		over it. Three zones - west, east, south - each a real
-		widget holding its panels, around a centre document that
+		widget holding its panels, around a center document that
 		takes every pixel the zones do not. An EMPTY ZONE COLLAPSES
 		TO NOTHING - that collapse is the whole point, and the
 		zone-rectangle math (zone_rect) is public and assaulted.
@@ -18,7 +18,7 @@ note
 		                  (set_tabbed) shows one at a time under a tab
 		                  strip; activate_panel picks the one shown
 		    EDGES         each open zone's inner edge drags to resize
-		                  it (set_fraction programmatically); the centre
+		                  it (set_fraction programmatically); the center
 		                  always keeps Min_center pixels
 		    HIDE/REMOVE   hide_panel and show_panel keep a panel and
 		                  its place; remove_panel lets it go (the ids
@@ -69,7 +69,7 @@ feature -- Zones
 			-- The largest share a zone may be given.
 
 	Min_center: REAL_64 = 120.0
-			-- Pixels the centre keeps across and down, whatever the
+			-- Pixels the center keeps across and down, whatever the
 			-- zones ask for.
 
 	Edge_grip: REAL_64 = 4.0
@@ -89,7 +89,7 @@ feature {NONE} -- Initialization
 			create active_ids.make_filled (0, Zone_west, Zone_south)
 			a_center.set_parent (Current)
 		ensure
-			centred: center = a_center
+			centered: center = a_center
 			empty: panels.is_empty
 			stacked: not is_tabbed (Zone_west) and not is_tabbed (Zone_east) and not is_tabbed (Zone_south)
 		end
@@ -233,7 +233,7 @@ feature -- Access
 	zone_rect (a_zone: INTEGER): TUPLE [rx, ry, rw, rh: REAL_64]
 			-- Where a zone stands right now - COLLAPSED to zero extent
 			-- when it shows no panel, and never so wide or tall that the
-			-- centre keeps less than `Min_center'. Public reflow math.
+			-- center keeps less than `Min_center'. Public reflow math.
 		require
 			zone_known: is_zone (a_zone)
 		local
@@ -534,7 +534,7 @@ feature -- Folding and maximizing (0.46.0)
 
 	collapse_zone (a_zone: INTEGER)
 			-- Fold `a_zone' to a strip along the host's edge; its panels keep
-			-- their places and the centre takes the room.
+			-- their places and the center takes the room.
 		require
 			zone_known: is_zone (a_zone)
 		do
@@ -575,7 +575,7 @@ feature -- Folding and maximizing (0.46.0)
 
 	set_all_collapsed (a_collapsed: BOOLEAN)
 			-- Fold every zone, or open every zone, with one
-			-- `on_layout_change' - a reader's "focus" on the centre.
+			-- `on_layout_change' - a reader's "focus" on the center.
 		local
 			z: INTEGER
 			l_changed: BOOLEAN
@@ -643,7 +643,7 @@ feature -- Folding and maximizing (0.46.0)
 		end
 
 	maximize_panel (a_panel: INTEGER)
-			-- Let panel `a_panel' take the whole host - the centre and the
+			-- Let panel `a_panel' take the whole host - the center and the
 			-- other zones step aside - until `restore_maximized'.
 		require
 			panel_known: a_panel >= 1 and a_panel <= panels.count
@@ -1022,7 +1022,7 @@ feature -- Hit testing
 
 	widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET
 			-- An edge answers as the host; elsewhere the zones and the
-			-- centre answer for themselves.
+			-- center answer for themselves.
 		do
 			if contains (a_px, a_py) then
 				if maximized_panel > 0 then
@@ -1098,7 +1098,7 @@ feature -- Preferred size
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
-			-- The zones, the centre, and an accent line on the edge under
+			-- The zones, the center, and an accent line on the edge under
 			-- the pointer or in the hand.
 		local
 			e: INTEGER

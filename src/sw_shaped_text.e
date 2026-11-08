@@ -11,7 +11,7 @@ note
 		A menu item is not a paragraph: it is one short string, never
 		wrapped, redrawn every frame while the menu is up, and it lives
 		on an object that is built fresh on every open. So the menu was
-		left on the toy path - and the toy path resolves no colour-emoji
+		left on the toy path - and the toy path resolves no color-emoji
 		artwork and shapes no complex script. A menu item whose label is
 		an emoji drew as an empty box in every consumer with shaped text on.
 

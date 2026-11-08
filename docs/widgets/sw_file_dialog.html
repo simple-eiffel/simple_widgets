@@ -31,7 +31,7 @@
         <section id="description">
             <h2>Description</h2>
             <p>SW_FILE_DIALOG is a pure SW_COLUMN composition - title, mono path label, an <a href='sw_list.html'>SW_LIST</a> of entries (directories first, both halves case-insensitively sorted, '..' always on top, accent ink + trailing slash on folders), a single-line name box, and Open/Save + Cancel verbs. Present it through the window's sheet layer; nothing native appears anywhere (R7).</p>
-            <p>Behaviour: single-click a file to put its name in the box; double-click (or <code>open_entry</code>) descends into folders and accepts files; '..' climbs. <code>set_extension_filter (".png")</code> hides non-matching files (folders always survive). <code>on_accept</code> receives the full joined path; <code>on_cancel</code> and Escape leave quietly. Directory access is plain base PATH/DIRECTORY - the toolkit gains no dependency.</p>
+            <p>Behavior: single-click a file to put its name in the box; double-click (or <code>open_entry</code>) descends into folders and accepts files; '..' climbs. <code>set_extension_filter (".png")</code> hides non-matching files (folders always survive). <code>on_accept</code> receives the full joined path; <code>on_cancel</code> and Escape leave quietly. Directory access is plain base PATH/DIRECTORY - the toolkit gains no dependency.</p>
             <p>A public inspection API (<code>entry_count</code>, <code>entry_name</code>, <code>is_entry_directory</code>, <code>open_entry</code>) exists because the assault suite demanded it - and any app scripting a picker will want it too.</p>
             <p class="muted"><em>Source: <code>src/sw_file_dialog.e</code> &middot; since Wave 2 (2026-08-22).
             Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
@@ -46,7 +46,7 @@
         <span class="keyword">create</span> fd.make_open (<span <span class="keyword">class</span>="string">&quot;C:/Projects/my_app&quot;</span>)
         fd.set_extension_filter (<span <span class="keyword">class</span>="string">&quot;.e&quot;</span>)
         fd.set_on_accept (<span class="keyword">agent</span> on_file_chosen)
-        fd.set_on_cancel (<span class="keyword">agent</span> on_file_cancelled)
+        fd.set_on_cancel (<span class="keyword">agent</span> on_file_canceled)
         window.show_sheet (fd, 560.0)
     <span class="keyword">end</span>
 

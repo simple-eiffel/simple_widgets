@@ -30,7 +30,7 @@
     <main>
         <section id="description">
             <h2>Description</h2>
-            <p>One vertical bar per pixel column, drawn from a summary of lows and highs the widget reads <em>once</em> through a sampler agent: count, sample rate, and a function answering frame <code>i</code> (0-based, so simple_audio's <code>agent buffer.sample_at (?, 0)</code> passes verbatim). A nine-minute recording is twelve million samples; the widget keeps 4,096 columns of peaks and re-buckets them to whatever width it is painted at. The played part draws in the accent, the rest muted, the playhead in the caret colour, markers as warning ticks wearing a mono label. A silence is a flat centre line - which is exactly the gap a pacing gate measures.</p>
+            <p>One vertical bar per pixel column, drawn from a summary of lows and highs the widget reads <em>once</em> through a sampler agent: count, sample rate, and a function answering frame <code>i</code> (0-based, so simple_audio's <code>agent buffer.sample_at (?, 0)</code> passes verbatim). A nine-minute recording is twelve million samples; the widget keeps 4,096 columns of peaks and re-buckets them to whatever width it is painted at. The played part draws in the accent, the rest muted, the playhead in the caret color, markers as warning ticks wearing a mono label. A silence is a flat center line - which is exactly the gap a pacing gate measures.</p>
             <p>A click or drag seeks and fires <code>on_seek</code> with the second; the host that owns the player reports real progress back through <code>set_position</code>. <code>position_at</code>, <code>x_of</code> and <code>column_peaks</code> are public and assaulted headless.</p>
             <p class="muted"><em>Source: <code>src/sw_waveform.e</code> &middot; since 0.8.0 (2026-09-05), built for simple_narrate's Studio.</em></p>
         </section>
@@ -47,7 +47,7 @@ wave.set_on_seek (<span class="keyword">agent</span> player_seek)
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>Mono envelope: a stereo buffer is summarised through whichever channel the sampler answers.</li>
+                <li>Mono envelope: a stereo buffer is summarized through whichever channel the sampler answers.</li>
                 <li>No selection range, no zoom; the whole sound fills the width, v1.</li>
             </ul>
         </section>

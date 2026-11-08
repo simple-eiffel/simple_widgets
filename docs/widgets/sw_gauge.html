@@ -12,7 +12,7 @@
             <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
         </div>
         <h1>SW_GAUGE</h1>
-        <p class="tagline">The 270-degree gauge: a track band, a value band in its zone&#x27;s colour, the number large in the centre.</p>
+        <p class="tagline">The 270-degree gauge: a track band, a value band in its zone&#x27;s color, the number large in the center.</p>
     </header>
 
     <nav>
@@ -30,7 +30,7 @@
     <main>
         <section id="description">
             <h2>Description</h2>
-            <p>A classic gauge from lower-left around to lower-right. The bands are <code>wedge_fill</code> with close radii - the pie's painter primitive earning double keep as a thick arc. The value band wears its ZONE's semantic colour: accent while calm, warning from <code>warn_from</code>, danger from <code>danger_from</code> - <code>set_zones</code> declares the thresholds, and <code>zone</code> answers 0/1/2 as public, assaulted math beside <code>fraction</code>.</p>
+            <p>A classic gauge from lower-left around to lower-right. The bands are <code>wedge_fill</code> with close radii - the pie's painter primitive earning double keep as a thick arc. The value band wears its ZONE's semantic color: accent while calm, warning from <code>warn_from</code>, danger from <code>danger_from</code> - <code>set_zones</code> declares the thresholds, and <code>zone</code> answers 0/1/2 as public, assaulted math beside <code>fraction</code>.</p>
             <p><code>set_value</code> CLAMPS into the span - a gauge shows truth within its range, never a needle wrapped past the pin. A degenerate span (min = max) never sweeps. The demo's gauge is live: it drinks the render bell and swings with every frame's cost, crossing into warning exactly when the heartbeat spikes say it should.</p>
             <p class="muted"><em>Source: <code>src/sw_gauge.e</code> &middot; since Wave 4, Indicators (2026-08-22).
             Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
@@ -43,7 +43,7 @@ g.set_zones (20.0, 33.0)
 page.put (g.with_title (<span <span class="keyword">class</span>="string">&quot;last frame (live)&quot;</span>))
 
 <span class="comment">-- in the bell subscriber:</span>
-g.set_value (a_ms.to_double)   <span class="comment">-- clamped; zone colour follows</span></code></pre>
+g.set_value (a_ms.to_double)   <span class="comment">-- clamped; zone color follows</span></code></pre>
         </section>
 
         <section id="limits">

@@ -67,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed (0.48.2 - docked buttons follow their state)
 
-- `SW_DOCK_ZONE.refresh_enabling` passes the window's enabling pass on to every panel in the zone: the panels are not `sub_widgets`, so a docked button's `enabled_when` condition was asked once and never again (the Atlas's Undo point, End, Close shape and Delete stayed greyed in Simple Bible 0.7.43; only Start, made enabled, worked). Before: `dock_panel_buttons_follow_their_conditions` FAILED; after: passed.
+- `SW_DOCK_ZONE.refresh_enabling` passes the window's enabling pass on to every panel in the zone: the panels are not `sub_widgets`, so a docked button's `enabled_when` condition was asked once and never again (the Atlas's Undo point, End, Close shape and Delete stayed grayed in Simple Bible 0.7.43; only Start, made enabled, worked). Before: `dock_panel_buttons_follow_their_conditions` FAILED; after: passed.
 - `SW_ATLAS.on_measure_change`: an agent collection the measurement calls after every change (start, a point placed or taken back, end, close, delete), so state pushes to what follows it (Larry, 2026-10-31: state machines through agent collections). `atlas_tells_every_measure_change`. 601 pass.
 
 ### Added (0.48.1 - the Atlas measures: a scale, a measuring tool, the area of every shape)
@@ -178,7 +178,7 @@ Report: `.eiffel-workflow/evidence/design-scan-since-1260e13.md` (5 HIGH,
 10 MEDIUM, 7 LOW). Needs simple_shell 1.24.1. Each fix has a test that
 failed on the old code:
 - **HIGH**: on a dark or high-contrast screen the preview drew the content
-  in the screen's inks on white paper (light grey on white), unlike what
+  in the screen's inks on white paper (light gray on white), unlike what
   prints. `draw_page` now draws in the job's paper theme whatever painter
   it is given (`SW_PAINTER.twin_in_theme`).
   `scan20_the_preview_shows_paper_inks_on_a_dark_screen` (old code: "0
@@ -291,9 +291,9 @@ Needs simple_shell 1.23.0 (framed panels).
   **double click on a tab or a title bar** tears that panel off; closing
   the floating window docks it again where it was.
 - **`SW_POINTER_ROUTING`** (pushed up out of SW_WINDOW): `spine_click`,
-  `spine_wheel`, `spine_file_taker`, `ring_neighbour`, `paired_code_point`
+  `spine_wheel`, `spine_file_taker`, `ring_neighbor`, `paired_code_point`
   - the walks both kinds of window take. SW_WINDOW's `bubble_wheel` is now
-  `spine_wheel`; behaviour unchanged.
+  `spine_wheel`; behavior unchanged.
 - Tests: `gw22_double_click_floats_a_tab_and_close_docks_it`,
   `gw22_a_floating_window_takes_input_like_the_main_one`,
   `gw22_a_modal_dialog_holds_the_floating_window`, evidence
@@ -396,10 +396,10 @@ Report: `.eiffel-workflow/evidence/design-scan-since-af94462.md` (1 HIGH,
   the last block; regenerated, the world's data is identical to before.
   537 pass (GW-29's contract-build timing excepted, see 0.37.3).
 
-### Changed (0.38.0 - one place for colour arithmetic)
+### Changed (0.38.0 - one place for color arithmetic)
 
 Larry 2026-10-25: "keep going with your recommends" - the extractions the
-scans proposed, each behaviour-preserving on its own branch.
+scans proposed, each behavior-preserving on its own branch.
 - New mixin **`SW_COLOR_MATH`**: `channel_fraction`, `luminance`,
   `contrast_ratio`, `mixed`, `mixed_channel` (clamped). SW_THEME, SW_PAINTER,
   SW_HEATMAP and SW_COLOR_PICKER inherit it side by side instead of keeping
@@ -410,12 +410,12 @@ scans proposed, each behaviour-preserving on its own branch.
 ### Fixed (0.37.3 - chips and badges read in every theme)
 
 - **SW_BADGE** wrote its count in `surface` on the semantic fill and
-  **SW_CHIP** its label in the fill colour on its wash, ignoring the
+  **SW_CHIP** its label in the fill color on its wash, ignoring the
   GW-28 tokens made for exactly this: in dark the accent chip read at
   3.7:1. Badges now use `ink_on_accent` / `ink_on_success` /
   `ink_on_warning` / `ink_on_danger`, chips `ink_accent` / `ink_success` /
   `ink_warning` / `ink_danger`; a neutral chip keeps muted ink wherever it
-  reads at 4.5:1 and takes full ink in a contrast palette. The colours are
+  reads at 4.5:1 and takes full ink in a contrast palette. The colors are
   queries now (`fill_color`, `text_color`).
 - Test `chips_and_badges_read_in_every_theme` (every kind, light, dark and
   the four Windows contrast palettes) failed before the fix. 537 pass.
@@ -472,7 +472,7 @@ For clause outlines (C09): the force layout is not reproducible.
   every other edge runs left to right (postcondition); each layer ordered
   by four barycenter sweeps, ties by node id (`order_of`), cutting crossings
   (`crossing_count`); layers spaced by their widest label, nodes spread and
-  centred down the height. The same graph lays out to the same pixels every
+  centered down the height. The same graph lays out to the same pixels every
   time, and only again when the graph or the size changes. Edges start at
   the end of the tail's label (none runs through a label) and carry
   arrowheads; dragging is off in this mode. The force layout stays the
@@ -496,12 +496,12 @@ For the Atlas (P14).
   across. **Layers** (`Layer_region`, `Layer_rivers`, `Layer_lakes`,
   `Layer_routes`, `Layer_labels`, `Layer_markers`; `set_layer_shown`).
   **Routes** (`add_route`, flat lon/lat, dashed when uncertain through
-  GW-18). **Places** labelled from their own zoom (`add_place`), a label that
+  GW-18). **Places** labeled from their own zoom (`add_place`), a label that
   would overlap one already placed left out (`drawn_labels`). A **map
   palette** from the theme (`water_color`, `land_color`, `coast_color`,
   `river_color`, `route_color`) keeps land and water at least 1.2:1 apart in
   light and dark; land is the surface, so ink labels read on it.
-- `SW_THEME.mixed` is public now (the palette blends theme colours with it
+- `SW_THEME.mixed` is public now (the palette blends theme colors with it
   rather than a third copy of the channel arithmetic).
 - Found by the Galilee test and the evidence before merge: the clipped
   mainland ring (3,266 points) overflowed a fixed 3,000-point screen buffer
@@ -581,7 +581,7 @@ For the world timeline (P13, research 11-HISTORY-TIMELINE).
   `Max_hatch_lines` (2,000) lines fit; boxes the size of a screen are
   unaffected. Test `scan14_a_huge_hatch_is_bounded` (timed inside
   `without_contracts`) failed on 0.34.1.
-- Not done (MEDIUM): the colour-channel arithmetic is copied in SW_PAINTER,
+- Not done (MEDIUM): the color-channel arithmetic is copied in SW_PAINTER,
   SW_HEATMAP and SW_THEME; dash lengths scale with the text but the width
   does not; fractional scales are not snapped to whole pixels; the dash
   and hatch proportions are literals. Report:
@@ -590,7 +590,7 @@ For the world timeline (P13, research 11-HISTORY-TIMELINE).
 ### Fixed (0.34.1 - the thirteenth scan, since fc84965: the UI Automation bridge)
 
 Needs simple_shell 1.22.1. Six HIGH findings, each with a test that failed
-with the old behaviour:
+with the old behavior:
 - **Served once the window opens.** `run` renders before the native window
   exists, so the only publish named no window and polling readers got
   nothing. `on_shell_open` publishes, and a frame republishes when the
@@ -619,7 +619,7 @@ with the old behaviour:
 
 ### Added (0.34.0 - GW-18: dashes, hatches and gradients in SW_PAINTER)
 
-Phase 4 begins. Certainty classes drawn by pattern, never by colour alone.
+Phase 4 begins. Certainty classes drawn by pattern, never by color alone.
 - **Stroke styles** `Stroke_solid`, `Stroke_dashed`, `Stroke_dotted`,
   `Stroke_dash_dot`: `dashed_line`, `dashed_polyline`,
   `dashed_rrect_stroke`. Dash lengths grow with the line width and the text
@@ -627,13 +627,13 @@ Phase 4 begins. Certainty classes drawn by pattern, never by colour alone.
 - **Hatch fills** `Hatch_forward` (/), `Hatch_backward` (\), `Hatch_cross`,
   `Hatch_horizontal`, `Hatch_vertical`, `Hatch_dots`: `hatch_rect`,
   `hatch_rrect`, `hatch_polygon` (a dispute envelope, a map region), in the
-  current colour, spacing scaled with the text.
-- **Gradients**: `gradient_rect` (one colour to another, across or down) and
-  `fade_rect` (one colour from one strength to another: an uncertain edge).
+  current color, spacing scaled with the text.
+- **Gradients**: `gradient_rect` (one color to another, across or down) and
+  `fade_rect` (one color from one strength to another: an uncertain edge).
   The gradient is destroyed after use.
 - Every call saves and restores the cairo state, so no dash, clip, cap,
   width or gradient leaks into the next drawing.
-- Two cairo behaviours found by pixel tests and worked around: a
+- Two cairo behaviors found by pixel tests and worked around: a
   zero-length dash in the middle of a pattern draws nothing (the dash-dot
   dot is a half-unit dash), and many small fills under a rounded clip drew
   almost nothing (the dots are one path filled once).
@@ -707,7 +707,7 @@ is its own item.)
   `adopt_metrics_from`, so a contrast theme and an export keep it.
 - **SW_SKELETON** holds still: no shimmer is drawn and its phase does not
   advance. **SW_PROGRESS** in indeterminate mode shows the whole track at
-  half strength instead of a travelling band. (Toasts do not move; nothing
+  half strength instead of a traveling band. (Toasts do not move; nothing
   else in the toolkit animates.)
 - **SW_WINDOW, following Windows**, carries the animation setting into the
   worn theme (the light, dark or contrast member), live on event 57.
@@ -824,7 +824,7 @@ Needs simple_shell 1.20.0.
   contrast theme's system colors: one ground, one ink for body, soft and
   muted text alike, outlines and dividers in that ink, the highlight for
   accent fills, the hotlight for accent-family text, no washes (they take
-  the ground), and a grey ramp from the ground toward black or white. The
+  the ground), and a gray ramp from the ground toward black or white. The
   semantic hues stay, made readable. `is_high_contrast` says so.
 - **Mended, never refused.** A custom palette whose ink fails 4.5:1 gets
   black or white; text on the highlight likewise; a highlight that is not
@@ -1091,7 +1091,7 @@ what the measurement found.
   text selection when there is one. Ctrl+A then Ctrl+C copied a single word
   before.
 - Before/after tests: `gw10_new_series_forget_the_emphasis`,
-  `gw10_series_colours_stay_apart` and `gw07_a_click_ends_a_text_selection`
+  `gw10_series_colors_stay_apart` and `gw07_a_click_ends_a_text_selection`
   failed on the old code and pass now. Also added:
   `gw10_crowded_chart_keeps_inside` (evidence `gw10_crowded_light.png`).
   436 pass. `screen_grab_marries_cairo` fails only when the desktop cannot be read.
@@ -1153,7 +1153,7 @@ what the measurement found.
   `SW_STACKED_ITEMS.scroll_item_into_view`, `SW_TEXT_POINTING.forget_hover`
   (hover cleared when content changes).
 - `SW_MARK_PAINTER.paint_marked` is gone: it redrew a mark's text effects in
-  the text's own ink; the parallel text redraws them in the painter's colour.
+  the text's own ink; the parallel text redraws them in the painter's color.
 - Tests: the band is not content, scroll-to-row below the band, cells flowing
   and wrapping, lines hidden and shown, words selected by click and keys, and
   Genesis 1:1 in both themes (evidence gw07_interlinear_light.png and
@@ -1264,7 +1264,7 @@ document model, so the model moved out of this library.
   one, on simple_markdown 1.1.0's reader and writer (now a dependency).
 - **`SW_IN_PLACE_EDITING`**, a fourth deferred ancestor, lifted from the
   paragraph list: the box over an item, key and character forwarding with
-  Escape cancelling, live change and commit callbacks, seating. The paragraph
+  Escape canceling, live change and commit callbacks, seating. The paragraph
   list and the document view both inherit it.
 - **`SW_KEYS.simulate`**: the test runner holds no modifier down, so a key
   held on the real keyboard no longer turns a test's click into a Ctrl+click
@@ -1388,7 +1388,7 @@ and had no snapshot.
 - **Draggable edges.** Each open zone's inner edge shows the resize
   cursor and an accent line under the pointer, follows a drag inside
   `Min_fraction` .. `Max_fraction`, and announces once on release.
-  `set_fraction (zone, f)` and `fraction (zone)`. The centre always keeps
+  `set_fraction (zone, f)` and `fraction (zone)`. The center always keeps
   `Min_center` pixels; the zones are squeezed in proportion.
 - **Hide, show, remove.** `hide_panel` keeps a panel and its place, and
   its zone collapses when it was the last visible panel there.
@@ -1417,7 +1417,7 @@ and had no snapshot.
   - a tab click through the window, hit tests in the shown panel, and a
     tab as a pebble source;
   - edge drag with cursor, clamp and one announcement, the south edge,
-    and the centre minimum;
+    and the center minimum;
   - hide, show and remove with keys;
   - a snapshot round trip line for line, unnamed panels, unknown keys,
     and bad text changing nothing;
@@ -1518,7 +1518,7 @@ edition. `SW_STATUS_BAR` had only a left and a right message.
     `section (i)` and `section_at (x)`.
   - Leading sections pack after the left message, trailing ones before
     the right message, each side in the order added, with a divider
-    between neighbours.
+    between neighbors.
 - **Clickable text sections** draw in the accent ink, show the hand
   cursor, and run their agent through the window's ordinary click path.
 - **Hosted widgets** (an `SW_PROGRESS`, a Cancel `SW_BUTTON`) are real
@@ -1613,7 +1613,7 @@ render correctly in both themes from 14 to 40 px.
   reading face for a script goes first in every role (Noto Serif Hebrew for
   Hebrew, Noto Serif for Greek).
 - **`SW_SHAPING.set_small_script_face (script_class, family, below_px)`.**
-  Measured: at 14 px, regular Noto Serif Hebrew's points antialias to grey
+  Measured: at 14 px, regular Noto Serif Hebrew's points antialias to gray
   (light theme: 16 of 67 mark pixels at 3:1). The true Medium design gives
   31%. A static Medium file is its own GDI family, so asking weight 500 of the
   regular family returns Regular unchanged (600 synthesizes bold). The face
@@ -1686,7 +1686,7 @@ menus and the chat thread were shaped.
 - **The Hebrew and Greek gate**, in both themes: pointed Genesis 1:1 (WLC,
   cantillation) and polytonic John 1:1 (WH, combining marks) drawn through
   plain `SW_PAINTER.text`. Both shaped with no run skipped, no glyph 0 (tofu),
-  Hebrew right to left, ink on both lines and pixels at full ink colour.
+  Hebrew right to left, ink on both lines and pixels at full ink color.
   Evidence: `evidence/gw04_hebrew_greek_light.png` and
   `gw04_hebrew_greek_dark.png`.
 - `SW_LABEL`'s mono note restated: a mono label still builds no layout of its
@@ -1804,8 +1804,8 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   walks leftward through Hebrew, a click inside it lands where the reader
   expects, and a drag selects the letters under the pointer. Lines carry their
   own measured top, ascent and height, so a fallback face taller than the theme
-  row no longer overdraws its neighbour. The toy path is unchanged in
-  behaviour except for one deliberate fix: **a newline's caret now stands at
+  row no longer overdraws its neighbor. The toy path is unchanged in
+  behavior except for one deliberate fix: **a newline's caret now stands at
   the start of the line it opens**, not the end of the one it closes.
   New public geometry: `x_at_offset`, `line_at_offset`, `offset_at`,
   `line_count`, `is_rtl_at`, `is_shaped_layout`, `is_laid_out`,
@@ -1829,7 +1829,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
 - **New `SW_PARAGRAPH_LIST`.** A scrolling column of paragraphs of DIFFERENT
   heights - measured through the kit or the toy wrap, cached by a per-item
   revision, only the visible band painted - with a host-drawn gutter and
-  optional bands above and below (agents), a wash colour per item, a
+  optional bands above and below (agents), a wash color per item, a
   selection SET with an anchor (plain / Ctrl / Shift click; `select_only`,
   `toggle_select`, `select_range`), keyboard navigation that keeps the anchor
   in view, and ONE paragraph editable IN PLACE through a real `SW_TEXT_BOX`
@@ -1843,7 +1843,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   column, from a summary of 4,096 (low, high) columns read ONCE through a
   0-based sampler agent (`agent buffer.sample_at (?, 0)` passes verbatim) and
   re-bucketed to any paint width - a nine-minute recording is never copied.
-  Played part in the accent, unplayed muted, playhead in the caret colour,
+  Played part in the accent, unplayed muted, playhead in the caret color,
   markers as warning ticks with a mono label. Click and drag seek and fire
   `on_seek`; `position_at`, `x_of`, `column_peaks` are public and assaulted.
   Out-of-range samples clamp to full scale rather than paint outside the box.
@@ -1903,15 +1903,15 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
 
 ### Fixed (0.7.2 — THE MENU JOINS THE SHAPED PATH)
 
-- **A menu item labelled with an emoji drew an empty box.** `SW_MENU.draw`
+- **A menu item labeled with an emoji drew an empty box.** `SW_MENU.draw`
   painted its labels with `SW_PAINTER.text` — cairo's toy `show_text` — while
   `SW_CHAT_THREAD` had painted with `draw_shaped_layout` since 0.4.0 whenever the
-  painter carried a kit. Only the shaping kit resolves the Noto colour-emoji
+  painter carried a kit. Only the shaping kit resolves the Noto color-emoji
   artwork (the PNGs beside the running exe) and shapes Hebrew, Greek and every
   other complex script. So in any consumer with shaped text on, the very same
   character drew as a **picture** in a chat bubble and as a **square** in a menu
   two inches away. simple_chat's eight-emoji reaction picker found it: eight
-  identical boxes, all labelled `react`.
+  identical boxes, all labeled `react`.
 
   `SW_MENU` and `SW_MENU_BAR` now take the shaped path whenever
   `SW_PAINTER.has_shaping` — item labels, pad titles and the popup's shortcut
@@ -1945,7 +1945,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
 - **The menu measures what it paints, in both directions.** `measure` sizes items
   from `label_width` / `hint_width` — the same queries `draw` places with — so an
   emoji-only item is as wide as its picture instead of measuring nothing and
-  painting 128 pixels over its neighbour. Row height follows too: `Item_h` was a
+  painting 128 pixels over its neighbor. Row height follows too: `Item_h` was a
   flat 30 that never scaled with the theme, which stayed invisible while every
   label was one line of type, and is not survivable for a Noto picture at 2x — it
   drew over the item below and out through the menu's own top border.
@@ -1987,12 +1987,12 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   that reasons about anything is a test door that can be right while the product is
   wrong. Routing through `dispatch` means modality is asked first, exactly as the
   native queue asks it — which is why a second context click **closes** the open
-  menu rather than stacking a second one over it, and why that behaviour is now
+  menu rather than stacking a second one over it, and why that behavior is now
   under test without a line of code written for it.
 
   Four assaults, 270 → **274**: a click presents the widget's own menu and focuses
   it; a second click closes it; a click over a widget with no menu opens nothing —
-  the honest answer, since a door that opened an empty popup would put a grey
+  the honest answer, since a door that opened an empty popup would put a gray
   rectangle on screen for every stray right-click in the application; and one
   itinerary that opens the menu **with the pointer**, walks it **with the
   keyboard**, paints the frame and closes it with Escape.
@@ -2028,7 +2028,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
     widget that merged would be keeping a second, worse tally) and COPIED in
     and out, so neither side can rewrite a drawn frame through a borrowed list.
     The tuple field is `tally` and not `count` for one reason: `TUPLE` already
-    has a `count` and a labelled field cannot shadow it.
+    has a `count` and a labeled field cannot shadow it.
   - `set_reply_quote (i, author, text)` / `has_reply_quote` / `reply_quote` /
     `quote_line` / `drawn_quote` — a ONE-LINE quoted header, elided at the
     bubble's inner width. One line always: a quote allowed to wrap stops being
@@ -2121,12 +2121,12 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
     the item count, so a menu of nothing but separators terminates instead of
     spinning.
   - `SW_MENU_BAR` — `last_opened_pad`, recorded on **both** doors (a pointer click
-    and `open_menu`), and `neighbour_pad` to walk the bar with wrap. A menu opened
+    and `open_menu`), and `neighbor_pad` to walk the bar with wrap. A menu opened
     by mouse therefore answers Left/Right exactly as one opened by Alt: the two
     paths cannot drift.
   - `SW_WINDOW` — `navigate_open_menu`: Down/Up move, Home/End jump, Enter runs the
     highlighted item and closes, Escape closes running nothing, Left/Right open the
-    neighbouring pad. Public for the reason `activate_mnemonic` is public: it is the
+    neighboring pad. Public for the reason `activate_mnemonic` is public: it is the
     whole gesture. `dispatch_to_popup` gained the `when 4` branch that reaches it.
 
 - **`SW_WINDOW.deliver_key`** — a public door onto the window's own `dispatch`, so
@@ -2256,7 +2256,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   line breaks is still exactly one layout, so single-paragraph traffic sees
   no change at all.
 - **Menu underlines draw in the label's own ink.** `SW_PAINTER.hline` sets
-  the THEME OUTLINE colour itself, which under a label on a dark theme reads
+  the THEME OUTLINE color itself, which under a label on a dark theme reads
   as nothing; the mnemonic underline uses `fill_rect` in the ink the label
   just drew in, and scales its thickness with `theme.text_scale`.
 
@@ -2333,7 +2333,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   bare pane clears the selection and still bubbles up, as before.
 
 ### Changed
-- `SW_CHAT_THREAD.wrapped` is public and honours line breaks; it is now
+- `SW_CHAT_THREAD.wrapped` is public and honors line breaks; it is now
   stated over `paragraphs_of` + the new `wrap_spans`, so there is ONE wrap
   in the class. The greedy algorithm and its 4.5 px inter-word gap
   (`Space_w`) are unchanged, so a wrap that fitted at 0.5.0 still fits.
@@ -2444,7 +2444,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   14 to `theme.border_width` (12 at 1x). `SW_DIALOG`'s card border is
   `border_width × 1.5` (18 at 1x, unchanged) and its buttons obey
   `min_control_height`.
-- `SW_BUTTON`, `SW_CHECK_BOX` and `SW_DIALOG` centre their labels on the
+- `SW_BUTTON`, `SW_CHECK_BOX` and `SW_DIALOG` center their labels on the
   measured font (`SW_PAINTER.baseline_in`) instead of a constant offset from
   the bottom edge.
 
@@ -2476,7 +2476,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   count times a constant (a line carrying an emoji box is taller than one
   that does not), and the greedy word wrap is skipped. New public
   `shaped_layouts`, `laid_out_width`, `laid_out_size`, `revision`,
-  `laid_out_revision`. Every existing contract and behaviour is kept:
+  `laid_out_revision`. Every existing contract and behavior is kept:
   `add_message`, `append_to_last`, sticky-bottom, `content_h`,
   `handle_wheel` are untouched, and without a kit the widget is
   pixel-for-pixel what it was.
@@ -2546,7 +2546,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   growers stretch past. Nesting is finally lawful.
 - SW_TEXT_BOX spell menu grows the two missing verbs: Ignore "word"
   (session-scoped, the OS checker's own Ignore) and Add "word" to
-  dictionary (persists to the user's WINDOWS dictionary, honoured
+  dictionary (persists to the user's WINDOWS dictionary, honored
   by Edge and Office too) - riding simple_shell 1.5.0's
   SHELL_SPELLER teaching, assaulted live at the shell.
 - Suite 193/193.
@@ -2617,7 +2617,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   5-degree raster STAYS for is_land hit tests - two representations,
   each doing what it is best at. The timezone picker and world
   clock inherit the coastlines free.
-- Assaulted at the pixel: Kansas wears the land colour, the
+- Assaulted at the pixel: Kansas wears the land color, the
   mid-Atlantic wears the surface; ring/point counts pinned exactly
   (127 / 4,964 / biggest 1,298). Suite 188/188.
 
@@ -2682,12 +2682,12 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   typing into the readout (Enter adopts, Escape abandons).
 - SW_AVATAR photo faces: with_image clips any CAIRO_SURFACE to the
   disc via the NEW painter primitive push_circle_clip - pixel-
-  assaulted (corner stays background, centre carries the photo).
+  assaulted (corner stays background, center carries the photo).
 - Suite 180/180.
 
 ### Added (DEEPENING SWEEP 3 - the drawn-glyph set)
 - SW_PAINTER.glyph: 25 kinds drawn from primitives in the current
-  colour (plus, minus, close, check, four chevrons, search, gear,
+  color (plus, minus, close, check, four chevrons, search, gear,
   trash, pencil, folder, document, refresh, play, pause, stop, dots,
   menu, info, warning, tray, offline, error). R7-pure - no font-glyph
   gambling; the assault draws EVERY kind and proves ink at the pixel.
@@ -2716,7 +2716,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   until the pointer moves).
 - POPOVER AUTO-CLOSE-ON-PICK: the calendar raises a one-shot close
   request after a day pick (opt-in - embedded calendars unaffected);
-  the window honours it after the click settles. The date picker's
+  the window honors it after the click settles. The date picker's
   popover now closes itself the way every date field should.
 - DRAWER PEEK-CLOSE GRACE: an unpinned drawer survives one heartbeat
   with the pointer outside (about half a second) before closing;
@@ -2781,14 +2781,14 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   assault generates its own real PNG fixture through simple_cairo.
 - SW_CHAT_THREAD: role bubbles (mine/theirs/system), word wrap,
   streaming append_to_last, and the sticky-tail law every chat client
-  honours. SW_PROMPT_VIEW: submit round trip, begin/append/end token
+  honors. SW_PROMPT_VIEW: submit round trip, begin/append/end token
   streaming, say_system - the demo wires an echo engine; the real
   mate is simple_narrate.
 - SW_DICTATION - Larry's standing 'Do it', DONE: a speechkit-cluster
   SERVICE (the devkit packaging lesson - only targets wanting the
   dependency add it) riding simple_audio's recorder and simple_speech
   (whisper.cpp). Honest absence: a missing model leaves is_ready
-  False and the demo's mic button greys itself through
+  False and the demo's mic button grays itself through
   set_enabled_when. THE PROOF IS IN THE SUITE: every run loads
   ggml-base.en and transcribes a real sample wav into real words
   (honest skip on machines without the model). Runtime freight rule
@@ -2827,10 +2827,10 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   never executes them.
 - SW_FORM_GENERATOR: forms from specs; value_of / is_complete are a
   widget-free model surface, assaulted.
-- SW_ORG_CHART: tidy layered layout; the parent-centres-over-span law
+- SW_ORG_CHART: tidy layered layout; the parent-centers-over-span law
   proven; click select.
 - SW_DOCK_HOST + SW_DOCK_ZONE - TRUE DOCKING: west/east/south reflow
-  zones around a centre document; EMPTY ZONES COLLAPSE TO NOTHING
+  zones around a center document; EMPTY ZONES COLLAPSE TO NOTHING
   (zone_rect/center_rect assaulted); panels move by pebble or
   move_panel; hit-testing routes through so docked widgets stay
   alive. The overlap law's promise, kept.
@@ -2860,7 +2860,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
 - SW_MAP: a built-in coarse 72x36 equirectangular world (5-degree
   cells, authored from geography and QUIZZED by the assault: Denver
   land, mid-Atlantic sea, Sahara land, Australia land). Projection
-  math public and round-trip assaulted; labelled markers with reach
+  math public and round-trip assaulted; labeled markers with reach
   hover; lat/lon/land-or-sea readout everywhere else; and
   highlight_utc washes any UTC offset's 15-degree band - the timezone
   band-map grew into a world map exactly as the roadmap promised.
@@ -2888,7 +2888,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   contiguous moorings filling the bar): suite 120/120.
 
 ### Added (Wave 4, movement four - Densities)
-- SW_HEATMAP: rows-by-columns heat on a channel-wise two-colour blend
+- SW_HEATMAP: rows-by-columns heat on a channel-wise two-color blend
   (surface to accent) - blend math public and assaulted at endpoints
   and midpoint; heat_of normalizes against the grid's own span, flat
   grids wash to the honest midpoint; row/col edge labels; hover chip
@@ -2897,15 +2897,15 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   cumulative half, rect splits in proportion, axis alternates) with an
   EXACT assaulted property: every area fraction equals its value
   fraction to a millionth, tiles sum to the plot, item_at answers
-  uniquely at every centre. Pie's eight-step palette; labels draw only
+  uniquely at every center. Pie's eight-step palette; labels draw only
   when measured to fit. Squarified layout is the stated future.
 - 4 new assaults: suite 117/117.
 
 ### Added (Wave 4, movement three - Indicators)
 - SW_GAUGE: the 270-degree band gauge (wedge_fill with close radii IS
   a thick arc - the pie primitive earning double keep). Value band in
-  its ZONE's semantic colour (set_zones: calm/warning/danger), value
-  large in the centre, ends named. set_value CLAMPS - a gauge tells
+  its ZONE's semantic color (set_zones: calm/warning/danger), value
+  large in the center, ends named. set_value CLAMPS - a gauge tells
   truth within its range. fraction/zone public and assaulted,
   degenerate spans never sweep.
 - SW_SPARKLINE: the line chart's soul with no chrome - normalized to
@@ -2924,7 +2924,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   washes), side legend with shares, angle-arithmetic hover (the atan2
   quadrant dance written out and assaulted: slice_at, percent_of,
   angle_of all public math). Empty pies say "no data yet".
-- SW_FUNNEL_CHART: centred conversion trapezoids, alpha washed by
+- SW_FUNNEL_CHART: centered conversion trapezoids, alpha washed by
   strength, every band naming label/value/conversion-from-first;
   add_stage REQUIRES descending values - a widening funnel is a lie
   the compiler refuses. stage_at/conversion_of assaulted.
@@ -2936,12 +2936,12 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
 ### Added (WAVE 4 OPENS - charts)
 - SW_SCALE: the shared axis engine - linear domain-to-range mapping,
   the inverse (hover asks values), the 1/2/5 tick ladder, nice-domain
-  widening, honest degenerate behaviour (flat domains collapse to the
+  widening, honest degenerate behavior (flat domains collapse to the
   range midpoint and offer their one tick). Pure math, assaulted
   headless on round trips, inverted ranges, negative spans.
 - SW_CHART: the chassis - two scales re-anchored to the plot rect
   every draw, y-gridlines + ladder labels, clipped data layer, hover
-  layer hook, theme-semantic series colours, human-width number
+  layer hook, theme-semantic series colors, human-width number
   formatting. SW_PAINTER grew polyline + polygon_fill (R2 holds: the
   painter grows what charts need).
 - SW_LINE_CHART: multi-series, auto-fitted domains, with_area wash
@@ -2949,7 +2949,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   live feeds, crosshair hover snapped to the nearest sample. The demo
   streams EVERY FRAME'S RENDER COST into one via after_render_actions
   - Wave 4 drinking from the event layer on day one.
-- SW_BAR_CHART: labelled categories, 0-to-nice-max domain, slot
+- SW_BAR_CHART: labeled categories, 0-to-nice-max domain, slot
   arithmetic (bar_at - assaulted), hover rings + value chips.
   Grouped multi-series bars are a stated future.
 - SW_SCATTER_CHART: fitted-and-niced domains both axes, ringed dots,
@@ -3015,7 +3015,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   agent and applies it immediately; the window re-queries every
   installed condition after EVERY user interaction (refresh_enabling
   walks the sub_widgets spine across page and overlay). Menu-bar pads
-  join via add_menu_when - greyed and deaf when their condition says
+  join via add_menu_when - grayed and deaf when their condition says
   False (menu ITEMS were already live: builders run fresh per open).
   The rule that demanded it: the Dev Studio entries are now enabled
   ONLY while dev mode is armed - the mesh is unreachable without the
@@ -3045,11 +3045,11 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   edit_text / set_edit_text / apply_edit) so tests and future scripts
   drive the same path a human does. 13 new assaults; suite now 88/88.
 - SW_MESH (devkit): the widget tree as live physics (repulsion,
-  springs, centre gravity on the heartbeat — the Diagram Tool's
+  springs, center gravity on the heartbeat — the Diagram Tool's
   family). Depth-limited harvest (Larry counted 109 nodes and called
   for mercy; the skeleton reads at 3) with plus-badged frontier nodes
   that expand in place. The root wears the crown (accent, larger,
-  double-ringed). Colour grammar: FILL encodes kind (containers quiet,
+  double-ringed). Color grammar: FILL encodes kind (containers quiet,
   interactive accent-washed, passive barely-there), RING encodes state
   (accent selected, ink hovered, warning pinned, danger disabled).
   "names" chip + context-menu item toggle all-node class labels.
@@ -3114,13 +3114,13 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   SW_WIDGET.
 - SW_COLOR_PICKER: hue-banded SV field + spectrum bar + swatch + hex;
   HSV model (invariant-clamped), RGB border; conversions assault-
-  pinned on the corner colours. Proven live by a gloriously mis-aimed
+  pinned on the corner colors. Proven live by a gloriously mis-aimed
   click (#0C2766 delivered through the agent to the footer) and by
   Larry's magenta session (#5D4257).
 - Keyword casualty REPEAT: an attribute named 'expanded' (tally #4)
   slipped in and the compiler refused it in seconds - the tally
   protects, the gate enforces. Renamed open_nodes.
-- Suite at 73/73 (tree + colour set). Demo cluster joined the tests
+- Suite at 73/73 (tree + color set). Demo cluster joined the tests
   target (DEMO_NODE fixtures).
 - Culture batch (Larry's regional-controls notice): SW_LOCALE (date
   order/separator, names, week start, 12/24h clock, decimal mark; US
@@ -3146,7 +3146,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   selections clear honestly. Seven assaults; suite at 59/59
 - 7GUIs (Eugen Kiss's benchmark) implemented spec-exact as target
   sw_7guis: Counter, Temperature, Flight Booker, Timer, CRUD, Circle
-  Drawer, Cells - every behaviour synthetically proven. Forced four
+  Drawer, Cells - every behavior synthetically proven. Forced four
   toolkit features: SW_TEXT_BOX.set_invalid (danger tint),
   window.set_on_tick (250ms application clock; heartbeat now 250ms,
   toast life rescaled), SW_CANVAS (delegate-drawn surface), SW_SHEET
@@ -3250,7 +3250,7 @@ ElevenLabs. Larry's rule: build the reusable widget, do not fudge it.
   popup / pick / plain; toasts; drawn dialogs; pick-and-drop; live theme
   swap; frame echo), SW_WIDGET (bounds, grow/min/max, hover/pressed/focused,
   pending-menu and context-menu protocols, pebbles), SW_THEME (dark + light,
-  WCAG invariants), SW_PAINTER (colour, three type roles, text + advance,
+  WCAG invariants), SW_PAINTER (color, three type roles, text + advance,
   rects, lines, clip)
 - Controls: SW_BUTTON (4 kinds), SW_LABEL (3 roles, body wraps), SW_TEXT_BOX
   (caret, disjoint multi-select with invert, full keyboard map, clipboard,

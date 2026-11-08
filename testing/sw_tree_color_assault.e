@@ -1,7 +1,7 @@
 note
 	description: "[
 		Assault on the tree (flatten math, lazy children, identity-
-		stable selection) and the colour picker (HSV<->RGB on known
+		stable selection) and the color picker (HSV<->RGB on known
 		values, clamps).
 	]"
 
@@ -192,7 +192,7 @@ feature {NONE} -- Drop recording
 			dropped_count := a_paths.count
 		end
 
-feature -- Colour
+feature -- Color
 
 	test_hsv_to_rgb_known_values
 		local

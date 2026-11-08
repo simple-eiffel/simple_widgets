@@ -777,7 +777,7 @@ feature {NONE} -- Test runners
 			run_test (agent grouped_bars_tests.test_gw10_groups_hit_and_domain, "gw10_groups_hit_and_domain")
 			run_test (agent grouped_bars_tests.test_gw10_emphasis_quiets_the_others, "gw10_emphasis_quiets_the_others")
 			run_test (agent grouped_bars_tests.test_gw10_new_series_forget_the_emphasis, "gw10_new_series_forget_the_emphasis")
-			run_test (agent grouped_bars_tests.test_gw10_series_colours_stay_apart, "gw10_series_colours_stay_apart")
+			run_test (agent grouped_bars_tests.test_gw10_series_colors_stay_apart, "gw10_series_colors_stay_apart")
 			run_test (agent grouped_bars_tests.test_gw10_crowded_chart_keeps_inside, "gw10_crowded_chart_keeps_inside")
 			run_test (agent grouped_bars_tests.test_gw10_controls_light, "gw10_controls_light")
 			run_test (agent grouped_bars_tests.test_gw10_controls_dark, "gw10_controls_dark")

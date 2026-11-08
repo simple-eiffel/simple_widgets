@@ -18,9 +18,9 @@ note
 
 		WHAT IT SHOWS. Bars in `ink_muted' for the part not yet
 		played, `accent' for the part already played, the playhead as
-		a `danger' line (the caret colour - the one thing the eye
+		a `danger' line (the caret color - the one thing the eye
 		must find), and markers as `warning' ticks wearing their label
-		in the chip font. A silence is a flat centre line, which is
+		in the chip font. A silence is a flat center line, which is
 		exactly the gap a pacing gate measures between sentences.
 
 		SEEKING. A click or a drag inside the bars moves `position_s'
@@ -277,7 +277,7 @@ feature -- Element change
 		ensure
 			count_kept: sample_count = a_count
 			rate_kept: sample_rate = a_rate
-			summarised: summary_count = a_count.min (Resolution)
+			summarized: summary_count = a_count.min (Resolution)
 			playhead_held: position_s <= duration_s
 		end
 

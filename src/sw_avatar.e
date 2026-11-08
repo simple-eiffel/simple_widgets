@@ -2,7 +2,7 @@ note
 	description: "[
 		A person as a disc: up to two initials derived from the
 		display name, on a wash whose hue is a stable hash of the
-		name - the same person always wears the same colour.
+		name - the same person always wears the same color.
 	]"
 
 class

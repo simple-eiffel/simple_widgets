@@ -879,7 +879,7 @@ feature {NONE} -- Implementation
 
 	draw_clipped (a_p: SW_PAINTER; a_content: SW_WIDGET)
 			-- Draw a panel's content kept inside the zone: a label wider
-			-- than a narrow zone must not paint over the centre.
+			-- than a narrow zone must not paint over the center.
 		do
 			a_p.push_clip (x + 1.0, y + 1.0, (width - 2.0).max (0.0), (height - 2.0).max (0.0))
 			a_content.draw (a_p)

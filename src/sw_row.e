@@ -1,7 +1,7 @@
 note
 	description: "[
 		Children side by side at their preferred widths, separated by
-		the gap, vertically centred. This container is what deletes the
+		the gap, vertically centered. This container is what deletes the
 		'x := x + advance (label) + 8.0' arithmetic from applications.
 	]"
 
@@ -36,7 +36,7 @@ feature -- Access
 			-- wrapping (flexbox's own law).
 
 	cross_axis: INTEGER
-			-- Vertical placement within a line: 0 centred (the
+			-- Vertical placement within a line: 0 centered (the
 			-- default and the old law), 1 top, 2 stretch.
 
 	Cross_center: INTEGER = 0

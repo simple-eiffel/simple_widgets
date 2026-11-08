@@ -3,9 +3,9 @@ note
 		The classic 270-degree gauge: a track band from lower-left
 		around to lower-right (wedge_fill with close radii IS a
 		thick arc - the painter primitive earning double keep), the
-		value band over it in semantic colour - accent until the
+		value band over it in semantic color - accent until the
 		warn threshold, warning until the danger threshold, danger
-		beyond - and the value written large in the centre. The
+		beyond - and the value written large in the center. The
 		zone logic and fraction math are public, assaulted headless.
 	]"
 
@@ -116,7 +116,7 @@ feature -- Drawing
 				-- the track: lower-left around the top to lower-right
 			a_p.set_color (t.surface_variant)
 			a_p.wedge_fill (cx, cy, r, r - band, a0, a0 + {SW_PAINTER}.Two_pi * 0.75)
-				-- the value band, in its zone's colour
+				-- the value band, in its zone's color
 			if fraction > 0.0 then
 				inspect zone
 				when 2 then
@@ -129,7 +129,7 @@ feature -- Drawing
 				a_p.wedge_fill (cx, cy, r, r - band, a0,
 					a0 + {SW_PAINTER}.Two_pi * 0.75 * fraction)
 			end
-				-- the value, large in the centre
+				-- the value, large in the center
 			v := label_of (value)
 			a_p.font ({SW_PAINTER}.Role_mono, (r * 0.42).max (16.0), True)
 			a_p.set_color (t.ink)

@@ -1,9 +1,9 @@
 note
 	description: "[
-		Proportions over the chassis: labelled slices swept clockwise
+		Proportions over the chassis: labeled slices swept clockwise
 		from twelve o'clock, an optional donut hole (a TRUE ring -
 		arc out, arc_negative back, no fake overlay), an eight-step
-		palette (the four semantic colours then their washes), a side
+		palette (the four semantic colors then their washes), a side
 		legend with percentages, and angle-arithmetic hover naming
 		label, value and share. The slice math (slice_at, percent_of,
 		angle_of) is public and assaulted headless.

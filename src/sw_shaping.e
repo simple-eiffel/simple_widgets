@@ -386,7 +386,7 @@ feature -- Script faces (GW-03)
 	set_small_script_face (a_script_class: INTEGER; a_family: READABLE_STRING_GENERAL; a_below_px: INTEGER)
 			-- Below `a_below_px' pixels, shape `a_script_class' in `a_family'
 			-- instead. GW-03 measured why: at 14 px a regular face's vowel
-			-- points and cantillation antialias to grey (light theme: 24% of
+			-- points and cantillation antialias to gray (light theme: 24% of
 			-- the mark ink at 3:1); the same family's true Medium design
 			-- keeps them crisp. A static Medium file is its own GDI family
 			-- ("Noto Serif Hebrew Medium"), so asking weight 500 of the

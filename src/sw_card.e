@@ -29,7 +29,7 @@ feature {NONE} -- Initialization
 feature -- Access
 
 	stripe: NATURAL_32
-			-- Left-edge severity colour; 0 draws none.
+			-- Left-edge severity color; 0 draws none.
 
 feature -- Element change
 

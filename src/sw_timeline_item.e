@@ -3,7 +3,7 @@ note
 		One event, reign, period or dispute position on an SW_LANE_TIMELINE
 		(GW-17): a range of astronomical years, the lane it sits in, and the
 		CERTAINTY CLASS that says what kind of evidence fixes the date - drawn
-		as a pattern with a label, never by colour alone:
+		as a pattern with a label, never by color alone:
 		A fixed to the day (a tick), B fixed to the year (a solid bar), C a
 		range from a chronology scheme (a bar with its scheme badge), D a
 		scientific range (a gradient bar), E an archaeological period (a soft

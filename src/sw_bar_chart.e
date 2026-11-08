@@ -1,6 +1,6 @@
 note
 	description: "[
-		Bars over the chassis: labelled categories, each holding one bar
+		Bars over the chassis: labeled categories, each holding one bar
 		per series side by side (GW-10: a census target against its
 		frequency-matched control words), y fitted 0-to-max on the tick
 		ladder. The x axis writes category labels; with more than one
@@ -12,7 +12,7 @@ note
 		    add_bar ("Gen", 12.0)                        one series
 
 		`set_emphasized_series' draws every other series in a quiet ink so
-		the target stands out - by lightness as well as hue, never colour
+		the target stands out - by lightness as well as hue, never color
 		alone - and the legend follows (`series_color').
 	]"
 
@@ -81,8 +81,8 @@ feature -- Access
 		end
 
 	emphasized_series: INTEGER
-			-- The series drawn in its colour while the others go quiet; 0:
-			-- every series in its colour.
+			-- The series drawn in its color while the others go quiet; 0:
+			-- every series in its color.
 
 	bar_at (a_px: REAL_64): INTEGER
 			-- Which category's slot the x position falls in; 0 outside.
@@ -150,7 +150,7 @@ feature -- Access
 		end
 
 	series_color (a_index: INTEGER; a_p: SW_PAINTER): NATURAL_32
-			-- A series' colour; for every series but the emphasized one, a
+			-- A series' color; for every series but the emphasized one, a
 			-- pale tone of the theme's ramp (lighter than the emphasized bar,
 			-- not just another hue).
 		do
@@ -180,7 +180,7 @@ feature -- Element change
 		end
 
 	add_group (a_label: READABLE_STRING_GENERAL; a_values: ARRAY [REAL_64])
-			-- A category labelled `a_label', one value per series.
+			-- A category labeled `a_label', one value per series.
 		require
 			one_per_series: a_values.count = series_count
 			not_negative: across a_values as v all v >= 0.0 end
@@ -215,8 +215,8 @@ feature -- Element change
 		end
 
 	set_emphasized_series (a_series: INTEGER)
-			-- Draw `a_series' in its colour and the others quiet (0: all in
-			-- their colours).
+			-- Draw `a_series' in its color and the others quiet (0: all in
+			-- their colors).
 		require
 			valid: a_series >= 0 and a_series <= series_count
 		do
@@ -287,7 +287,7 @@ feature {NONE} -- Drawing
 		end
 
 	draw_x_axis (a_p: SW_PAINTER)
-			-- Category labels, centred under their slots; the legend when
+			-- Category labels, centered under their slots; the legend when
 			-- there are several series.
 		local
 			c: INTEGER

@@ -5,7 +5,7 @@ note
 		on screen in a test) by a double click on its tab, drawing its
 		content in the owner's theme, taking clicks, keys, characters
 		(surrogate pairs whole), Tab and the wheel as the main window does,
-		honouring the owner's accelerators and modal dialogs, and docking
+		honoring the owner's accelerators and modal dialogs, and docking
 		again where it was when asked to close.
 	]"
 

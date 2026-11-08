@@ -35,7 +35,7 @@ feature {NONE} -- Fixture
 		end
 
 	run_item (a_menu: SW_MENU; a_label: READABLE_STRING_GENERAL)
-			-- Run the item labelled `a_label', as a click on it would.
+			-- Run the item labeled `a_label', as a click on it would.
 		local
 			i: INTEGER
 		do
@@ -260,7 +260,7 @@ feature -- Dock: fold
 
 	test_zone_folds_to_a_strip_and_a_name_opens_it
 			-- The west zone's fold button through the window: the zone stands
-			-- as a strip, the centre takes the room, its edge no longer drags,
+			-- as a strip, the center takes the room, its edge no longer drags,
 			-- its panel is sent off the surface, the snapshot remembers it;
 			-- a click on the strip's name opens it again showing that panel.
 		local
@@ -288,7 +288,7 @@ feature -- Dock: fold
 			r := dh.zone_rect (dh.Zone_west)
 			assert_reals_equal ("it stands as a strip", dh.strip_extent (dh.Zone_west), r.rw, 0.000_1)
 			c := dh.center_rect
-			assert_true ("the centre took the room", c.rw > l_center_before + 100.0)
+			assert_true ("the center took the room", c.rw > l_center_before + 100.0)
 			assert_integers_equal ("a folded zone's edge does not drag", 0, dh.edge_at (r.rx + r.rw, r.ry + r.rh / 2.0))
 			assert_reals_equal ("its panel is off the surface", 0.0, dh.panels [1].content.width, 0.000_1)
 			assert_integers_equal ("the strip names its one panel", 1, z.strip_titles.count)
@@ -303,7 +303,7 @@ feature -- Dock: fold
 			dh.restore_layout (l_snapshot)
 			assert_true ("restoring the snapshot folds it again", dh.last_restore_ok and dh.is_collapsed (dh.Zone_west))
 			dh.set_all_collapsed (True)
-			assert_true ("folding everything focuses the centre", dh.is_focused_on_center)
+			assert_true ("folding everything focuses the center", dh.is_focused_on_center)
 			dh.set_all_collapsed (False)
 			assert_false ("and opening everything ends it", dh.is_focused_on_center)
 		end
@@ -312,7 +312,7 @@ feature -- Dock: maximize
 
 	test_panel_maximizes_and_restores
 			-- A maximizable panel's bar carries the maximize button; a click
-			-- lets the panel take the whole host (the centre and the other
+			-- lets the panel take the whole host (the center and the other
 			-- zones step aside, their contents off the surface); the bar's
 			-- restore button, or a double click on the bar, puts it back;
 			-- hiding a maximized panel restores the layout.
@@ -344,10 +344,10 @@ feature -- Dock: maximize
 			w.request_render
 			assert_integers_equal ("a click maximizes it", 3, dh.maximized_panel)
 			assert_reals_equal ("its zone takes the whole width", dh.width, dh.zone_rect (dh.Zone_east).rw, 0.000_1)
-			assert_reals_equal ("the centre steps aside", 0.0, dh.center_rect.rw, 0.000_1)
+			assert_reals_equal ("the center steps aside", 0.0, dh.center_rect.rw, 0.000_1)
 			assert_reals_equal ("the west zone too", 0.0, dh.zone_rect (dh.Zone_west).rw, 0.000_1)
 			assert_reals_equal ("its panel is off the surface", 0.0, dh.panels [1].content.width, 0.000_1)
-			assert_reals_equal ("and the centre's content", 0.0, dh.center.width, 0.000_1)
+			assert_reals_equal ("and the center's content", 0.0, dh.center.width, 0.000_1)
 			assert_true ("the panel fills the host under its bar", dh.panels [3].content.width > 800.0)
 			assert_true ("the panel's content answers hit tests",
 				dh.widget_at (dh.x + 200.0, dh.y + z.bar_h + 30.0) = dh.panels [3].content)
@@ -357,7 +357,7 @@ feature -- Dock: maximize
 			w.dispatch (10, (z.buttons.i_th (1).bx + 4.0).truncated_to_integer, (z.buttons.i_th (1).by + 4.0).truncated_to_integer)
 			w.request_render
 			assert_integers_equal ("a click restores it", 0, dh.maximized_panel)
-			assert_true ("the centre is back", dh.center_rect.rw > 200.0)
+			assert_true ("the center is back", dh.center_rect.rw > 200.0)
 			assert_true ("a double click on the bar maximizes", z.handle_double_click (z.x + 20.0, z.y + 4.0) and dh.maximized_panel = 3)
 			dh.hide_panel (3)
 			assert_integers_equal ("hiding the maximized panel restores the layout", 0, dh.maximized_panel)

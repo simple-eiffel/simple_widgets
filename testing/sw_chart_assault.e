@@ -271,9 +271,9 @@ feature -- Densities
 			h: SW_HEATMAP
 		do
 			create h.make (2, 2)
-			assert ("zero keeps the from-colour",
+			assert ("zero keeps the from-color",
 				h.blend (0x102030, 0xFFFFFF, 0.0) = 0x102030)
-			assert ("one lands the to-colour",
+			assert ("one lands the to-color",
 				h.blend (0x102030, 0xFFFFFF, 1.0) = 0xFFFFFF)
 			assert ("midway blends channel-wise",
 				h.blend (0x000000, 0xFF00FF, 0.5) = 0x800080)
@@ -341,7 +341,7 @@ feature -- Densities
 				i > tm.items.count
 			loop
 				sum := sum + tm.layout [i].rw * tm.layout [i].rh
-				assert_integers_equal ("each tile answers at its own centre", i,
+				assert_integers_equal ("each tile answers at its own center", i,
 					tm.item_at (tm.layout [i].rx + tm.layout [i].rw / 2.0,
 						tm.layout [i].ry + tm.layout [i].rh / 2.0))
 				i := i + 1
@@ -390,7 +390,7 @@ feature -- Flows
 			s.refresh_layout
 			assert_reals_equal ("column heights carry the 3:1 ratio",
 				3.0, s.node_rects [b].rh / s.node_rects [c].rh, 0.000_1)
-			assert_integers_equal ("a bar answers at its centre", b,
+			assert_integers_equal ("a bar answers at its center", b,
 				s.node_at (s.node_rects [b].rx + 2.0,
 					s.node_rects [b].ry + s.node_rects [b].rh / 2.0))
 		end

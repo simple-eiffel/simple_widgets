@@ -90,7 +90,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.37.2 | - | The seventeenth scan: long edges in the layered layout go round through dummy nodes, and their crossings count |
 | 0.37.1 | - | The sixteenth scan: seas inside the land (the Caspian) are water |
 | 0.37.0 | GW-23 | `SW_DIAGRAM.set_layered`: a deterministic left-to-right layered layout (cycles broken, longest-path layers, barycenter ordering) for clause outlines |
-| 0.36.0 | GW-19 | `SW_MAP` Atlas: the Mediterranean, Levant and Mesopotamia at 1:10m (`SW_REGION_GEOMETRY`), routes, places labelled at zoom without overlap, layers, a theme-drawn palette for light and dark; zoom to 128 |
+| 0.36.0 | GW-19 | `SW_MAP` Atlas: the Mediterranean, Levant and Mesopotamia at 1:10m (`SW_REGION_GEOMETRY`), routes, places labeled at zoom without overlap, layers, a theme-drawn palette for light and dark; zoom to 128 |
 | 0.35.1 | - | The fifteenth scan: disputes bracketed in every lane and never hidden, one-year bars not ticks, year marks aligned, lanes scroll |
 | 0.35.0 | GW-17 | `SW_LANE_TIMELINE`: BC/AD lanes with no year zero, certainty classes by pattern, disputes in envelopes, semantic zoom, synchronism cursor; `SW_ERA_YEARS`, `SW_TIMELINE_ITEM` |
 | 0.34.2 | - | The fourteenth scan: a hatch over a huge box is bounded (at most 20,000 dots or 2,000 lines) |
@@ -332,7 +332,7 @@ text widgets live once:
   hover cards. Scrolling gives the position, the bar, the wheel and the
   paging keys. Selection gives a selection across items, Copy and Select All.
   Editing in place gives the box laid over an item, key and character
-  forwarding with Escape cancelling, and the change and commit callbacks.
+  forwarding with Escape canceling, and the change and commit callbacks.
   Stacked items gives the block stack, the measuring pass, the visible range
   and the draw frame. `SW_DOCUMENT_VIEW`, `SW_PARAGRAPH_LIST`, `SW_PARALLEL_TEXT` and
   `SW_INTERLINEAR` stand on these. `SW_DOC_UNITS` also owns its heirs' input
@@ -379,7 +379,7 @@ back after building).
 
 ## Shaped text (simple_shaping)
 
-Cairo's "toy" text API has no bidi, no shaping, no font fallback and no colour
+Cairo's "toy" text API has no bidi, no shaping, no font fallback and no color
 emoji: Hebrew comes out left-to-right and unjoined, a mixed Hebrew/Latin line is
 scrambled, and every emoji is a tofu box. The toolkit can now hand its
 text to [simple_shaping](https://github.com/simple-eiffel/simple_shaping)
@@ -651,7 +651,7 @@ no such fallback: stage the folder.
 
 ### Menus on the shaped path (0.7.2)
 
-A menu item labelled with an emoji used to draw an **empty box**. `SW_MENU.draw`
+A menu item labeled with an emoji used to draw an **empty box**. `SW_MENU.draw`
 painted with `SW_PAINTER.text` while `SW_CHAT_THREAD` painted with
 `draw_shaped_layout`, and only the kit resolves the Noto artwork or shapes a
 complex script — so the same character was a picture in a bubble and a square in
@@ -704,7 +704,7 @@ Evidence: `evidence/menu-emoji-2x.png`.
 - One kit per window, per SCOOP processor. A background processor that wants to
   measure text creates its own.
 - Every mnemonic is a MENU BAR mnemonic. Alt+letter opens a pad; it does not
-  move focus to a labelled control, because no widget declares an `&` label
+  move focus to a labeled control, because no widget declares an `&` label
   yet. See *The Alt door* below.
 - A menu's minimum width is still a flat 160, so a menu of nothing but emoji is
   wider than the pictures need. The floor, not the measure, decides there.
@@ -883,8 +883,8 @@ image surface; see `testing/sw_margins_assault.e`.
 | R1 | One language: Eiffel over inline C externals |
 | R2 | Painter monopoly: only SW_PAINTER touches CAIRO_CONTEXT |
 | R3 | Contracts everywhere |
-| R4 | Theme is truth: tokens only, no literal colours in widgets |
-| R5 | Agents wire behaviour |
+| R4 | Theme is truth: tokens only, no literal colors in widgets |
+| R5 | Agents wire behavior |
 | R6 | Immediate feedback: every interaction shows its effect now |
 | R7 | Nothing native: menus, dialogs, file pickers — all drawn |
 | R8 | Unicode first: STRING_32 throughout, surrogates paired at the borders |
@@ -932,7 +932,7 @@ doctrine whole (graduated cells engine - ranges, aggregates with a
 stated assaulted law, TSV/CSV, command undo - under a formula-bar
 widget), pivot, kanban moved by pebbles, scheduler with assaulted
 overlap lanes, gantt with elbow dependencies, file manager, query
-builder, form generator, org chart with its centring law proven, and
+builder, form generator, org chart with its centering law proven, and
 TRUE DOCKING - reflow zones that collapse when empty.
 
 **Wave 6 shipped its buildable heart the same day**: carousel, gallery,

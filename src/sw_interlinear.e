@@ -473,7 +473,7 @@ feature {NONE} -- Layout implementation
 	flow (a_p: SW_PAINTER)
 			-- Lay every word's visible lines out, size its cell, fill rows
 			-- greedily (from the right when right to left), and seat each
-			-- line centred in its cell.
+			-- line centered in its cell.
 		local
 			t: SW_THEME
 			k, l, r: INTEGER
@@ -552,7 +552,7 @@ feature {NONE} -- Layout implementation
 				l_x := l_x + l_widths.i_th (k) + gap
 				k := k + 1
 			end
-				-- Seat every line: centred in its cell, past the label (on
+				-- Seat every line: centered in its cell, past the label (on
 				-- the reading-start side).
 			from
 				k := 1

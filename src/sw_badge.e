@@ -131,7 +131,7 @@ feature -- Drawing
 			end
 		end
 
-feature -- Colours
+feature -- Colors
 
 	fill_color (a_theme: SW_THEME): NATURAL_32
 			-- The badge's ground: its kind's semantic fill.

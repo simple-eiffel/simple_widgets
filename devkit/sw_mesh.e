@@ -2,7 +2,7 @@ note
 	description: "[
 		The widget graph as a living thing: one node per widget in
 		the tree, springs on parent/child edges, charge repulsion
-		between all pairs, a soft pull to centre - relaxing one step
+		between all pairs, a soft pull to center - relaxing one step
 		per frame on the heartbeat, the physics family of
 		EiffelStudio's Diagram Tool. Drag a node to pin it; hover
 		names it; DOUBLE-CLICK opens its SW_INSPECTOR reveal - the
@@ -139,7 +139,7 @@ feature -- Physics
 
 	relax_step
 			-- One tick of the simulation: repulsion, springs,
-			-- centre gravity, damping, bounds.
+			-- center gravity, damping, bounds.
 		local
 			i, j: INTEGER
 			dx, dy, d2, d, f: REAL_64

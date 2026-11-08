@@ -816,7 +816,7 @@ feature -- Drawing
 
 	draw (a_p: SW_PAINTER; a_text: READABLE_STRING_32; a_hidden: BOOLEAN; a_ox, a_oy: REAL_64)
 			-- `a_text' (the text this geometry was built from) with its
-			-- origin at (`a_ox', `a_oy'), in the painter's current colour:
+			-- origin at (`a_ox', `a_oy'), in the painter's current color:
 			-- on the shaped path its layouts, each line placed by the
 			-- alignment; on the toy path every character at its slot in the
 			-- body face, a bullet each when `a_hidden', line breaks drawing
@@ -867,7 +867,7 @@ feature -- Drawing
 			-- calling `a_before_run' with the run's first character AS AN
 			-- INDEX OF THE WHOLE TEXT (a run counts from its own LF piece;
 			-- this adds the piece's start), the run, its pen x and its
-			-- baseline, before painting it - where a host colours a link
+			-- baseline, before painting it - where a host colors a link
 			-- and underlines it (GW-13). Shaped path only.
 		require
 			shaped: is_shaped

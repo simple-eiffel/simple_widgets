@@ -1610,7 +1610,7 @@ feature {NONE} -- Implementation
 		end
 
 	draw_axis (a_p: SW_PAINTER)
-			-- The year strip: round years labelled BC/AD (never a year zero),
+			-- The year strip: round years labeled BC/AD (never a year zero),
 			-- with faint gridlines down the lanes.
 		local
 			t: SW_THEME

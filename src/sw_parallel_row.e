@@ -18,7 +18,7 @@ create
 feature {NONE} -- Initialization
 
 	make (a_label: READABLE_STRING_GENERAL; a_columns: INTEGER)
-			-- A verse row labelled `a_label', `a_columns' empty cells.
+			-- A verse row labeled `a_label', `a_columns' empty cells.
 		require
 			has_columns: a_columns > 0
 		local

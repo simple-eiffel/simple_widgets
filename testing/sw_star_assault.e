@@ -3,7 +3,7 @@ note
 		Stars (0.50.0, simple_bible's Favorites): the theme's gold star drawn
 		under a verse row's label, before a grid cell, and as a tree node's
 		glyph. Each test renders the widget and counts the pixels near the
-		theme's star colour: none before, many after. A starred row keeps its
+		theme's star color: none before, many after. A starred row keeps its
 		layout (the star stands in the label gutter).
 	]"
 	author: "Larry Rix"
@@ -115,13 +115,13 @@ feature -- Tests
 			v.set_document (d)
 			w.set_root (v)
 			w.request_render
-			assert_integers_equal ("no wash yet", 0, colour_pixels (w, v, w.theme.wash_star))
+			assert_integers_equal ("no wash yet", 0, color_pixels (w, v, w.theme.wash_star))
 			v.add_standing_range (1, 4, 2, 10)
 			assert_integers_equal ("the first item's part", 1, v.standing_in (1).count)
 			assert_true ("from its fifth character", v.standing_in (1).first.lo = 4)
 			assert_true ("the second item to its tenth", v.standing_in (2).first.lo = 0 and v.standing_in (2).first.hi = 10)
 			w.request_render
-			assert_true ("the gold wash is drawn", colour_pixels (w, v, w.theme.wash_star) > 50)
+			assert_true ("the gold wash is drawn", color_pixels (w, v, w.theme.wash_star) > 50)
 			v.set_document (d)
 			assert_true ("a new document has none", v.standing_ranges.is_empty)
 		end
@@ -147,7 +147,7 @@ feature -- Tests
 			end
 			v.add_standing_range (u, 0, u, 20)
 			w.request_render
-			assert_true ("the gold wash shows on the marked cell", colour_pixels (w, v, w.theme.wash_star) > 50)
+			assert_true ("the gold wash shows on the marked cell", color_pixels (w, v, w.theme.wash_star) > 50)
 		end
 
 	test_a_wrapping_line_wraps_and_breaks_no_line
@@ -248,8 +248,8 @@ feature -- Tests
 
 feature {NONE} -- Pixels
 
-	colour_pixels (a_window: SW_WINDOW; a_widget: SW_WIDGET; a_colour: NATURAL_32): INTEGER
-			-- Pixels of `a_widget''s image within 6 levels of `a_colour'.
+	color_pixels (a_window: SW_WINDOW; a_widget: SW_WIDGET; a_color: NATURAL_32): INTEGER
+			-- Pixels of `a_widget''s image within 6 levels of `a_color'.
 		local
 			img: CAIRO_SURFACE
 			mp: MANAGED_POINTER
@@ -260,7 +260,7 @@ feature {NONE} -- Pixels
 			create mp.share_from_pointer (img.data, img.stride * img.height)
 			from py := 0 until py >= img.height loop
 				from px := 0 until px >= img.width loop
-					if near (mp.read_natural_32 (py * img.stride + px * 4) & 0xFFFFFF, a_colour & 0xFFFFFF, 6) then
+					if near (mp.read_natural_32 (py * img.stride + px * 4) & 0xFFFFFF, a_color & 0xFFFFFF, 6) then
 						Result := Result + 1
 					end
 					px := px + 1
@@ -272,7 +272,7 @@ feature {NONE} -- Pixels
 
 
 	star_pixels (a_window: SW_WINDOW; a_widget: SW_WIDGET): INTEGER
-			-- Pixels of `a_widget''s image within 24 levels of the theme's star colour.
+			-- Pixels of `a_widget''s image within 24 levels of the theme's star color.
 		local
 			img: CAIRO_SURFACE
 			mp: MANAGED_POINTER

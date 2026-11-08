@@ -9,7 +9,7 @@ note
 		dependency (the library core stays lean, the devkit lesson
 		applied to packaging). HONEST ABSENCE: a missing model file
 		leaves is_ready False with every state queryable - hosts
-		grey their mic buttons through set_enabled_when instead of
+		gray their mic buttons through set_enabled_when instead of
 		crashing. transcribe_wav is the file-shaped half (assaulted
 		against a real sample); the microphone half is
 		start_listening / stop_and_deliver.
