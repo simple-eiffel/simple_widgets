@@ -12,6 +12,41 @@ note
 deferred class
 	SW_POINTER_ROUTING
 
+feature -- Access
+
+	focused: detachable SW_WIDGET
+			-- The widget this surface's keys go to, if any.
+		deferred
+		end
+
+feature -- Edit commands (W8)
+
+	can_edit_focused (a_command: INTEGER): BOOLEAN
+			-- Can the focused widget carry out edit command `a_command' now?
+		require
+			known: a_command >= {SW_WIDGET}.Edit_undo and a_command <= {SW_WIDGET}.Edit_select_all
+		do
+			Result := attached focused as al_f and then al_f.can_edit (a_command)
+		end
+
+	edit_focused (a_command: INTEGER)
+			-- An Edit menu's item: the focused widget carries out `a_command', when it can.
+		require
+			known: a_command >= {SW_WIDGET}.Edit_undo and a_command <= {SW_WIDGET}.Edit_select_all
+		do
+			if attached focused as al_f and then al_f.can_edit (a_command) then
+				al_f.perform_edit (a_command)
+				after_edit
+			end
+		end
+
+feature {NONE} -- Edit support
+
+	after_edit
+			-- Repaint after `edit_focused' changed the focused widget.
+		deferred
+		end
+
 feature {NONE} -- Walks
 
 	spine_click (a_target: SW_WIDGET; a_x, a_y: INTEGER; a_double: BOOLEAN): detachable SW_WIDGET

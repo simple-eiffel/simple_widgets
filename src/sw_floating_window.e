@@ -10,9 +10,11 @@ note
 		main window and every floating window repaint together.
 
 		The owner routes the panel's events here by slot (`handle_event').
-		While the owner shows a modal dialog, input here is ignored. Not
-		yet: popups, sheets and hover cards inside a floating window, a
-		per-widget pointer shape, publishing to screen readers.
+		While the owner shows a modal dialog, input here is ignored. Popups
+		open here too (1c): a menu bar's drop-downs and a widget's context
+		menu, drawn over the content and owning the pointer and the keys until
+		they close. Not yet: sheets and hover cards inside a floating window,
+		a per-widget pointer shape, publishing to screen readers.
 	]"
 
 class
@@ -204,6 +206,37 @@ feature -- Input
 			end
 		end
 
+feature -- Popups (1c)
+
+	popup: detachable SW_MENU
+			-- The menu open in this window - a menu bar's drop-down or a
+			-- context menu - drawn over the content; it owns the pointer and
+			-- the keys until it closes.
+
+	popup_bar: detachable SW_MENU_BAR
+			-- The menu bar `popup' dropped from, so Left and Right step along it.
+
+	show_popup (a_m: SW_MENU; a_x, a_y: INTEGER)
+			-- Open `a_m' at (`a_x', `a_y'), kept inside the client area.
+		require
+			open: is_open
+		do
+			a_m.measure (painter)
+			a_m.place (a_x, a_y, client_width, client_height)
+			popup := a_m
+		ensure
+			shown: popup = a_m
+		end
+
+	close_popup
+			-- Close `popup' (nothing happens when none is open).
+		do
+			popup := Void
+			popup_bar := Void
+		ensure
+			closed: popup = Void and popup_bar = Void
+		end
+
 feature -- Drawing
 
 	render
@@ -224,6 +257,9 @@ feature -- Drawing
 			content.set_bounds (l_inset, l_inset, (client_width - 2.0 * l_inset).max (0.0), (client_height - 2.0 * l_inset).max (0.0))
 			content.arrange (painter)
 			content.draw (painter)
+			if attached popup as al_m then
+				al_m.draw (painter)
+			end
 			render_count := render_count + 1
 		ensure
 			counted: render_count = old render_count + 1
@@ -284,7 +320,9 @@ feature {NONE} -- Input internals
 			l_taker: detachable SW_WIDGET
 			l_swallow: BOOLEAN
 		do
-			if a_type = Event_panel_press then
+			if attached popup as al_m then
+				handle_popup_input (al_m, a_type, a_x, a_y)
+			elseif a_type = Event_panel_press then
 				last_x := a_x
 				last_y := a_y
 				if attached content.widget_at (a_x, a_y) as al_target then
@@ -294,7 +332,19 @@ feature {NONE} -- Input internals
 					capture := spine_click (al_target, a_x, a_y, False)
 					if attached capture as al_c then
 						al_c.set_pressed (True)
+						if attached al_c.take_pending_menu as al_pm then
+								-- a menu bar's pad, or any widget that drops a menu
+							show_popup (al_pm, al_c.menu_left.truncated_to_integer, (al_c.y + al_c.height + 2.0).truncated_to_integer)
+							if attached {SW_MENU_BAR} al_c as al_bar then
+								popup_bar := al_bar
+							end
+						end
 					end
+				end
+				owner.after_floating_input
+			elseif a_type = Event_panel_right_press then
+				if attached content.widget_at (a_x, a_y) as al_target then
+					offer_context_menu (al_target, a_x, a_y)
 				end
 				owner.after_floating_input
 			elseif a_type = Event_panel_double then
@@ -313,14 +363,7 @@ feature {NONE} -- Input internals
 					update_hover (a_x, a_y)
 				end
 			elseif a_type = Event_panel_release then
-				if attached capture as al_c then
-					if al_c.is_pressed then
-						al_c.set_pressed (False)
-					end
-					al_c.handle_release (a_x, a_y)
-					capture := Void
-					owner.after_floating_input
-				end
+				release_capture (a_x, a_y)
 			elseif a_type = Event_panel_wheel then
 				if attached content.widget_at (last_x, last_y) as al_target then
 					spine_wheel (al_target, a_x)
@@ -366,6 +409,151 @@ feature {NONE} -- Input internals
 					owner.after_floating_input
 				end
 			end
+		end
+
+	release_capture (a_x, a_y: INTEGER)
+			-- The pointer let go: whoever took the press gets the release.
+		do
+			if attached capture as al_c then
+				if al_c.is_pressed then
+					al_c.set_pressed (False)
+				end
+				al_c.handle_release (a_x, a_y)
+				capture := Void
+				owner.after_floating_input
+			end
+		ensure
+			released: capture = Void
+		end
+
+	handle_popup_input (a_m: SW_MENU; a_type, a_x, a_y: INTEGER)
+			-- While `popup' is open it owns the pointer and the keys, as the
+			-- owner's popup does: a press picks an item or closes it, the
+			-- pointer moves the highlight, the arrows, Home, End and Enter walk
+			-- it, Escape closes it, a letter picks the item it underlines, and
+			-- Left and Right step to the menu bar's neighbors.
+		require
+			open: popup = a_m
+		local
+			idx: INTEGER
+			act: detachable PROCEDURE
+		do
+			inspect a_type
+			when Event_panel_press, Event_panel_right_press then
+				idx := a_m.item_at (a_x, a_y)
+				if idx > 0 and then a_type = Event_panel_press then
+					act := a_m.items.i_th (idx).action
+				end
+				close_popup
+				if attached act as al_act then
+					al_act.call
+				end
+				owner.after_floating_input
+			when Event_panel_release then
+					-- the press that opened the popup ends here
+				release_capture (a_x, a_y)
+			when Event_panel_move then
+				a_m.set_hover_at (a_x, a_y)
+				owner.after_floating_input
+			when Event_panel_key then
+				inspect a_x
+				when 40 then -- DOWN
+					a_m.hover_next
+				when 38 then -- UP
+					a_m.hover_previous
+				when 36 then -- HOME
+					a_m.hover_first
+				when 35 then -- END
+					a_m.hover_last
+				when 13 then -- ENTER
+					act := a_m.hovered_action
+					close_popup
+					if attached act as al_act then
+						al_act.call
+					end
+				when 39 then -- RIGHT
+					step_popup_bar (1)
+				when 37 then -- LEFT
+					step_popup_bar (-1)
+				else
+				end
+				owner.after_floating_input
+			when Event_panel_char then
+				if a_x = 27 then
+					close_popup
+				elseif a_x > 32 then
+					idx := a_m.item_for_mnemonic (a_x.to_character_32)
+					if idx > 0 then
+						act := a_m.items.i_th (idx).action
+						close_popup
+						if attached act as al_act then
+							al_act.call
+						end
+					end
+				end
+				owner.after_floating_input
+			else
+			end
+		end
+
+	step_popup_bar (a_step: INTEGER)
+			-- Left or Right with a drop-down open: open the neighboring pad's
+			-- menu instead, by screen position when the bar is mirrored.
+		require
+			stepping: a_step = 1 or a_step = -1
+		local
+			idx: INTEGER
+		do
+			if attached popup_bar as al_bar and then al_bar.is_enabled then
+				if al_bar.mirrors_layout then
+					idx := al_bar.neighbor_pad (al_bar.last_opened_pad, - a_step)
+				else
+					idx := al_bar.neighbor_pad (al_bar.last_opened_pad, a_step)
+				end
+				if idx > 0 then
+					close_popup
+					al_bar.open_menu (painter, idx)
+					if attached al_bar.take_pending_menu as al_pm then
+						show_popup (al_pm, al_bar.pad_bounds (painter, idx).left.truncated_to_integer, (al_bar.y + al_bar.height + 2.0).truncated_to_integer)
+						popup_bar := al_bar
+					end
+				end
+			end
+		end
+
+	offer_context_menu (a_target: SW_WIDGET; a_x, a_y: INTEGER)
+			-- A right press: ask the target, then its ancestors, for a menu, and
+			-- open the first one offered (focusing its widget, as the owner does).
+		local
+			w: detachable SW_WIDGET
+			l_handled: BOOLEAN
+		do
+			from
+				w := a_target
+			until
+				l_handled or w = Void
+			loop
+				if w.is_enabled then
+					if attached w.offered_menu (a_x, a_y) as al_m then
+						if w.accepts_focus and then w /= focused then
+							move_focus (w)
+						end
+						show_popup (al_m, a_x, a_y)
+						l_handled := True
+					else
+						l_handled := w.handle_context (a_x, a_y)
+					end
+				end
+				if not l_handled then
+					w := w.parent
+				end
+			end
+		end
+
+	after_edit
+			-- An Edit command changed the focused widget: the owner's itinerary repaints.
+		do
+			owner.after_floating_input
 		end
 
 	move_focus (a_to: detachable SW_WIDGET)

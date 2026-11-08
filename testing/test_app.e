@@ -208,6 +208,7 @@ feature {NONE} -- Test runners
 			run_test (agent layout_grid_tests.test_an_empty_column_takes_no_gaps, "an_empty_column_takes_no_gaps")
 			run_test (agent layout_grid_tests.test_a_cell_with_no_area_draws_nothing, "a_cell_with_no_area_draws_nothing")
 			run_test (agent layout_grid_tests.test_a_grown_window_writes_its_own_size, "a_grown_window_writes_its_own_size")
+			run_test (agent floating_tests.test_a_menu_bar_in_a_floating_window_drops_its_menu, "a_menu_bar_in_a_floating_window_drops_its_menu")
 			run_test (agent layout_grid_tests.test_columns_take_their_widest_child, "grid_columns_take_their_widest_child")
 			run_test (agent layout_grid_tests.test_homogeneous_columns_are_equal, "grid_homogeneous_columns_are_equal")
 			run_test (agent layout_grid_tests.test_a_stretching_column_takes_the_spare_width, "grid_a_stretching_column_takes_the_spare_width")

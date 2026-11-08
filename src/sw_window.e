@@ -1687,25 +1687,6 @@ feature -- Focus traversal
 
 feature -- Edit commands and shortcuts (W8)
 
-	can_edit_focused (a_command: INTEGER): BOOLEAN
-			-- Can the focused widget carry out edit command `a_command' now?
-		require
-			known: a_command >= {SW_WIDGET}.Edit_undo and a_command <= {SW_WIDGET}.Edit_select_all
-		do
-			Result := attached focused as al_f and then al_f.can_edit (a_command)
-		end
-
-	edit_focused (a_command: INTEGER)
-			-- An Edit menu's item: the focused widget carries out `a_command', when it can.
-		require
-			known: a_command >= {SW_WIDGET}.Edit_undo and a_command <= {SW_WIDGET}.Edit_select_all
-		do
-			if attached focused as al_f and then al_f.can_edit (a_command) then
-				al_f.perform_edit (a_command)
-				after_input
-			end
-		end
-
 	register_shortcut (a_spec: READABLE_STRING_GENERAL; a_action: PROCEDURE)
 			-- Run `a_action' on the keys `a_spec' names in simple_gui's neutral form
 			-- ("primary+O", "alt+F4", "F5"), anywhere in this window.
@@ -2301,6 +2282,12 @@ feature {NONE} -- Popup lifecycle
 			popup := Void
 		ensure
 			closed: popup = Void
+		end
+
+	after_edit
+			-- An Edit command changed the focused widget: the one itinerary repaints.
+		do
+			after_input
 		end
 
 	dispatch_normal (a_type, a_x, a_y: INTEGER)
