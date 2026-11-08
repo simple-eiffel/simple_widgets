@@ -1043,6 +1043,20 @@ feature -- Accessibility (GW-14)
 	accessible_name_override: detachable STRING_32
 			-- The name given with `set_accessible_name'.
 
+	accessible_description: STRING_32
+			-- What a screen reader says after the name (W10: UI Automation's HelpText,
+			-- simple_gui's accessible description). Empty by default.
+		attribute
+			create Result.make_empty
+		end
+
+	set_accessible_description (a_text: READABLE_STRING_GENERAL)
+		do
+			create accessible_description.make_from_string_general (a_text)
+		ensure
+			set: accessible_description.same_string_general (a_text)
+		end
+
 	accessible_node_id: INTEGER
 			-- This widget's node id for UI Automation: given once, the first
 			-- time it is published, and kept for its life - so a screen
