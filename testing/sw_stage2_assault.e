@@ -89,6 +89,96 @@ feature -- Tests
 			assert_strings_equal ("Left closes, reported", "1 False", l_log.i_th (2))
 		end
 
+	test_splitter_goes_down_to_a_minimum_pane
+			-- 1d: a position near an edge is kept down to `Min_pane' pixels (it
+			-- stopped at 15% and 85% before), as GTK and AppKit allow.
+		local
+			sp: SW_SPLITTER
+		do
+			create sp.make (create {SW_LABEL}.make_ui ("a"), create {SW_LABEL}.make_ui ("b"))
+			sp.set_ratio_within (40.0 / 591.0, 591.0)
+			assert ("40 of 591 kept: " + (sp.ratio * 591.0).out, (sp.ratio * 591.0 - 40.0).abs < 0.01)
+			sp.set_ratio_within (0.0, 591.0)
+			assert ("no narrower than Min_pane", (sp.ratio * 591.0 - {SW_SPLITTER}.Min_pane).abs < 0.01)
+			sp.set_ratio_within (1.0, 591.0)
+			assert ("the other pane too", ((1.0 - sp.ratio) * 591.0 - {SW_SPLITTER}.Min_pane).abs < 0.01)
+			sp.set_ratio (0.05)
+			assert ("set_ratio keeps any share", (sp.ratio - 0.05).abs < 0.000001)
+		end
+
+	test_tree_arrows_follow_the_reading_direction
+			-- 1d: in a mirrored tree Left (into the reading direction) opens and
+			-- Right closes, as GTK and AppKit do.
+		local
+			t: SW_TREE [INTEGER]
+			l_roots: ARRAYED_LIST [INTEGER]
+		do
+			create t.make (200.0)
+			create l_roots.make (1)
+			l_roots.extend (1)
+			t.set_roots (l_roots)
+			t.set_children (agent (n: INTEGER): ARRAYED_LIST [INTEGER] do create Result.make (2); if n = 1 then Result.extend (2) end end)
+			t.set_label (agent (n: INTEGER): STRING_32 do Result := n.out end)
+			t.set_layout_direction ({SW_WIDGET}.Layout_right_to_left)
+			t.select_node_quietly (1)
+			t.handle_key (37, False)
+			assert ("Left opens", t.is_expanded (1))
+			t.handle_key (39, False)
+			assert ("Right closes", not t.is_expanded (1))
+		end
+
+	test_expand_all_is_reported
+			-- 1d: the context menu's Expand all and Collapse all report each node
+			-- they open or close, as the user's own toggles are.
+		local
+			t: SW_TREE [INTEGER]
+			l_roots: ARRAYED_LIST [INTEGER]
+			l_log: ARRAYED_LIST [STRING]
+		do
+			create l_log.make (4)
+			create t.make (200.0)
+			create l_roots.make (1)
+			l_roots.extend (1)
+			t.set_roots (l_roots)
+			t.set_children (agent (n: INTEGER): ARRAYED_LIST [INTEGER]
+				do
+					create Result.make (2)
+					if n = 1 then
+						Result.extend (2)
+					elseif n = 2 then
+						Result.extend (3)
+					end
+				end)
+			t.set_label (agent (n: INTEGER): STRING_32 do Result := n.out end)
+			t.set_on_expansion (agent (n: INTEGER; open: BOOLEAN; a_log: ARRAYED_LIST [STRING]) do a_log.extend (n.out + " " + open.out) end (?, ?, l_log))
+			t.user_expand_all
+			assert_integers_equal ("two nodes opened, two reports", 2, l_log.count)
+			assert_strings_equal ("parents first", "1 True", l_log.i_th (1))
+			assert_strings_equal ("then the child", "2 True", l_log.i_th (2))
+			t.user_collapse_all
+			assert_integers_equal ("and two closings", 4, l_log.count)
+			assert ("closed", not t.is_expanded (1) and not t.is_expanded (2))
+		end
+
+	test_a_client_menu_can_replace_the_widgets_own
+			-- 1d: a text box's context menu is its own items after the client's;
+			-- with `menu_extension_replaces' only the client's (as on AppKit and GTK).
+		local
+			tb: SW_TEXT_BOX
+			l_own: INTEGER
+		do
+			create tb.make_single_line ("words")
+			if attached tb.offered_menu (1.0, 1.0) as al_m then
+				l_own := al_m.items.count
+			end
+			assert ("a text box has its own items", l_own > 0)
+			tb.set_menu_extension (agent (a_m: SW_MENU; a_x, a_y: REAL_64) do a_m.add_item ("Mine", "", True, agent do end) end)
+			assert ("added before them, with a separator", attached tb.offered_menu (1.0, 1.0) as al_m and then al_m.items.count = l_own + 2)
+			tb.set_menu_extension_replaces (True)
+			assert ("or in their place", attached tb.offered_menu (1.0, 1.0) as al_m and then al_m.items.count = 1
+				and then al_m.items.first.label.same_string ("Mine"))
+		end
+
 	test_tabs_grid_and_tree_read_their_parts
 			-- What simple_gui's shared tests read: each tab, the grid's headers and rows, the
 			-- tree's shown nodes.

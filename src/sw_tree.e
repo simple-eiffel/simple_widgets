@@ -266,6 +266,38 @@ feature -- Element change
 			only_roots: visible.count = roots.count
 		end
 
+	user_expand_all
+			-- The user's Expand all: `expand_all', each node it opened reported
+			-- through `on_expansion' (parents first).
+		local
+			l_before: ARRAYED_LIST [G]
+		do
+			l_before := open_nodes.twin
+			expand_all
+			if attached on_expansion as al_e then
+				across open_nodes as al_n loop
+					if not l_before.has (al_n) then
+						al_e.call (al_n, True)
+					end
+				end
+			end
+		end
+
+	user_collapse_all
+			-- The user's Collapse all: `collapse_all', each node it closed
+			-- reported through `on_expansion'.
+		local
+			l_before: ARRAYED_LIST [G]
+		do
+			l_before := open_nodes.twin
+			collapse_all
+			if attached on_expansion as al_e then
+				across l_before as al_n loop
+					al_e.call (al_n, False)
+				end
+			end
+		end
+
 	select_node (a_node: detachable G)
 		do
 			if a_node /= selected_node then
@@ -510,8 +542,8 @@ feature -- Input
 					Result.add_item ("Expand", "", True, agent user_expand (al_node))
 				end
 			end
-			Result.add_item ("Expand all", "", not roots.is_empty, agent expand_all)
-			Result.add_item ("Collapse all", "", not open_nodes.is_empty, agent collapse_all)
+			Result.add_item ("Expand all", "", not roots.is_empty, agent user_expand_all)
+			Result.add_item ("Collapse all", "", not open_nodes.is_empty, agent user_collapse_all)
 			Result.add_separator
 			if attached l_node as al_node then
 				Result.add_item ("Copy", "", True, agent copy_text (label_of (al_node)))
@@ -575,11 +607,22 @@ feature -- Input
 		end
 
 	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
+			-- Down and Up move the selection; the arrow that points into the
+			-- reading direction opens a node and the other closes it (Right
+			-- and Left, swapped when the tree is mirrored, as GTK and AppKit do).
 		local
-			pos: INTEGER
+			pos, l_vk: INTEGER
 		do
 			pos := selected_position
-			inspect a_vk
+			l_vk := a_vk
+			if mirrors_layout then
+				if l_vk = 37 then
+					l_vk := 39
+				elseif l_vk = 39 then
+					l_vk := 37
+				end
+			end
+			inspect l_vk
 			when 40 then
 				if pos > 0 and pos < visible.count then
 					select_node (visible.i_th (pos + 1).node)

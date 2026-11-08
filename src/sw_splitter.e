@@ -49,8 +49,10 @@ feature -- Access
 	right_child: SW_WIDGET
 
 	ratio: REAL_64
-			-- First pane's share (left, or top when horizontal),
-			-- 0.15 .. 0.85.
+			-- First pane's share (left, or top when horizontal), 0 .. 1.
+			-- A drag and `set_ratio_within' keep each pane at least
+			-- `Min_pane' pixels, as GTK and AppKit stop at the panes'
+			-- minimum sizes (it was 0.15 .. 0.85 before 1d).
 
 	is_horizontal: BOOLEAN
 			-- Does the divider run horizontally (top/bottom panes)?
@@ -74,13 +76,34 @@ feature -- Access
 
 	Divider_w: REAL_64 = 9.0
 
+	Min_pane: REAL_64 = 24.0
+			-- The narrowest a pane gets from a drag or `set_ratio_within', in pixels.
+
 feature -- Element change
 
 	set_ratio (a_ratio: REAL_64)
+			-- The first pane's share, kept within 0 .. 1.
 		do
-			ratio := a_ratio.max (0.15).min (0.85)
+			ratio := a_ratio.max (0.0).min (1.0)
 		ensure
-			clamped: ratio >= 0.15 and ratio <= 0.85
+			in_unit: ratio >= 0.0 and ratio <= 1.0
+		end
+
+	set_ratio_within (a_ratio: REAL_64; a_extent: REAL_64)
+			-- The first pane's share of `a_extent' (the panes' room, the divider
+			-- left out), keeping each pane at least `Min_pane' pixels; half and
+			-- half when there is not room for both.
+		require
+			non_negative_extent: a_extent >= 0.0
+		do
+			if a_extent > 2.0 * Min_pane then
+				set_ratio (a_ratio.max (Min_pane / a_extent).min (1.0 - Min_pane / a_extent))
+			else
+				set_ratio (0.5)
+			end
+		ensure
+			first_pane_wide_enough: a_extent > 2.0 * Min_pane implies ratio * a_extent >= Min_pane - 0.001
+			second_pane_wide_enough: a_extent > 2.0 * Min_pane implies (1.0 - ratio) * a_extent >= Min_pane - 0.001
 		end
 
 	divider_left: REAL_64
@@ -269,19 +292,19 @@ feature -- Input
 		do
 			if is_horizontal then
 				if height > Divider_w then
-					set_ratio ((a_py - y) / (height - Divider_w))
+					set_ratio_within ((a_py - y) / (height - Divider_w), height - Divider_w)
 				end
 			elseif width > Divider_w then
 				if mirrors_layout then
-					set_ratio ((x + width - a_px) / (width - Divider_w))
+					set_ratio_within ((x + width - a_px) / (width - Divider_w), width - Divider_w)
 				else
-					set_ratio ((a_px - x) / (width - Divider_w))
+					set_ratio_within ((a_px - x) / (width - Divider_w), width - Divider_w)
 				end
 			end
 		end
 
 invariant
 	children_adopted: left_child.parent = Current and right_child.parent = Current
-	ratio_clamped: ratio >= 0.15 and ratio <= 0.85
+	ratio_in_unit: ratio >= 0.0 and ratio <= 1.0
 
 end
