@@ -927,10 +927,23 @@ feature -- Input
 			set: menu_extension = a_action
 		end
 
+	menu_extension_replaces: BOOLEAN
+			-- Do the client's `menu_extension' items stand in for the widget's
+			-- own `context_menu' (as AppKit's and GTK's context menus replace a
+			-- control's defaults), rather than come before them?
+
+	set_menu_extension_replaces (a_on: BOOLEAN)
+		do
+			menu_extension_replaces := a_on
+		ensure
+			set: menu_extension_replaces = a_on
+		end
+
 	offered_menu (a_px, a_py: REAL_64): detachable SW_MENU
 			-- What a right-click at the point presents: the client's
 			-- `menu_extension' items, a separator, then the widget's own
-			-- `context_menu'; Void when neither offers an item.
+			-- `context_menu' (left out when `menu_extension_replaces');
+			-- Void when nothing offers an item.
 		local
 			l_own: detachable SW_MENU
 		do
@@ -938,7 +951,7 @@ feature -- Input
 			if attached menu_extension as al_extension then
 				create Result.make
 				al_extension.call ([Result, a_px, a_py])
-				if attached l_own as al_own and then not al_own.items.is_empty then
+				if not menu_extension_replaces and then attached l_own as al_own and then not al_own.items.is_empty then
 					if not Result.items.is_empty then
 						Result.add_separator
 					end

@@ -160,6 +160,25 @@ feature -- Tests
 			assert ("closed", not t.is_expanded (1) and not t.is_expanded (2))
 		end
 
+	test_a_client_menu_can_replace_the_widgets_own
+			-- 1d: a text box's context menu is its own items after the client's;
+			-- with `menu_extension_replaces' only the client's (as on AppKit and GTK).
+		local
+			tb: SW_TEXT_BOX
+			l_own: INTEGER
+		do
+			create tb.make_single_line ("words")
+			if attached tb.offered_menu (1.0, 1.0) as al_m then
+				l_own := al_m.items.count
+			end
+			assert ("a text box has its own items", l_own > 0)
+			tb.set_menu_extension (agent (a_m: SW_MENU; a_x, a_y: REAL_64) do a_m.add_item ("Mine", "", True, agent do end) end)
+			assert ("added before them, with a separator", attached tb.offered_menu (1.0, 1.0) as al_m and then al_m.items.count = l_own + 2)
+			tb.set_menu_extension_replaces (True)
+			assert ("or in their place", attached tb.offered_menu (1.0, 1.0) as al_m and then al_m.items.count = 1
+				and then al_m.items.first.label.same_string ("Mine"))
+		end
+
 	test_tabs_grid_and_tree_read_their_parts
 			-- What simple_gui's shared tests read: each tab, the grid's headers and rows, the
 			-- tree's shown nodes.
