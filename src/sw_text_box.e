@@ -724,7 +724,8 @@ feature -- Drawing
 				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
 			end
 			n := text.count
-			if n = 0 and then not placeholder.is_empty and then not is_hiding then
+				-- Password boxes show their hint too: it is no secret (GTK and AppKit agree).
+			if n = 0 and then not placeholder.is_empty then
 				a_p.set_color (t.ink_muted)
 				a_p.text (ox, oy + asc, placeholder)
 			end
