@@ -19,7 +19,9 @@ feature -- Shared vocabulary (W10)
 			-- `a_role': GTK's accessible-role nicknames ("button", "text-box", "label",
 			-- "list", "list-item", "menu-bar", "menu-item", "menu", "img", "checkbox",
 			-- "slider", "application" ...). Panes, groups and custom controls are
-			-- "generic", which a tree reading leaves out, as GTK's does.
+			-- "generic", which a tree reading leaves out, as GTK's does. A table reads as GTK
+			-- 4.14's column view does (probed): "tree-grid", its rows "row", headers
+			-- "column-header".
 		do
 			inspect a_role
 			when Role_button then Result := "button"
@@ -46,9 +48,9 @@ feature -- Shared vocabulary (W10)
 			when Role_tool_tip then Result := "tooltip"
 			when Role_tree then Result := "tree"
 			when Role_tree_item then Result := "tree-item"
-			when Role_data_grid then Result := "grid"
-			when Role_data_item then Result := "grid-cell"
-			when Role_table then Result := "table"
+			when Role_data_grid, Role_table then Result := "tree-grid"
+			when Role_data_item then Result := "row"
+			when Role_header then Result := "row"
 			when Role_header_item then Result := "column-header"
 			when Role_document then Result := "document"
 			when Role_separator then Result := "separator"
