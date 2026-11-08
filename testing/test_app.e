@@ -193,6 +193,9 @@ feature {NONE} -- Test runners
 			run_test (agent rtl_layout_tests.test_a_grid_mirrors_its_columns, "a_grid_mirrors_its_columns")
 			run_test (agent rtl_layout_tests.test_direction_is_inherited_unless_set, "direction_is_inherited_unless_set")
 			run_test (agent rtl_layout_tests.test_a_row_child_can_sit_at_the_bottom, "a_row_child_can_sit_at_the_bottom")
+			run_test (agent rtl_layout_tests.test_a_menu_bar_starts_at_the_right, "a_menu_bar_starts_at_the_right")
+			run_test (agent rtl_layout_tests.test_tabs_start_at_the_right, "tabs_start_at_the_right")
+			run_test (agent rtl_layout_tests.test_a_data_grid_puts_its_first_column_at_the_right, "a_data_grid_puts_its_first_column_at_the_right")
 			create visibility_tests
 			run_test (agent visibility_tests.test_a_hidden_child_leaves_no_gap_in_a_row, "a_hidden_child_leaves_no_gap_in_a_row")
 			run_test (agent visibility_tests.test_a_hidden_child_leaves_no_gap_in_a_column, "a_hidden_child_leaves_no_gap_in_a_column")
