@@ -23,7 +23,7 @@ feature {NONE} -- Fixture
 		do
 			create env
 			if attached env.item ("SIMPLE_EIFFEL") as al_root and then not al_root.is_empty then
-				Result := al_root.to_string_32 + {STRING_32} "\" + a_relative.to_string_32
+				Result := al_root.to_string_32 + {STRING_32} "/" + a_relative.to_string_32
 			else
 				Result := a_relative.to_string_32
 			end
@@ -206,9 +206,9 @@ feature -- Dictation
 			d: SW_DICTATION
 			words: STRING_32
 		do
-			create d.make (fleet_path ("simple_speech\models\ggml-base.en.bin"))
+			create d.make (fleet_path ("simple_speech/models/ggml-base.en.bin"))
 			if d.is_ready then
-				words := d.transcribe_wav (fleet_path ("simple_speech\sherpa-onnx\test_audio_short.wav"))
+				words := d.transcribe_wav (fleet_path ("simple_speech/sherpa-onnx/test_audio_short.wav"))
 				assert ("real speech became real words", not words.is_empty)
 			else
 				assert ("model absent on this machine - honest skip", not d.is_ready)

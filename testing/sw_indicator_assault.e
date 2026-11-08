@@ -218,7 +218,7 @@ feature -- Scroll area (two-axis)
 			create sa.make (150.0)
 				-- the docs logo announces 1408 natural width: wider
 				-- than the viewport, so the horizontal axis engages
-			create wide.make_from_file (fleet_path ("simple_widgets\docs\images\logo.png"))
+			create wide.make_from_file (fleet_path ("simple_widgets/docs/images/logo.png"))
 			sa.set_child (wide)
 			sa.set_bounds (0.0, 0.0, 300.0, 150.0)
 			sa.arrange (p2)
@@ -240,7 +240,7 @@ feature {NONE} -- Fixture
 		do
 			create env
 			if attached env.item ("SIMPLE_EIFFEL") as al_root and then not al_root.is_empty then
-				Result := al_root.to_string_32 + {STRING_32} "\" + a_relative.to_string_32
+				Result := al_root.to_string_32 + {STRING_32} "/" + a_relative.to_string_32
 			else
 				Result := a_relative.to_string_32
 			end

@@ -293,14 +293,13 @@ feature -- Scan 11 (since 02dae89)
 feature {NONE} -- Memory
 
 	commit_bytes: NATURAL_64
-			-- The process's committed private memory (PagefileUsage), through
-			-- K32GetProcessMemoryInfo looked up at run time (its psapi.h
-			-- declaration is gated above the Windows 2000 target ISE builds
-			-- for); 0 when unavailable.
+			-- The process's own memory: committed private memory on Windows, the
+			-- physical footprint on macOS, resident pages on Linux (testing/Clib/
+			-- sw_test_memory.h); 0 when unavailable.
 		external
-			"C inline use <windows.h>, <psapi.h>"
+			"C inline use %"sw_test_memory.h%""
 		alias
-			"PROCESS_MEMORY_COUNTERS l_pmc; BOOL (WINAPI *l_f)(HANDLE, PROCESS_MEMORY_COUNTERS*, DWORD); l_f = (BOOL (WINAPI *)(HANDLE, PROCESS_MEMORY_COUNTERS*, DWORD)) GetProcAddress (GetModuleHandleW (L%"kernel32.dll%"), %"K32GetProcessMemoryInfo%"); l_pmc.cb = sizeof (l_pmc); if (l_f && l_f (GetCurrentProcess (), &l_pmc, sizeof (l_pmc))) return (EIF_NATURAL_64) l_pmc.PagefileUsage; return 0;"
+			"return (EIF_NATURAL_64) sw_test_commit_bytes ();"
 		end
 
 feature {NONE} -- Pixels
