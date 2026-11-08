@@ -47,6 +47,7 @@
 		<setting name="total_order_on_reals" value="true"/>
 		<library name="simple_testing" location="$SIMPLE_EIFFEL/simple_testing/simple_testing.ecf"/>
 		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
+		<external_include location="$(SIMPLE_EIFFEL)/simple_widgets/testing/Clib"/>
 		<cluster name="test" location=".\testing\" recursive="true"/>
 		<cluster name="guis7" location=".\demo7guis\" recursive="true"/>
 		<library name="simple_audio" location="$SIMPLE_EIFFEL/simple_audio/simple_audio.ecf"/>
