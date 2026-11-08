@@ -536,13 +536,15 @@ feature -- Input
 			-- window's Tab ring, collected purely so a headless
 			-- assault can hold it to account.
 		do
-			if accepts_focus and is_enabled then
-				a_acc.extend (Current)
-			end
-			across
-				sub_widgets as sw
-			loop
-				sw.focusables (a_acc)
+			if not is_hidden then
+				if accepts_focus and is_enabled then
+					a_acc.extend (Current)
+				end
+				across
+					sub_widgets as sw
+				loop
+					sw.focusables (a_acc)
+				end
 			end
 		ensure
 			grew_or_not: a_acc.count >= old a_acc.count

@@ -145,7 +145,10 @@ feature {NONE} -- Test runners
 			run_test (agent visibility_tests.test_a_hidden_child_leaves_no_gap_in_a_column, "a_hidden_child_leaves_no_gap_in_a_column")
 			run_test (agent visibility_tests.test_a_hidden_widget_is_not_published, "a_hidden_widget_is_not_published")
 			run_test (agent visibility_tests.test_a_hidden_grid_cell_takes_no_width, "a_hidden_grid_cell_takes_no_width")
+			run_test (agent visibility_tests.test_hiding_the_focused_widget_passes_the_focus_on, "hiding_the_focused_widget_passes_the_focus_on")
 			create layout_grid_tests
+			run_test (agent layout_grid_tests.test_homogeneous_wins_over_a_stretching_column, "homogeneous_wins_over_a_stretching_column")
+			run_test (agent layout_grid_tests.test_an_empty_column_takes_no_gaps, "an_empty_column_takes_no_gaps")
 			run_test (agent layout_grid_tests.test_columns_take_their_widest_child, "grid_columns_take_their_widest_child")
 			run_test (agent layout_grid_tests.test_homogeneous_columns_are_equal, "grid_homogeneous_columns_are_equal")
 			run_test (agent layout_grid_tests.test_a_stretching_column_takes_the_spare_width, "grid_a_stretching_column_takes_the_spare_width")

@@ -91,6 +91,7 @@ feature -- Tests
 		do
 			create w.make ("hide", 0, 0, 600, 200, create {SW_THEME}.make_light)
 			create g.make
+			g.set_gaps (10.0, 10.0)
 			create a.make_ui ("a")
 			create b.make_ui ("a very wide middle caption")
 			create c.make_ui ("c")
@@ -103,7 +104,42 @@ feature -- Tests
 			b.set_visible (False)
 			w.request_render
 			assert ("column 3 moves left", c.x < l_with)
+			assert ("by the whole column and one gap", (c.x - (a.x + a.width + 10.0)).abs < 0.5)
 			assert ("the hidden cell has no extent", b.width = 0.0)
+		end
+
+	test_hiding_the_focused_widget_passes_the_focus_on
+			-- MACMINI's review: keystrokes must not go to an invisible box.
+		local
+			w: SW_WINDOW
+			col: SW_COLUMN
+			t1, t2, t3: SW_TEXT_BOX
+			fs: ARRAYED_LIST [SW_WIDGET]
+		do
+			create w.make ("hide", 0, 0, 400, 400, create {SW_THEME}.make_light)
+			create col.make
+			create t1.make_single_line ("")
+			create t2.make_single_line ("")
+			create t3.make_single_line ("")
+			col.put (t1)
+			col.put (t2)
+			col.put (t3)
+			w.set_root (col)
+			w.request_render
+			w.give_focus (t2)
+			t2.set_visible (False)
+			w.request_render
+			assert ("the hidden box let go", not t2.is_focused)
+			assert ("the next one has it", t3.is_focused and w.focused = t3)
+			create fs.make (3)
+			col.focusables (fs)
+			assert_integers_equal ("the hidden box left the Tab ring", 2, fs.count)
+			t3.set_visible (False)
+			w.request_render
+			assert ("wraps to the first", t1.is_focused)
+			t1.set_visible (False)
+			w.request_render
+			assert ("none left: no focus", w.focused = Void)
 		end
 
 end
