@@ -124,6 +124,8 @@ feature {NONE} -- Test runners
 
 	canvas_present_tests: SW_CANVAS_PRESENT_ASSAULT
 
+	modal_w9_tests: SW_MODAL_W9_ASSAULT
+
 	menu_w8_tests: SW_MENU_W8_ASSAULT
 
 	chrome_tests: SW_CHROME_ASSAULT
@@ -146,6 +148,10 @@ feature {NONE} -- Test runners
 
 	run_list_tests
 		do
+			create modal_w9_tests
+			run_test (agent modal_w9_tests.test_run_modal_until_returns_without_a_window, "run_modal_until_returns_without_a_window")
+			run_test (agent modal_w9_tests.test_ask_shows_ok_and_cancel, "ask_shows_ok_and_cancel")
+			run_test (agent modal_w9_tests.test_choose_file_offers_the_filtered_dialog, "choose_file_offers_the_filtered_dialog")
 			create menu_w8_tests
 			run_test (agent menu_w8_tests.test_neutral_shortcuts_parse, "neutral_shortcuts_parse")
 			run_test (agent menu_w8_tests.test_a_registered_shortcut_runs_its_action, "a_registered_shortcut_runs_its_action")
