@@ -9,6 +9,46 @@ inherit
 
 feature -- Tests
 
+	test_homogeneous_wins_over_a_stretching_column
+			-- MACMINI's review: homogeneous columns stay equal even with a stretching column.
+		local
+			w: SW_WINDOW
+			g: SW_GRID
+			a, b: SW_LABEL
+		do
+			create w.make ("grid", 0, 0, 600, 200, create {SW_THEME}.make_light)
+			create g.make
+			create a.make_ui ("a")
+			create b.make_ui ("a much wider caption")
+			g.put (a, 1, 1)
+			g.put (b, 1, 2)
+			g.set_homogeneous_columns (True)
+			g.set_stretching_column (2)
+			w.set_root (g)
+			w.request_render
+			assert ("equal columns", (a.width - b.width).abs < 0.5)
+			assert ("they fill the grid", (a.width + b.width + (b.x - a.x - a.width) - g.width).abs < 0.5)
+		end
+
+	test_an_empty_column_takes_no_gaps
+			-- A column nothing covers has no width and no gap on either side (as GtkGrid).
+		local
+			w: SW_WINDOW
+			g: SW_GRID
+			a, c: SW_LABEL
+		do
+			create w.make ("grid", 0, 0, 600, 200, create {SW_THEME}.make_light)
+			create g.make
+			g.set_gaps (10.0, 10.0)
+			create a.make_ui ("a")
+			create c.make_ui ("c")
+			g.put (a, 1, 1)
+			g.put (c, 1, 3)
+			w.set_root (g)
+			w.request_render
+			assert ("one gap between a and c", (c.x - (a.x + a.width) - 10.0).abs < 0.5)
+		end
+
 	test_columns_take_their_widest_child
 			-- A column is as wide as its widest single-column child; cells in a column line up.
 		local

@@ -139,6 +139,8 @@ feature {NONE} -- Test runners
 	run_list_tests
 		do
 			create layout_grid_tests
+			run_test (agent layout_grid_tests.test_homogeneous_wins_over_a_stretching_column, "homogeneous_wins_over_a_stretching_column")
+			run_test (agent layout_grid_tests.test_an_empty_column_takes_no_gaps, "an_empty_column_takes_no_gaps")
 			run_test (agent layout_grid_tests.test_columns_take_their_widest_child, "grid_columns_take_their_widest_child")
 			run_test (agent layout_grid_tests.test_homogeneous_columns_are_equal, "grid_homogeneous_columns_are_equal")
 			run_test (agent layout_grid_tests.test_a_stretching_column_takes_the_spare_width, "grid_a_stretching_column_takes_the_spare_width")

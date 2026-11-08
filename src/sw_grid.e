@@ -3,9 +3,11 @@ note
 		Widgets in rows and columns (W4a, simple_gui's GUI_GRID on Windows). Rows and
 		columns are 1-based. A column is as wide as its widest single-column child, a row
 		as tall as its tallest single-row child; a spanning child covers its cells but does
-		not size them. Children fill their cells. Gaps default to the theme's padding.
-		With homogeneous columns every column takes the widest width; a stretching column
-		takes the spare width.
+		not size them, and is clipped to them. Children fill their cells. Gaps default to
+		the theme's padding and sit only between occupied lines: a row or column nothing
+		covers has no size and no gaps (as GtkGrid). With homogeneous columns every column
+		takes the widest width and they share the spare width; homogeneous takes precedence
+		over a stretching column, which otherwise takes the spare width.
 	]"
 
 class
@@ -129,9 +131,7 @@ feature -- Layout
 			across l_widths as ic loop
 				Result := Result + ic
 			end
-			if l_widths.count > 1 then
-				Result := Result + effective_column_gap (a_p) * (l_widths.count - 1)
-			end
+			Result := Result + gaps_total (occupied (True), effective_column_gap (a_p))
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
@@ -143,9 +143,7 @@ feature -- Layout
 			across l_heights as ic loop
 				Result := Result + ic
 			end
-			if l_heights.count > 1 then
-				Result := Result + effective_row_gap (a_p) * (l_heights.count - 1)
-			end
+			Result := Result + gaps_total (occupied (False), effective_row_gap (a_p))
 		end
 
 	arrange (a_p: SW_PAINTER)
@@ -153,29 +151,30 @@ feature -- Layout
 		local
 			l_widths, l_heights, l_x, l_y: ARRAYED_LIST [REAL_64]
 			l_cg, l_rg, l_w, l_h: REAL_64
-			i: INTEGER
 		do
 			l_cg := effective_column_gap (a_p)
 			l_rg := effective_row_gap (a_p)
 			l_widths := column_widths (a_p, width)
 			l_heights := row_heights (a_p, l_widths)
-			l_x := starts (x, l_widths, l_cg)
-			l_y := starts (y, l_heights, l_rg)
+			l_x := starts (x, l_widths, occupied (True), l_cg)
+			l_y := starts (y, l_heights, occupied (False), l_rg)
 			across cells as ic loop
 				l_w := spanned (l_widths, ic.column, ic.columns, l_cg)
 				l_h := spanned (l_heights, ic.row, ic.rows, l_rg)
 				ic.widget.set_bounds (l_x.i_th (ic.column), l_y.i_th (ic.row), l_w, l_h)
 				ic.widget.arrange (a_p)
 			end
-			i := 0
 		end
 
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
+			-- Each child, clipped to its cells.
 		do
 			across children as ic loop
+				a_p.push_clip (ic.x, ic.y, ic.width, ic.height)
 				ic.draw (a_p)
+				a_p.pop_clip
 			end
 		end
 
@@ -258,24 +257,24 @@ feature {NONE} -- Implementation
 		local
 			l_natural, l_spare: REAL_64
 			n, i: INTEGER
+			l_occupied: ARRAYED_LIST [BOOLEAN]
 		do
 			Result := natural_widths (a_p)
+			l_occupied := occupied (True)
 			n := Result.count
 			across Result as ic loop
 				l_natural := l_natural + ic
 			end
-			if n > 1 then
-				l_natural := l_natural + effective_column_gap (a_p) * (n - 1)
-			end
+			l_natural := l_natural + gaps_total (l_occupied, effective_column_gap (a_p))
 			l_spare := a_width - l_natural
 			if l_spare > 0.0 and n > 0 then
-				if stretching_column >= 1 and stretching_column <= n then
-					Result.put_i_th (Result.i_th (stretching_column) + l_spare, stretching_column)
-				elseif has_homogeneous_columns then
+				if has_homogeneous_columns then
 					from i := 1 until i > n loop
 						Result.put_i_th (Result.i_th (i) + l_spare / n, i)
 						i := i + 1
 					end
+				elseif stretching_column >= 1 and stretching_column <= n then
+					Result.put_i_th (Result.i_th (stretching_column) + l_spare, stretching_column)
 				end
 			end
 		ensure
@@ -299,19 +298,69 @@ feature {NONE} -- Implementation
 			one_per_row: Result.count = row_count
 		end
 
-	starts (a_origin: REAL_64; a_sizes: ARRAYED_LIST [REAL_64]; a_gap: REAL_64): ARRAYED_LIST [REAL_64]
-			-- Where each column (or row) begins.
+	starts (a_origin: REAL_64; a_sizes: ARRAYED_LIST [REAL_64]; a_occupied: ARRAYED_LIST [BOOLEAN];
+			a_gap: REAL_64): ARRAYED_LIST [REAL_64]
+			-- Where each column (or row) begins; an empty line adds no gap.
+		require
+			matched: a_occupied.count = a_sizes.count
 		local
 			l_at: REAL_64
+			i: INTEGER
 		do
 			create Result.make (a_sizes.count)
 			l_at := a_origin
-			across a_sizes as ic loop
+			from i := 1 until i > a_sizes.count loop
 				Result.extend (l_at)
-				l_at := l_at + ic + a_gap
+				l_at := l_at + a_sizes.i_th (i)
+				if a_occupied.i_th (i) then
+					l_at := l_at + a_gap
+				end
+				i := i + 1
 			end
 		ensure
 			one_each: Result.count = a_sizes.count
+		end
+
+	occupied (a_columns: BOOLEAN): ARRAYED_LIST [BOOLEAN]
+			-- For each column (`a_columns') or row: does any cell cover it?
+		local
+			i, l_first, l_count: INTEGER
+		do
+			if a_columns then
+				create Result.make_filled (column_count)
+			else
+				create Result.make_filled (row_count)
+			end
+			across cells as ic loop
+				if a_columns then
+					l_first := ic.column
+					l_count := ic.columns
+				else
+					l_first := ic.row
+					l_count := ic.rows
+				end
+				from i := l_first until i > l_first + l_count - 1 loop
+					Result.put_i_th (True, i)
+					i := i + 1
+				end
+			end
+		end
+
+	gaps_total (a_occupied: ARRAYED_LIST [BOOLEAN]; a_gap: REAL_64): REAL_64
+			-- The gaps between the occupied lines.
+		local
+			n: INTEGER
+		do
+			across a_occupied as ic loop
+				if ic then
+					n := n + 1
+				end
+			end
+			if n > 1 then
+				Result := a_gap * (n - 1)
+			end
+		ensure
+			non_negative: Result >= 0.0
 		end
 
 	spanned (a_sizes: ARRAYED_LIST [REAL_64]; a_first, a_count: INTEGER; a_gap: REAL_64): REAL_64
