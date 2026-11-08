@@ -7,15 +7,46 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-440%2F441-brightgreen.svg)
-![Windows: tests pass](https://img.shields.io/badge/Windows-tests%20pass-0078D6?logo=windows&logoColor=white) ![Linux and macOS: in progress](https://img.shields.io/badge/Linux%20%7C%20macOS-in%20progress-lightgrey)
+![Tests](https://img.shields.io/badge/tests-685%2F685-brightgreen.svg)
+![Windows: tests pass](https://img.shields.io/badge/Windows-685%2F685-0078D6?logo=windows&logoColor=white) ![macOS: 671 of 678](https://img.shields.io/badge/macOS-671%2F678-555555?logo=apple&logoColor=white) ![Linux: next](https://img.shields.io/badge/Linux-next-lightgrey?logo=linux&logoColor=white)
 
-A drawn widget toolkit for Eiffel on pure Win32 — no Vision2, no GTK, no native
-controls. Every pixel is the toolkit's own.
+A drawn widget toolkit for Eiffel — no Vision2, no native controls. Every pixel is
+the toolkit's own, drawn with cairo. The platform layer is
+[simple_shell](https://github.com/simple-eiffel/simple_shell): Win32 on Windows and
+AppKit on macOS, where simple_widgets applications run unchanged; its GTK half for
+Linux is next.
 
 Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
 ## Status
+
+**Cross-platform, and simple_gui's Windows backend (November 2026).** simple_widgets is
+the Windows face of [simple_gui](https://github.com/simple-eiffel/simple_gui): the same
+simple_gui program is GTK on Linux, AppKit on macOS, and simple_widgets on Windows. The
+groundwork it needed, W1 to W11 in the simple_gui specification, is merged here and in
+simple_shell:
+
+| Item | What |
+|---|---|
+| W1 | A pump that returns early on an event or a timeout, and pump-until-idle |
+| W2 | Closing the main window is an event the program can refuse |
+| W3 | More than one top-level window: `SW_WINDOW.float_document` (its own taskbar button) |
+| W4 | `SW_GRID`; visibility (`hide` / `show`, hidden widgets take no room); right-to-left layout and text |
+| W5 | Text box placeholder; Enter as an activate event |
+| W6 | List: a silent select, string rows, list items in the accessibility tree |
+| W7 | A canvas presenter for a cairo surface, per-monitor scale, pointer, key and resize events |
+| W8 | Menus with item ids and roles, shortcuts, edit roles to the focused text box |
+| W9 | Synchronous file and message dialogs |
+| W10 | Accessible descriptions and roles under the shared role names |
+| W11 | Test doors: click, type, choose a row, invoke a menu item, request close |
+
+And for simple_gui 0.2: hooks on `SW_DATA_GRID`, `SW_TREE`, `SW_SPLITTER` and `SW_TABS`.
+
+On macOS, simple_shell's AppKit half carries simple_widgets unchanged: 671 of the 678
+tests pass there. The 7 that do not: Windows drive letters (3), the screen grab (macOS's
+Screen Recording permission), an accessibility test that needs a listening screen reader,
+and two 100,000-row timing checks. Not yet on macOS: VoiceOver for the drawn controls,
+printing, spelling.
 
 **0.9.0 - 0.40.1: the simple_bible gap program** (tracker in simple_bible,
 `.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
@@ -131,15 +162,15 @@ theme, with evidence PNGs in `evidence/`.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 555 contract-assault tests passing at 0.40.1 (`screen_grab_marries_cairo` reads the
-  real desktop and fails while it is unreadable, such as a locked session or a sleeping
-  display — environment, not code)
+- 685 contract-assault tests passing on Windows (November 2026; `screen_grab_marries_cairo`
+  reads the real desktop and fails while it is unreadable, such as a locked session or a
+  sleeping display — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
   contract-armed live editing, floating or DOCKED (page stays live);
   compiled out of release-shaped builds via the devkit override
   (binary-measured absence)
 - Every widget frame-proven in the live showroom (`demo/sw_demo.e`)
-- Windows-only today (the SURFACE layer is Win32); everything above it is portable by design
+- Windows and macOS today (simple_shell's Win32 and AppKit halves); Linux waits for its GTK half
 
 ## The idea
 
@@ -158,9 +189,10 @@ Besides simple_shell and simple_cairo, the document view depends on
 model) and [simple_markdown](https://github.com/simple-eiffel/simple_markdown)
 (the Markdown reader and writer behind `SW_MARKDOWN_CODEC`).
 
-simple_widgets itself is **pure Eiffel — zero C**: every Win32 external
+simple_widgets itself is **pure Eiffel — zero C**: every platform external
 lives in [simple_shell](https://github.com/simple-eiffel/simple_shell)
-(deferred `SHELL_WINDOW`, effected here), every pixel in simple_cairo.
+(deferred `SHELL_WINDOW`, effected here; Win32 and AppKit halves), every pixel in
+simple_cairo.
 
 Before this library, a production face over simple_cairo meant ~2,000 lines of
 boilerplate per application. That boilerplate is now a toolkit — with contracts.
