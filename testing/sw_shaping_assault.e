@@ -569,6 +569,127 @@ feature -- GW-02: Hebrew flush right, the gutter on the reading side
 			assert_reals_equal ("and flush left", 0.0, g.offset_of_line (0), 0.01)
 		end
 
+	test_rtl_layout_puts_english_text_at_the_right
+			-- W4c-2: in right-to-left layout an English label, a text box's text and an empty
+			-- box's placeholder sit at the right; left to right, at the left.
+		local
+			kit: SW_SHAPING
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			lb: SW_LABEL
+			tb, hint: SW_TEXT_BOX
+		do
+			create th.make_light
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (th)
+			create surf.make (720, 360)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			p.set_shaping (kit)
+			p.set_color (th.surface)
+			p.fill_rect (0.0, 0.0, 720.0, 360.0)
+			create lb.make_ui ("In the beginning")
+			lb.set_layout_direction ({SW_WIDGET}.Layout_right_to_left)
+			lb.set_bounds (10.0, 10.0, 700.0, 60.0)
+			lb.arrange (p)
+			lb.draw (p)
+			create tb.make ("In the beginning")
+			tb.set_layout_direction ({SW_WIDGET}.Layout_right_to_left)
+			tb.set_bounds (10.0, 120.0, 700.0, 60.0)
+			tb.arrange (p)
+			tb.draw (p)
+			create hint.make_single_line ("")
+			hint.set_placeholder ("Your name")
+			hint.set_layout_direction ({SW_WIDGET}.Layout_right_to_left)
+			hint.set_bounds (10.0, 240.0, 700.0, 60.0)
+			hint.arrange (p)
+			hint.draw (p)
+			surf.flush.do_nothing
+			assert_true ("the label is at the right",
+				pixels_unlike (surf, th.surface, 360, 15, 700, 65) > 2 * pixels_unlike (surf, th.surface, 20, 15, 360, 65))
+			assert_true ("the typed text is at the right",
+				pixels_unlike (surf, th.surface, 360, 125, 700, 175) > 2 * pixels_unlike (surf, th.surface, 20, 125, 360, 175))
+			assert_true ("the hint is at the right",
+				pixels_unlike (surf, th.surface, 360, 245, 700, 295) > 2 * pixels_unlike (surf, th.surface, 20, 245, 360, 295))
+			assert_integers_equal ("the box mirrors its own alignment", {SHAPING_CONSTANTS}.Align_right, tb.effective_text_alignment)
+			tb.set_layout_direction ({SW_WIDGET}.Layout_left_to_right)
+			assert_integers_equal ("and not in left-to-right layout", {SHAPING_CONSTANTS}.Align_left, tb.effective_text_alignment)
+		end
+
+	test_rtl_list_rows_at_the_right_and_the_bar_at_the_left
+			-- W4c-2: a right-to-left list draws its rows flush right and keeps its scrollbar on the left.
+		local
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			l: SW_TEXT_LIST
+			i: INTEGER
+		do
+			create th.make_light
+			create surf.make (720, 240)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			p.set_color (th.surface)
+			p.fill_rect (0.0, 0.0, 720.0, 240.0)
+			create l.make (200.0)
+			from i := 1 until i > 30 loop
+				l.extend ("row " + i.out)
+				i := i + 1
+			end
+			l.set_layout_direction ({SW_WIDGET}.Layout_right_to_left)
+			l.set_bounds (10.0, 10.0, 700.0, 200.0)
+			l.arrange (p)
+			l.draw (p)
+			surf.flush.do_nothing
+			assert ("the bar is at the left", (l.bar.track_x - 10.0).abs < 0.5)
+			assert_true ("the rows are at the right",
+				pixels_unlike (surf, th.surface, 360, 15, 700, 205) > 2 * pixels_unlike (surf, th.surface, 40, 15, 360, 205))
+			l.set_layout_direction ({SW_WIDGET}.Layout_left_to_right)
+			l.set_bounds (10.0, 10.0, 700.0, 200.0)
+			assert ("left to right: the bar at the right", l.bar.track_x > 600.0)
+		end
+
+	test_arrows_move_visually_in_hebrew
+			-- MACMINI's W4c note: Left and Right move on screen, as GTK and AppKit do. In a
+			-- Hebrew line Left goes forward through the text; in English, back.
+		local
+			kit: SW_SHAPING
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			he, en: SW_TEXT_BOX
+		do
+			create th.make_light
+			create kit.make_with_assets (shaping_assets)
+			kit.set_theme_faces (th)
+			create surf.make (720, 240)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			p.set_shaping (kit)
+			create he.make (genesis_1_1_wlc)
+			he.set_bounds (10.0, 10.0, 700.0, 100.0)
+			he.arrange (p)
+			he.draw (p)
+			assert_true ("the Hebrew reads right to left", he.reads_right_to_left)
+			he.set_caret (0)
+			he.handle_key (37, False)
+			assert_integers_equal ("Left moves forward", 1, he.caret)
+			he.handle_key (39, False)
+			assert_integers_equal ("Right moves back", 0, he.caret)
+			create en.make ("In the beginning")
+			en.set_bounds (10.0, 120.0, 700.0, 100.0)
+			en.arrange (p)
+			en.draw (p)
+			assert_false ("English reads left to right", en.reads_right_to_left)
+			en.set_caret (3)
+			en.handle_key (37, False)
+			assert_integers_equal ("Left moves back", 2, en.caret)
+		end
+
 	test_gw02_text_box_hebrew_flush_right_light
 			-- The light half: a Hebrew text box set to Align_start inks its
 			-- right side, not its left.

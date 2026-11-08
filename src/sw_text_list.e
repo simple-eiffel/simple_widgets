@@ -76,7 +76,12 @@ feature {NONE} -- Implementation
 			if a_i >= 1 and a_i <= rows.count then
 				a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_body, False)
 				a_p.set_color (a_p.theme.ink)
-				a_p.text (a_x + 8.0, a_y + a_h - 9.0, rows.i_th (a_i))
+				if mirrors_layout then
+						-- W4c: flush right in right-to-left layout.
+					a_p.text (a_x + a_w - 8.0 - a_p.advance (rows.i_th (a_i)), a_y + a_h - 9.0, rows.i_th (a_i))
+				else
+					a_p.text (a_x + 8.0, a_y + a_h - 9.0, rows.i_th (a_i))
+				end
 			end
 		end
 
