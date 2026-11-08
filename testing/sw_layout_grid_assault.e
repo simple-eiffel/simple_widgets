@@ -30,6 +30,25 @@ feature -- Tests
 			assert ("they fill the grid", (a.width + b.width + (b.x - a.x - a.width) - g.width).abs < 0.5)
 		end
 
+	test_a_cell_with_no_area_draws_nothing
+			-- A grid squeezed until a cell has no width draws without asking cairo for an empty
+			-- clip (the calculator's keypad found it on Windows).
+		local
+			w: SW_WINDOW
+			g: SW_GRID
+		do
+			create w.make ("grid", 0, 0, 400, 200, create {SW_THEME}.make_light)
+			create g.make
+			g.put (create {SW_LABEL}.make_ui ("a"), 1, 1)
+			g.put (create {SW_LABEL}.make_ui ("b"), 1, 2)
+			w.set_root (g)
+			w.request_render
+			g.set_bounds (g.x, g.y, 0.0, 0.0)
+			g.arrange (w.painter)
+			g.draw (w.painter)
+			assert ("drew", True)
+		end
+
 	test_an_empty_column_takes_no_gaps
 			-- A column nothing covers has no width and no gap on either side (as GtkGrid).
 		local
