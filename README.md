@@ -7,14 +7,14 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
-![Tests](https://img.shields.io/badge/tests-685%2F685-brightgreen.svg)
-![Windows: tests pass](https://img.shields.io/badge/Windows-685%2F685-0078D6?logo=windows&logoColor=white) ![macOS: 678 of 685](https://img.shields.io/badge/macOS-678%2F685-555555?logo=apple&logoColor=white) ![Linux: next](https://img.shields.io/badge/Linux-next-lightgray?logo=linux&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-695%2F695-brightgreen.svg)
+![Windows: 695 of 695](https://img.shields.io/badge/Windows-695%2F695-0078D6?logo=windows&logoColor=white) ![macOS: 691 of 695](https://img.shields.io/badge/macOS-691%2F695-000000?logo=apple&logoColor=white) ![Linux: 687 of 695](https://img.shields.io/badge/Linux-687%2F695-FCC624?logo=linux&logoColor=black)
 
 A drawn widget toolkit for Eiffel — no Vision2, no native controls. Every pixel is
 the toolkit's own, drawn with cairo. The platform layer is
-[simple_shell](https://github.com/simple-eiffel/simple_shell): Win32 on Windows and
-AppKit on macOS, where simple_widgets applications run unchanged; its GTK half for
-Linux is next.
+[simple_shell](https://github.com/simple-eiffel/simple_shell): Win32 on Windows,
+AppKit on macOS and GTK 4 on Linux, and simple_widgets applications run unchanged on
+all three.
 
 Part of the [Simple Eiffel](https://github.com/simple-eiffel) ecosystem.
 
@@ -42,11 +42,16 @@ simple_shell:
 
 And for simple_gui 0.2: hooks on `SW_DATA_GRID`, `SW_TREE`, `SW_SPLITTER` and `SW_TABS`.
 
-On macOS, simple_shell's AppKit half carries simple_widgets unchanged: 678 of the 685
-tests pass there on main (2026-11-08). The 7 that do not: Windows drive letters (3), the
-screen grab (macOS's Screen Recording permission), an accessibility test that needs a
-listening screen reader, and two 100,000-row timing checks. Not yet on macOS: VoiceOver for the drawn controls,
-printing, spelling.
+The suite, 695 tests (2026-11-08):
+
+| Platform | Passes | The ones that do not |
+|---|---|---|
+| Windows | 695 of 695 | |
+| macOS (simple_shell's AppKit half) | 691 of 695 | Windows drive letters (3), and the screen-reader test, which needs a listening screen reader |
+| Linux (simple_shell's GTK 4 half; Ubuntu 24.04 under WSL) | 687 of 695 | the same four, the screen grab (Wayland allows it only through its portal), and three text tests being looked at: two expect an emoji to draw nothing on the plain text path, where Linux finds a fallback font, and one highlight wash |
+
+Not yet: screen readers for the drawn controls off Windows (VoiceOver, Orca), which come
+last; and on Linux, printing, spelling and the tray.
 
 **0.9.0 - 0.40.1: the simple_bible gap program** (tracker in simple_bible,
 `.eiffel-workflow/gui/02-GAP-PROGRAM.md`). Every item is tested headless, and
@@ -162,7 +167,7 @@ theme, with evidence PNGs in `evidence/`.
   world map (markers + UTC bands), force diagram, and the timezone tools
   (pickable band map + live world clock); the demo streams live
   frame costs into four instruments off one render-bell subscription
-- 685 contract-assault tests passing on Windows (November 2026; `screen_grab_marries_cairo`
+- 695 contract-assault tests passing on Windows (November 2026; `screen_grab_marries_cairo`
   reads the real desktop and fails while it is unreadable, such as a locked session or a
   sleeping display — environment, not code)
 - Dev instrument: SW_DEV_STUDIO — force-mesh + live reflected dossier +
@@ -170,7 +175,7 @@ theme, with evidence PNGs in `evidence/`.
   compiled out of release-shaped builds via the devkit override
   (binary-measured absence)
 - Every widget frame-proven in the live showroom (`demo/sw_demo.e`)
-- Windows and macOS today (simple_shell's Win32 and AppKit halves); Linux waits for its GTK half
+- Windows, macOS and Linux (simple_shell's Win32, AppKit and GTK 4 halves)
 
 ## The idea
 
