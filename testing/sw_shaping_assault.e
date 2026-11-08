@@ -652,6 +652,40 @@ feature -- GW-02: Hebrew flush right, the gutter on the reading side
 			assert ("left to right: the bar at the right", l.bar.track_x > 600.0)
 		end
 
+	test_rtl_list_bar_is_pressed_and_dragged_at_the_left
+			-- MACMINI's W4c-2 check: the bar's hit testing and dragging follow it to the left
+			-- edge; the right edge, where the bar was, now holds rows.
+		local
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			l: SW_TEXT_LIST
+			i: INTEGER
+		do
+			create th.make_light
+			create surf.make (720, 240)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create l.make (200.0)
+			from i := 1 until i > 30 loop
+				l.extend ("row " + i.out)
+				i := i + 1
+			end
+			l.set_layout_direction ({SW_WIDGET}.Layout_right_to_left)
+			l.set_bounds (10.0, 10.0, 700.0, 200.0)
+			l.draw (p)
+			l.handle_click (12.0, 16.0).do_nothing
+			assert ("a press at the left edge holds the thumb", l.bar.is_dragging)
+			l.handle_drag (12.0, 120.0)
+			assert ("dragging scrolls", l.scroll_y > 0.0)
+			l.handle_release (12, 120)
+			assert ("let go", not l.bar.is_dragging)
+			assert_integers_equal ("no row was chosen by the bar", 0, l.selected_index)
+			l.handle_click (705.0, 30.0).do_nothing
+			assert ("the right edge now holds rows", l.selected_index > 0)
+		end
+
 	test_arrows_move_visually_in_hebrew
 			-- MACMINI's W4c note: Left and Right move on screen, as GTK and AppKit do. In a
 			-- Hebrew line Left goes forward through the text; in English, back.
