@@ -30,6 +30,30 @@ feature -- Tests
 			assert ("they fill the grid", (a.width + b.width + (b.x - a.x - a.width) - g.width).abs < 0.5)
 		end
 
+	test_a_grown_window_writes_its_own_size
+			-- After a window grows, `write_frame' writes its client area, not the larger
+			-- allocation `resize_surface' makes in 256-pixel steps (simple_gui's Windows
+			-- gallery pictures came out 1280 by 1024 with an empty margin).
+		local
+			w: SW_TEST_GROWING_WINDOW
+			l_png: CAIRO_SURFACE
+			l_file: RAW_FILE
+			l_path: STRING_32
+		do
+			create w.make ("frame", 0, 0, 300, 200, create {SW_THEME}.make_light)
+			w.set_root (create {SW_LABEL}.make_ui ("a"))
+			w.grow_to (420, 260)
+			w.request_render
+			l_path := {STRING_32} "sw_grown_frame_test.png"
+			assert ("written", w.write_frame (l_path))
+			create l_png.make_from_png (l_path)
+			assert ("width " + l_png.width.out, l_png.width = 420)
+			assert ("height " + l_png.height.out, l_png.height = 260)
+			l_png.destroy
+			create l_file.make_with_name (l_path)
+			l_file.delete
+		end
+
 	test_a_cell_with_no_area_draws_nothing
 			-- A grid squeezed until a cell has no width draws without asking cairo for an empty
 			-- clip (the calculator's keypad found it on Windows).

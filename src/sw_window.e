@@ -742,8 +742,23 @@ feature -- Operation
 		end
 
 	write_frame (a_path: READABLE_STRING_GENERAL): BOOLEAN
+			-- Write the last frame, the window's client area (`win_w' by `win_h'), to
+			-- `a_path' as a PNG. The offscreen surface can be larger: `resize_surface'
+			-- allocates in 256-pixel steps.
+		local
+			l_image: CAIRO_SURFACE
+			l_copy: CAIRO_CONTEXT
 		do
-			Result := offscreen.write_png (a_path.to_string_32)
+			if win_w = alloc_w and win_h = alloc_h then
+				Result := offscreen.write_png (a_path.to_string_32)
+			else
+				l_image := cairo.create_surface (win_w, win_h)
+				create l_copy.make (l_image)
+				l_copy.set_source_surface (offscreen, 0.0, 0.0).paint.do_nothing
+				l_copy.destroy
+				Result := l_image.write_png (a_path.to_string_32)
+				l_image.destroy
+			end
 		end
 
 	simulate_wheel (a_x, a_y, a_delta: INTEGER)
