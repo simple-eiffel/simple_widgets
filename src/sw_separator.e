@@ -23,7 +23,7 @@ feature {NONE} -- Initialization
 feature {NONE} -- Labeled variant
 
 	make_labeled (a_text: READABLE_STRING_GENERAL)
-			-- A line carved by centred text ('--- OR ---').
+			-- A line carved by centered text ('--- OR ---').
 		do
 			make
 			create label.make_from_string_general (a_text)

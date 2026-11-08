@@ -29,7 +29,7 @@ enter at the top.
 | # | Layer | Owns | Who lives here |
 |---|-------|------|----------------|
 | 5 | COMPOSITION | Assembly in plain Eiffel: creation expressions, agents, fluent setters. Future scaffolds (SW_APP, SW_FORM). Never a second language. | App authors, by default: a working window in ten lines. |
-| 4 | COMPONENT | The shipped controls: SW_LABEL, SW_BUTTON, SW_CHIP, SW_CARD, SW_TEXT_BOX; later SW_LIST and friends. Behaviour and drawing together; every visual from theme tokens. | App authors composing directly. |
+| 4 | COMPONENT | The shipped controls: SW_LABEL, SW_BUTTON, SW_CHIP, SW_CARD, SW_TEXT_BOX; later SW_LIST and friends. Behavior and drawing together; every visual from theme tokens. | App authors composing directly. |
 | 3 | WIDGET | SW_WIDGET, SW_ROW, SW_COLUMN: geometry, the one-pass layout protocol, hit testing, input bubbling and capture, focus, the parent spine. | Widget authors: a new control = one class implementing preferred_height + draw + input hooks. |
 | 2 | PAINTER | SW_PAINTER + SW_THEME: the Cairo monopoly. Themed drawing verbs, text measurement, tokens with WCAG contrast as a class invariant. painter.context is the marked escape hatch. | Widget authors normally; an app may borrow a painter alone for one custom region. |
 | 1 | SURFACE | SW_WINDOW's Win32 half + simple_cairo: HWND, pump, offscreen surface, blit, fonts, logical events. Clib/simple_widgets.h lives here and nowhere else. | Toolkit maintainers. Applications: only when embedding. |
@@ -108,7 +108,7 @@ limit, on the roadmap: cairo's toy text API does no font fallback or
 complex shaping, so glyph coverage is the loaded face's; a shaping
 layer (harfbuzz-class) is future SURFACE work.
 
-## 3. What tonight's V0 already honours
+## 3. What tonight's V0 already honors
 
 - Painter monopoly (R2) - built in from the first commit.
 - Semantic tokens with contrast invariants (SW_THEME) - something none of

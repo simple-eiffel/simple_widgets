@@ -1,12 +1,12 @@
 note
 	description: "[
 		The hierarchy as boxes: a tidy LAYERED layout (each node
-		centred over its children's span, leaves packed left to
+		centered over its children's span, leaves packed left to
 		right - the classic org drawing, not force physics), elbow
 		connectors parent to child, and click selection firing
 		on_select with the node id. The layout (node_x by subtree
 		width, depth_of rows) is deterministic public math,
-		assaulted: a parent's centre equals its children's midspan.
+		assaulted: a parent's center equals its children's midspan.
 	]"
 
 class
@@ -116,7 +116,7 @@ feature -- Access
 		end
 
 	node_x (a_node: INTEGER): REAL_64
-			-- The box's LEFT edge: a parent centres over its
+			-- The box's LEFT edge: a parent centers over its
 			-- children's span; leaves pack left to right.
 		require
 			known: a_node >= 1 and a_node <= node_count

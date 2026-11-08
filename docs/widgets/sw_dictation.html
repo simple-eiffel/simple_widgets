@@ -30,7 +30,7 @@
     <main>
         <section id="description">
             <h2>Description</h2>
-            <p>A SERVICE in its own <code>speechkit</code> cluster - only targets that want the dependency add it (the devkit lesson applied to packaging; the library core stays lean). <code>make (model_path)</code> loads whisper through simple_speech when the file exists and stays HONESTLY UNREADY when it does not - the demo's mic button greys itself through <code>set_enabled_when</code> instead of crashing.</p>
+            <p>A SERVICE in its own <code>speechkit</code> cluster - only targets that want the dependency add it (the devkit lesson applied to packaging; the library core stays lean). <code>make (model_path)</code> loads whisper through simple_speech when the file exists and stays HONESTLY UNREADY when it does not - the demo's mic button grays itself through <code>set_enabled_when</code> instead of crashing.</p>
             <p>Two halves: <code>start_listening</code> / <code>stop_and_deliver</code> ride the microphone via simple_audio's recorder; <code>transcribe_wav</code> is the file-shaped half - and its assault is REAL: the suite loads ggml-base.en and turns an actual sample wav into actual words on every run (skipping honestly, still green, on machines without the model).</p>
             <p>Runtime freight: whisper.dll and its ggml siblings must stand beside the exe - the cairo.dll standing rule, extended.</p>
             <p class="muted"><em>Source: <code>src/sw_dictation.e</code> &middot; since Wave 6 (2026-08-22).

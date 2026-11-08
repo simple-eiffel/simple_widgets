@@ -57,7 +57,7 @@ feature -- Access
 
 	conditions: ARRAYED_LIST [detachable FUNCTION [BOOLEAN]]
 			-- Per-pad enabling condition; Void = always enabled.
-			-- Queried at draw and click time, so pads grey and
+			-- Queried at draw and click time, so pads gray and
 			-- deafen the instant state turns against them.
 
 	shaped: SW_SHAPED_TEXT
@@ -91,7 +91,7 @@ feature -- Element change
 		end
 
 	add_menu_when (a_label: READABLE_STRING_GENERAL; a_builder: FUNCTION [SW_MENU]; a_when: FUNCTION [BOOLEAN])
-			-- A pad whose availability tracks `a_when' - greyed and
+			-- A pad whose availability tracks `a_when' - grayed and
 			-- deaf whenever the condition says False.
 		do
 			add_menu (a_label, a_builder)
@@ -124,9 +124,9 @@ feature -- Mnemonics
 			-- The 1-based pad whose menu was opened last, by pointer or by
 			-- Alt; 0 before any. Left and Right walk from here, so a menu
 			-- opened by a CLICK answers the arrow keys exactly as one
-			-- opened by a mnemonic - the two doors stay one behaviour.
+			-- opened by a mnemonic - the two doors stay one behavior.
 
-	neighbour_pad (a_from, a_step: INTEGER): INTEGER
+	neighbor_pad (a_from, a_step: INTEGER): INTEGER
 			-- The next ENABLED pad from `a_from' by `a_step', wrapping once
 			-- round; `a_from' when it is the only enabled one, and 0 when
 			-- none is. Bounded by `labels.count' steps, so a bar of
@@ -366,7 +366,7 @@ feature -- Drawing
 				if ul > 0 then
 						-- The underline is drawn in the pad's OWN INK with
 						-- `fill_rect', not with `hline': `hline' is a
-						-- theme-OUTLINE hairline (it sets that colour
+						-- theme-OUTLINE hairline (it sets that color
 						-- itself), which on a dark theme is all but
 						-- invisible under a label. It scales with the
 						-- theme the way the type does, and it lands where

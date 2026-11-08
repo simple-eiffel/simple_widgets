@@ -19,7 +19,7 @@ note
 		WHY NOT SW_CHAT_THREAD. The thread knows what a message is -
 		roles, bubbles, reactions, quotes. This widget knows nothing
 		about its paragraphs beyond their text: what stands in the
-		gutter, what the bands hold and what colour washes a row are
+		gutter, what the bands hold and what color washes a row are
 		the host's, through agents. The Studio puts a severity stripe,
 		a voice dot and a fidelity chip there; a notes app puts a date.
 
@@ -66,7 +66,7 @@ note
 		into looks - painted by SW_MARK_PAINTER under and over the
 		text. The in-place editor is handed the SAME object, so a span
 		follows its words through every keystroke by the editor's own
-		reconciliation and there is nothing to merge back; a cancelled
+		reconciliation and there is nothing to merge back; a canceled
 		edit restores the marks with the text.
 	]"
 	author: "Larry Rix"
@@ -177,7 +177,7 @@ feature -- Access
 			-- Draws a band: (painter, index, is_above, x, y, width, height).
 
 	wash_of: detachable FUNCTION [INTEGER, NATURAL_32]
-			-- The colour washing paragraph `index''s box; 0 = none.
+			-- The color washing paragraph `index''s box; 0 = none.
 
 	marks_of (a_i: INTEGER): SW_MARKED_TEXT
 			-- The data behind paragraph `a_i': lay spans on it here.
@@ -617,7 +617,7 @@ feature -- Element change
 		end
 
 	remove (a_i: INTEGER)
-			-- Take paragraph `a_i' out; an edit on it is cancelled.
+			-- Take paragraph `a_i' out; an edit on it is canceled.
 		require
 			in_range: a_i >= 1 and a_i <= count
 		do
@@ -1328,7 +1328,7 @@ feature {NONE} -- Measurement
 
 	draw_item_text (a_i: INTEGER; a_p: SW_PAINTER; a_dx, a_dy, a_ox, a_oy: REAL_64)
 			-- Paragraph `a_i''s text shifted by (a_dx, a_dy) from its
-			-- origin (a_ox, a_oy), in the painter's current colour.
+			-- origin (a_ox, a_oy), in the painter's current color.
 		require
 			in_range: a_i >= 1 and a_i <= count
 		do

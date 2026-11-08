@@ -140,7 +140,7 @@ feature -- The graduated engine
 				"10%T5%N20%T", e.block_tsv (0, 1, 1, 2))
 			e.paste_tsv (5, 1, "7%T8%N9")
 			assert_strings_equal ("paste lands the first row", "7", e.display (e.key (5, 1)))
-			assert_strings_equal ("and its neighbour", "8", e.display (e.key (5, 2)))
+			assert_strings_equal ("and its neighbor", "8", e.display (e.key (5, 2)))
 			assert_strings_equal ("and the second row", "9", e.display (e.key (6, 1)))
 		end
 
@@ -405,7 +405,7 @@ feature -- Files, queries, forms, charts of command
 			oc.set_bounds (0.0, 0.0, 600.0, 300.0)
 			assert_integers_equal ("the root stands at depth zero", 0, oc.depth_of (boss))
 			assert_integers_equal ("children stand one deeper", 1, oc.depth_of (l2))
-			assert_reals_equal ("the parent centres over its children's span",
+			assert_reals_equal ("the parent centers over its children's span",
 				(oc.node_x (l1) + oc.node_x (l3)) / 2.0, oc.node_x (boss), 0.000_1)
 			assert ("siblings pack left to right",
 				oc.node_x (l1) < oc.node_x (l2) and oc.node_x (l2) < oc.node_x (l3))
@@ -457,7 +457,7 @@ feature -- Files, queries, forms, charts of command
 			create dh.make (doc)
 			dh.set_bounds (0.0, 0.0, 800.0, 500.0)
 			r := dh.center_rect
-			assert_reals_equal ("no panels: the centre takes everything wide",
+			assert_reals_equal ("no panels: the center takes everything wide",
 				800.0, r.rw, 0.000_1)
 			assert_reals_equal ("and everything tall", 500.0, r.rh, 0.000_1)
 			p1 := dh.add_panel ("explorer", create {SW_LABEL}.make_ui ("tree"), dh.Zone_west)
@@ -468,7 +468,7 @@ feature -- Files, queries, forms, charts of command
 			r := dh.zone_rect (dh.Zone_east)
 			assert_reals_equal ("an EMPTY zone collapses to nothing", 0.0, r.rw, 0.000_1)
 			r := dh.center_rect
-			assert_reals_equal ("the centre reflows around the west",
+			assert_reals_equal ("the center reflows around the west",
 				800.0 - 800.0 * 0.22, r.rw, 0.000_1)
 			assert_reals_equal ("and above the south",
 				500.0 - 500.0 * 0.30, r.rh, 0.000_1)
@@ -533,7 +533,7 @@ feature -- Dock (GW-05)
 			-- Through the window: the west edge shows the left-right
 			-- cursor, follows a drag, stops at the largest share and
 			-- announces once on release; the south edge drags too; the
-			-- centre always keeps its minimum.
+			-- center always keeps its minimum.
 		local
 			w: SW_WINDOW
 			dh: SW_DOCK_HOST
@@ -566,7 +566,7 @@ feature -- Dock (GW-05)
 			assert_integers_equal ("one announcement on release", 1, dock_changes)
 			assert_integers_equal ("released", 0, dh.dragging_edge)
 			w.request_render
-			assert_true ("the centre keeps its minimum across", dh.center_rect.rw >= dh.Min_center - 0.000_1)
+			assert_true ("the center keeps its minimum across", dh.center_rect.rw >= dh.Min_center - 0.000_1)
 			r := dh.zone_rect (dh.Zone_south)
 			w.dispatch (13, (r.rx + 300.0).truncated_to_integer, r.ry.truncated_to_integer)
 			assert_integers_equal ("the south edge shows the up-down cursor", 4, dh.cursor_kind)
@@ -575,7 +575,7 @@ feature -- Dock (GW-05)
 			w.dispatch (10, (r.rx + 300.0).truncated_to_integer, (dh.y + dh.height * 0.5).truncated_to_integer)
 			assert_reals_equal ("the south edge follows", 0.5, dh.south_fraction, 2.0 / dh.height)
 			dh.set_fraction (dh.Zone_east, 0.6)
-			assert_true ("west and east squeezed: the centre still keeps its minimum",
+			assert_true ("west and east squeezed: the center still keeps its minimum",
 				dh.center_rect.rw >= dh.Min_center - 0.000_1)
 		end
 

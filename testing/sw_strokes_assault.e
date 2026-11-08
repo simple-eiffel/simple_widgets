@@ -5,7 +5,7 @@ note
 		lines break where a solid line does not, and dots break more
 		often; no stroke style, clip or gradient leaks into the next
 		drawing; hatching stays inside its shape and a cross hatch carries
-		more ink than one direction; a gradient runs from its first colour
+		more ink than one direction; a gradient runs from its first color
 		to its second, a fade from its first strength to its second. A
 		specimen of every style in both themes is written as evidence
 		(gw18_patterns_light.png, gw18_patterns_dark.png).
@@ -38,7 +38,7 @@ feature -- Strokes
 	test_gw18_no_style_leaks
 			-- After a dotted line, a plain `line' is solid again; after a
 			-- hatch, nothing outside it is inked; after a gradient, `fill_rect'
-			-- paints the colour set, flat.
+			-- paints the color set, flat.
 		local
 			sf: CAIRO_SURFACE
 			p: SW_PAINTER

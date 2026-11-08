@@ -31,7 +31,7 @@
         <section id="description">
             <h2>Description</h2>
             <p>Nodes are assigned to columns (<code>add_node</code> returns the id; <code>add_link</code> requires rightward flow by contract). A node's <strong>throughput</strong> is the larger of its inflow and outflow - that drives its bar height, proportional within each column. Every link becomes a <strong>cubic-bezier ribbon</strong>: the painter gained <code>ribbon_fill</code> (two curved rails, midpoint control) exactly where the roadmap said curves would arrive. Ribbons moor at STACKED offsets down each bar - the assault proves the moorings are contiguous and fill the source bar exactly.</p>
-            <p>Ribbons wash in their source's colour at 35% alpha, bars draw over them, labels sit left of the first column and right of the rest. Hovering a bar names the node with its in and out totals - imbalance is visible truth, not an error. The layout is public math: <code>refresh_layout</code>, <code>node_rects</code>, <code>link_bands</code>, <code>throughput_of</code>, all assaulted headless.</p>
+            <p>Ribbons wash in their source's color at 35% alpha, bars draw over them, labels sit left of the first column and right of the rest. Hovering a bar names the node with its in and out totals - imbalance is visible truth, not an error. The layout is public math: <code>refresh_layout</code>, <code>node_rects</code>, <code>link_bands</code>, <code>throughput_of</code>, all assaulted headless.</p>
             <p class="muted"><em>Source: <code>src/sw_sankey.e</code> &middot; since Wave 4, Flows (2026-08-22).
             Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
         </section>

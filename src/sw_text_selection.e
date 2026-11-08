@@ -10,7 +10,7 @@ note
 		A descendant numbers its items (`item_count', `is_valid_item')
 		and hands their text over (`text_of'); `item_separator' says what
 		joins one item to the next in a copy (a line feed; a table cell
-		joins its row neighbour with a tab). It drives the selection from
+		joins its row neighbor with a tab). It drives the selection from
 		its own pointer handlers with `begin_selection', `extend_selection'
 		and `end_selection', paints `selection_in' under each item, and
 		passes WM_CHAR codes to `selection_char'. Nothing of SW_WIDGET is

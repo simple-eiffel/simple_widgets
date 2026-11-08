@@ -25,7 +25,7 @@ feature {NONE} -- Initialization
 			is_on := a_on
 			on_change := a_on_change
 		ensure
-			labelled: label.same_string_general (a_label)
+			labeled: label.same_string_general (a_label)
 			state_kept: is_on = a_on
 		end
 

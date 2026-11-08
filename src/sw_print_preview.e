@@ -1,7 +1,7 @@
 note
 	description: "[
 		GW-20: a print job's sheets as they will print, one under another on
-		a grey ground, each as wide as the preview allows, scrolled under a
+		a gray ground, each as wide as the preview allows, scrolled under a
 		bar (SW_VSCROLLING): the wheel, the bar and the paging keys move
 		through them. `page_at_top' names the sheet at the top; `show_page'
 		brings one there. The sheets are drawn in vector from the job, the

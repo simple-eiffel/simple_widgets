@@ -78,7 +78,7 @@
                 <tr><td><code>0.37.2</code></td><td>The seventeenth scan: long edges in the layered layout go round through dummy nodes, and their crossings count</td></tr>
                 <tr><td><code>0.37.1</code></td><td>The sixteenth scan: seas inside the land (the Caspian) are water</td></tr>
                 <tr><td><code>0.37.0</code></td><td>GW-23: <code>SW_DIAGRAM.set_layered</code>: a deterministic left-to-right layered layout (cycles broken, longest-path layers, barycenter ordering) for clause outlines</td></tr>
-                <tr><td><code>0.36.0</code></td><td>GW-19: <code>SW_MAP</code> Atlas: the Mediterranean, Levant and Mesopotamia at 1:10m (<code>SW_REGION_GEOMETRY</code>), routes, places labelled at zoom without overlap, layers, a theme-drawn palette for light and dark; zoom to 128</td></tr>
+                <tr><td><code>0.36.0</code></td><td>GW-19: <code>SW_MAP</code> Atlas: the Mediterranean, Levant and Mesopotamia at 1:10m (<code>SW_REGION_GEOMETRY</code>), routes, places labeled at zoom without overlap, layers, a theme-drawn palette for light and dark; zoom to 128</td></tr>
                 <tr><td><code>0.35.1</code></td><td>The fifteenth scan: disputes bracketed in every lane and never hidden, one-year bars not ticks, year marks aligned, lanes scroll</td></tr>
                 <tr><td><code>0.35.0</code></td><td>GW-17: <code>SW_LANE_TIMELINE</code>: BC/AD lanes with no year zero, certainty classes by pattern, disputes in envelopes, semantic zoom, synchronism cursor; <code>SW_ERA_YEARS</code>, <code>SW_TIMELINE_ITEM</code></td></tr>
                 <tr><td><code>0.34.2</code></td><td>The fourteenth scan: a hatch over a huge box is bounded (at most 20,000 dots or 2,000 lines)</td></tr>
@@ -153,8 +153,8 @@
                 <tr><td>R1</td><td>One language: Eiffel over inline C externals; no separate C toolchain steps.</td></tr>
                 <tr><td>R2</td><td>Painter monopoly: only SW_PAINTER touches CAIRO_CONTEXT.</td></tr>
                 <tr><td>R3</td><td>Contracts everywhere: state machines carry invariants; protocols carry pre/postconditions.</td></tr>
-                <tr><td>R4</td><td>Theme is truth: no literal colours or sizes in widgets - tokens only.</td></tr>
-                <tr><td>R5</td><td>Agents wire behaviour: on_change/on_select/actions, never inheritance-to-configure.</td></tr>
+                <tr><td>R4</td><td>Theme is truth: no literal colors or sizes in widgets - tokens only.</td></tr>
+                <tr><td>R5</td><td>Agents wire behavior: on_change/on_select/actions, never inheritance-to-configure.</td></tr>
                 <tr><td>R6</td><td>Immediate feedback: every interaction shows its effect now (toast, status, preview).</td></tr>
                 <tr><td>R7</td><td>Nothing native: menus, dialogs, toasts, file dialogs - all drawn. OS services without pixels (clipboard, keys, spelling) are welcome.</td></tr>
                 <tr><td>R8</td><td>Unicode first: STRING_32 through every API; surrogate pairs handled at the borders.</td></tr>
@@ -168,7 +168,7 @@
                 <li>Add to your ECF:
 <pre><code>&lt;library name="simple_widgets" location="$SIMPLE_EIFFEL/simple_widgets/simple_widgets.ecf"/&gt;</code></pre></li>
                 <li>Ship <code>cairo.dll</code> beside your executable (every finalize wipes F_code - copy it back).</li>
-                <li>For shaped text (bidi, script fallback, colour emoji) also stage
+                <li>For shaped text (bidi, script fallback, color emoji) also stage
                 <code>LICENSE-ASSETS.md</code> and <code>assets/noto-emoji/png/128/</code> beside the
                 exe - <code>tools/stage_runnable.sh &lt;folder&gt;</code> does all three - and call
                 <code>window.enable_shaped_text</code>. See
@@ -696,7 +696,7 @@
                 </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_heatmap.html">SW_HEATMAP</a></h3>
-                    <p>Two-colour heat grid; assaulted blend; edge labels.</p>
+                    <p>Two-color heat grid; assaulted blend; edge labels.</p>
                 </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_treemap.html">SW_TREEMAP</a></h3>
@@ -763,7 +763,7 @@
                 </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_org_chart.html">SW_ORG_CHART</a></h3>
-                    <p>Layered boxes; the centring law proven.</p>
+                    <p>Layered boxes; the centering law proven.</p>
                 </div>
                 <div class="feature-card">
                     <h3><a href="widgets/sw_dock_host.html">SW_DOCK_HOST</a></h3>

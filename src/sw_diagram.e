@@ -1,7 +1,7 @@
 note
 	description: "[
 		Nodes and edges as living structure: the force physics the
-		dev mesh proved (all-pairs repulsion, edge springs, centre
+		dev mesh proved (all-pairs repulsion, edge springs, center
 		gravity, one relax per heartbeat - EiffelStudio Diagram Tool
 		family) graduated into a PUBLIC generic widget. Nodes carry
 		labels and ring-seed deterministically (the golden-angle
@@ -200,7 +200,7 @@ feature -- Physics
 			-- Below this every node counts as still.
 
 	relax_step
-			-- One tick: repulsion, springs, centre gravity, damping,
+			-- One tick: repulsion, springs, center gravity, damping,
 			-- bounds. Pinned nodes hold their ground.
 		local
 			i, j: INTEGER
@@ -478,7 +478,7 @@ feature {NONE} -- Layered layout internals
 
 	place_layers (a_p: SW_PAINTER)
 			-- Layers left to right, each as wide as its widest label; each
-			-- layer's nodes spread down the height and centred.
+			-- layer's nodes spread down the height and centered.
 		local
 			l_top, l_layer, l_count, l_most: INTEGER
 			l_widths: ARRAYED_LIST [REAL_64]

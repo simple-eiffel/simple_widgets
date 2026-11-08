@@ -106,7 +106,7 @@ feature -- Circles
 			m.add_circle (100.0, 100.0)
 			m.add_circle (130.0, 100.0)
 			assert_integers_equal ("inside first only", 1, m.nearest_hit (92.0, 100.0))
-			assert_integers_equal ("overlap picks nearer centre", 2, m.nearest_hit (122.0, 100.0))
+			assert_integers_equal ("overlap picks nearer center", 2, m.nearest_hit (122.0, 100.0))
 			assert_integers_equal ("open space hits nothing", 0, m.nearest_hit (300.0, 300.0))
 		end
 

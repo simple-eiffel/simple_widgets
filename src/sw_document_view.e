@@ -701,7 +701,7 @@ feature {NONE} -- Drawing implementation
 		end
 
 	unit_ink (a_theme: SW_THEME; a_unit: SW_DOC_UNIT): NATURAL_32
-			-- The colour of a unit's plain text: muted in a quote.
+			-- The color of a unit's plain text: muted in a quote.
 		do
 			if document.block (a_unit.block).kind = {DOC_BLOCK}.Kind_quote then
 				Result := a_theme.ink_muted

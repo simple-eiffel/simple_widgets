@@ -15,7 +15,7 @@ directives (2026-08-22): (1) every documented "Extension plan" is a
 standing action item here; (2) every gotcha that admits a fix is on the
 docket; (3) every limit that can be pushed until it is no longer a limit
 gets planned here. Items marked [standing] are truths to design around
-(physics, OS behaviour, Eiffel semantics), not work.
+(physics, OS behavior, Eiffel semantics), not work.
 
 Toolkit-wide near-term items (from the same read):
 - [ ] Window-level automatic scroll policy: when root content exceeds the
@@ -137,7 +137,7 @@ Planned extensions:
 Gotcha docket (fix where a plan exists; else design around):
 
 - The WCAG invariants are real contracts: hand a theme a low-contrast ink/surface pair under an assertion-checked build and it dies at the assignment, not at paint time.
-- Colours are NATURAL_32 RGB (no alpha in tokens); alpha lives in painter calls like set_color_alpha.
+- Colors are NATURAL_32 RGB (no alpha in tokens); alpha lives in painter calls like set_color_alpha.
 
 Limits to push:
 
@@ -177,7 +177,7 @@ Planned extensions:
 - [ ] Find/replace bar riding the same range machinery as multi-select.
 - [ ] Horizontal scroll + ellipsis policies for single-line mode.
 - [ ] Push-to-talk dictation (whisper.cpp, CPU-only) feeding receive_pebble-style insertion - queued from the AI-assist survey (R03).
-- [ ] Syntax-colouring hook: a per-range style agent, same shape as spell ranges.
+- [ ] Syntax-coloring hook: a per-range style agent, same shape as spell ranges.
 
 Gotcha docket (fix where a plan exists; else design around):
 
@@ -260,7 +260,7 @@ Limits to push:
 Planned extensions:
 
 - [ ] Ellipsis truncation modes (end/middle) with full text in the tooltip.
-- [ ] Rich runs (per-range role/colour) - shared machinery with the text box's future syntax-colouring hook.
+- [ ] Rich runs (per-range role/color) - shared machinery with the text box's future syntax-coloring hook.
 - [ ] Links (click agents on ranges).
 
 Gotcha docket (fix where a plan exists; else design around):
@@ -269,7 +269,7 @@ Gotcha docket (fix where a plan exists; else design around):
 
 Limits to push:
 
-- [ ] One style per label - no inline mixed bold/colour runs (compose labels in a row, or wait for rich text).
+- [ ] One style per label - no inline mixed bold/color runs (compose labels in a row, or wait for rich text).
 - [ ] Wrapping is per-word greedy; no ellipsis mode yet for single-line overflow.
 
 
@@ -438,7 +438,7 @@ Planned extensions:
 
 Gotcha docket (fix where a plan exists; else design around):
 
-- The stripe colour is a raw token you pass - take it from the theme (theme.accent), never a literal, or the light palette will betray you.
+- The stripe color is a raw token you pass - take it from the theme (theme.accent), never a literal, or the light palette will betray you.
 
 Limits to push:
 
@@ -736,7 +736,7 @@ Planned extensions:
 
 Gotcha docket (fix where a plan exists; else design around):
 
-- It reads the PHYSICAL keyboard - synthetic message-based tests cannot fake it, and a human holding Shift during automated runs changes behaviour. The test bench learned this the fun way.
+- It reads the PHYSICAL keyboard - synthetic message-based tests cannot fake it, and a human holding Shift during automated runs changes behavior. The test bench learned this the fun way.
 
 Limits to push:
 
@@ -791,7 +791,7 @@ Planned extensions:
 
 Gotcha docket (fix where a plan exists; else design around):
 
-- The hue hash runs over the exact name string - 'Larry Rix' and 'larry rix' wear different colours. Normalize names upstream if identity matters.
+- The hue hash runs over the exact name string - 'Larry Rix' and 'larry rix' wear different colors. Normalize names upstream if identity matters.
 
 Limits to push:
 
@@ -880,7 +880,7 @@ Planned extensions:
 
 Gotcha docket (fix where a plan exists; else design around):
 
-- The delta's sign glyph is yours to include in the text ('+7') - the widget colours, it does not spell.
+- The delta's sign glyph is yours to include in the text ('+7') - the widget colors, it does not spell.
 
 Limits to push:
 
@@ -1030,7 +1030,7 @@ Planned extensions:
 
 - [ ] Row/column resize and scrollbars; range selection with block TSV copy/paste.
 - [ ] Promotion path: CELLS_ENGINE graduates library-grade for SW_SPREADSHEET (Wave 5) - ranges, SUM/AVG/MIN/MAX/COUNT, formula bar, CSV.
-- [ ] Cell renderers (semantic colouring, right-aligned numerics).
+- [ ] Cell renderers (semantic coloring, right-aligned numerics).
 
 Gotcha docket (fix where a plan exists; else design around):
 
@@ -1180,12 +1180,12 @@ Planned extensions:
 
 Gotcha docket (fix where a plan exists; else design around):
 
-- set_rgb derives HSV, so a subsequent rgb query may differ by one bit per channel from rounding - compare colours with tolerance, or store what on_change told you.
+- set_rgb derives HSV, so a subsequent rgb query may differ by one bit per channel from rounding - compare colors with tolerance, or store what on_change told you.
 - Dragging fires on_change continuously - debounce expensive reactions, never the visual echo.
 
 Limits to push:
 
-- [ ] No alpha channel (the theme's colours are opaque RGB by design).
+- [ ] No alpha channel (the theme's colors are opaque RGB by design).
 - [x] No hex TYPING yet - readout only; input is queued. — DONE 2026-08-23 (deepening sweep 4; assaulted)
-- [ ] No palette swatches/recent colours row yet.
+- [ ] No palette swatches/recent colors row yet.
 - [ ] The banded field renders 288 rects + 36 bar rects per frame - cheap, but a retained-layer future exists if pickers multiply.

@@ -11,15 +11,15 @@ note
 
 		THE TEXT EFFECTS ARE A REDRAW. Cairo here strokes no glyph
 		paths and the shaping facade shapes everything regular and
-		upright, so a coloured, outlined, bold or slanted span is made
+		upright, so a colored, outlined, bold or slanted span is made
 		by clipping to the span's rectangles and drawing the text
 		AGAIN through the widget's own `a_draw_text' agent -
 		(painter, dx, dy) draws the whole text shifted by (dx, dy) in
-		the painter's current colour:
+		the painter's current color:
 
-		    outline   eight offset passes in the outline colour, then
+		    outline   eight offset passes in the outline color, then
 		              the fill (a double outline: an outer ring in the
-		              hue's ink, an inner ring in the surface colour)
+		              hue's ink, an inner ring in the surface color)
 		    bold      a second pass offset by a fraction of a pixel
 		    italic    a shear about the line's baseline (one packed
 		              CAIRO_MATRIX through `transform')
@@ -29,7 +29,7 @@ note
 		caret and the hit-test use is untouched - which is the whole
 		reason to approximate rather than re-shape.
 
-		Colour choices keep the text readable: a colorized span's
+		Color choices keep the text readable: a colorized span's
 		outline is drawn in the theme's ink so the two never merge; a
 		wash is the palette's wash, held to 4.5:1 against the theme's
 		ink by SW_MARK_PALETTE's own contract.
@@ -38,10 +38,10 @@ note
 		without turning to clutter, so `paint_over' takes the text's
 		pixel size and applies a floor: below `min_effect_size' the
 		glyph effects and badges are dropped and a box is at most one
-		rule (wash, single box and colour stay legible small); below
+		rule (wash, single box and color stay legible small); below
 		`min_mark_size' nothing but the wash is painted. Both floors
 		are settable; `effects_allowed' and `badges_allowed' say what
-		the current size permits, so a host can grey its own palette.
+		the current size permits, so a host can gray its own palette.
 
 		BADGES. A reason's badge (SW_MARK_LEGEND.badge_of) is painted
 		once per span, as a small chip in the hue's ink at the top-left
@@ -183,11 +183,11 @@ feature -- Painting
 								paint_effect_segment (a_p, a_geo, m, g.line, a_ox + g.left, g.width, a_ox, a_oy, a_draw_text)
 							end
 						elseif m.is_colorized then
-								-- colour alone stays legible small
+								-- color alone stays legible small
 							across
 								segs as g
 							loop
-								paint_colour_only (a_p, a_geo, m, g.line, a_ox + g.left, g.width, a_oy, a_draw_text)
+								paint_color_only (a_p, a_geo, m, g.line, a_ox + g.left, g.width, a_oy, a_draw_text)
 							end
 						end
 						if m.box_lines > 0 then
@@ -216,7 +216,7 @@ feature -- Painting
 
 feature {NONE} -- Implementation
 
-	paint_colour_only (a_p: SW_PAINTER; a_geo: SW_TEXT_GEOMETRY; a_m: SW_MARK; a_line: INTEGER;
+	paint_color_only (a_p: SW_PAINTER; a_geo: SW_TEXT_GEOMETRY; a_m: SW_MARK; a_line: INTEGER;
 			a_x, a_w, a_oy: REAL_64; a_draw_text: PROCEDURE [SW_PAINTER, REAL_64, REAL_64])
 			-- The text again in the hue's ink, clipped to one segment.
 		do

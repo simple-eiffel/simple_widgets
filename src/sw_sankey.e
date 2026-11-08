@@ -278,7 +278,7 @@ feature -- Drawing
 			if shows_hover then
 				hot := node_at (hover_px, hover_py)
 			end
-				-- ribbons first, washed in their source's colour
+				-- ribbons first, washed in their source's color
 			from
 				i := 1
 			until

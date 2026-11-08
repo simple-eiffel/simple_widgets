@@ -170,7 +170,7 @@ feature {NONE} -- Fixtures
 		end
 
 	map_pixel (a_window: SW_WINDOW; a_map: SW_MAP; a_lon, a_lat: REAL_64): NATURAL_32
-			-- The colour at (`a_lon', `a_lat'), alpha dropped.
+			-- The color at (`a_lon', `a_lat'), alpha dropped.
 		local
 			img: CAIRO_SURFACE
 			m: REAL_64

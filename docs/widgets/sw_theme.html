@@ -12,7 +12,7 @@
             <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
         </div>
         <h1>SW_THEME</h1>
-        <p class="tagline">Every colour, face and metric in one place - with WCAG contracts on its own palette.</p>
+        <p class="tagline">Every color, face and metric in one place - with WCAG contracts on its own palette.</p>
     </header>
 
     <nav>
@@ -48,7 +48,7 @@ window.set_theme (light)   <span class="comment">-- every widget re-renders in t
         </section>
 
         <section id="example-2">
-            <h2>Customising tokens</h2>
+            <h2>Customizing tokens</h2>
 <pre><code><span class="keyword">create</span> t.make_dark
 t.set_semantics (0x4F9CF9, 0x34C98E, 0xE7B93C, 0xE06C55)
 t.set_washes (0x24344A, 0x1D3A2C, 0x3D330E, 0x40231C)
@@ -68,7 +68,7 @@ t.set_families (<span <span class="keyword">class</span>="string">&quot;Segoe UI
             <h2>Bugs &amp; gotchas</h2>
             <ul>
                 <li>The WCAG invariants are real contracts: hand a theme a low-contrast ink/surface pair under an assertion-checked build and it dies at the assignment, not at paint time.</li>
-                <li>Colours are <code>NATURAL_32</code> RGB (no alpha in tokens); alpha lives in painter calls like <code>set_color_alpha</code>.</li>
+                <li>Colors are <code>NATURAL_32</code> RGB (no alpha in tokens); alpha lives in painter calls like <code>set_color_alpha</code>.</li>
             </ul>
         </section>
 

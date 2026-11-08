@@ -10,7 +10,7 @@ note
 		widgets at a fixed width (job progress with its Cancel button).
 		Leading sections pack after the left message, trailing ones
 		before the right message, each side in the order added, with a
-		divider between neighbours. A hidden section takes no room,
+		divider between neighbors. A hidden section takes no room,
 		draws nothing and answers no click. Hosted widgets are real
 		children: they draw, hit-test, take clicks and the focus.
 	]"
@@ -320,7 +320,7 @@ feature {NONE} -- Implementation
 		end
 
 	gap (a_p: SW_PAINTER): REAL_64
-			-- Space between neighbours, the divider in its middle: twice the
+			-- Space between neighbors, the divider in its middle: twice the
 			-- theme's `padding'.
 		do
 			Result := 2.0 * a_p.theme.padding

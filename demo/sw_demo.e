@@ -128,7 +128,7 @@ feature {NONE} -- Initialization
 			body.put ((create {SW_LABEL}.make_mono ("the toolkit above simple_cairo %/183/ no Vision2 %/183/ no boilerplate")).as_muted)
 
 			create card.make_striped (theme.success)
-			card.put (create {SW_LABEL}.make_body ("Every colour, face and metric here comes from the theme; every position from the layout."))
+			card.put (create {SW_LABEL}.make_body ("Every color, face and metric here comes from the theme; every position from the layout."))
 			create chips.make
 			chips.put (create {SW_CHIP}.make ("NEUTRAL", {SW_CHIP}.Kind_neutral))
 			chips.put (create {SW_CHIP}.make ("RENDERED", {SW_CHIP}.Kind_accent))
@@ -516,7 +516,7 @@ feature {NONE} -- Initialization
 
 	on_color_changed (a_rgb: NATURAL_32)
 		do
-			statusbar.set_left ({STRING_32} "colour: " + color_picker.hex_text)
+			statusbar.set_left ({STRING_32} "color: " + color_picker.hex_text)
 		end
 
 	cal: SW_CALENDAR
@@ -663,7 +663,7 @@ feature {NONE} -- Fleet files
 			not_empty: not a_relative.is_empty implies not Result.is_empty
 		end
 
-feature {NONE} -- Behaviour
+feature {NONE} -- Behavior
 
 	window: SW_WINDOW
 
@@ -964,7 +964,7 @@ feature {NONE} -- Behaviour
 		end
 
 	generate_swatches
-			-- Five coloured PNGs beside the exe: the demo feeds its
+			-- Five colored PNGs beside the exe: the demo feeds its
 			-- own media (an app may use simple_cairo directly - R2
 			-- binds widgets, not hosts).
 		local
@@ -1011,7 +1011,7 @@ feature {NONE} -- Behaviour
 	chat_page: SW_COLUMN
 			-- Wave 6 conversational + DICTATION: the prompt view
 			-- echoes by streaming; the mic button feeds the box
-			-- through whisper - or greys itself honestly when the
+			-- through whisper - or grays itself honestly when the
 			-- model is absent (set_enabled_when doing its law).
 		local
 			mic_row: SW_ROW
@@ -1032,7 +1032,7 @@ feature {NONE} -- Behaviour
 			if dictation.is_ready then
 				mic_row.put ((create {SW_LABEL}.make_ui ("model loaded: ggml-base.en")).as_muted)
 			else
-				mic_row.put ((create {SW_LABEL}.make_ui ("model not found at simple_speech/models %/8212/ the button greys itself, honestly")).as_muted)
+				mic_row.put ((create {SW_LABEL}.make_ui ("model not found at simple_speech/models %/8212/ the button grays itself, honestly")).as_muted)
 			end
 			Result.put (mic_row)
 		end
@@ -1175,7 +1175,7 @@ feature {NONE} -- Behaviour
 	studio_box: SW_TEXT_BOX
 
 	studio_gutter (a_p: SW_PAINTER; a_i: INTEGER; a_x, a_y, a_w, a_h: REAL_64)
-			-- A severity stripe in a state colour and a voice dot.
+			-- A severity stripe in a state color and a voice dot.
 		local
 			c: NATURAL_32
 		do
@@ -1467,7 +1467,7 @@ feature {NONE} -- Behaviour
 		do
 			create fd.make_open (fleet_path ("simple_widgets"))
 			fd.set_on_accept (agent on_file_chosen)
-			fd.set_on_cancel (agent on_file_cancelled)
+			fd.set_on_cancel (agent on_file_canceled)
 			window.show_sheet (fd, 560.0)
 		end
 
@@ -1477,7 +1477,7 @@ feature {NONE} -- Behaviour
 		do
 			create fd.make_save (fleet_path ("simple_widgets"), "untitled.txt")
 			fd.set_on_accept (agent on_file_chosen)
-			fd.set_on_cancel (agent on_file_cancelled)
+			fd.set_on_cancel (agent on_file_canceled)
 			window.show_sheet (fd, 560.0)
 		end
 
@@ -1488,7 +1488,7 @@ feature {NONE} -- Behaviour
 			window.toast ({STRING_32} "Chosen: " + a_path, 2)
 		end
 
-	on_file_cancelled
+	on_file_canceled
 		do
 			window.close_sheet
 		end

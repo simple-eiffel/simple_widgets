@@ -462,7 +462,7 @@ feature {NONE} -- Fixtures
 		end
 
 	scripture_tabs_gate (a_theme: SW_THEME; a_evidence: STRING)
-			-- Tabs labelled with pointed Hebrew, polytonic Greek, a mixed
+			-- Tabs labeled with pointed Hebrew, polytonic Greek, a mixed
 			-- English and Hebrew line and an ampersand, closable, the
 			-- Hebrew one selected: all shown, shaped with nothing skipped,
 			-- and written as evidence.
@@ -501,7 +501,7 @@ feature {NONE} -- Fixtures
 feature {NONE} -- Pixels
 
 	image_pixel (a_image: CAIRO_SURFACE; a_x, a_y: INTEGER): NATURAL_32
-			-- The colour at (`a_x', `a_y') of an opaque image, as 0xRRGGBB.
+			-- The color at (`a_x', `a_y') of an opaque image, as 0xRRGGBB.
 		require
 			inside: a_x >= 0 and a_y >= 0 and a_x < a_image.width and a_y < a_image.height
 		local

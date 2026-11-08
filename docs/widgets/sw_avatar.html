@@ -30,7 +30,7 @@
     <main>
         <section id="description">
             <h2>Description</h2>
-            <p>SW_AVATAR shows up to two initials - first letters of the first and last words of <code>display_name</code>, upper-cased ('Larry Rix' &rarr; LR, 'cher' &rarr; C, blank &rarr; ?) - on a filled disc. The wash colour is chosen by a stable hash of the name, so the same person always wears the same hue across sessions and screens. <code>with_diameter</code> scales the whole disc, initials included.</p>
+            <p>SW_AVATAR shows up to two initials - first letters of the first and last words of <code>display_name</code>, upper-cased ('Larry Rix' &rarr; LR, 'cher' &rarr; C, blank &rarr; ?) - on a filled disc. The wash color is chosen by a stable hash of the name, so the same person always wears the same hue across sessions and screens. <code>with_diameter</code> scales the whole disc, initials included.</p>
             <p class="muted"><em>Source: <code>src/sw_avatar.e</code> &middot; since Wave 3 (2026-08-22).
             Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>
         </section>
@@ -45,7 +45,7 @@ row.put ((<span class="keyword">create</span> {<span class="type">SW_AVATAR</spa
         <section id="limits">
             <h2>Known limits</h2>
             <ul>
-                <li>Photo avatars SHIPPED 2026-08-23: with_image clips any CAIRO_SURFACE to the disc (new painter primitive push_circle_clip) - pixel-assaulted: the corner stays background, the centre carries the photo.</li>
+                <li>Photo avatars SHIPPED 2026-08-23: with_image clips any CAIRO_SURFACE to the disc (new painter primitive push_circle_clip) - pixel-assaulted: the corner stays background, the center carries the photo.</li>
                 <li>Hash picks among the four theme washes; large rosters will share hues.</li>
             </ul>
         </section>
@@ -53,7 +53,7 @@ row.put ((<span class="keyword">create</span> {<span class="type">SW_AVATAR</spa
         <section id="gotchas">
             <h2>Bugs &amp; gotchas</h2>
             <ul>
-                <li>The hue hash runs over the exact name string - 'Larry Rix' and 'larry rix' wear different colours. Normalize names upstream if identity matters.</li>
+                <li>The hue hash runs over the exact name string - 'Larry Rix' and 'larry rix' wear different colors. Normalize names upstream if identity matters.</li>
             </ul>
         </section>
 

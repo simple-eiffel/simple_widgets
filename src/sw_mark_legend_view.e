@@ -201,7 +201,7 @@ feature {NONE} -- Implementation
 
 	draw_sample (a_p: SW_PAINTER; a_dx, a_dy, a_sx, a_sy: REAL_64)
 			-- The sample text at the swatch origin plus an offset, in
-			-- the painter's current colour.
+			-- the painter's current color.
 		do
 			geometry.draw (a_p, sample, False, a_sx + a_dx, a_sy + a_dy)
 		end

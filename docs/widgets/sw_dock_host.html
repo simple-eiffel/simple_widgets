@@ -12,7 +12,7 @@
             <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
         </div>
         <h1>SW_DOCK_HOST + SW_DOCK_ZONE</h1>
-        <p class="tagline">TRUE DOCKING: reflow panels in west/east/south zones around a centre document; empty zones collapse to nothing.</p>
+        <p class="tagline">TRUE DOCKING: reflow panels in west/east/south zones around a center document; empty zones collapse to nothing.</p>
     </header>
 
     <nav>
@@ -30,7 +30,7 @@
     <main>
         <section id="description">
             <h2>Description</h2>
-            <p>The promise kept from the day the overlap law was declared: workbench panels that RESHAPE the page instead of floating over it. Three zones, each a real widget stacking its panels under title bars; the centre document takes every pixel the zones do not; an EMPTY ZONE COLLAPSES TO ZERO - zone_rect and center_rect are public reflow math, assaulted (occupied west takes its fraction, empty east is nothing, the centre grows the moment a zone empties).</p>
+            <p>The promise kept from the day the overlap law was declared: workbench panels that RESHAPE the page instead of floating over it. Three zones, each a real widget stacking its panels under title bars; the center document takes every pixel the zones do not; an EMPTY ZONE COLLAPSES TO ZERO - zone_rect and center_rect are public reflow math, assaulted (occupied west takes its fraction, empty east is nothing, the center grows the moment a zone empties).</p>
             <p>Panels move by pick-and-drop - middle-click a title bar, drop on another zone - or programmatically via move_panel; both fire on_layout_change. Hit testing routes THROUGH to panel contents, so docked widgets stay fully alive.</p>
             <p class="muted"><em>Source: <code>src/sw_dock_host.e</code> &middot; since Wave 5 (2026-08-22).
             Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>

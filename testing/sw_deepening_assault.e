@@ -284,8 +284,8 @@ feature -- Batch 2: toolkit-wide reach
 		do
 			create sc
 			if attached sc.grab (sc.virtual_x, sc.virtual_y, 6, 6) as s then
-				assert_integers_equal ("width honoured", 6, s.width)
-				assert_integers_equal ("height honoured", 6, s.height)
+				assert_integers_equal ("width honored", 6, s.width)
+				assert_integers_equal ("height honored", 6, s.height)
 				s.destroy
 			else
 				assert ("desktop unreadable only in a locked session", False)
@@ -670,13 +670,13 @@ feature -- Batch 4: data + enterprise deepening
 			assert ("typing opened the readout edit", cp.is_editing_hex)
 			cp.handle_char (27)
 			assert ("Escape abandons", not cp.is_editing_hex)
-			assert ("and the colour stands", cp.rgb = r0)
+			assert ("and the color stands", cp.rgb = r0)
 		end
 
 	test_avatar_photo_clips_to_disc
 			-- Pixel proof: a white photo drawn into the avatar leaves
 			-- the bounding-box corner BLACK (outside the disc) and
-			-- the centre white.
+			-- the center white.
 		local
 			th: SW_THEME
 			surf, photo: CAIRO_SURFACE
@@ -707,7 +707,7 @@ feature -- Batch 4: data + enterprise deepening
 			center := mp.read_natural_32 (20 * surf.stride + 20 * 4)
 			assert_integers_equal ("the corner stays black (clipped)",
 				0xFF000000, corner.to_integer_32)
-			assert ("the centre carries the photo",
+			assert ("the center carries the photo",
 				center.bit_and (0x00FFFFFF) /= 0)
 		end
 
@@ -918,7 +918,7 @@ feature -- The pretty map (Natural Earth 110m, generated)
 
 	test_map_draws_real_coastlines
 			-- Pixel truth on the drawn planet: Kansas is land-
-			-- coloured, the mid-Atlantic water-coloured (the map palette of
+			-- colored, the mid-Atlantic water-colored (the map palette of
 			-- GW-19; before it, land was surface_variant and the sea surface).
 		local
 			th: SW_THEME
@@ -948,9 +948,9 @@ feature -- The pretty map (Natural Earth 110m, generated)
 			sea_px := mp.read_natural_32 (ay * surf.stride + ax * 4)
 			want_land := {NATURAL_32} 0xFF000000 + m.land_color (th)
 			want_sea := {NATURAL_32} 0xFF000000 + m.water_color (th)
-			assert_integers_equal ("Kansas wears the land colour",
+			assert_integers_equal ("Kansas wears the land color",
 				want_land.to_integer_32, land_px.to_integer_32)
-			assert_integers_equal ("the mid-Atlantic wears the water colour",
+			assert_integers_equal ("the mid-Atlantic wears the water color",
 				want_sea.to_integer_32, sea_px.to_integer_32)
 		end
 
@@ -1077,7 +1077,7 @@ feature -- The pretty map (Natural Earth 110m, generated)
 			if m.handle_double_click (10.0, 10.0) then
 			end
 			assert_reals_equal ("double-click resets", 1.0, m.effective_zoom, 0.000_1)
-			assert_reals_equal ("centred home", 0.0, m.view_cx, 0.000_1)
+			assert_reals_equal ("centered home", 0.0, m.view_cx, 0.000_1)
 		end
 
 	test_zoomed_band_pick_stays_true

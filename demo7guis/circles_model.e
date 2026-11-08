@@ -35,7 +35,7 @@ feature -- Access
 		end
 
 	nearest_hit (a_x, a_y: REAL_64): INTEGER
-			-- The circle containing the point nearest by centre;
+			-- The circle containing the point nearest by center;
 			-- 0 when the point is inside none.
 		local
 			i: INTEGER

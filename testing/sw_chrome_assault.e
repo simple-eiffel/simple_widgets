@@ -152,7 +152,7 @@ feature -- Tests
 		do
 			create l_theme.make_dark
 			assert ("white on dark accent refused", call_is_refused (agent l_theme.set_inks_on_fills (0xFFFFFF, l_theme.ink_on_success, l_theme.ink_on_warning, l_theme.ink_on_danger)))
-			assert ("surface-coloured soft ink refused", call_is_refused (agent l_theme.set_quiet_tones (l_theme.surface, l_theme.divider, l_theme.selection, l_theme.scrim)))
+			assert ("surface-colored soft ink refused", call_is_refused (agent l_theme.set_quiet_tones (l_theme.surface, l_theme.divider, l_theme.selection, l_theme.scrim)))
 			assert ("a reversed ramp refused", call_is_refused (agent l_theme.set_ramp (l_theme.ramp (5), l_theme.ramp (4), l_theme.ramp (3), l_theme.ramp (2), l_theme.ramp (1))))
 			l_theme.set_inks_on_fills (0x000000, 0x000000, 0x000000, 0x000000)
 			assert ("readable value taken", l_theme.ink_on_accent = 0x000000 and l_theme.is_readable)

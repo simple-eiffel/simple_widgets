@@ -251,7 +251,7 @@ feature -- The chat thread
 			assert_real_greater_than ("the thread measured itself", c.content_h, 0.0)
 				-- The honest instrument, and the reason this is not an ink
 				-- count: the widget paints its own background, so a pane of
-				-- solid theme colour is "non-white" everywhere and an ink
+				-- solid theme color is "non-white" everywhere and an ink
 				-- count over it would pass whether or not a glyph was drawn.
 				-- `painted_runs' counts what actually reached cairo.
 			assert_greater_than ("every run of all three bubbles reached cairo",
@@ -335,7 +335,7 @@ feature -- The chat thread
 			--
 			-- HOW "IT DREW THE TEXT" IS MEASURED. The widget paints its own
 			-- background, so counting non-white pixels would pass on a pane of
-			-- solid theme colour with no glyph on it. So each path draws the
+			-- solid theme color with no glyph on it. So each path draws the
 			-- SAME thread twice - once with a sentence, once with a single
 			-- full stop - over the same bounds, and the sentence must leave
 			-- materially more non-background pixels than the stop does. That
@@ -1096,7 +1096,7 @@ feature {NONE} -- GW-05 gate
 
 	study_layout_gate (a_theme: SW_THEME; a_evidence: STRING)
 			-- simple_bible's Study layout in a shaped window: the reader in
-			-- the centre (Genesis 1:1 in Hebrew over the KJV), cross
+			-- the center (Genesis 1:1 in Hebrew over the KJV), cross
 			-- references east, and five panels tabbed in the south zone,
 			-- one tab titled in Hebrew. Require: shaped; five tabs; the
 			-- shown panel fills the zone; nothing skipped. Writes an
@@ -1549,7 +1549,7 @@ feature {NONE} -- GW-04 gate
 			-- on `a_theme''s surface in `a_theme''s ink, and require: both
 			-- shaped (runs painted, none skipped), no missing glyph (tofu),
 			-- Hebrew laid right to left, ink on the page in both lines, and
-			-- some pixels at full ink colour (the text is drawn in the theme's
+			-- some pixels at full ink color (the text is drawn in the theme's
 			-- ink, not washed out). Writes an evidence PNG when the repository
 			-- is underfoot.
 		local
@@ -1587,7 +1587,7 @@ feature {NONE} -- GW-04 gate
 				{SHAPING_CONSTANTS}.Direction_rtl, hebrew.base_direction)
 			assert_true ("Hebrew line carries ink", pixels_unlike (surf, a_theme.surface, 0, 0, 900, 85) > 1500)
 			assert_true ("Greek line carries ink", pixels_unlike (surf, a_theme.surface, 0, 85, 900, 170) > 1500)
-			assert_true ("text reaches full ink colour", pixels_near (surf, a_theme.ink, 0, 0, 900, 170) > 100)
+			assert_true ("text reaches full ink color", pixels_near (surf, a_theme.ink, 0, 0, 900, 170) > 100)
 
 			path := evidence_path (a_evidence)
 			if not path.is_empty then
@@ -1616,7 +1616,7 @@ feature {NONE} -- GW-04 gate
 		end
 
 	pixels_unlike (a_surface: CAIRO_SURFACE; a_ground: NATURAL_32; a_x0, a_y0, a_x1, a_y1: INTEGER): INTEGER
-			-- Pixels in the box whose colour is not `a_ground'.
+			-- Pixels in the box whose color is not `a_ground'.
 		local
 			px, py: INTEGER
 		do
@@ -1631,8 +1631,8 @@ feature {NONE} -- GW-04 gate
 			end
 		end
 
-	pixels_near (a_surface: CAIRO_SURFACE; a_colour: NATURAL_32; a_x0, a_y0, a_x1, a_y1: INTEGER): INTEGER
-			-- Pixels in the box within 24 of `a_colour' on every channel.
+	pixels_near (a_surface: CAIRO_SURFACE; a_color: NATURAL_32; a_x0, a_y0, a_x1, a_y1: INTEGER): INTEGER
+			-- Pixels in the box within 24 of `a_color' on every channel.
 		local
 			px, py: INTEGER
 			l_pixel: NATURAL_32
@@ -1640,8 +1640,8 @@ feature {NONE} -- GW-04 gate
 			from py := a_y0.max (0) until py >= a_y1.min (a_surface.height) loop
 				from px := a_x0.max (0) until px >= a_x1.min (a_surface.width) loop
 					l_pixel := pixel_at (a_surface, px, py)
-					if channel_near (l_pixel, a_colour, 16) and channel_near (l_pixel, a_colour, 8)
-						and channel_near (l_pixel, a_colour, 0)
+					if channel_near (l_pixel, a_color, 16) and channel_near (l_pixel, a_color, 8)
+						and channel_near (l_pixel, a_color, 0)
 					then
 						Result := Result + 1
 					end

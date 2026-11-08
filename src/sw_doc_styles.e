@@ -6,7 +6,7 @@ note
 		700, italic, small capitals, superscript raised small - and an
 		INK made of its link, code and strikethrough bits, so the shaper
 		cuts the runs wherever one of those changes and a paint hook can
-		colour a link, wash code or strike a run, one run at a time.
+		color a link, wash code or strike a run, one run at a time.
 		Shared by every widget that draws DOC_TEXT (SW_DOCUMENT_VIEW
 		first).
 	]"

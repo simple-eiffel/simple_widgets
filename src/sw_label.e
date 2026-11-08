@@ -144,7 +144,7 @@ feature -- Alignment (GW-02)
 
 	effective_text_alignment: INTEGER
 			-- `text_alignment' as drawn: left and right swap when this widget `mirrors_layout'
-			-- (W4c; GTK mirrors a label's xalign the same way). Start and centre are unchanged.
+			-- (W4c; GTK mirrors a label's xalign the same way). Start and center are unchanged.
 		do
 			Result := text_alignment
 			if mirrors_layout then
@@ -265,7 +265,7 @@ feature -- Layout
 	baseline_offset (a_p: SW_PAINTER): REAL_64
 			-- Where the first baseline sits below the label's top edge -
 			-- the measured ascent plus half the leading, so a line of
-			-- text is centred in the step it occupies.
+			-- text is centered in the step it occupies.
 		do
 			a_p.font (role, size, is_bold)
 			Result := a_p.font_ascent + a_p.theme.padding / 2.0
@@ -350,7 +350,7 @@ feature -- Drawing
 			if attached shaped_layout (a_p, width) as al_layout then
 					-- The layout's TOP-LEFT goes where the toy path's
 					-- glyph box starts: half the leading below the top
-					-- edge, so both paths centre a line in its step.
+					-- edge, so both paths center a line in its step.
 				if l_align /= {SHAPING_CONSTANTS}.Align_left then
 						-- GW-02: placed in the label's own width.
 					a_p.draw_shaped_layout_aligned (al_layout, x, y + a_p.theme.padding / 2.0,

@@ -11,7 +11,7 @@ note
 		VARIANT (the kind query) - author-chosen: normal, primary, quiet, danger.
 		STATE - inherited from SW_WIDGET: enabled, hovered, pressed,
 		focused; all drawing keys off these.
-		THEME - every value below is a token; no literal colours here.
+		THEME - every value below is a token; no literal colors here.
 	]"
 
 class
@@ -41,7 +41,7 @@ feature {NONE} -- Initialization
 			create label.make_from_string_general (a_label)
 			on_click := a_on_click
 		ensure
-			labelled: label.same_string_general (a_label)
+			labeled: label.same_string_general (a_label)
 			enabled: is_enabled
 			normal: kind = Kind_normal
 		end

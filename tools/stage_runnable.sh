@@ -23,7 +23,7 @@
 #                                   have different working directories, and
 #                                   none of them is a contract.
 #
-#   LICENSE-ASSETS.md               the artwork's licence. It ships WITH the
+#   LICENSE-ASSETS.md               the artwork's license. It ships WITH the
 #                                   artwork; that is the condition of
 #                                   redistributing it.
 #

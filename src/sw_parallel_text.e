@@ -12,7 +12,7 @@ note
 		CELLS are simple_document DOC_TEXTs (bold, italic, small capitals,
 		superscript Strong's numbers, links) with their own SW_MARKED_TEXT:
 		an SW_MARK_LEGEND turns reasons into looks ("agrees with LXX",
-		"differs from KJV") with text labels, never colour alone.
+		"differs from KJV") with text labels, never color alone.
 
 		WHAT IT IS MADE OF: SW_DOC_UNITS (pointing, scrolling, the stack and
 		the selection, joined once; each cell is a unit with its box) - one
@@ -225,7 +225,7 @@ feature -- Rows
 		end
 
 	add_row (a_label: READABLE_STRING_GENERAL): INTEGER
-			-- A verse row labelled `a_label', its cells empty; its number.
+			-- A verse row labeled `a_label', its cells empty; its number.
 		require
 			has_columns: column_count > 0
 		do
@@ -632,7 +632,7 @@ feature {NONE} -- Drawing implementation
 
 	redraw_unit (a_unit: INTEGER; a_p: SW_PAINTER; a_dx, a_dy, a_ox, a_oy: REAL_64)
 			-- Unit `a_unit''s text shifted by (`a_dx', `a_dy') in the
-			-- painter's CURRENT colour: what a mark's text effects draw
+			-- painter's CURRENT color: what a mark's text effects draw
 			-- through (no run hook, so a link's ink does not override the
 			-- effect's).
 		do

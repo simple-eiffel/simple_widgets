@@ -1,7 +1,7 @@
 note
 	description: "[
 		A small state chip: mono label in a washed, bordered pill.
-		The kind selects the theme's semantic colour pair.
+		The kind selects the theme's semantic color pair.
 	]"
 
 class
@@ -34,7 +34,7 @@ feature {NONE} -- Initialization
 			create label.make_from_string_general (a_label)
 			kind := a_kind
 		ensure
-			labelled: label.same_string_general (a_label)
+			labeled: label.same_string_general (a_label)
 			kind_set: kind = a_kind
 		end
 
@@ -137,7 +137,7 @@ feature -- Drawing
 			a_p.text (x + 8.0, y + height - 6.0, label)
 		end
 
-feature -- Colours
+feature -- Colors
 
 	fill_color (a_theme: SW_THEME): NATURAL_32
 			-- The chip's ground: its kind's wash.
@@ -158,7 +158,7 @@ feature -- Colours
 
 	text_color (a_theme: SW_THEME): NATURAL_32
 			-- The label, the outline and the remove cross: the theme's strong
-			-- ink for that wash (it drew the fill colour itself, under 4.5:1 on
+			-- ink for that wash (it drew the fill color itself, under 4.5:1 on
 			-- the wash in dark).
 		do
 			inspect kind

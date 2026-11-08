@@ -6,14 +6,14 @@ note
 		labels with SW_PAINTER.text - cairo's toy `show_text' - while
 		SW_CHAT_THREAD painted with `draw_shaped_layout' whenever the
 		painter carried a kit. Only the shaping kit resolves the Noto
-		colour-emoji artwork and shapes complex script, so a menu item
-		labelled with an emoji drew as an EMPTY BOX in every consumer
+		color-emoji artwork and shapes complex script, so a menu item
+		labeled with an emoji drew as an EMPTY BOX in every consumer
 		with shaped text on, two inches from a chat bubble drawing the
 		same character as a picture. simple_chat's eight-emoji reaction
 		picker found it: eight identical squares.
 
-		HOW IT IS MEASURED. Saturation, not a pixel diff. Every colour
-		in the toolkit's dark theme is a near-neutral grey - the widest
+		HOW IT IS MEASURED. Saturation, not a pixel diff. Every color
+		in the toolkit's dark theme is a near-neutral gray - the widest
 		channel spread in the whole palette is about 0x0F - while Noto's
 		thumbs-up is a saturated yellow. So "how many pixels in the menu
 		have a channel spread over `Saturated'" separates ARTWORK from
@@ -53,7 +53,7 @@ feature -- The emoji menu item (the simple_chat defect)
 			shaped_ctx, plain_ctx: CAIRO_CONTEXT
 			shaped_p, plain_p: SW_PAINTER
 			x0, y0, x1, y1: INTEGER
-			shaped_colour, plain_colour, differing, frame_colour: INTEGER
+			shaped_color, plain_color, differing, frame_color: INTEGER
 			wrote: BOOLEAN
 		do
 			assets := shaping_assets
@@ -110,20 +110,20 @@ feature -- The emoji menu item (the simple_chat defect)
 				x1 := (m.x + m.width).ceiling
 				y1 := (m.y + m.height).ceiling
 
-				shaped_colour := colour_in (shaped_surf, x0, y0, x1, y1)
-				plain_colour := colour_in (plain_surf, x0, y0, x1, y1)
+				shaped_color := color_in (shaped_surf, x0, y0, x1, y1)
+				plain_color := color_in (plain_surf, x0, y0, x1, y1)
 				differing := differing_in (shaped_surf, plain_surf, x0, y0, x1, y1)
 
 					-- THE ASSERTION THE DEFECT FAILS. Noto's artwork is
 					-- saturated; the theme, the ink and a .notdef box are
 					-- not. Before 0.7.2 both numbers were the same number,
 					-- because both paths were the same path.
-				print ("    saturated pixels - shaped " + shaped_colour.out
-					+ ", toy " + plain_colour.out + ", differing " + differing.out + "%N")
-				assert_greater_than ("the SHAPED menu carries real colour artwork",
-					shaped_colour, 400)
+				print ("    saturated pixels - shaped " + shaped_color.out
+					+ ", toy " + plain_color.out + ", differing " + differing.out + "%N")
+				assert_greater_than ("the SHAPED menu carries real color artwork",
+					shaped_color, 400)
 				assert_less_than ("the TOY menu carries essentially none - it drew boxes in ink",
-					plain_colour, 50)
+					plain_color, 50)
 				assert_greater_than ("and the two renderings are not the same pixels",
 					differing, 400)
 
@@ -142,9 +142,9 @@ feature -- The emoji menu item (the simple_chat defect)
 						-- just an isolated re-draw.
 					create shot.make_from_png (evidence)
 					if shot.is_valid then
-						frame_colour := colour_in (shot, x0, y0, x1, y1)
+						frame_color := color_in (shot, x0, y0, x1, y1)
 						assert_greater_than ("the presented frame carries the artwork",
-							frame_colour, 400)
+							frame_color, 400)
 						shot.destroy
 					end
 				end
@@ -405,7 +405,7 @@ feature {NONE} -- Ink
 			-- How far a pixel's widest channel must sit from its
 			-- narrowest before it counts as ARTWORK rather than chrome.
 			-- The dark theme's widest spread is 0x0F and cairo's own
-			-- sub-pixel smoothing fringes a grey glyph by well under
+			-- sub-pixel smoothing fringes a gray glyph by well under
 			-- this; Noto's thumbs-up spreads over 0xC0. The gap is wide
 			-- enough that the number is a choice, not a tuning.
 
@@ -427,7 +427,7 @@ feature {NONE} -- Ink
 		end
 
 	is_saturated (a_pixel: NATURAL_32): BOOLEAN
-			-- Do this pixel's colour channels spread wider than a grey?
+			-- Do this pixel's color channels spread wider than a gray?
 		local
 			r, g, b, lo, hi: INTEGER
 		do
@@ -439,7 +439,7 @@ feature {NONE} -- Ink
 			Result := hi - lo > Saturated
 		end
 
-	colour_in (a_surface: CAIRO_SURFACE; a_x0, a_y0, a_x1, a_y1: INTEGER): INTEGER
+	color_in (a_surface: CAIRO_SURFACE; a_x0, a_y0, a_x1, a_y1: INTEGER): INTEGER
 			-- Saturated pixels inside [`a_x0', `a_x1') x [`a_y0', `a_y1').
 		require
 			valid: a_surface.is_valid

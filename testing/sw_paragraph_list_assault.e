@@ -43,7 +43,7 @@ feature -- Measurement
 			l.set_band_below (1, 10.0)
 			l.arrange (plain_painter)
 			assert_reals_equal ("bands add their height", h0 + 34.0, l.item_height (1), 1.0e-9)
-			assert ("the neighbour is untouched", l.item_height (2) = h0)
+			assert ("the neighbor is untouched", l.item_height (2) = h0)
 		end
 
 	test_virtualisation_and_hit_test
@@ -259,11 +259,11 @@ feature -- Mutation
 			assert_integers_equal ("five again", 5, l.count)
 			assert_integers_equal ("anchor shifted up", 3, l.selected_index)
 			l.move (3, 1)
-			assert_integers_equal ("anchor travelled", 1, l.selected_index)
-			assert ("flag travelled", l.is_selected (1))
-			assert ("text travelled", l.text_of (1).same_string ("paragraph 3"))
+			assert_integers_equal ("anchor traveled", 1, l.selected_index)
+			assert ("flag traveled", l.is_selected (1))
+			assert ("text traveled", l.text_of (1).same_string ("paragraph 3"))
 			l.move (1, 5)
-			assert_integers_equal ("anchor travelled back down", 5, l.selected_index)
+			assert_integers_equal ("anchor traveled back down", 5, l.selected_index)
 			l.remove (5)
 			assert_integers_equal ("removing the anchor clears it", 0, l.selected_index)
 			l.set_bounds (0.0, 0.0, 400.0, 300.0)

@@ -676,7 +676,7 @@ feature -- The right-click door: a popup that is really PRESENTED
 
 	test_a_context_click_on_nothing_offers_nothing
 			-- The honest answer over a widget with no menu to give. A door
-			-- that opened an empty popup here would put a grey rectangle on
+			-- that opened an empty popup here would put a gray rectangle on
 			-- the screen for every stray right-click in the application.
 			-- (0.46.0: a label with text offers Copy; an empty one offers
 			-- nothing, which is the case this test holds.)
@@ -915,7 +915,7 @@ feature -- Arrow keys walk an open menu
 		end
 
 	test_escape_closes_and_left_right_walk_the_bar
-			-- Right and Left step to the neighbouring pad and open ITS menu,
+			-- Right and Left step to the neighboring pad and open ITS menu,
 			-- wrapping at both ends; Escape closes without running anything.
 		local
 			w: SW_WINDOW

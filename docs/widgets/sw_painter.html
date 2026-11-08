@@ -63,7 +63,7 @@ w := a_p.advance (label) + 24.0   <span class="comment">-- advance, not ink widt
 
         <section id="shaped-text">
             <h2>Shaped text (simple_shaping)</h2>
-            <p>The toy path above cannot do bidi, shaping, font fallback or colour emoji. When the
+            <p>The toy path above cannot do bidi, shaping, font fallback or color emoji. When the
             window has been given a shaping kit - one call, <code>window.enable_shaped_text</code> -
             the painter can paint a finished <code>SHAPED_LAYOUT</code> instead.</p>
 <pre><code><span class="keyword">if</span> a_p.has_shaping <span class="keyword">and then attached</span> a_p.shaping <span class="keyword">as</span> al_kit <span class="keyword">then</span>
@@ -119,7 +119,7 @@ w := a_p.advance (label) + 24.0   <span class="comment">-- advance, not ink widt
         <section id="glyphs">
             <h2>The drawn-glyph set (2026-08-23)</h2>
             <p><code>glyph (kind, cx, cy, size)</code> draws any of <strong>25 kinds</strong> in
-            the current colour, centred in a box - pure primitives, so every face ships on every
+            the current color, centered in a box - pure primitives, so every face ships on every
             machine (R7: no font-glyph gambling). The assault proves each kind leaves ink at the
             pixel, every run.</p>
             <p><code>Glyph_plus &middot; minus &middot; close &middot; check &middot;

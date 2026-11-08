@@ -35,7 +35,7 @@ feature -- Access
 	is_indeterminate: BOOLEAN
 
 	marquee_phase: REAL_64
-			-- Marquee mode: a travelling band instead of a fraction.
+			-- Marquee mode: a traveling band instead of a fraction.
 
 	set_indeterminate_mode (a_on: BOOLEAN)
 		do
@@ -89,7 +89,7 @@ feature -- Drawing
 				a_p.set_color_alpha (t.accent, 0.5)
 				a_p.rrect_fill (x, y + height / 2.0 - 4.0, bar_w, 8.0, 3.0)
 			elseif is_indeterminate then
-					-- the travelling band: honest 'working', no number
+					-- the traveling band: honest 'working', no number
 				marquee_phase := (marquee_phase + 0.06)
 				if marquee_phase > 1.3 then
 					marquee_phase := -0.3

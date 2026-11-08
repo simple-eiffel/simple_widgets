@@ -46,7 +46,7 @@ feature -- Access
 			in_theme: Result.theme = a_theme
 		end
 
-feature -- Colour
+feature -- Color
 
 	set_color (a_rgb: NATURAL_32)
 		do
@@ -108,7 +108,7 @@ feature -- Type
 
 	text (a_x, a_y: REAL_64; a_s: READABLE_STRING_GENERAL)
 			-- Draw `a_s' with its baseline at (`a_x', `a_y'), in the
-			-- current font and colour.
+			-- current font and color.
 			--
 			-- GW-04: with a shaping kit attached, EVERY widget's text goes
 			-- through simple_shaping here - bidi, Hebrew pointing and
@@ -207,7 +207,7 @@ feature -- Font metrics (the minimum-size law)
 		end
 
 	baseline_in (a_y, a_h: REAL_64): REAL_64
-			-- The baseline that centres one line of the current font in
+			-- The baseline that centers one line of the current font in
 			-- a band `a_h' tall starting at `a_y'.
 		require
 			positive_band: a_h >= 0.0
@@ -260,7 +260,7 @@ feature -- Shaped text (simple_shaping)
 
 	draw_shaped_layout (a_layout: SHAPED_LAYOUT; a_x, a_y: REAL_64)
 			-- Paint `a_layout' with its TOP-LEFT corner at (`a_x', `a_y')
-			-- in the CURRENT colour, through the kit's own cairo bridge.
+			-- in the CURRENT color, through the kit's own cairo bridge.
 			--
 			-- (a_x, a_y) is a top-left, NOT a baseline - unlike `text'.
 			-- The layout already knows its lines' ascents, so the caller
@@ -309,8 +309,8 @@ feature -- Shaped text (simple_shaping)
 			a_before_run: PROCEDURE [SHAPED_RUN, REAL_64, REAL_64])
 			-- `draw_shaped_layout_aligned', calling `a_before_run' with each
 			-- run, its pen x and its baseline just before the run paints
-			-- (GW-13): the host sets a link's colour there and may draw its
-			-- underline. The colour the hook leaves is the painter's after.
+			-- (GW-13): the host sets a link's color there and may draw its
+			-- underline. The color the hook leaves is the painter's after.
 		require
 			shaping_available: has_shaping
 			alignment_valid: a_alignment >= {SHAPING_CONSTANTS}.Align_start
@@ -333,7 +333,7 @@ feature -- Shapes
 		end
 
 	stroke_rect (a_x, a_y, a_w, a_h: REAL_64)
-			-- A square-cornered outline in the current colour and line
+			-- A square-cornered outline in the current color and line
 			-- width: pass half-pixel-snapped coordinates for crispness (a
 			-- table's cell rules, GW-13).
 		do
@@ -436,7 +436,7 @@ feature -- Shapes
 		end
 
 	set_color_alpha (a_rgb: NATURAL_32; a_alpha: REAL_64)
-			-- Colour with transparency, for backdrops and washes.
+			-- Color with transparency, for backdrops and washes.
 		require
 			alpha_in_range: a_alpha >= 0.0 and a_alpha <= 1.0
 		do
@@ -445,7 +445,7 @@ feature -- Shapes
 		end
 
 	line (a_x1, a_y1, a_x2, a_y2, a_width: REAL_64)
-			-- A stroked segment in the current colour.
+			-- A stroked segment in the current color.
 		require
 			positive_width: a_width > 0.0
 		do
@@ -614,7 +614,7 @@ feature -- Stroke styles (GW-18)
 		end
 
 	dashed_line (a_x1, a_y1, a_x2, a_y2, a_width: REAL_64; a_style: INTEGER)
-			-- A segment in the current colour, stroked in `a_style' (a
+			-- A segment in the current color, stroked in `a_style' (a
 			-- `Stroke_' constant). Nothing leaks: the dash, cap and width are
 			-- the context's again afterwards.
 		require
@@ -688,8 +688,8 @@ feature -- Hatch fills (GW-18)
 
 	hatch_rect (a_x, a_y, a_w, a_h: REAL_64; a_kind: INTEGER; a_spacing: REAL_64)
 			-- Fill the rectangle with hatching of `a_kind' (a `Hatch_'
-			-- constant) in the current colour, lines `a_spacing' apart (scaled
-			-- with the text). Certainty drawn by pattern, never by colour
+			-- constant) in the current color, lines `a_spacing' apart (scaled
+			-- with the text). Certainty drawn by pattern, never by color
 			-- alone.
 		require
 			known_kind: is_hatch (a_kind)
@@ -939,7 +939,7 @@ feature -- Wedges
 	wedge_fill (a_cx, a_cy, a_r_out, a_r_in, a_a0, a_a1: REAL_64)
 			-- A filled slice from angle a0 to a1 (radians, cairo
 			-- convention). r_in = 0 gives a solid wedge to the
-			-- centre; r_in > 0 gives a TRUE ring segment - arc out,
+			-- center; r_in > 0 gives a TRUE ring segment - arc out,
 			-- arc_negative back, no overlay fakery.
 		require
 			radii_sane: a_r_out > 0.0 and a_r_in >= 0.0 and a_r_in < a_r_out
@@ -1068,8 +1068,8 @@ feature -- Glyphs (R7-pure: primitives, no font gambling)
 			-- The highest glyph code: what every glyph precondition checks against.
 
 	glyph (a_kind: INTEGER; a_cx, a_cy, a_s: REAL_64)
-			-- Draw glyph `a_kind' centred at (a_cx, a_cy) inside a
-			-- box `a_s' on a side, in the CURRENT colour. Drawn from
+			-- Draw glyph `a_kind' centered at (a_cx, a_cy) inside a
+			-- box `a_s' on a side, in the CURRENT color. Drawn from
 			-- primitives so every face ships on every machine - no
 			-- font-glyph gambling (R7).
 		require

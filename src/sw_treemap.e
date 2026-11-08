@@ -1,6 +1,6 @@
 note
 	description: "[
-		Areas as shares: labelled items tiled into the plot by
+		Areas as shares: labeled items tiled into the plot by
 		recursive slice-and-dice bisection - the range splits where
 		cumulative value crosses half, the rectangle splits in the
 		same proportion, and the axis alternates per level. The

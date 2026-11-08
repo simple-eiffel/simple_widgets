@@ -4,7 +4,7 @@ note
 		4,964 points, generated into SW_WORLD_GEOMETRY - the once
 		'stated future', arrived 2026-08-23) drawn zero-allocation
 		through the projection math, public and assaulted
-		(x_of_lon / y_of_lat and their inverses), labelled MARKERS
+		(x_of_lon / y_of_lat and their inverses), labeled MARKERS
 		with nearest-within-reach hover, and the timezone band-map
 		grown up: highlight_utc washes the 15-degree band of any UTC
 		offset. Hovering open sea reads out lat/lon - the map answers
@@ -12,7 +12,7 @@ note
 
 		GW-19 (the Atlas): the Mediterranean, the Levant and Mesopotamia at
 		1:10m (SW_REGION_GEOMETRY: land, lakes, rivers) from `Region_zoom'
-		on; routes (`add_route', dashed when uncertain); places labelled
+		on; routes (`add_route', dashed when uncertain); places labeled
 		from a zoom of their own (`add_place'), a label that would overlap
 		one already placed left out; LAYERS shown or hidden
 		(`set_layer_shown'); and a map palette drawn from the theme -
@@ -123,10 +123,10 @@ feature -- Zoom (the wheel at the pointer; drag pans; double-click resets)
 			-- still means the whole world.
 
 	view_cx: REAL_64
-			-- Centre longitude of the view window.
+			-- Center longitude of the view window.
 
 	view_cy: REAL_64
-			-- Centre latitude of the view window.
+			-- Center latitude of the view window.
 
 	Max_zoom: REAL_64 = 128.0
 			-- 2.8 degrees of longitude across: a Levant valley (GW-19; was 16).
@@ -154,9 +154,9 @@ feature -- Zoom (the wheel at the pointer; drag pans; double-click resets)
 		end
 
 	set_view (a_zoom, a_cx, a_cy: REAL_64)
-			-- Clamp-and-set: zoom into 1..Max_zoom, the centre so
+			-- Clamp-and-set: zoom into 1..Max_zoom, the center so
 			-- the window never leaves the planet. At zoom 1 the
-			-- centre is forced home - the old whole-world formulas
+			-- center is forced home - the old whole-world formulas
 			-- fall out unchanged, which is why every pre-zoom
 			-- projection assault still passes.
 		do
@@ -481,7 +481,7 @@ feature -- Layers (GW-19)
 feature -- Places and routes (GW-19)
 
 	places: ARRAYED_LIST [TUPLE [label: STRING_32; lat, lon, min_zoom: REAL_64]]
-			-- Labelled places, each labelled from its own zoom on.
+			-- Labeled places, each labeled from its own zoom on.
 		attribute
 			create Result.make (8)
 		end

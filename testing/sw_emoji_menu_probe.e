@@ -43,7 +43,7 @@ feature -- Access
 feature -- Element change
 
 	add_label (a_label: READABLE_STRING_GENERAL)
-			-- Offer one more item labelled `a_label'.
+			-- Offer one more item labeled `a_label'.
 		local
 			s: STRING_32
 		do

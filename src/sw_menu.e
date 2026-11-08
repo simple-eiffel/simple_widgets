@@ -179,7 +179,7 @@ feature -- Keyboard navigation
 			-- Can the highlight land on item `i'? A separator cannot be
 			-- chosen and neither can a disabled item, which is why the arrow
 			-- keys must STEP OVER both rather than stopping on them - the
-			-- behaviour every Windows menu has.
+			-- behavior every Windows menu has.
 		do
 			Result := i >= 1 and then i <= items.count
 				and then not items.i_th (i).separator and then items.i_th (i).enabled
@@ -338,7 +338,7 @@ feature -- Shaped labels
 			-- the menu with it and `draw' places the type with it. When
 			-- `measure' asked cairo and `draw' asked the shaper, an
 			-- emoji-only item measured NOTHING and painted a 128-pixel
-			-- picture over its neighbour.
+			-- picture over its neighbor.
 		do
 			if attached a_p.shaping as al_kit then
 				Result := shaped.width_of (al_kit, a_text, label_pixel_size (a_p))
@@ -460,7 +460,7 @@ feature -- Geometry
 						-- invisible while every label is one line of type:
 						-- cairo's toy glyphs at 2x are cramped in it and
 						-- always were, and growing the row for them would
-						-- move every menu that has ever shipped. A colour
+						-- move every menu that has ever shipped. A color
 						-- emoji is a different matter - a Noto picture laid
 						-- out at the label's pixel size is taller than the
 						-- type, and on a flat row it drew over the item
@@ -577,9 +577,9 @@ feature -- Drawing
 					base := cy + rh - 10.0
 					lx := x + Pad + 10.0
 						-- THE SHAPED PATH WHEN THERE IS ONE. `text' is
-						-- cairo's toy `show_text': it resolves no colour
+						-- cairo's toy `show_text': it resolves no color
 						-- emoji artwork and shapes no complex script, so a
-						-- menu item labelled with an emoji drew an empty
+						-- menu item labeled with an emoji drew an empty
 						-- box in every consumer that had shaped text on -
 						-- while the very same string in a chat bubble two
 						-- inches away drew the picture.
@@ -604,7 +604,7 @@ feature -- Drawing
 							-- Under exactly the one character, where that
 							-- character actually PAINTED, and in the item's
 							-- OWN INK - `hline' would draw the theme's
-							-- outline colour instead, which under a label
+							-- outline color instead, which under a label
 							-- reads as nothing at all.
 						ub := item_underline_bounds (a_p, i)
 						a_p.fill_rect (lx + ub.left, base + 2.0, ub.width,

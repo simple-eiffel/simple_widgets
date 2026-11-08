@@ -20,7 +20,7 @@ note
 		edge is its own cluster's x. Its RIGHT edge is the NEXT cluster's
 		x in a left-to-right run and the PREVIOUS cluster's x in a
 		right-to-left run - and the run's own advance at whichever end
-		has no neighbour. An IMAGE_RUN (an emoji) is one indivisible
+		has no neighbor. An IMAGE_RUN (an emoji) is one indivisible
 		picture: every character in it spans the whole box.
 
 		Nothing here raises on a degraded run: a cluster entry that

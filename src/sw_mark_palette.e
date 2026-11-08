@@ -7,10 +7,10 @@ note
 
 		    wash   tints BEHIND the text: the theme's ink on it reads
 		           at 4.5:1 or better (AA for body text)
-		    ink    colours the text itself, an outline or a box: it
+		    ink    colors the text itself, an outline or a box: it
 		           reads on the theme's surface at 3:1 or better (AA
 		           for large type and graphics, which is what a box
-		           rule and a coloured word are)
+		           rule and a colored word are)
 
 		Light themes get pale washes and deep inks; dark themes get deep
 		washes and pale inks. Which a theme is comes from the luminance
@@ -74,7 +74,7 @@ feature -- Access
 		end
 
 	ink (a_hue: INTEGER; a_theme: SW_THEME): NATURAL_32
-			-- The colour for the text itself, an outline or a box rule.
+			-- The color for the text itself, an outline or a box rule.
 		require
 			hue_known: a_hue >= 1 and a_hue <= Hue_count
 		do

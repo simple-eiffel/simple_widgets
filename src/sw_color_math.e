@@ -1,6 +1,6 @@
 note
 	description: "[
-		Colour arithmetic on 0xRRGGBB values, in one place (pushed up
+		Color arithmetic on 0xRRGGBB values, in one place (pushed up
 		2026-10-25 from SW_THEME, SW_PAINTER, SW_HEATMAP and
 		SW_COLOR_PICKER, whose copies had drifted - the heat map's blend
 		did not clamp): the channels as fractions, WCAG relative luminance
@@ -31,11 +31,11 @@ feature -- Contrast
 			Result := 0.2126 * linear (channel_fraction (a_rgb, 16)) + 0.7152 * linear (channel_fraction (a_rgb, 8))
 				+ 0.0722 * linear (channel_fraction (a_rgb, 0))
 		ensure
-			normalised: Result >= 0.0 and Result <= 1.0
+			normalized: Result >= 0.0 and Result <= 1.0
 		end
 
 	contrast_ratio (a, b: NATURAL_32): REAL_64
-			-- WCAG contrast ratio between two colours, >= 1.
+			-- WCAG contrast ratio between two colors, >= 1.
 		local
 			la, lb, hi, lo: REAL_64
 		do
@@ -51,7 +51,7 @@ feature -- Contrast
 feature -- Blending
 
 	mixed (a_from, a_to: NATURAL_32; a_t: REAL_64): NATURAL_32
-			-- The colour `a_t' of the way from `a_from' to `a_to', per channel.
+			-- The color `a_t' of the way from `a_from' to `a_to', per channel.
 		require
 			fraction: a_t >= 0.0 and a_t <= 1.0
 		do

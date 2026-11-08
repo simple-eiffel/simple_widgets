@@ -12,7 +12,7 @@
             <img src="../images/logo.png" alt="simple_* logo" class="logo" style="max-height:80px">
         </div>
         <h1>SW_HEATMAP</h1>
-        <p class="tagline">Rows by columns of heat on a two-colour ramp; edge labels; hover names row / column / value.</p>
+        <p class="tagline">Rows by columns of heat on a two-color ramp; edge labels; hover names row / column / value.</p>
     </header>
 
     <nav>
@@ -30,7 +30,7 @@
     <main>
         <section id="description">
             <h2>Description</h2>
-            <p>A fixed grid of values washed along a channel-wise blend from the theme's quiet surface to its accent. The <code>blend</code> math is public and assaulted at its endpoints (0 keeps the from-colour, 1 lands the to-colour, 0.5 splits every channel). <code>heat_of</code> normalizes each cell against the grid's own low and high - and a FLAT grid washes everything to the honest midpoint instead of dividing by nothing.</p>
+            <p>A fixed grid of values washed along a channel-wise blend from the theme's quiet surface to its accent. The <code>blend</code> math is public and assaulted at its endpoints (0 keeps the from-color, 1 lands the to-color, 0.5 splits every channel). <code>heat_of</code> normalizes each cell against the grid's own low and high - and a FLAT grid washes everything to the honest midpoint instead of dividing by nothing.</p>
             <p>Row labels ride the left edge, column labels the bottom. Hover outlines the cell and a chip names row / column / value. The slot arithmetic (<code>row_at</code>, <code>col_at</code>) is the bar chart's idiom, twice, and equally assaulted. Cells keep a one-pixel breathing gap - the banding discipline SW_SHEET taught.</p>
             <p class="muted"><em>Source: <code>src/sw_heatmap.e</code> &middot; since Wave 4, Densities (2026-08-22).
             Live in the showroom: <code>demo/sw_demo.e</code>.</em></p>

@@ -743,7 +743,7 @@ feature {NONE} -- Unit hooks
 		end
 
 	unit_ink (a_theme: SW_THEME; a_unit: SW_DOC_UNIT): NATURAL_32
-			-- The colour of `a_unit''s plain text.
+			-- The color of `a_unit''s plain text.
 		deferred
 		end
 

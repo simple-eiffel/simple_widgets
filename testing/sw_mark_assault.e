@@ -80,7 +80,7 @@ feature -- Mark
 			assert_integers_equal ("two reasons", 2, lg.count)
 			assert ("known", lg.has ("spelling"))
 			assert ("looks red", attached lg.mark_of ("spelling") as m and then m = a)
-			assert ("labelled", lg.label_of ("stale").same_string ("Audio older than the text"))
+			assert ("labeled", lg.label_of ("stale").same_string ("Audio older than the text"))
 			assert ("unknown answers its key", lg.label_of ("other").same_string ("other"))
 			assert ("unknown has no look", lg.mark_of ("other") = Void)
 			lg.set_mark ("stale", a)

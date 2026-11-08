@@ -3,7 +3,7 @@ note
 		Assault on state control by agent collection (the Vision2
 		sensitivity idiom, Larry's call): enabling conditions install
 		and apply immediately, refresh_enabling walks the sub_widgets
-		spine so one pass covers a whole face, and menu-bar pads grey
+		spine so one pass covers a whole face, and menu-bar pads gray
 		and deafen on their own conditions - queried live.
 	]"
 

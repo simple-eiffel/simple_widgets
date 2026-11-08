@@ -79,7 +79,7 @@ feature {NONE} -- Walks
 			welcoming: attached Result as al_r implies al_r.accepts_files
 		end
 
-	ring_neighbour (a_ring: LIST [SW_WIDGET]; a_current: detachable SW_WIDGET; a_dir: INTEGER): SW_WIDGET
+	ring_neighbor (a_ring: LIST [SW_WIDGET]; a_current: detachable SW_WIDGET; a_dir: INTEGER): SW_WIDGET
 			-- The focus ring's stop `a_dir' steps (1 or -1) from `a_current',
 			-- wrapping; from outside the ring, its first (or last) stop.
 		require

@@ -126,7 +126,7 @@ feature -- Element change
 		ensure
 			defined: has (a_reason)
 			look: mark_of (a_reason) = a_mark
-			labelled: label_of (a_reason).same_string_general (a_label)
+			labeled: label_of (a_reason).same_string_general (a_label)
 		end
 
 	set_badge (a_reason: READABLE_STRING_GENERAL; a_badge: READABLE_STRING_GENERAL)

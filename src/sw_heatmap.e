@@ -1,7 +1,7 @@
 note
 	description: "[
 		A grid of heat: rows by columns of values, each cell washed
-		along a two-colour ramp (channel-wise blend between the
+		along a two-color ramp (channel-wise blend between the
 		theme's quiet surface and its accent - the blend math is
 		public and assaulted at its endpoints). Row and column
 		labels ride the edges; hover outlines a cell and names
@@ -129,7 +129,7 @@ feature -- Access
 		end
 
 	blend (a_from, a_to: NATURAL_32; a_fraction: REAL_64): NATURAL_32
-			-- Channel-wise interpolation between two 0xRRGGBB colours.
+			-- Channel-wise interpolation between two 0xRRGGBB colors.
 		require
 			unit: a_fraction >= 0.0 and a_fraction <= 1.0
 		do

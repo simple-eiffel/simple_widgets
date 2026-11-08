@@ -2,10 +2,10 @@ note
 	description: "[
 		Wave 6 conversational: the thread - bubbles by ROLE (mine
 		right in accent wash, theirs left on quiet surface, system
-		centred and muted), word-wrapped inside their bubbles,
+		centered and muted), word-wrapped inside their bubbles,
 		wheel-scrolled, and STICKY to the bottom: adding a message
 		follows the conversation unless the reader has scrolled
-		back up (the rule every chat client honours). The model
+		back up (the rule every chat client honors). The model
 		(roles, append_to_last for streaming, stickiness law) is
 		public and assaulted headless.
 
@@ -455,7 +455,7 @@ feature -- Element change: mutation (0.7.0)
 			-- the next event must not be able to rewrite a drawn frame.
 			--
 			-- The label is `tally' and not `count' for one reason:
-			-- TUPLE already has a `count', and a labelled field cannot
+			-- TUPLE already has a `count', and a labeled field cannot
 			-- shadow it.
 		require
 			in_range: a_message >= 1 and a_message <= count
@@ -1248,7 +1248,7 @@ feature -- Drawing
 			-- R10 lives in the first branch: while the frame is being
 			-- dragged, a WIDTH change is ignored and the bubbles keep the
 			-- layouts they have, so a drag costs zero shaping calls. A
-			-- CONTENT change (a new message, a streamed token) is honoured
+			-- CONTENT change (a new message, a streamed token) is honored
 			-- immediately at the width already in force - a reply that
 			-- arrives mid-drag must still appear.
 		require
@@ -2722,7 +2722,7 @@ feature -- Text machinery
 		end
 
 	wrapped (a_p: SW_PAINTER; a_text: STRING_32; a_width: REAL_64): ARRAYED_LIST [STRING_32]
-			-- Greedy word wrap in the current font, line breaks honoured:
+			-- Greedy word wrap in the current font, line breaks honored:
 			-- the 0.5.0 query, kept because it is how the toy path's
 			-- wrapping is stated, now expressed over `paragraphs_of' and
 			-- `wrap_spans' so there is ONE wrap in this class.
