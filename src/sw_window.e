@@ -1806,6 +1806,8 @@ feature {NONE} -- Accelerator dispatch
 		do
 				-- a new key-down: whatever the last one armed is stale
 			swallow_next_char := False
+				-- a handler may have hidden the focused widget since the last render
+			pass_focus_from_hidden
 			if key_down_accelerator_fired (a_vk, a_ctrl, a_alt, a_shift) then
 				after_input
 			elseif a_alt and then key_down_mnemonic_fired (a_vk) then
@@ -2383,6 +2385,7 @@ feature {NONE} -- Popup lifecycle
 					-- keystroke is never lost.
 				l_swallow := swallow_next_char and a_x < 32
 				swallow_next_char := False
+				pass_focus_from_hidden
 					-- UTF-16 arrives in units; astral characters come as a
 					-- surrogate pair across two WM_CHARs. Pair them here so
 					-- widgets only ever see whole code points (R8).

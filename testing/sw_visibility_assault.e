@@ -142,4 +142,26 @@ feature -- Tests
 			assert ("none left: no focus", w.focused = Void)
 		end
 
+	test_a_key_after_hiding_reaches_the_next_widget
+			-- MACMINI's follow-up: a key queued before the next render must not reach the
+			-- hidden box.
+		local
+			w: SW_WINDOW
+			col: SW_COLUMN
+			t1, t2: SW_TEXT_BOX
+		do
+			create w.make ("hide", 0, 0, 400, 400, create {SW_THEME}.make_light)
+			create col.make
+			create t1.make_single_line ("")
+			create t2.make_single_line ("")
+			col.put (t1)
+			col.put (t2)
+			w.set_root (col)
+			w.request_render
+			w.give_focus (t1)
+			t1.set_visible (False)
+			w.dispatch ({SHELL_EVENTS}.Event_window_char, 27, 0)
+			assert ("the key went to the next box", w.focused = t2 and not t1.is_focused)
+		end
+
 end
