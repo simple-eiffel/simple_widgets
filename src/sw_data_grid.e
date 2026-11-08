@@ -310,6 +310,51 @@ feature -- Element change
 			shown_when_it_passes: view.count = old view.count + (if attached filter as f implies f.item ([a_row]) then 1 else 0 end)
 		end
 
+	put_row (a_row: G; i: INTEGER)
+			-- Model row `i' becomes `a_row' in place (a lazy table's answer for a row it
+			-- showed empty). The view is rebuilt only when it is sorted, filtered or pinned;
+			-- otherwise row `i' just draws anew.
+		require
+			valid: i >= 1 and i <= rows.count
+		do
+			rows.put_i_th (a_row, i)
+			if (sort_column >= 1 and sort_column <= columns.count) or filter /= Void or pinned /= Void then
+				rebuild_view
+			end
+		ensure
+			put: rows.i_th (i) = a_row
+			same_size: rows.count = old rows.count
+		end
+
+	shown_positions: TUPLE [first, last: INTEGER]
+			-- The view positions in sight now (both 0 when none are): what `draw' paints.
+		local
+			l_first, l_last: INTEGER
+		do
+			if view.count > 0 and height > Header_h then
+				l_first := ((scroll_y / Row_h).truncated_to_integer + 1).max (1).min (view.count)
+				l_last := (((scroll_y + height - Header_h) / Row_h).truncated_to_integer + 1).min (view.count)
+			end
+			Result := [l_first, l_last]
+		ensure
+			ordered: Result.first <= Result.last
+			in_view: Result.last <= view.count
+		end
+
+	scroll_to_position (a_pos: INTEGER)
+			-- Bring view position `a_pos' into sight: to the top when it is above, to the
+			-- bottom when it is below, nothing when it shows.
+		require
+			valid: a_pos >= 1 and a_pos <= view.count
+		do
+			if (a_pos - 1) * Row_h < scroll_y then
+				scroll_y := (a_pos - 1) * Row_h
+			elseif a_pos * Row_h > scroll_y + height - Header_h then
+				scroll_y := (a_pos * Row_h - (height - Header_h)).max (0.0)
+			end
+			sync_bar
+		end
+
 	add_rows (a_rows: ITERABLE [G])
 			-- Every row of `a_rows' at the end, with one filter-and-sort.
 		do

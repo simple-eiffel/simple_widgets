@@ -179,6 +179,38 @@ feature -- Tests
 				and then al_m.items.first.label.same_string ("Mine"))
 		end
 
+	test_a_grid_row_can_be_put_in_place
+			-- 1f: a lazy table puts an answered row in place, reads which rows show, and
+			-- scrolls to a row.
+		local
+			w: SW_WINDOW
+			g: SW_DATA_GRID [STRING_32]
+			l_rows: ARRAYED_LIST [STRING_32]
+			l_empty: STRING_32
+			i: INTEGER
+			l_shown: TUPLE [first, last: INTEGER]
+		do
+			create w.make ("lazy", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			create g.make (200.0)
+			g.add_column (create {SW_GRID_COLUMN [STRING_32]}.make ("Row", 150.0, agent (s: STRING_32): STRING_32 do Result := s end))
+			create l_empty.make_empty
+			create l_rows.make (1000)
+			from i := 1 until i > 1000 loop
+				l_rows.extend (l_empty)
+				i := i + 1
+			end
+			g.set_rows (l_rows)
+			w.set_root (g)
+			w.request_render
+			l_shown := g.shown_positions
+			assert ("the top rows show: " + l_shown.first.out + ".." + l_shown.last.out, l_shown.first = 1 and l_shown.last > 1 and l_shown.last < 50)
+			g.put_row ({STRING_32} "first", 1)
+			assert ("put in place", g.rows.i_th (1).same_string ("first") and g.rows.count = 1000)
+			g.scroll_to_position (500)
+			l_shown := g.shown_positions
+			assert ("row 500 shows: " + l_shown.first.out + ".." + l_shown.last.out, l_shown.first <= 500 and 500 <= l_shown.last)
+		end
+
 	test_tabs_grid_and_tree_read_their_parts
 			-- What simple_gui's shared tests read: each tab, the grid's headers and rows, the
 			-- tree's shown nodes.
