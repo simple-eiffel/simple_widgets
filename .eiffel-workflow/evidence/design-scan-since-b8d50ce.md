@@ -67,7 +67,7 @@ Evidence: WM_SIZE pushes 48 for every size step (simple_shell.h:1252-1254 area);
 Fix: coalesce adjacent 48 for the same slot in the shell (as 43); in the float, resize then render only itself.
 
 ### 9. MEDIUM (A2/A5/A6) Itinerary and state copied; ancestor only half extracted
-Evidence: `SW_POINTER_ROUTING` took `spine_click`, `spine_wheel`, `spine_file_taker`, `ring_neighbour`, `paired_code_point`. Still duplicated between SW_FLOATING_WINDOW and SW_WINDOW:
+Evidence: `SW_POINTER_ROUTING` took `spine_click`, `spine_wheel`, `spine_file_taker`, `ring_neighbor`, `paired_code_point`. Still duplicated between SW_FLOATING_WINDOW and SW_WINDOW:
 - state `focused`, `hovered`, `capture`, `last_x/last_y`; `move_focus` (float :323-334) vs the focus code at sw_window.e ~1940-1960; `update_hover` (float :350-370) vs sw_window `update_hover` (~2415); focus ring walk and Tab step;
 - press/move/release/leave/wheel arms (float :247-294) vs the SW_WINDOW press/drag/release arms (the main copy also handles popups, hover cards, drag pebbles, text pointing);
 - offscreen life: `cairo`, `offscreen`, `ctx`, `alloc_w/h`, 256-step growth, `blit`, `export_frame_png` (float :200-237, :372-392) vs sw_window.e:2378-2379 and `write_frame`.
