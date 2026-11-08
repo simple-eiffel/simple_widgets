@@ -486,6 +486,29 @@ feature -- Alignment (GW-02)
 			-- is the box before GW-02; Align_start sets Hebrew flush
 			-- right and English flush left, line by paragraph.
 
+	effective_text_alignment: INTEGER
+			-- `text_alignment' as drawn: left and right swap when this widget `mirrors_layout'
+			-- (W4c; GTK mirrors a label's xalign the same way). Start and centre are unchanged.
+		do
+			Result := text_alignment
+			if mirrors_layout then
+				if Result = {SHAPING_CONSTANTS}.Align_left then
+					Result := {SHAPING_CONSTANTS}.Align_right
+				elseif Result = {SHAPING_CONSTANTS}.Align_right then
+					Result := {SHAPING_CONSTANTS}.Align_left
+				end
+			end
+		end
+
+	reads_right_to_left: BOOLEAN
+			-- Does the text run right to left, by its first paragraph as laid out? Left and
+			-- Right then move the caret visually, as GTK and AppKit do (W4c). A later paragraph
+			-- of the other direction, or a run of the other direction inside a line, still
+			-- moves logically: 0.2's limit (visual order needs the geometry's run order).
+		do
+			Result := is_laid_out and then geometry.is_shaped and then geometry.starts_right_to_left
+		end
+
 	set_text_alignment (a_alignment: INTEGER)
 			-- Place lines by `a_alignment'; the next layout honors it,
 			-- and the caret and selection follow the text.
@@ -727,7 +750,12 @@ feature -- Drawing
 				-- Password boxes show their hint too: it is no secret (GTK and AppKit agree).
 			if n = 0 and then not placeholder.is_empty then
 				a_p.set_color (t.ink_muted)
-				a_p.text (ox, oy + asc, placeholder)
+				if effective_text_alignment = {SHAPING_CONSTANTS}.Align_right then
+						-- W4c: the hint sits where typing starts.
+					a_p.text (x + width - Pad_x - a_p.advance (placeholder), oy + asc, placeholder)
+				else
+					a_p.text (ox, oy + asc, placeholder)
+				end
 			end
 			if marks.text_count /= n then
 					-- a host that wrote `text' directly: never a crash
@@ -1093,11 +1121,19 @@ feature -- Input
 			cx: REAL_64
 		do
 			inspect a_vk
-			when 37 then -- LEFT
-				caret := (caret - 1).max (0)
+			when 37 then -- LEFT: on screen, so forward through right-to-left text
+				if reads_right_to_left then
+					caret := (caret + 1).min (text.count)
+				else
+					caret := (caret - 1).max (0)
+				end
 				collapse_unless (a_shift)
 			when 39 then -- RIGHT
-				caret := (caret + 1).min (text.count)
+				if reads_right_to_left then
+					caret := (caret - 1).max (0)
+				else
+					caret := (caret + 1).min (text.count)
+				end
 				collapse_unless (a_shift)
 			when 36 then -- HOME
 				caret := line_start (caret_line)
@@ -1255,7 +1291,7 @@ feature {NONE} -- Engine
 	laid_shaped: BOOLEAN
 			-- Did the cached layout come from the shaping kit?
 	laid_alignment: INTEGER
-			-- `text_alignment' the cached layout was placed by (GW-02).
+			-- `effective_text_alignment' the cached layout was placed by (GW-02).
 
 	ensure_layout (a_p: SW_PAINTER; a_wrap: REAL_64)
 			-- Measure-then-place, cached against width, size and engine:
@@ -1269,15 +1305,15 @@ feature {NONE} -- Engine
 			px := body_pixels (a_p)
 			if layout_width /= a_wrap or geometry.count /= text.count
 				or laid_shaped /= want_shaped or laid_size /= px
-				or laid_alignment /= text_alignment
+				or laid_alignment /= effective_text_alignment
 			then
 				layout_width := a_wrap
 				laid_size := px
 				laid_shaped := want_shaped
-				laid_alignment := text_alignment
+				laid_alignment := effective_text_alignment
 					-- GW-02: lines placed by `text_alignment' in the box the
-					-- text may fill.
-				geometry.set_alignment (text_alignment, a_wrap.max (0.0))
+					-- text may fill (mirrored in right-to-left layout, W4c).
+				geometry.set_alignment (laid_alignment, a_wrap.max (0.0))
 				geometry.lay_out (a_p, text, a_wrap.max (0.0), 0, a_p.theme.size_body, False,
 					is_single_line, is_hiding).do_nothing
 			end

@@ -142,6 +142,20 @@ feature -- Alignment (GW-02)
 			-- SHAPING_CONSTANTS Align_* code. Align_left by default;
 			-- Align_start sets a Hebrew label flush right.
 
+	effective_text_alignment: INTEGER
+			-- `text_alignment' as drawn: left and right swap when this widget `mirrors_layout'
+			-- (W4c; GTK mirrors a label's xalign the same way). Start and centre are unchanged.
+		do
+			Result := text_alignment
+			if mirrors_layout then
+				if Result = {SHAPING_CONSTANTS}.Align_left then
+					Result := {SHAPING_CONSTANTS}.Align_right
+				elseif Result = {SHAPING_CONSTANTS}.Align_right then
+					Result := {SHAPING_CONSTANTS}.Align_left
+				end
+			end
+		end
+
 	set_text_alignment (a_alignment: INTEGER)
 			-- Place this label's lines by `a_alignment'.
 		require
@@ -323,7 +337,9 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			step, base: REAL_64
+			l_align: INTEGER
 		do
+			l_align := effective_text_alignment
 			if custom_color /= 0 then
 				a_p.set_color (custom_color)
 			elseif is_muted then
@@ -335,10 +351,10 @@ feature -- Drawing
 					-- The layout's TOP-LEFT goes where the toy path's
 					-- glyph box starts: half the leading below the top
 					-- edge, so both paths centre a line in its step.
-				if text_alignment /= {SHAPING_CONSTANTS}.Align_left then
+				if l_align /= {SHAPING_CONSTANTS}.Align_left then
 						-- GW-02: placed in the label's own width.
 					a_p.draw_shaped_layout_aligned (al_layout, x, y + a_p.theme.padding / 2.0,
-						width.max (0.0), text_alignment)
+						width.max (0.0), l_align)
 				else
 					a_p.draw_shaped_layout (al_layout, x, y + a_p.theme.padding / 2.0)
 				end
