@@ -159,22 +159,28 @@ feature -- Layout
 			l_x := starts (x, l_widths, occupied (True), l_cg)
 			l_y := starts (y, l_heights, occupied (False), l_rg)
 			across cells as ic loop
-				l_w := spanned (l_widths, ic.column, ic.columns, l_cg)
-				l_h := spanned (l_heights, ic.row, ic.rows, l_rg)
-				ic.widget.set_bounds (l_x.i_th (ic.column), l_y.i_th (ic.row), l_w, l_h)
-				ic.widget.arrange (a_p)
+				if ic.widget.is_hidden then
+					ic.widget.vanish
+				else
+					l_w := spanned (l_widths, ic.column, ic.columns, l_cg)
+					l_h := spanned (l_heights, ic.row, ic.rows, l_rg)
+					ic.widget.set_bounds (l_x.i_th (ic.column), l_y.i_th (ic.row), l_w, l_h)
+					ic.widget.arrange (a_p)
+				end
 			end
 		end
 
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
-			-- Each child, clipped to its cells.
+			-- Each shown child, clipped to its cells.
 		do
 			across children as ic loop
-				a_p.push_clip (ic.x, ic.y, ic.width, ic.height)
-				ic.draw (a_p)
-				a_p.pop_clip
+				if not ic.is_hidden then
+					a_p.push_clip (ic.x, ic.y, ic.width, ic.height)
+					ic.draw (a_p)
+					a_p.pop_clip
+				end
 			end
 		end
 
@@ -184,7 +190,9 @@ feature -- Hit testing
 		do
 			if contains (a_px, a_py) then
 				across children as ic until Result /= Void loop
-					Result := ic.widget_at (a_px, a_py)
+					if not ic.is_hidden then
+						Result := ic.widget_at (a_px, a_py)
+					end
 				end
 				if Result = Void then
 					Result := Current
@@ -234,7 +242,7 @@ feature {NONE} -- Implementation
 			n := column_count
 			create Result.make_filled (n)
 			across cells as ic loop
-				if ic.columns = 1 then
+				if ic.columns = 1 and not ic.widget.is_hidden then
 					Result.put_i_th (Result.i_th (ic.column).max (ic.widget.clamped_width (ic.widget.preferred_width (a_p))), ic.column)
 				end
 			end
@@ -289,7 +297,7 @@ feature {NONE} -- Implementation
 			l_cg := effective_column_gap (a_p)
 			create Result.make_filled (row_count)
 			across cells as ic loop
-				if ic.rows = 1 then
+				if ic.rows = 1 and not ic.widget.is_hidden then
 					Result.put_i_th (Result.i_th (ic.row).max (ic.widget.clamped_height (
 						ic.widget.preferred_height (a_p, spanned (a_widths, ic.column, ic.columns, l_cg)))), ic.row)
 				end
@@ -322,7 +330,7 @@ feature {NONE} -- Implementation
 		end
 
 	occupied (a_columns: BOOLEAN): ARRAYED_LIST [BOOLEAN]
-			-- For each column (`a_columns') or row: does any cell cover it?
+			-- For each column (`a_columns') or row: does any shown cell cover it?
 		local
 			i, l_first, l_count: INTEGER
 		do
@@ -332,7 +340,9 @@ feature {NONE} -- Implementation
 				create Result.make_filled (row_count)
 			end
 			across cells as ic loop
-				if a_columns then
+				if ic.widget.is_hidden then
+					l_count := 0
+				elseif a_columns then
 					l_first := ic.column
 					l_count := ic.columns
 				else

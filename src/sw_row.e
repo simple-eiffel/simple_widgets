@@ -101,30 +101,35 @@ feature -- Layout
 			-- finally NEST (a zero-pref inner row drew overflowing
 			-- and was unhittable - the OCR rebuild found it in an
 			-- afternoon of hand-testing).
+		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 		do
+			l_kids := laid_out
 			across
-				children as c
+				l_kids as c
 			loop
 				Result := Result + c.clamped_width (c.preferred_width (a_p))
 			end
-			if children.count > 1 then
-				Result := Result + effective_gap (a_p) * (children.count - 1)
+			if l_kids.count > 1 then
+				Result := Result + effective_gap (a_p) * (l_kids.count - 1)
 			end
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 			h: REAL_64
 			widths, heights: ARRAYED_LIST [REAL_64]
 			starts: ARRAYED_LIST [INTEGER]
 			li, i, line_end: INTEGER
 			line_h: REAL_64
 		do
+			l_kids := laid_out
 			if is_wrapping then
-				create widths.make (children.count)
-				create heights.make (children.count)
+				create widths.make (l_kids.count)
+				create heights.make (l_kids.count)
 				across
-					children as c
+					l_kids as c
 				loop
 					widths.extend (c.clamped_width (c.preferred_width (a_p)))
 					heights.extend (c.clamped_height (c.preferred_height (a_p, widths.last)))
@@ -138,7 +143,7 @@ feature -- Layout
 					if li < starts.count then
 						line_end := starts.i_th (li + 1) - 1
 					else
-						line_end := children.count
+						line_end := l_kids.count
 					end
 					line_h := 0.0
 					from
@@ -159,7 +164,7 @@ feature -- Layout
 				end
 			else
 				across
-					children as c
+					l_kids as c
 				loop
 					h := c.preferred_height (a_p, a_width)
 					if h > Result then
@@ -210,22 +215,25 @@ feature -- Layout
 			else
 				arrange_line (a_p)
 			end
+			vanish_hidden
 		end
 
 	arrange_wrapped (a_p: SW_PAINTER)
 			-- Greedy lines at natural widths; each line as tall as
 			-- its tallest child; cross_axis places within the line.
 		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 			widths, heights: ARRAYED_LIST [REAL_64]
 			starts: ARRAYED_LIST [INTEGER]
 			li, i, line_end: INTEGER
 			cx, cy, line_h, ch, gp: REAL_64
 		do
+			l_kids := laid_out
 			gp := effective_gap (a_p)
-			create widths.make (children.count)
-			create heights.make (children.count)
+			create widths.make (l_kids.count)
+			create heights.make (l_kids.count)
 			across
-				children as c
+				l_kids as c
 			loop
 				widths.extend (c.clamped_width (c.preferred_width (a_p)))
 				heights.extend (c.clamped_height (c.preferred_height (a_p, widths.last)))
@@ -240,7 +248,7 @@ feature -- Layout
 				if li < starts.count then
 					line_end := starts.i_th (li + 1) - 1
 				else
-					line_end := children.count
+					line_end := l_kids.count
 				end
 				line_h := 0.0
 				from
@@ -264,11 +272,11 @@ feature -- Layout
 						ch := line_h
 					end
 					if cross_axis = Cross_center then
-						children.i_th (i).set_bounds (cx, cy + (line_h - ch) / 2.0, widths.i_th (i), ch)
+						l_kids.i_th (i).set_bounds (cx, cy + (line_h - ch) / 2.0, widths.i_th (i), ch)
 					else
-						children.i_th (i).set_bounds (cx, cy, widths.i_th (i), ch)
+						l_kids.i_th (i).set_bounds (cx, cy, widths.i_th (i), ch)
 					end
-					children.i_th (i).arrange (a_p)
+					l_kids.i_th (i).arrange (a_p)
 					cx := cx + widths.i_th (i) + gp
 					i := i + 1
 				end
@@ -281,45 +289,47 @@ feature -- Layout
 			-- Natural widths first; leftover space then splits among
 			-- growers by weight - the containership pass.
 		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 			cx, cw, ch, natural, leftover, total_grow, gp: REAL_64
 			widths: ARRAYED_LIST [REAL_64]
 			i: INTEGER
 		do
+			l_kids := laid_out
 			gp := effective_gap (a_p)
-			create widths.make (children.count)
+			create widths.make (l_kids.count)
 			across
-				children as c
+				l_kids as c
 			loop
 				widths.extend (c.clamped_width (c.preferred_width (a_p)))
 				natural := natural + widths.last
 				total_grow := total_grow + c.grow
 			end
-			if children.count > 1 then
-				natural := natural + gp * (children.count - 1)
+			if l_kids.count > 1 then
+				natural := natural + gp * (l_kids.count - 1)
 			end
 			leftover := width - natural
 			cx := x
 			from
 				i := 1
 			until
-				i > children.count
+				i > l_kids.count
 			loop
 				cw := widths.i_th (i)
-				if leftover > 0.0 and total_grow > 0.0 and children.i_th (i).grow > 0.0 then
-					cw := children.i_th (i).clamped_width
-						(cw + leftover * children.i_th (i).grow / total_grow)
+				if leftover > 0.0 and total_grow > 0.0 and l_kids.i_th (i).grow > 0.0 then
+					cw := l_kids.i_th (i).clamped_width
+						(cw + leftover * l_kids.i_th (i).grow / total_grow)
 				end
-				ch := children.i_th (i).clamped_height
-					(children.i_th (i).preferred_height (a_p, cw))
+				ch := l_kids.i_th (i).clamped_height
+					(l_kids.i_th (i).preferred_height (a_p, cw))
 				if cross_axis = Cross_stretch or ch > height then
 					ch := height
 				end
 				if cross_axis = Cross_top or cross_axis = Cross_stretch then
-					children.i_th (i).set_bounds (cx, y, cw, ch)
+					l_kids.i_th (i).set_bounds (cx, y, cw, ch)
 				else
-					children.i_th (i).set_bounds (cx, y + (height - ch) / 2.0, cw, ch)
+					l_kids.i_th (i).set_bounds (cx, y + (height - ch) / 2.0, cw, ch)
 				end
-				children.i_th (i).arrange (a_p)
+				l_kids.i_th (i).arrange (a_p)
 				cx := cx + cw + gp
 				i := i + 1
 			end
@@ -328,9 +338,12 @@ feature -- Layout
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
+		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 		do
+			l_kids := laid_out
 			across
-				children as c
+				l_kids as c
 			loop
 				c.draw (a_p)
 			end
@@ -339,10 +352,13 @@ feature -- Drawing
 feature -- Hit testing
 
 	widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET
+		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 		do
+			l_kids := laid_out
 			if contains (a_px, a_py) then
 				across
-					children as c
+					l_kids as c
 				until
 					Result /= Void
 				loop

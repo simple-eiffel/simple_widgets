@@ -138,11 +138,13 @@ feature -- Layout
 	preferred_width (a_p: SW_PAINTER): REAL_64
 			-- The widest child plus the padding walls.
 		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 			pad: REAL_64
 		do
+			l_kids := laid_out
 			pad := effective_padding (a_p)
 			across
-				children as c
+				l_kids as c
 			loop
 				Result := Result.max (c.clamped_width (c.preferred_width (a_p)))
 			end
@@ -151,14 +153,16 @@ feature -- Layout
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 			inner, pad, gp: REAL_64
 			n: INTEGER
 		do
+			l_kids := laid_out
 			pad := effective_padding (a_p)
 			gp := effective_gap (a_p)
 			inner := (a_width - 2.0 * pad).max (0.0)
 			across
-				children as c
+				l_kids as c
 			loop
 				Result := Result + c.preferred_height (a_p, inner)
 				n := n + 1
@@ -174,57 +178,63 @@ feature -- Layout
 			-- among growers by weight; a fitting column takes a shortfall
 			-- back from them by weight, down to each one's `min_height'.
 		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 			cy, inner, ch, natural, leftover, total_grow, pad, gp: REAL_64
 			heights: ARRAYED_LIST [REAL_64]
 			i: INTEGER
 		do
+			l_kids := laid_out
 			pad := effective_padding (a_p)
 			gp := effective_gap (a_p)
 			inner := (width - 2.0 * pad).max (0.0)
-			create heights.make (children.count)
+			create heights.make (l_kids.count)
 			across
-				children as c
+				l_kids as c
 			loop
 				heights.extend (c.clamped_height (c.preferred_height (a_p, inner)))
 				natural := natural + heights.last
 				total_grow := total_grow + c.grow
 			end
-			if children.count > 1 then
-				natural := natural + gp * (children.count - 1)
+			if l_kids.count > 1 then
+				natural := natural + gp * (l_kids.count - 1)
 			end
 			leftover := height - 2.0 * pad - natural
 			cy := y + pad
 			from
 				i := 1
 			until
-				i > children.count
+				i > l_kids.count
 			loop
 				ch := heights.i_th (i)
-				if leftover > 0.0 and total_grow > 0.0 and children.i_th (i).grow > 0.0 then
-					ch := children.i_th (i).clamped_height
-						(ch + leftover * children.i_th (i).grow / total_grow)
-				elseif is_fitting and leftover < 0.0 and total_grow > 0.0 and children.i_th (i).grow > 0.0 then
+				if leftover > 0.0 and total_grow > 0.0 and l_kids.i_th (i).grow > 0.0 then
+					ch := l_kids.i_th (i).clamped_height
+						(ch + leftover * l_kids.i_th (i).grow / total_grow)
+				elseif is_fitting and leftover < 0.0 and total_grow > 0.0 and l_kids.i_th (i).grow > 0.0 then
 						-- too short a fitting column (2026-10-30, Larry: the About sheet's
 						-- text did not follow the sheet): the growers give the space back,
 						-- so the children after them stay inside. Opt-in since 0.46.3: by
 						-- default (0.46.2) it shrank dock panels' lists to nothing and their
 						-- clip failed cairo's positive_extent
-					ch := (ch + leftover * children.i_th (i).grow / total_grow)
-						.max (children.i_th (i).min_height)
+					ch := (ch + leftover * l_kids.i_th (i).grow / total_grow)
+						.max (l_kids.i_th (i).min_height)
 				end
-				children.i_th (i).set_bounds (x + pad, cy, inner, ch)
-				children.i_th (i).arrange (a_p)
+				l_kids.i_th (i).set_bounds (x + pad, cy, inner, ch)
+				l_kids.i_th (i).arrange (a_p)
 				cy := cy + ch + gp
 				i := i + 1
 			end
+			vanish_hidden
 		end
 
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
+		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 		do
+			l_kids := laid_out
 			across
-				children as c
+				l_kids as c
 			loop
 				c.draw (a_p)
 			end
@@ -233,10 +243,13 @@ feature -- Drawing
 feature -- Hit testing
 
 	widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET
+		local
+			l_kids: ARRAYED_LIST [SW_WIDGET]
 		do
+			l_kids := laid_out
 			if contains (a_px, a_py) then
 				across
-					children as c
+					l_kids as c
 				until
 					Result /= Void
 				loop

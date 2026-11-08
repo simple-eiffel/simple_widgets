@@ -84,6 +84,31 @@ feature -- Element change
 			explicit: gap_is_explicit and gap = a_gap
 		end
 
+feature -- Visibility (W4b)
+
+	laid_out: ARRAYED_LIST [SW_WIDGET]
+			-- The children that take part in layout, drawing and hit tests: the shown ones.
+		do
+			create Result.make (children.count)
+			across children as ic loop
+				if not ic.is_hidden then
+					Result.extend (ic)
+				end
+			end
+		ensure
+			no_hidden: across Result as ic all not ic.is_hidden end
+		end
+
+	vanish_hidden
+			-- Send hidden children off the surface (no extent: no hover, no hits).
+		do
+			across children as ic loop
+				if ic.is_hidden then
+					ic.vanish
+				end
+			end
+		end
+
 feature -- Tooling
 
 	sub_widgets: ARRAYED_LIST [SW_WIDGET]

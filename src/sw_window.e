@@ -2015,6 +2015,63 @@ feature {NONE} -- Hover card internals (GW-09)
 
 feature {NONE} -- Focus internals
 
+	pass_focus_from_hidden
+			-- When the focused widget, or one above it, has been hidden, the focus moves to the
+			-- next shown widget in the Tab ring after it (AppKit's next valid key view), or to
+			-- none when there is no other (W4b).
+		local
+			l_all, l_ring: ARRAYED_LIST [SW_WIDGET]
+			i, l_at: INTEGER
+			l_next: detachable SW_WIDGET
+		do
+			if attached focused as al_f and then is_hidden_in_tree (al_f) then
+				create l_all.make (16)
+				create l_ring.make (16)
+				if attached active_root as r then
+					tree_focusables (r, l_all)
+					r.focusables (l_ring)
+				end
+				l_at := l_all.index_of (al_f, 1)
+				if l_at > 0 then
+					from i := 1 until i >= l_all.count or l_next /= Void loop
+						if l_ring.has (l_all.i_th (((l_at - 1 + i) \\ l_all.count) + 1)) then
+							l_next := l_all.i_th (((l_at - 1 + i) \\ l_all.count) + 1)
+						end
+						i := i + 1
+					end
+				end
+				al_f.set_focused (False)
+				focused := l_next
+				if attached l_next as al_n then
+					al_n.set_focused (True)
+				end
+			end
+		ensure
+			never_hidden: attached focused as al_f implies not is_hidden_in_tree (al_f)
+		end
+
+	is_hidden_in_tree (a_widget: SW_WIDGET): BOOLEAN
+			-- Is `a_widget' or anything above it hidden?
+		local
+			l_w: detachable SW_WIDGET
+		do
+			from l_w := a_widget until l_w = Void or Result loop
+				Result := l_w.is_hidden
+				l_w := l_w.parent
+			end
+		end
+
+	tree_focusables (a_w: SW_WIDGET; a_acc: ARRAYED_LIST [SW_WIDGET])
+			-- Every enabled focusable widget below `a_w' in tree order, hidden or not.
+		do
+			if a_w.accepts_focus and a_w.is_enabled then
+				a_acc.extend (a_w)
+			end
+			across a_w.sub_widgets as ic loop
+				tree_focusables (ic, a_acc)
+			end
+		end
+
 	shift_focus (a_dir: INTEGER)
 			-- Walk the focus ring `a_dir' steps (1 or -1), wrapping.
 		require
@@ -2758,6 +2815,7 @@ feature {NONE} -- Rendering
 
 	render
 		do
+			pass_focus_from_hidden
 			render_frame
 			if is_accessible then
 				if not is_accessibility_published or else accessibility.served_window /= hwnd

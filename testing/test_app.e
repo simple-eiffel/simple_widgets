@@ -118,6 +118,8 @@ feature {NONE} -- Test runners
 
 	layout_grid_tests: SW_LAYOUT_GRID_ASSAULT
 
+	visibility_tests: SW_VISIBILITY_ASSAULT
+
 	chrome_tests: SW_CHROME_ASSAULT
 
 	fd_tests: SW_FILE_DIALOG_ASSAULT
@@ -138,6 +140,12 @@ feature {NONE} -- Test runners
 
 	run_list_tests
 		do
+			create visibility_tests
+			run_test (agent visibility_tests.test_a_hidden_child_leaves_no_gap_in_a_row, "a_hidden_child_leaves_no_gap_in_a_row")
+			run_test (agent visibility_tests.test_a_hidden_child_leaves_no_gap_in_a_column, "a_hidden_child_leaves_no_gap_in_a_column")
+			run_test (agent visibility_tests.test_a_hidden_widget_is_not_published, "a_hidden_widget_is_not_published")
+			run_test (agent visibility_tests.test_a_hidden_grid_cell_takes_no_width, "a_hidden_grid_cell_takes_no_width")
+			run_test (agent visibility_tests.test_hiding_the_focused_widget_passes_the_focus_on, "hiding_the_focused_widget_passes_the_focus_on")
 			create layout_grid_tests
 			run_test (agent layout_grid_tests.test_homogeneous_wins_over_a_stretching_column, "homogeneous_wins_over_a_stretching_column")
 			run_test (agent layout_grid_tests.test_an_empty_column_takes_no_gaps, "an_empty_column_takes_no_gaps")
