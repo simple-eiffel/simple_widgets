@@ -83,6 +83,18 @@ feature -- Element change
 			clamped: ratio >= 0.15 and ratio <= 0.85
 		end
 
+	divider_left: REAL_64
+			-- The left edge of the side-by-side divider: after the first pane, which is at the
+			-- right in right-to-left layout (W4c; GtkPaned and NSSplitView count from the
+			-- leading edge too).
+		do
+			if mirrors_layout then
+				Result := x + width - Divider_w - (width - Divider_w) * ratio
+			else
+				Result := x + (width - Divider_w) * ratio
+			end
+		end
+
 feature -- Tooling
 
 	sub_widgets: ARRAYED_LIST [SW_WIDGET]
@@ -120,9 +132,9 @@ feature -- Layout
 				right_child.arrange (a_p)
 			else
 				lw := (width - Divider_w) * ratio
-				left_child.set_bounds (x, y, lw, height)
+				left_child.set_bounds (mirrored_x (x, lw), y, lw, height)
 				left_child.arrange (a_p)
-				right_child.set_bounds (x + lw + Divider_w, y, width - lw - Divider_w, height)
+				right_child.set_bounds (mirrored_x (x + lw + Divider_w, width - lw - Divider_w), y, width - lw - Divider_w, height)
 				right_child.arrange (a_p)
 			end
 		end
@@ -164,7 +176,7 @@ feature -- Drawing
 					i := i + 1
 				end
 			else
-				dx := x + (width - Divider_w) * ratio + Divider_w / 2.0
+				dx := divider_left + Divider_w / 2.0
 				if shows_hover then
 						-- announce draggability: a wide accent bar under the
 						-- pointer says push me, pull me
@@ -210,10 +222,10 @@ feature -- Hit testing
 						Result := right_child.widget_at (a_px, a_py)
 					end
 				else
-					dx := x + (width - Divider_w) * ratio
+					dx := divider_left
 					if a_px >= dx - 2.0 and a_px <= dx + Divider_w + 2.0 then
 						Result := Current
-					elseif a_px < dx then
+					elseif left_child.contains (a_px, a_py) then
 						Result := left_child.widget_at (a_px, a_py)
 					else
 						Result := right_child.widget_at (a_px, a_py)
@@ -237,7 +249,7 @@ feature -- Input
 				dx := y + (height - Divider_w) * ratio
 				Result := a_py >= dx - 2.0 and a_py <= dx + Divider_w + 2.0
 			else
-				dx := x + (width - Divider_w) * ratio
+				dx := divider_left
 				Result := a_px >= dx - 2.0 and a_px <= dx + Divider_w + 2.0
 			end
 		end
@@ -260,7 +272,11 @@ feature -- Input
 					set_ratio ((a_py - y) / (height - Divider_w))
 				end
 			elseif width > Divider_w then
-				set_ratio ((a_px - x) / (width - Divider_w))
+				if mirrors_layout then
+					set_ratio ((x + width - a_px) / (width - Divider_w))
+				else
+					set_ratio ((a_px - x) / (width - Divider_w))
+				end
 			end
 		end
 

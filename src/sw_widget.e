@@ -1026,6 +1026,15 @@ feature -- Accessibility (GW-14)
 			non_negative: Result >= 0
 		end
 
+	accessible_item_id (a_k: INTEGER): INTEGER
+			-- The node id of this widget's `a_k'th item: a block of 2,048 ids per widget, below
+			-- `SW_WINDOW.Floating_ids' (the scheme SW_LIST's rows use).
+		require
+			in_block: a_k >= 1 and a_k < 2_048
+		do
+			Result := 500_000_000 + (accessible_node_id \\ 200_000) * 2_048 + a_k
+		end
+
 	publish_accessible_items (a_accessibility: SW_ACCESSIBILITY)
 			-- Add those `accessible_item_count' nodes under this widget's node (W6).
 		do

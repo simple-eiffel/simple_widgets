@@ -124,6 +124,8 @@ feature {NONE} -- Test runners
 
 	canvas_present_tests: SW_CANVAS_PRESENT_ASSAULT
 
+	stage2_tests: SW_STAGE2_ASSAULT
+
 	doors_w11_tests: SW_DOORS_W11_ASSAULT
 
 	wrap_chars_tests: SW_WRAP_CHARS_ASSAULT
@@ -172,6 +174,12 @@ feature {NONE} -- Test runners
 			run_test (agent doors_w11_tests.test_type_text_reports_and_undoes, "type_text_reports_and_undoes")
 			create wrap_chars_tests
 			run_test (agent wrap_chars_tests.test_a_label_wraps_at_about_n_characters, "a_label_wraps_at_about_n_characters")
+			create stage2_tests
+			run_test (agent stage2_tests.test_a_header_click_is_reported_not_sorted, "a_header_click_is_reported_not_sorted")
+			run_test (agent stage2_tests.test_several_rows_select_quietly, "several_rows_select_quietly")
+			run_test (agent stage2_tests.test_a_users_expansion_is_reported, "a_users_expansion_is_reported")
+			run_test (agent stage2_tests.test_a_splitter_mirrors, "a_splitter_mirrors")
+			run_test (agent stage2_tests.test_tabs_grid_and_tree_read_their_parts, "tabs_grid_and_tree_read_their_parts")
 			create canvas_present_tests
 			run_test (agent canvas_present_tests.test_a_presented_image_is_drawn_one_to_one, "a_presented_image_is_drawn_one_to_one")
 			run_test (agent canvas_present_tests.test_pointer_events_carry_kind_button_and_modifiers, "pointer_events_carry_kind_button_and_modifiers")

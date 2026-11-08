@@ -48,6 +48,7 @@ inherit
 			arrange, widget_at, handle_click, wants_hover_point,
 			handle_drag, handle_release, handle_wheel,
 			accessible_role, accessible_value, accessible_children,
+			accessible_item_count, publish_accessible_items,
 			responds_to_pick, pick_hover, pick_tick, pick_click, pick_ended
 		end
 
@@ -915,6 +916,33 @@ feature -- Accessibility (GW-14)
 	accessible_role: INTEGER
 		do
 			Result := {SW_ACCESSIBILITY}.Role_tab
+		end
+
+	accessible_item_count: INTEGER
+			-- Each tab, published as a tab item (simple_gui reads "tab: <title>").
+		do
+			Result := labels.count.min (2_047)
+		end
+
+	publish_accessible_items (a_accessibility: SW_ACCESSIBILITY)
+		local
+			i: INTEGER
+			l_value: detachable STRING_32
+		do
+			from
+				i := 1
+			until
+				i > accessible_item_count
+			loop
+				if i = selected_index then
+					l_value := {STRING_32} "selected"
+				else
+					l_value := Void
+				end
+				a_accessibility.add_node (accessible_item_id (i), accessible_node_id, {SW_ACCESSIBILITY}.Role_tab_item,
+					labels.i_th (i), l_value, x, y, width, bar_h, False, is_enabled)
+				i := i + 1
+			end
 		end
 
 	accessible_value: detachable STRING_32
