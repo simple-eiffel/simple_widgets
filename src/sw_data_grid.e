@@ -722,7 +722,9 @@ feature -- Input
 
 	cell_left (a_p: SW_PAINTER; a_text: READABLE_STRING_32; a_alignment: INTEGER; a_cx, a_width: REAL_64): REAL_64
 			-- Where `a_text' starts in a cell `a_width' wide at `a_cx', by
-			-- `a_alignment'; start and end follow the text's own direction.
+			-- `a_alignment'. Start is the right in a mirrored grid (as GTK
+			-- aligns any text right to left); otherwise start and end follow
+			-- the text's own direction (Hebrew flush right, GW-02).
 		local
 			l_right, l_slack: REAL_64
 		do
@@ -733,7 +735,7 @@ feature -- Input
 			when {SHAPING_CONSTANTS}.Align_center then
 				l_right := l_slack / 2.0
 			when {SHAPING_CONSTANTS}.Align_start, {SHAPING_CONSTANTS}.Align_end then
-				if is_right_to_left (a_p, a_text) = (a_alignment = {SHAPING_CONSTANTS}.Align_start) then
+				if (mirrors_layout or else is_right_to_left (a_p, a_text)) = (a_alignment = {SHAPING_CONSTANTS}.Align_start) then
 					l_right := l_slack
 				end
 			else
