@@ -345,7 +345,7 @@ feature -- Element change
 	hover_card_at (a_px, a_py: REAL_64): detachable SW_HOVER_CARD
 			-- The card the provider gives for the row and column under the point, anchored on that cell.
 		local
-			r, c, i: INTEGER
+			r, c: INTEGER
 			cx: REAL_64
 		do
 			if attached hover_card_provider as al_provider then
@@ -354,11 +354,7 @@ feature -- Element change
 				if r > 0 and c > 0 then
 					Result := al_provider.item ([rows.i_th (view.i_th (r)), c])
 					if attached Result as al_card then
-						cx := x - scroll_x
-						from i := 1 until i >= c loop
-							cx := cx + shown_width (i)
-							i := i + 1
-						end
+						cx := column_lefts.i_th (c)
 						al_card.set_anchor (cx, y + Header_h + (r - 1) * Row_h - scroll_y, shown_width (c), Row_h)
 					end
 				end
@@ -550,20 +546,19 @@ feature -- Layout
 		end
 
 	column_edge_at (a_px: REAL_64): INTEGER
-			-- Which column's right divider the point is within 5px
-			-- of; 0 for none.
+			-- Which column's closing divider (its right side, or its left
+			-- when mirrored) the point is within 5px of; 0 for none.
 		local
-			cx: REAL_64
+			l_lefts: ARRAYED_LIST [REAL_64]
 			i: INTEGER
 		do
-			cx := x - scroll_x
+			l_lefts := column_lefts
 			from
 				i := 1
 			until
 				i > columns.count or Result > 0
 			loop
-				cx := cx + shown_width (i)
-				if (a_px - cx).abs <= 5.0 then
+				if (a_px - divider_x (l_lefts, i)).abs <= 5.0 then
 					Result := i
 				end
 				i := i + 1
@@ -575,19 +570,18 @@ feature -- Layout
 	header_column_at (a_px: REAL_64): INTEGER
 			-- The column whose header the point is in; 0 outside.
 		local
-			cx: REAL_64
+			l_lefts: ARRAYED_LIST [REAL_64]
 			i: INTEGER
 		do
-			cx := x - scroll_x
+			l_lefts := column_lefts
 			from
 				i := 1
 			until
 				i > columns.count or Result > 0
 			loop
-				if a_px >= cx and a_px < cx + shown_width (i) then
+				if a_px >= l_lefts.i_th (i) and a_px < l_lefts.i_th (i) + shown_width (i) then
 					Result := i
 				end
-				cx := cx + shown_width (i)
 				i := i + 1
 			end
 		ensure
@@ -600,11 +594,13 @@ feature -- Drawing
 		local
 			t: SW_THEME
 			first_v, last_v, i, ci: INTEGER
-			ry, cx: REAL_64
+			ry, cx, l_mark_x, l_text_x, l_arrow_x: REAL_64
 			col: SW_GRID_COLUMN [G]
 			s: STRING_32
+			l_lefts: ARRAYED_LIST [REAL_64]
 		do
 			t := a_p.theme
+			l_lefts := column_lefts
 			bar.place (x, y + Header_h, width, height - Header_h, t)
 			sync_bar
 			a_p.set_color (t.surface)
@@ -632,33 +628,40 @@ feature -- Drawing
 						a_p.set_color (t.accent)
 						a_p.rrect_stroke (x + 1.5, ry + 0.5, width - 3.0, Row_h - 1.0, 2.0)
 					end
-					cx := x - scroll_x
 					from
 						ci := 1
 					until
 						ci > columns.count
 					loop
+						cx := l_lefts.i_th (ci)
 						col := columns.i_th (ci)
 						s := col.value.item ([rows.i_th (view.i_th (i))])
 						a_p.push_clip (cx + 1.0, ry, shown_width (ci) - 2.0, Row_h)
+							-- a star or glyph sits on the leading side: the left, or the right when mirrored
+						if mirrors_layout then
+							l_mark_x := cx + shown_width (ci) - 15.0
+							l_text_x := cx
+						else
+							l_mark_x := cx + 15.0
+							l_text_x := cx + 16.0
+						end
 						if col.is_starred (rows.i_th (view.i_th (i))) then
 								-- a favorite (0.50.0): the star, then the text past it
 							a_p.set_color (t.star)
-							a_p.glyph ({SW_PAINTER}.Glyph_star, cx + 15.0, ry + Row_h / 2.0, 12.0)
+							a_p.glyph ({SW_PAINTER}.Glyph_star, l_mark_x, ry + Row_h / 2.0, 12.0)
 							a_p.set_color (t.ink)
-							a_p.text (cell_left (a_p, s, col.alignment, cx + 16.0, shown_width (ci) - 16.0), ry + Row_h - 8.0, s)
+							a_p.text (cell_left (a_p, s, col.alignment, l_text_x, shown_width (ci) - 16.0), ry + Row_h - 8.0, s)
 						elseif col.glyph_of (rows.i_th (view.i_th (i))) > 0 then
 								-- a glyph (0.54.0), muted, then the text past it
 							a_p.set_color (t.ink_muted)
-							a_p.glyph (col.glyph_of (rows.i_th (view.i_th (i))), cx + 15.0, ry + Row_h / 2.0, 13.0)
+							a_p.glyph (col.glyph_of (rows.i_th (view.i_th (i))), l_mark_x, ry + Row_h / 2.0, 13.0)
 							a_p.set_color (t.ink)
-							a_p.text (cell_left (a_p, s, col.alignment, cx + 16.0, shown_width (ci) - 16.0), ry + Row_h - 8.0, s)
+							a_p.text (cell_left (a_p, s, col.alignment, l_text_x, shown_width (ci) - 16.0), ry + Row_h - 8.0, s)
 						else
 							a_p.set_color (t.ink)
 							a_p.text (cell_left (a_p, s, col.alignment, cx, shown_width (ci)), ry + Row_h - 8.0, s)
 						end
 						a_p.pop_clip
-						cx := cx + shown_width (ci)
 						ci := ci + 1
 					end
 					i := i + 1
@@ -668,28 +671,35 @@ feature -- Drawing
 			a_p.set_color (t.surface_variant)
 			a_p.fill_rect (x, y, width, Header_h)
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, True)
-			cx := x - scroll_x
 			from
 				ci := 1
 			until
 				ci > columns.count
 			loop
+				cx := l_lefts.i_th (ci)
 				col := columns.i_th (ci)
 				a_p.push_clip (cx + 1.0, y, shown_width (ci) - 2.0, Header_h)
 				a_p.set_color (t.ink)
-				a_p.text (cx + 8.0, y + Header_h - 10.0, col.title)
+					-- the title on the leading side, the sort arrow on the trailing side
+				if mirrors_layout then
+					a_p.text (cx + shown_width (ci) - 8.0 - a_p.advance (col.title), y + Header_h - 10.0, col.title)
+					l_arrow_x := cx + 10.0
+				else
+					a_p.text (cx + 8.0, y + Header_h - 10.0, col.title)
+					l_arrow_x := cx + shown_width (ci) - 20.0
+				end
 				if ci = shown_sort_column then
 					a_p.set_color (t.accent)
 					if shown_descending then
-						a_p.line (cx + shown_width (ci) - 20.0, y + 12.0, cx + shown_width (ci) - 15.0, y + 19.0, 1.8)
-						a_p.line (cx + shown_width (ci) - 15.0, y + 19.0, cx + shown_width (ci) - 10.0, y + 12.0, 1.8)
+						a_p.line (l_arrow_x, y + 12.0, l_arrow_x + 5.0, y + 19.0, 1.8)
+						a_p.line (l_arrow_x + 5.0, y + 19.0, l_arrow_x + 10.0, y + 12.0, 1.8)
 					else
-						a_p.line (cx + shown_width (ci) - 20.0, y + 19.0, cx + shown_width (ci) - 15.0, y + 12.0, 1.8)
-						a_p.line (cx + shown_width (ci) - 15.0, y + 12.0, cx + shown_width (ci) - 10.0, y + 19.0, 1.8)
+						a_p.line (l_arrow_x, y + 19.0, l_arrow_x + 5.0, y + 12.0, 1.8)
+						a_p.line (l_arrow_x + 5.0, y + 12.0, l_arrow_x + 10.0, y + 19.0, 1.8)
 					end
 				end
 				a_p.pop_clip
-				cx := cx + shown_width (ci)
+				cx := divider_x (l_lefts, ci)
 					-- divider, with a hover affordance for resizing
 				if shows_hover and then (hover_px - cx).abs <= 5.0 then
 					a_p.set_color (t.accent)
@@ -844,24 +854,56 @@ feature -- Input
 		end
 
 	handle_drag (a_px, a_py: REAL_64)
+			-- The scrollbar thumb follows the pointer; a column being resized takes the width
+			-- from its leading edge (left, or right when mirrored) to the pointer.
 		local
-			cx: REAL_64
-			i: INTEGER
+			l_left, l_extra: REAL_64
 		do
 			if bar.is_dragging then
 				scroll_y := bar.drag_to (a_py)
 			elseif resizing_column >= 1 and resizing_column <= columns.count then
-				cx := x - scroll_x
-				from
-					i := 1
-				until
-					i >= resizing_column
-				loop
-					cx := cx + shown_width (i)
-					i := i + 1
+				l_left := column_lefts.i_th (resizing_column)
+				l_extra := shown_width (resizing_column) - columns.i_th (resizing_column).width
+				if mirrors_layout then
+					columns.i_th (resizing_column).set_width (l_left + shown_width (resizing_column) - a_px - l_extra)
+				else
+					columns.i_th (resizing_column).set_width (a_px - l_left - l_extra)
 				end
-				columns.i_th (resizing_column).set_width (a_px - cx
-					- (shown_width (resizing_column) - columns.i_th (resizing_column).width))
+			end
+		end
+
+	column_lefts: ARRAYED_LIST [REAL_64]
+			-- Each column's left edge on screen, scrolled: from the grid's left edge, or from
+			-- its right edge when the grid `mirrors_layout' (the first column at the right).
+			-- The one walk every hit test and drawing pass reads.
+		local
+			i: INTEGER
+			l_x: REAL_64
+		do
+			create Result.make (columns.count)
+			l_x := x - scroll_x
+			from
+				i := 1
+			until
+				i > columns.count
+			loop
+				Result.extend (mirrored_x (l_x, shown_width (i)))
+				l_x := l_x + shown_width (i)
+				i := i + 1
+			end
+		ensure
+			one_each: Result.count = columns.count
+		end
+
+	divider_x (a_lefts: ARRAYED_LIST [REAL_64]; a_i: INTEGER): REAL_64
+			-- The divider that closes column `a_i': its right side, or its left when mirrored.
+		require
+			valid: a_i >= 1 and a_i <= a_lefts.count and a_lefts.count = columns.count
+		do
+			if mirrors_layout then
+				Result := a_lefts.i_th (a_i)
+			else
+				Result := a_lefts.i_th (a_i) + shown_width (a_i)
 			end
 		end
 

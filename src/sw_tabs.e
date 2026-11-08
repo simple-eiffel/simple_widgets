@@ -185,7 +185,7 @@ feature -- Measurement
 			-- Is the point on the overflow chevron?
 		do
 			Result := has_overflow and then a_py >= y and then a_py < y + bar_h
-				and then a_px >= x + width - chevron_w and then a_px <= x + width
+				and then a_px >= chevron_left and then a_px <= chevron_left + chevron_w
 		end
 
 	overflow_menu: SW_MENU
@@ -516,6 +516,9 @@ feature -- Layout
 				first_visible := first_showing (l_naturals, l_room, tab_gap, first_visible.max (1), selected_index)
 			end
 			place_tabs_scrolling (l_naturals, x, l_room, tab_gap, first_visible)
+			if mirrors_layout then
+				mirror_tab_boxes
+			end
 			if attached selected_page as pg then
 				pg.set_bounds (x, y + bar_h + 8.0, width,
 					(height - bar_h - 8.0).max (0.0))
@@ -558,8 +561,8 @@ feature -- Drawing
 						if closables.i_th (i) then
 							l_label_w := (l_label_w - close_size - tab_pad / 2.0).max (1.0)
 						end
-						a_p.push_clip (tx + tab_pad, y, l_label_w, bar_h)
-						a_p.text (tx + tab_pad, y + (bar_h - a_p.text_extent) / 2.0 + a_p.font_ascent, labels.i_th (i))
+						a_p.push_clip (label_left (i), y, l_label_w, bar_h)
+						a_p.text (label_left (i), y + (bar_h - a_p.text_extent) / 2.0 + a_p.font_ascent, labels.i_th (i))
 						a_p.pop_clip
 						if closables.i_th (i) then
 							draw_close_box (a_p, i, l_ink)
@@ -573,7 +576,7 @@ feature -- Drawing
 					else
 						a_p.set_color (t.ink_muted)
 					end
-					a_p.glyph ({SW_PAINTER}.Glyph_chevron_down, x + width - chevron_w / 2.0, y + bar_h / 2.0, close_size * 0.8)
+					a_p.glyph ({SW_PAINTER}.Glyph_chevron_down, chevron_left + chevron_w / 2.0, y + bar_h / 2.0, close_size * 0.8)
 				end
 			end
 			if attached selected_page as pg then
@@ -722,7 +725,7 @@ feature -- Input
 					from
 					until
 						not (drag_index < labels.count and then is_tab_shown (drag_index + 1)
-							and then a_px > tab_lefts.i_th (drag_index + 1) + tab_widths.i_th (drag_index + 1) / 2.0)
+							and then pointer_past_middle (a_px, drag_index + 1, True))
 					loop
 						move_tab (drag_index, drag_index + 1)
 						drag_index := drag_index + 1
@@ -730,7 +733,7 @@ feature -- Input
 					from
 					until
 						not (drag_index > 1 and then is_tab_shown (drag_index - 1)
-							and then a_px < tab_lefts.i_th (drag_index - 1) + tab_widths.i_th (drag_index - 1) / 2.0)
+							and then pointer_past_middle (a_px, drag_index - 1, False))
 					loop
 						move_tab (drag_index, drag_index - 1)
 						drag_index := drag_index - 1
@@ -786,6 +789,60 @@ feature {NONE} -- Implementation
 			Result := tab_gap
 		end
 
+	mirror_tab_boxes
+			-- Right to left: reflect every placed tab about the bar's center line, so the first
+			-- tab sits at the right and the overflow room (the chevron's) at the left.
+		local
+			i: INTEGER
+		do
+			from
+				i := 1
+			until
+				i > tab_lefts.count
+			loop
+				if tab_widths.i_th (i) > 0.0 then
+					tab_lefts.put_i_th (mirrored_x (tab_lefts.i_th (i), tab_widths.i_th (i)), i)
+				end
+				i := i + 1
+			end
+		end
+
+	chevron_left: REAL_64
+			-- The overflow chevron's left edge: at the bar's right end, or its left end when
+			-- the bar is mirrored.
+		do
+			Result := mirrored_x (x + width - chevron_w, chevron_w)
+		end
+
+	label_left (a_i: INTEGER): REAL_64
+			-- Where tab `a_i''s label starts: after the padding, and after the close box too
+			-- when the tab is mirrored (the box is then on its left).
+		require
+			placed: a_i >= 1 and a_i <= tab_lefts.count
+		do
+			Result := tab_lefts.i_th (a_i) + tab_pad
+			if mirrors_layout and then closables.i_th (a_i) then
+				Result := Result + close_size + tab_pad / 2.0
+			end
+		end
+
+	pointer_past_middle (a_px: REAL_64; a_k: INTEGER; a_toward_later: BOOLEAN): BOOLEAN
+			-- Has a dragged tab's pointer crossed the middle of tab `a_k', moving toward later
+			-- tabs (`a_toward_later') or earlier ones? Later tabs sit to the right, or to the
+			-- left when the bar is mirrored.
+		require
+			placed: a_k >= 1 and a_k <= tab_lefts.count
+		local
+			l_middle: REAL_64
+		do
+			l_middle := tab_lefts.i_th (a_k) + tab_widths.i_th (a_k) / 2.0
+			if a_toward_later /= mirrors_layout then
+				Result := a_px > l_middle
+			else
+				Result := a_px < l_middle
+			end
+		end
+
 	measure (a_p: SW_PAINTER)
 			-- Take the bar's measurements from the theme and the label font.
 		do
@@ -832,7 +889,12 @@ feature {NONE} -- Implementation
 		require
 			placed: a_i >= 1 and a_i <= tab_lefts.count
 		do
-			Result := tab_lefts.i_th (a_i) + tab_widths.i_th (a_i) - tab_pad - close_size / 2.0
+			if mirrors_layout then
+					-- the close box at the tab's left, the label after it
+				Result := tab_lefts.i_th (a_i) + tab_pad + close_size / 2.0
+			else
+				Result := tab_lefts.i_th (a_i) + tab_widths.i_th (a_i) - tab_pad - close_size / 2.0
+			end
 		end
 
 	draw_close_box (a_p: SW_PAINTER; a_i: INTEGER; a_ink: NATURAL_32)

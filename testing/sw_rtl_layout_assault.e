@@ -9,6 +9,80 @@ inherit
 
 feature -- Tests
 
+	test_a_menu_bar_starts_at_the_right
+			-- Right to left the first menu title sits at the right and a click there opens it.
+		local
+			w: SW_WINDOW
+			mb: SW_MENU_BAR
+			b1, b2: TUPLE [left, width: REAL_64]
+		do
+			create w.make ("rtl", 0, 0, 600, 200, create {SW_THEME}.make_light)
+			create mb.make
+			mb.add_menu ("File", agent: SW_MENU do create Result.make end)
+			mb.add_menu ("Edit", agent: SW_MENU do create Result.make end)
+			mb.set_layout_direction ({SW_WIDGET}.Layout_right_to_left)
+			w.set_root (mb)
+			w.request_render
+			b1 := mb.pad_bounds (w.painter, 1)
+			b2 := mb.pad_bounds (w.painter, 2)
+			assert ("the first title is at the right: " + b1.left.out + " vs " + b2.left.out, b1.left > b2.left)
+			assert ("flush right, six pixels in", (mb.x + mb.width - (b1.left + b1.width) - 6.0).abs < 0.5)
+			assert ("a click on it", mb.handle_click (b1.left + b1.width / 2.0, mb.y + 10.0))
+			assert_integers_equal ("opens the first menu", 1, mb.last_opened_pad)
+		end
+
+	test_tabs_start_at_the_right
+			-- Right to left the first tab sits at the right; a press there selects it.
+		local
+			w: SW_WINDOW
+			tb: SW_TABS
+		do
+			create w.make ("rtl", 0, 0, 600, 300, create {SW_THEME}.make_light)
+			create tb.make
+			tb.add_page ("One", create {SW_LABEL}.make_ui ("first"))
+			tb.add_page ("Two", create {SW_LABEL}.make_ui ("second"))
+			tb.set_layout_direction ({SW_WIDGET}.Layout_right_to_left)
+			w.set_root (tb)
+			w.request_render
+			assert ("placed", tb.is_placed)
+			assert ("the first tab is at the right", tb.tab_lefts.i_th (1) > tb.tab_lefts.i_th (2))
+			assert ("its right edge near the bar's", tb.x + tb.width - (tb.tab_lefts.i_th (1) + tb.tab_widths.i_th (1)) < 4.0)
+			assert ("a press on the second", tb.handle_click (tb.tab_lefts.i_th (2) + 4.0, tb.y + 4.0))
+			assert_integers_equal ("selects the second", 2, tb.selected_index)
+		end
+
+	test_a_data_grid_puts_its_first_column_at_the_right
+			-- Right to left the first column sits at the right, its header is hit there, and a
+			-- resize drags the column's left edge.
+		local
+			w: SW_WINDOW
+			g: SW_DATA_GRID [STRING_32]
+			l_lefts: ARRAYED_LIST [REAL_64]
+			l_rows: ARRAYED_LIST [STRING_32]
+			l_old: REAL_64
+		do
+			create w.make ("rtl", 0, 0, 500, 300, create {SW_THEME}.make_light)
+			create g.make (200.0)
+			g.add_column (create {SW_GRID_COLUMN [STRING_32]}.make ("Book", 150.0, agent (s: STRING_32): STRING_32 do Result := s end))
+			g.add_column (create {SW_GRID_COLUMN [STRING_32]}.make ("Back", 150.0, agent (s: STRING_32): STRING_32 do Result := s.mirrored end))
+			create l_rows.make (1)
+			l_rows.extend ("Genesis")
+			g.set_rows (l_rows)
+			g.set_layout_direction ({SW_WIDGET}.Layout_right_to_left)
+			w.set_root (g)
+			w.request_render
+			l_lefts := g.column_lefts
+			assert ("the first column is at the right", l_lefts.i_th (1) > l_lefts.i_th (2))
+			assert ("flush right", (g.x + g.width - (l_lefts.i_th (1) + g.shown_width (1))).abs < 0.5)
+			assert_integers_equal ("its header is hit at the right", 1, g.header_column_at (g.x + g.width - 5.0))
+			assert_integers_equal ("its divider is its left edge", 1, g.column_edge_at (l_lefts.i_th (1)))
+			l_old := g.columns.i_th (1).width
+			assert ("a press on the divider", g.handle_click (l_lefts.i_th (1), g.y + 10.0))
+			g.handle_drag (l_lefts.i_th (1) - 20.0, g.y + 10.0)
+			assert ("dragging the left edge leftwards widens it: " + g.columns.i_th (1).width.out,
+				(g.columns.i_th (1).width - (l_old + 20.0)).abs < 0.5)
+		end
+
 	test_a_row_places_from_the_right
 		local
 			w: SW_WINDOW

@@ -1949,7 +1949,12 @@ feature -- Menu bar and mnemonics
 			b: TUPLE [left, width: REAL_64]
 		do
 			if attached menu_bar as mb and then mb.is_enabled then
-				idx := mb.neighbor_pad (mb.last_opened_pad, a_step)
+					-- Right goes right on screen: to the previous pad when the bar is mirrored
+				if mb.mirrors_layout then
+					idx := mb.neighbor_pad (mb.last_opened_pad, - a_step)
+				else
+					idx := mb.neighbor_pad (mb.last_opened_pad, a_step)
+				end
 				if idx > 0 then
 					close_popup
 					mb.open_menu (painter, idx)

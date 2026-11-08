@@ -283,7 +283,8 @@ feature -- Geometry
 			-- Where pad `i' starts and how wide it is, in window
 			-- coordinates. THE one formula: `draw' paints with it,
 			-- `handle_click' hit-tests with it, and SW_WINDOW drops an
-			-- Alt-opened menu under it.
+			-- Alt-opened menu under it. Right to left (`mirrors_layout')
+			-- the first pad sits at the right.
 		require
 			in_range: i >= 1 and i <= labels.count
 		local
@@ -300,7 +301,7 @@ feature -- Geometry
 				k := k + 1
 			end
 			tw := title_width (a_p, labels.i_th (i)) + 24.0
-			Result := [tx, tw]
+			Result := [mirrored_x (tx, tw), tw]
 		ensure
 			positive_width: Result.width > 0.0
 		end
@@ -322,7 +323,11 @@ feature -- Layout
 				Result := 12.0
 			else
 				l_last := pad_bounds (a_p, labels.count)
-				Result := l_last.left - x + l_last.width + 6.0
+				if mirrors_layout then
+					Result := x + width - l_last.left + 6.0
+				else
+					Result := l_last.left - x + l_last.width + 6.0
+				end
 			end
 		ensure then
 			positive: Result > 0.0
