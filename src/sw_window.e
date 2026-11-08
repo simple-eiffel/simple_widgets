@@ -304,6 +304,9 @@ feature -- Accessibility (GW-14)
 				w := accessible_widgets.i_th (i)
 				accessibility.add_node (w.accessible_node_id, l_parents.i_th (i), w.accessible_role, w.accessible_name,
 					w.accessible_value, w.x, w.y, w.width, w.height, w.accepts_focus, w.is_enabled)
+				if not w.accessible_description.is_empty then
+					accessibility.describe_last_node (w.accessible_description)
+				end
 				w.publish_accessible_items (accessibility)
 				i := i + 1
 			end
@@ -313,6 +316,41 @@ feature -- Accessibility (GW-14)
 			tell_accessible_focus
 		ensure
 			published: is_accessibility_published
+		end
+
+	describe_accessibility: STRING_32
+			-- The published tree as simple_gui's shared tests read it (W10): one line per
+			-- node, "role: name", indented two spaces per level, in the shared role names
+			-- (SW_ACCESSIBILITY.role_name); generic nodes (panes, groups) are left out, as
+			-- GTK's walk leaves them out. Publishes first, so it is always current.
+		local
+			i, d: INTEGER
+			l_role: STRING_32
+		do
+			publish_accessibility
+			create Result.make (256)
+			from
+				i := 1
+			until
+				i > accessibility.served_rows
+			loop
+				l_role := accessibility.role_name (accessibility.served_role (i))
+				if not l_role.same_string ("generic") then
+					from
+						d := accessibility.served_depth (i)
+					until
+						d = 0
+					loop
+						Result.append ("  ")
+						d := d - 1
+					end
+					Result.append (l_role)
+					Result.append (": ")
+					Result.append (accessibility.served_name (i))
+					Result.append_character ('%N')
+				end
+				i := i + 1
+			end
 		end
 
 	accessible_item_total: INTEGER

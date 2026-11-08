@@ -124,6 +124,8 @@ feature {NONE} -- Test runners
 
 	canvas_present_tests: SW_CANVAS_PRESENT_ASSAULT
 
+	a11y_w10_tests: SW_A11Y_W10_ASSAULT
+
 	modal_w9_tests: SW_MODAL_W9_ASSAULT
 
 	menu_w8_tests: SW_MENU_W8_ASSAULT
@@ -148,6 +150,10 @@ feature {NONE} -- Test runners
 
 	run_list_tests
 		do
+			create a11y_w10_tests
+			run_test (agent a11y_w10_tests.test_the_tree_reads_in_the_shared_vocabulary, "the_tree_reads_in_the_shared_vocabulary")
+			run_test (agent a11y_w10_tests.test_a_description_is_published, "a_description_is_published")
+			run_test (agent a11y_w10_tests.test_role_names, "role_names")
 			create modal_w9_tests
 			run_test (agent modal_w9_tests.test_run_modal_until_returns_without_a_window, "run_modal_until_returns_without_a_window")
 			run_test (agent modal_w9_tests.test_ask_shows_ok_and_cancel, "ask_shows_ok_and_cancel")
