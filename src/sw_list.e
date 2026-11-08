@@ -20,7 +20,7 @@ inherit
 			widget_at, handle_wheel, handle_click, handle_drag,
 			wants_hover_point, pebble_at, handle_double_click,
 			handle_key, accepts_focus, handle_release, set_bounds,
-			accessible_role
+			accessible_role, accessible_item_count, publish_accessible_items
 		end
 
 create
@@ -71,6 +71,9 @@ feature -- Element change (bounds)
 
 	row_renderer: detachable PROCEDURE [SW_PAINTER, INTEGER, REAL_64, REAL_64, REAL_64, REAL_64]
 			-- Draws one row: (painter, index, x, y, width, height).
+
+	row_text: detachable FUNCTION [INTEGER, READABLE_STRING_GENERAL]
+			-- The text of a row, for screen readers (W6); SW_TEXT_LIST sets it.
 
 	on_select: detachable PROCEDURE [INTEGER]
 
@@ -190,6 +193,14 @@ feature -- Element change
 			set: row_pebble = a_f
 		end
 
+	set_row_text (a_f: detachable FUNCTION [INTEGER, READABLE_STRING_GENERAL])
+			-- Tell screen readers each row's text through `a_f'.
+		do
+			row_text := a_f
+		ensure
+			set: row_text = a_f
+		end
+
 	set_on_select (a_action: PROCEDURE [INTEGER])
 		do
 			on_select := a_action
@@ -256,6 +267,17 @@ feature -- Element change
 			if a_i > 0 and then attached on_select as a then
 				a.call (a_i)
 			end
+		ensure
+			selected: selected_index = a_i
+		end
+
+	select_row_quietly (a_i: INTEGER)
+			-- Select row `a_i' (0: none) as the program, not the user: `on_select' does not run
+			-- (simple_gui's rule that programmatic changes fire no event, W6).
+		require
+			in_range: a_i >= 0 and a_i <= row_count
+		do
+			selected_index := a_i
 		ensure
 			selected: selected_index = a_i
 		end
@@ -401,6 +423,72 @@ feature -- Accessibility (GW-14)
 	accessible_role: INTEGER
 		do
 			Result := {SW_ACCESSIBILITY}.Role_list
+		end
+
+	Item_ids: INTEGER = 500_000_000
+			-- Row node ids: from here up, a block of `Item_block' per list, all below
+			-- `SW_WINDOW.Floating_ids' (500_000_000 + 200_000 * 2_048 < 1_000_000_000).
+
+	Item_block: INTEGER = 2_048
+			-- Ids per list: more than `Published_rows_cap' rows, so lists never share an id.
+
+	Published_rows_cap: INTEGER = 2_000
+			-- Up to this many rows every row is published, as AppKit's AXRows and GTK's
+			-- list box do (MACMINI's probe); above it only the visible ones (0.2's limit;
+			-- item virtualization comes later).
+
+	publishes_every_row: BOOLEAN
+		do
+			Result := row_count <= Published_rows_cap
+		end
+
+	accessible_item_count: INTEGER
+			-- The rows published as list items.
+		do
+			if row_count > 0 then
+				if publishes_every_row then
+					Result := row_count
+				elseif height > 0.0 then
+					Result := (last_visible - first_visible + 1).min (Item_block - 1)
+				end
+			end
+		end
+
+	publish_accessible_items (a_accessibility: SW_ACCESSIBILITY)
+			-- Each visible row as a list item under the list, named by `row_text' (else "row N").
+		local
+			i, l_first, l_last: INTEGER
+			l_name: STRING_32
+			l_value: detachable STRING_32
+		do
+			if accessible_item_count > 0 then
+				if publishes_every_row then
+					l_first := 1
+				else
+					l_first := first_visible
+				end
+				l_last := l_first + accessible_item_count - 1
+				from
+					i := l_first
+				until
+					i > l_last
+				loop
+					if attached row_text as al_text then
+						l_name := al_text.item ([i]).to_string_32
+					else
+						l_name := {STRING_32} "row " + i.out
+					end
+					if i = selected_index then
+						l_value := {STRING_32} "selected"
+					else
+						l_value := Void
+					end
+					a_accessibility.add_node (Item_ids + (accessible_node_id \\ 200_000) * Item_block + (i - l_first + 1),
+						accessible_node_id, {SW_ACCESSIBILITY}.Role_list_item, l_name, l_value,
+						x, y + (i - 1) * row_height - scroll_y, width, row_height, False, is_enabled)
+					i := i + 1
+				end
+			end
 		end
 
 invariant
