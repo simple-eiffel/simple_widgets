@@ -180,6 +180,53 @@ feature -- Evidence
 
 feature -- Input
 
+	test_a_menu_bar_in_a_floating_window_drops_its_menu
+			-- 1c: a menu bar inside a floating document window opens its menu
+			-- there; Enter runs the highlighted item, Right steps to the next
+			-- pad's menu, and Escape closes it.
+		local
+			w: SW_WINDOW
+			l_float: SW_FLOATING_WINDOW
+			l_box: SW_COLUMN
+			mb: SW_MENU_BAR
+			l_runs: CELL [INTEGER]
+		do
+			create l_runs.put (0)
+			create w.make ("floating", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			w.set_root (create {SW_LABEL}.make_ui ("main"))
+			w.request_render
+			create mb.make
+			mb.add_menu ("File", agent (a_runs: CELL [INTEGER]): SW_MENU
+				do
+					create Result.make
+					Result.add_item ("Open", "", True, agent (a_r: CELL [INTEGER]) do a_r.put (a_r.item + 1) end (a_runs))
+				end (l_runs))
+			mb.add_menu ("Edit", agent: SW_MENU
+				do
+					create Result.make
+					Result.add_item ("Copy", "", True, agent do end)
+				end)
+			create l_box.make
+			l_box.put (mb)
+			l_box.put (create {SW_LABEL}.make_ui ("table"))
+			l_float := w.float_document (l_box, "Table", -3000, -3000, 400, 300)
+			assert_true ("open", l_float.is_open)
+			l_float.render
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_press, (mb.x + 15.0).truncated_to_integer, (mb.y + 10.0).truncated_to_integer)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_release, (mb.x + 15.0).truncated_to_integer, (mb.y + 10.0).truncated_to_integer)
+			assert_true ("the File menu drops in the floating window", attached l_float.popup and l_float.popup_bar = mb)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_key, 40, 0)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_key, 13, 0)
+			assert_integers_equal ("Enter ran Open", 1, l_runs.item)
+			assert_true ("and closed it", l_float.popup = Void)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_press, (mb.x + 15.0).truncated_to_integer, (mb.y + 10.0).truncated_to_integer)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_key, 39, 0)
+			assert_true ("Right opens Edit", attached l_float.popup and mb.last_opened_pad = 2)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_char, 27, 0)
+			assert_true ("Escape closes", l_float.popup = Void)
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_close_request, 0, 0)
+		end
+
 	test_gw22_a_floating_window_takes_input_like_the_main_one
 		local
 			w: SW_WINDOW
