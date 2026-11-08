@@ -93,6 +93,28 @@ feature -- Scan 19
 			w.unfloat (l_float)
 		end
 
+	test_a_document_window_floats_and_reports_its_close
+			-- simple_gui's second window: a document window (W3) holding a tree, drawn by its
+			-- owner, its close button reported, closed by unfloat.
+		local
+			w: SW_WINDOW
+			l_float: SW_FLOATING_WINDOW
+			l_closes: CELL [INTEGER]
+		do
+			create l_closes.put (0)
+			create w.make ("floating", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			w.set_root (create {SW_LABEL}.make_ui ("main"))
+			w.request_render
+			l_float := w.float_document (create {SW_LABEL}.make_ui ("table"), "Table", -3000, -3000, 400, 300)
+			assert ("open", l_float.is_open)
+			assert ("a document window", l_float.is_document)
+			l_float.set_on_close_request (agent (c: CELL [INTEGER]) do c.put (c.item + 1) end (l_closes))
+			l_float.handle_event ({SHELL_EVENTS}.Event_panel_close_request, 0, 0)
+			assert_integers_equal ("its close is reported", 1, l_closes.item)
+			w.unfloat (l_float)
+			assert ("closed", not l_float.is_open)
+		end
+
 	test_scan19_closing_gives_the_frame_back
 		local
 			w: SW_WINDOW
