@@ -62,6 +62,44 @@ feature -- Tests
 			assert_strings_equal ("hover motion", "3@40,40 b0 m0", l_log.i_th (4))
 		end
 
+	test_a_drag_that_ends_outside_still_releases_the_canvas
+			-- MACMINI's W7 point: the press captures the pointer, so motion and the release
+			-- outside the canvas still reach it, and plain motion afterwards does not.
+		local
+			w: SW_WINDOW
+			col: SW_COLUMN
+			c: SW_CANVAS
+			l_spacer: SW_LABEL
+			l_log: ARRAYED_LIST [STRING]
+			cx, cy, ox, oy: INTEGER
+		do
+			create l_log.make (4)
+			create w.make ("capture", 0, 0, 400, 400, create {SW_THEME}.make_light)
+			create col.make
+			create c.make (120.0)
+			create l_spacer.make_ui ("below")
+			col.put (c)
+			col.put (l_spacer)
+			w.set_root (col)
+			w.request_render
+			c.set_on_pointer (agent (k: INTEGER; px, py: REAL_64; b, m: INTEGER; a_log: ARRAYED_LIST [STRING])
+				do
+					a_log.extend (k.out)
+				end (?, ?, ?, ?, ?, l_log))
+			cx := (c.x + 20.0).truncated_to_integer
+			cy := (c.y + 20.0).truncated_to_integer
+			ox := (l_spacer.x + 5.0).truncated_to_integer
+			oy := (l_spacer.y + 5.0).truncated_to_integer
+			w.dispatch ({SHELL_EVENTS}.Event_window_press, cx, cy)
+			w.dispatch ({SHELL_EVENTS}.Event_window_drag, ox, oy)
+			w.dispatch ({SHELL_EVENTS}.Event_window_release, ox, oy)
+			w.dispatch ({SHELL_EVENTS}.Event_window_move, ox + 2, oy + 2)
+			assert_integers_equal ("press, motion, release and nothing after", 3, l_log.count)
+			assert_strings_equal ("pressed", "1", l_log.i_th (1))
+			assert_strings_equal ("dragged outside", "3", l_log.i_th (2))
+			assert_strings_equal ("released outside", "2", l_log.i_th (3))
+		end
+
 	test_resize_is_told_when_the_size_changes
 		local
 			c: SW_CANVAS
