@@ -191,6 +191,80 @@ feature -- Sizing policy (the containership vocabulary)
 			at_least_minimum: Result >= min_height
 		end
 
+feature -- Direction and placement (W4c)
+
+	layout_direction: INTEGER
+			-- `Layout_inherit' (the nearest ancestor's that is set, else left to right),
+			-- `Layout_left_to_right' or `Layout_right_to_left'.
+
+	Layout_inherit: INTEGER = 0
+	Layout_left_to_right: INTEGER = 1
+	Layout_right_to_left: INTEGER = 2
+
+	set_layout_direction (a_direction: INTEGER)
+			-- Lay this widget, and the widgets below it that inherit, out in `a_direction'.
+		require
+			valid: a_direction >= Layout_inherit and a_direction <= Layout_right_to_left
+		do
+			layout_direction := a_direction
+		ensure
+			set: layout_direction = a_direction
+		end
+
+	mirrors_layout: BOOLEAN
+			-- Is this widget laid out right to left: by its own direction, else by the nearest
+			-- ancestor's that is set, else not?
+		local
+			l_w: detachable SW_WIDGET
+			l_found: BOOLEAN
+		do
+			from
+				l_w := Current
+			until
+				l_w = Void or l_found
+			loop
+				if l_w.layout_direction /= Layout_inherit then
+					l_found := True
+					Result := l_w.layout_direction = Layout_right_to_left
+				end
+				l_w := l_w.parent
+			end
+		end
+
+	cross_alignment: INTEGER
+			-- Where this widget sits across its container's axis: `Place_fill' (the
+			-- container's own rule, the default), `Place_start', `Place_center' or `Place_end'.
+			-- Across a column, start is the left in left-to-right layout and the right in
+			-- right-to-left; across a row, start is the top.
+
+	Place_fill: INTEGER = 0
+	Place_start: INTEGER = 1
+	Place_center: INTEGER = 2
+	Place_end: INTEGER = 3
+
+	set_cross_alignment (a_place: INTEGER)
+		require
+			valid: a_place >= Place_fill and a_place <= Place_end
+		do
+			cross_alignment := a_place
+		ensure
+			set: cross_alignment = a_place
+		end
+
+	mirrored_x (a_x, a_w: REAL_64): REAL_64
+			-- The left edge for a child `a_w' wide that left-to-right layout would put at `a_x':
+			-- `a_x' itself, or reflected about this widget's vertical centre line when this
+			-- widget `mirrors_layout'.
+		do
+			if mirrors_layout then
+				Result := x + x + width - a_x - a_w
+			else
+				Result := a_x
+			end
+		ensure
+			kept_when_not_mirrored: not mirrors_layout implies Result = a_x
+		end
+
 feature -- Layout
 
 	preferred_width (a_p: SW_PAINTER): REAL_64

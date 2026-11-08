@@ -164,7 +164,7 @@ feature -- Layout
 				else
 					l_w := spanned (l_widths, ic.column, ic.columns, l_cg)
 					l_h := spanned (l_heights, ic.row, ic.rows, l_rg)
-					ic.widget.set_bounds (l_x.i_th (ic.column), l_y.i_th (ic.row), l_w, l_h)
+					ic.widget.set_bounds (mirrored_x (l_x.i_th (ic.column), l_w), l_y.i_th (ic.row), l_w, l_h)
 					ic.widget.arrange (a_p)
 				end
 			end
