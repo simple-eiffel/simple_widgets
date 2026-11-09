@@ -19,9 +19,15 @@ create
 feature {NONE} -- Initialization
 
 	make (a_context: CAIRO_CONTEXT; a_theme: SW_THEME)
+			-- Off Windows, text is drawn in gray antialiasing: fontconfig's subpixel (RGB) default
+			-- leaves colored fringes in an image that is composited, scaled or saved (on Linux
+			-- they matched a theme wash within a few levels). Windows keeps its rendering.
 		do
 			context := a_context
 			theme := a_theme
+			if not {PLATFORM}.is_windows and then a_context.is_valid then
+				a_context.set_font_antialias (a_context.Antialias_gray).do_nothing
+			end
 		ensure
 			context_set: context = a_context
 			theme_set: theme = a_theme
