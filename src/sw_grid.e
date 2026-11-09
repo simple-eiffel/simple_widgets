@@ -7,7 +7,8 @@ note
 		the theme's padding and sit only between occupied lines: a row or column nothing
 		covers has no size and no gaps (as GtkGrid). With homogeneous columns every column
 		takes the widest width and they share the spare width; homogeneous takes precedence
-		over a stretching column, which otherwise takes the spare width.
+		over a stretching column, which otherwise takes the spare width. `padding' (0 unless
+		set) is kept clear inside the grid's edges.
 	]"
 
 class
@@ -18,6 +19,8 @@ inherit
 		redefine
 			sub_widgets, preferred_width, arrange, widget_at
 		end
+
+	SW_PADDED
 
 create
 	make
@@ -131,7 +134,7 @@ feature -- Layout
 			across l_widths as ic loop
 				Result := Result + ic
 			end
-			Result := Result + gaps_total (occupied (True), effective_column_gap (a_p))
+			Result := padded (Result + gaps_total (occupied (True), effective_column_gap (a_p)))
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
@@ -139,15 +142,21 @@ feature -- Layout
 		local
 			l_heights: ARRAYED_LIST [REAL_64]
 		do
-			l_heights := row_heights (a_p, column_widths (a_p, a_width))
+			l_heights := row_heights (a_p, column_widths (a_p, unpadded (a_width)))
 			across l_heights as ic loop
 				Result := Result + ic
 			end
-			Result := Result + gaps_total (occupied (False), effective_row_gap (a_p))
+			Result := padded (Result + gaps_total (occupied (False), effective_row_gap (a_p)))
 		end
 
 	arrange (a_p: SW_PAINTER)
-			-- Size the columns to `width', the rows to their content, and place every cell.
+			-- Size the columns to `width', the rows to their content, and place every cell,
+			-- inside the padding.
+		do
+			lay_out_within_padding (agent arrange_cells (a_p))
+		end
+
+	arrange_cells (a_p: SW_PAINTER)
 		local
 			l_widths, l_heights, l_x, l_y: ARRAYED_LIST [REAL_64]
 			l_cg, l_rg, l_w, l_h: REAL_64

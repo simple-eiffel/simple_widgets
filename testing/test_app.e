@@ -944,6 +944,7 @@ feature {NONE} -- Test runners
 			run_test (agent star_tests.test_star_is_a_glyph, "star_is_a_glyph")
 			run_test (agent deepening_tests.test_a_vertical_slider_runs_upward_and_keys_move_it, "a_vertical_slider_runs_upward_and_keys_move_it")
 			run_test (agent star_tests.test_a_mark_draws_exact_ink_and_an_underline, "a_mark_draws_exact_ink_and_an_underline")
+			run_test (agent star_tests.test_text_styles_set_real_bold_and_a_size, "text_styles_set_real_bold_and_a_size")
 			run_test (agent star_tests.test_a_starred_row_draws_its_star, "a_starred_row_draws_its_star")
 			run_test (agent star_tests.test_a_starred_grid_cell_draws_its_star, "a_starred_grid_cell_draws_its_star")
 			run_test (agent star_tests.test_a_tree_node_draws_its_glyph, "a_tree_node_draws_its_glyph")

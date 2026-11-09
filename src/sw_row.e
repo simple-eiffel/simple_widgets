@@ -1,7 +1,8 @@
 note
 	description: "[
 		Children side by side at their preferred widths, separated by
-		the gap, vertically centered. This container is what deletes the
+		the gap, vertically centered, inside `padding' (0 unless set).
+		This container is what deletes the
 		'x := x + advance (label) + 8.0' arithmetic from applications.
 	]"
 
@@ -14,6 +15,8 @@ inherit
 			preferred_width,
 			arrange, widget_at
 		end
+
+	SW_PADDED
 
 create
 	make
@@ -113,6 +116,7 @@ feature -- Layout
 			if l_kids.count > 1 then
 				Result := Result + effective_gap (a_p) * (l_kids.count - 1)
 			end
+			Result := padded (Result)
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
@@ -122,9 +126,10 @@ feature -- Layout
 			widths, heights: ARRAYED_LIST [REAL_64]
 			starts: ARRAYED_LIST [INTEGER]
 			li, i, line_end: INTEGER
-			line_h: REAL_64
+			line_h, l_width: REAL_64
 		do
 			l_kids := laid_out
+			l_width := unpadded (a_width)
 			if is_wrapping then
 				create widths.make (l_kids.count)
 				create heights.make (l_kids.count)
@@ -134,7 +139,7 @@ feature -- Layout
 					widths.extend (c.clamped_width (c.preferred_width (a_p)))
 					heights.extend (c.clamped_height (c.preferred_height (a_p, widths.last)))
 				end
-				starts := wrap_starts (widths, effective_gap (a_p), a_width)
+				starts := wrap_starts (widths, effective_gap (a_p), l_width)
 				from
 					li := 1
 				until
@@ -166,12 +171,13 @@ feature -- Layout
 				across
 					l_kids as c
 				loop
-					h := c.preferred_height (a_p, a_width)
+					h := c.preferred_height (a_p, l_width)
 					if h > Result then
 						Result := h
 					end
 				end
 			end
+			Result := padded (Result)
 		end
 
 	wrap_starts (a_widths: ARRAYED_LIST [REAL_64]; a_gap, a_avail: REAL_64): ARRAYED_LIST [INTEGER]
@@ -208,14 +214,19 @@ feature -- Layout
 
 	arrange (a_p: SW_PAINTER)
 			-- One line (growers share leftover), or greedy wrapped
-			-- lines when `is_wrapping'.
+			-- lines when `is_wrapping', inside the padding.
+		do
+			lay_out_within_padding (agent arrange_children (a_p))
+			vanish_hidden
+		end
+
+	arrange_children (a_p: SW_PAINTER)
 		do
 			if is_wrapping then
 				arrange_wrapped (a_p)
 			else
 				arrange_line (a_p)
 			end
-			vanish_hidden
 		end
 
 	arrange_wrapped (a_p: SW_PAINTER)

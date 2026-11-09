@@ -99,6 +99,39 @@ feature -- Tests
 			assert_true ("the favorite's star is drawn in gold", star_pixels (w, t) > 10)
 		end
 
+	test_text_styles_set_real_bold_and_a_size
+			-- 2026-11-09 (rich text): `set_text_styles' sets a stretch in real bold glyphs (more
+			-- solid ink, not the same glyphs drawn twice), and `set_text_size' sets the whole
+			-- text larger.
+		local
+			w: SW_WINDOW
+			b: SW_TEXT_BOX
+			l_theme: SW_THEME
+			l_styles: SHAPING_STYLES
+			plain, bold, large: INTEGER
+		do
+			create l_theme.make_light
+			create w.make ("styles", 0, 0, 500, 200, l_theme)
+			w.enable_shaped_text
+			create b.make ("Rich text keeps its weight")
+			w.set_root (b)
+			w.request_render
+			plain := color_pixels (w, b, l_theme.ink)
+			assert_true ("plain text drawn", plain > 20)
+			create l_styles.make
+			l_styles.add_bold (1, b.text.count)
+			b.set_text_styles (l_styles)
+			assert_true ("styles kept", b.text_styles = l_styles)
+			w.request_render
+			bold := color_pixels (w, b, l_theme.ink)
+			assert_true ("bold glyphs carry more solid ink", bold > plain + plain // 5)
+			b.set_text_styles (Void)
+			b.set_text_size (32.0)
+			w.request_render
+			large := color_pixels (w, b, l_theme.ink)
+			assert_true ("a larger size, more ink", large > plain + plain // 2)
+		end
+
 	test_a_mark_draws_exact_ink_and_an_underline
 			-- 2026-11-09 (rich text): with_ink draws the glyphs in exactly that color (not one of
 			-- the palette's twelve hues), and underlined draws a rule under them; a mark with

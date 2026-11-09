@@ -50,7 +50,6 @@ feature {NONE} -- Initialization
 	make_dialog (a_start_dir, a_name: READABLE_STRING_GENERAL)
 		local
 			verbs: SW_ROW
-			ttl: SW_LABEL
 		do
 			make
 			create current_dir.make_from_string_general (a_start_dir)
@@ -60,15 +59,15 @@ feature {NONE} -- Initialization
 			create path_label.make_mono ("")
 			create entries_list.make (260.0)
 			create name_box.make_single_line (a_name)
+			create title_label.make (if is_folder_mode then "Choose Folder" elseif is_save_mode then "Save File" else "Open File" end,
+				{SW_PAINTER}.Role_ui, 17.0, True)
 				-- every attached attribute is set: agents are safe now
 			entries_list.set_row_height (28.0)
 			entries_list.set_row_renderer (agent render_entry)
 			entries_list.set_on_select (agent on_entry_selected)
 			entries_list.set_on_activate (agent on_entry_activated)
 			name_box.set_spellcheck (False)
-			create ttl.make (if is_folder_mode then "Choose Folder" elseif is_save_mode then "Save File" else "Open File" end,
-				{SW_PAINTER}.Role_ui, 17.0, True)
-			put (ttl)
+			put (title_label)
 			put (path_label.as_muted)
 			build_drives_row
 			put (entries_list)
@@ -101,6 +100,9 @@ feature -- Spacing (theme defaults; an explicit value still wins)
 feature -- Access
 
 	current_dir: STRING_32
+
+	title_label: SW_LABEL
+			-- The heading: "Open File", "Save File" or "Choose Folder" unless set.
 
 	is_save_mode: BOOLEAN
 
@@ -215,6 +217,16 @@ feature -- Access
 		end
 
 feature -- Element change
+
+	set_title (a_title: READABLE_STRING_GENERAL)
+			-- Head the dialog with `a_title' (the program's own words: "Export Transcript").
+		require
+			titled: not a_title.is_empty
+		do
+			title_label.set_text (a_title)
+		ensure
+			set: title_label.text.same_string_general (a_title)
+		end
 
 	type_name (a_text: READABLE_STRING_GENERAL)
 			-- Put `a_text' in the name box, as typing would - hosts
