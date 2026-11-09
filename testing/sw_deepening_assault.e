@@ -200,6 +200,45 @@ feature -- Batch 1: small controls, limits fallen
 			assert_reals_equal ("0.90 snaps up to the end", 1.0, s.snapped (0.90), 0.000_1)
 		end
 
+	test_a_vertical_slider_runs_upward_and_keys_move_it
+			-- 2026-11-09: a vertical slider's start is at the bottom, so a press near the top is
+			-- near the end; the arrows move it by `key_step', Home and End to the ends, and each
+			-- move reports its fraction.
+		local
+			w: SW_WINDOW
+			s: SW_SLIDER
+			l_seen: CELL [REAL_64]
+		do
+			create l_seen.put (-1.0)
+			create s.make (0.0, agent (a_f: REAL_64; a_cell: CELL [REAL_64]) do a_cell.put (a_f) end (?, l_seen))
+			s.set_vertical (True)
+			assert ("vertical", s.is_vertical and s.accepts_focus)
+			create w.make ("vslider", 0, 0, 200, 300, create {SW_THEME}.make_light)
+			w.set_root (s)
+			w.request_render
+			assert ("laid out taller than wide", s.height > s.width)
+			assert ("pressed near the top", s.handle_click (s.x + s.width / 2.0, s.y + s.Knob_r))
+			assert_reals_equal ("the top is the end", 1.0, s.fraction, 0.000_1)
+			assert_reals_equal ("and reported", 1.0, l_seen.item, 0.000_1)
+			s.handle_drag (s.x + s.width / 2.0, s.y + s.height - s.Knob_r)
+			assert_reals_equal ("the bottom is the start", 0.0, s.fraction, 0.000_1)
+			s.set_key_step (0.1)
+			s.handle_key (38, False)
+			assert_reals_equal ("Up raises by a step", 0.1, s.fraction, 0.000_1)
+			s.handle_key (33, False)
+			assert_reals_equal ("Page Up by ten, held at the end", 1.0, s.fraction, 0.000_1)
+			s.handle_key (37, False)
+			assert_reals_equal ("Left lowers", 0.9, s.fraction, 0.000_1)
+			s.handle_key (36, False)
+			assert_reals_equal ("Home", 0.0, s.fraction, 0.000_1)
+			l_seen.put (-1.0)
+			s.handle_key (40, False)
+			assert_reals_equal ("Down at the start is no move, no report", -1.0, l_seen.item, 0.000_1)
+			s.handle_key (35, False)
+			assert_reals_equal ("End", 1.0, l_seen.item, 0.000_1)
+			w.request_render
+		end
+
 	test_number_box_direct_typing
 		local
 			nb: SW_NUMBER_BOX
