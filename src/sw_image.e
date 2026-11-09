@@ -54,6 +54,20 @@ feature -- Access
 			kept: picture = a_surface
 		end
 
+	enlarges: BOOLEAN
+			-- May the picture be drawn larger than its natural size, to fill the space? (False:
+			-- only ever scaled down, as simple_gui's GUI_IMAGE promises.)
+		do
+			Result := not never_enlarges
+		end
+
+	set_enlarges (a_on: BOOLEAN)
+		do
+			never_enlarges := not a_on
+		ensure
+			set: enlarges = a_on
+		end
+
 	is_loaded: BOOLEAN
 			-- Did the PNG decode into pixels?
 		do
@@ -118,6 +132,9 @@ feature -- Drawing
 			t := a_p.theme
 			if is_loaded and then width > 1.0 and then height > 1.0 then
 				s := (width / natural_width).min (height / natural_height)
+				if not enlarges then
+					s := s.min (1.0)
+				end
 				dw := natural_width * s
 				dh := natural_height * s
 				a_p.draw_image (picture, x + (width - dw) / 2.0, y + (height - dh) / 2.0, dw, dh)
@@ -132,6 +149,11 @@ feature -- Drawing
 			end
 		end
 
+
+feature {NONE} -- Implementation
+
+	never_enlarges: BOOLEAN
+			-- Kept negated, so a new image enlarges as it always did.
 
 feature -- Accessibility (GW-14)
 
