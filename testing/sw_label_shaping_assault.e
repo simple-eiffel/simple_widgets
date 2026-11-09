@@ -166,7 +166,12 @@ feature -- Artwork
 			plain_color := color_in (plain_surf, x0, y0, x1, y1)
 			print ("    saturated pixels - shaped " + shaped_color.out + ", toy " + plain_color.out + "%N")
 			assert_greater_than ("the SHAPED label carries real color artwork", shaped_color, 100)
-			assert_less_than ("the TOY label carries essentially none", plain_color, 10)
+			if {PLATFORM}.is_windows then
+					-- cairo's toy path finds no fallback face on Windows: a box in ink. On Linux
+					-- and macOS fontconfig hands it the color emoji face too, so there only the
+					-- shaped path's artwork (above) is the contract.
+				assert_less_than ("the TOY label carries essentially none", plain_color, 10)
+			end
 		end
 
 feature -- What stays on the toy path
