@@ -105,6 +105,13 @@ feature -- Access
 
 	text: STRING_32
 
+	text_size: REAL_64
+			-- The size the text is set at, before the theme's scale; 0: the theme's body size.
+
+	text_styles: detachable SHAPING_STYLES
+			-- Stretches set bold, italic, smaller or in another ink, in real glyphs, on the
+			-- shaped path (rich text); Void: plain. Cut to the text on every layout.
+
 	caret: INTEGER
 			-- Insertion position, 0 .. text.count.
 
@@ -594,6 +601,36 @@ feature -- Element change
 			no_stale_extras: extra_ranges.is_empty
 		end
 
+	set_text_size (a_size: REAL_64)
+			-- Set the text at `a_size' (0: the theme's body size).
+		require
+			non_negative: a_size >= 0.0
+		do
+			text_size := a_size
+			layout_width := -1.0
+		ensure
+			set: text_size = a_size
+		end
+
+	new_text_styles: SHAPING_STYLES
+			-- A fresh, empty set of styles for `set_text_styles' (so a client names no
+			-- shaping class of its own).
+		do
+			create Result.make
+		ensure
+			empty: Result.is_empty
+		end
+
+	set_text_styles (a_styles: detachable SHAPING_STYLES)
+			-- Set stretches of the text by `a_styles' (Void: plain). A host that changes the
+			-- object in place calls this again, so the text is laid out anew.
+		do
+			text_styles := a_styles
+			layout_width := -1.0
+		ensure
+			set: text_styles = a_styles
+		end
+
 	set_on_activate (a_action: detachable PROCEDURE)
 			-- Run `a_action' when Enter is pressed in a single-line or one-paragraph box.
 		do
@@ -722,7 +759,7 @@ feature -- Layout
 	row_baseline (a_p: SW_PAINTER): REAL_64
 			-- Baseline offset inside one row, from MEASURED metrics.
 		do
-			a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
+			a_p.font ({SW_PAINTER}.Role_body, body_size (a_p), False)
 			Result := (row_height (a_p) - a_p.text_extent) / 2.0 + a_p.font_ascent
 		end
 
@@ -747,7 +784,7 @@ feature -- Layout
 			-- path one box, text and width measured 70, 75 or 80 px at 2x
 			-- depending on what had been drawn before it.
 		do
-			a_p.font ({SW_PAINTER}.Role_body, a_p.theme.size_body, False)
+			a_p.font ({SW_PAINTER}.Role_body, body_size (a_p), False)
 			Result := a_p.min_control_height
 		ensure
 			clears_the_insets: Result >= 2.0 * a_p.theme.control_inset
@@ -767,12 +804,12 @@ feature -- Drawing
 		do
 			t := a_p.theme
 			ensure_layout (a_p, width - 2.0 * Pad_x)
-			a_p.font ({SW_PAINTER}.Role_body, t.size_body, False)
+			a_p.font ({SW_PAINTER}.Role_body, body_size (a_p), False)
 			asc := a_p.font_ascent
 			ext := a_p.text_extent
 			ox := x + Pad_x
 			oy := y + Pad_y
-			px := t.size_body * t.text_scale
+			px := body_size (a_p) * t.text_scale
 			if is_invalid then
 				a_p.set_color (t.wash_danger)
 			else
@@ -798,6 +835,10 @@ feature -- Drawing
 			n := text.count
 				-- Password boxes show their hint too: it is no secret (GTK and AppKit agree).
 			if n = 0 and then not placeholder.is_empty then
+				if a_p.has_shaping and not is_hiding then
+						-- the face typed text is shaped in (the kit leads with the UI face)
+					a_p.font ({SW_PAINTER}.Role_ui, body_size (a_p), False)
+				end
 				a_p.set_color (t.ink_muted)
 				if effective_text_alignment = {SHAPING_CONSTANTS}.Align_right then
 						-- W4c: the hint sits where typing starts.
@@ -849,7 +890,7 @@ feature -- Drawing
 						a_p.set_color (t.accent)
 						a_p.fill_rect (gx - 1.0, gy - asc, gw + 2.0, ext + 2.0)
 					end
-					a_p.font ({SW_PAINTER}.Role_body, t.size_body, False)
+					a_p.font ({SW_PAINTER}.Role_body, body_size (a_p), False)
 					if seln then
 						a_p.set_color (t.surface)
 					else
@@ -1339,11 +1380,24 @@ feature -- Metrics
 
 feature {NONE} -- Engine
 
+	body_size (a_p: SW_PAINTER): REAL_64
+			-- The size the text is set at, before the theme's scale: `text_size', or the
+			-- theme's body size when that is 0.
+		do
+			if text_size > 0.0 then
+				Result := text_size
+			else
+				Result := a_p.theme.size_body
+			end
+		ensure
+			positive: Result > 0.0
+		end
+
 	body_pixels (a_p: SW_PAINTER): INTEGER
 			-- The body text's pixel size at the theme's scale: what the
 			-- shaped path lays out at, and what `row_height' measures.
 		do
-			Result := (a_p.theme.size_body * a_p.theme.text_scale).rounded.max (1)
+			Result := (body_size (a_p) * a_p.theme.text_scale).rounded.max (1)
 		ensure
 			positive: Result >= 1
 		end
@@ -1381,7 +1435,11 @@ feature {NONE} -- Engine
 					-- GW-02: lines placed by `text_alignment' in the box the
 					-- text may fill (mirrored in right-to-left layout, W4c).
 				geometry.set_alignment (laid_alignment, a_wrap.max (0.0))
-				geometry.lay_out (a_p, text, a_wrap.max (0.0), 0, a_p.theme.size_body, False,
+				if attached text_styles as al_styles then
+					al_styles.clamp_to (text.count)
+				end
+				geometry.set_styles (text_styles)
+				geometry.lay_out (a_p, text, a_wrap.max (0.0), 0, body_size (a_p), False,
 					is_single_line, is_hiding).do_nothing
 			end
 		ensure

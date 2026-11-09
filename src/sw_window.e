@@ -1035,6 +1035,12 @@ feature -- Dialogs
 			-- Show the drawn file dialog (Open, or Save suggesting `a_suggested') in the sheet,
 			-- listing files with the suffixes in `a_extensions' ("txt;md"; empty: every file),
 			-- and wait: the chosen path, or Void when canceled or closed. Headless, Void at once.
+		do
+			Result := choose_file_titled (a_save, "", a_start_dir, a_suggested, a_extensions)
+		end
+
+	choose_file_titled (a_save: BOOLEAN; a_title, a_start_dir, a_suggested, a_extensions: READABLE_STRING_GENERAL): detachable STRING_32
+			-- `choose_file', headed by `a_title' (empty: "Open File" or "Save File").
 		local
 			l_dialog: SW_FILE_DIALOG
 			l_path: CELL [detachable STRING_32]
@@ -1047,6 +1053,9 @@ feature -- Dialogs
 			end
 			if not a_extensions.is_empty then
 				l_dialog.set_extension_filter (a_extensions)
+			end
+			if not a_title.is_empty then
+				l_dialog.set_title (a_title)
 			end
 			l_dialog.set_on_accept (agent take_path (?, l_path))
 			l_dialog.set_on_cancel (agent close_sheet)
