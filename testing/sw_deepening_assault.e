@@ -181,6 +181,43 @@ feature -- Batch 1: small controls, limits fallen
 			assert_reals_equal ("room for the cross", plain.width + removable.Remove_room, removable.width, 0.5)
 		end
 
+	test_an_info_bar_wears_its_kind_and_a_spinner_turns
+			-- simple_gui 1o (2026-11-09): an info bar leads with its kind's mark, which takes
+			-- the kind's ink when drawn and changes with the kind; a spinner is as big as asked
+			-- and turns a step a frame only while spinning.
+		local
+			w: SW_WINDOW
+			l_column: SW_COLUMN
+			l_bar: SW_INFO_BAR
+			l_spinner: SW_SPINNER
+			l_theme: SW_THEME
+			l_step: INTEGER
+		do
+			create l_theme.make_light
+			create l_bar.make ({SW_INFO_BAR}.Kind_warning)
+			l_bar.put (create {SW_LABEL}.make_ui ("The disk is nearly full."))
+			create l_spinner.make (20.0)
+			create l_column.make
+			l_column.put (l_bar)
+			l_column.put (l_spinner)
+			create w.make ("feedback", 0, 0, 500, 200, l_theme)
+			w.set_root (l_column)
+			w.request_render
+			assert_integers_equal ("warning mark", {SW_PAINTER}.Glyph_warning, l_bar.mark.glyph)
+			assert_true ("drawn in the warning ink", l_bar.mark.color = l_theme.warning)
+			assert_reals_equal ("spinner height (a column gives it the width)", 20.0, l_spinner.height, 0.5)
+			l_bar.set_kind ({SW_INFO_BAR}.Kind_danger)
+			w.request_render
+			assert_integers_equal ("danger mark", {SW_PAINTER}.Glyph_error, l_bar.mark.glyph)
+			assert_true ("drawn in the danger ink", l_bar.mark.color = l_theme.danger)
+			l_step := l_spinner.step
+			w.request_render
+			assert_integers_equal ("still while stopped", l_step, l_spinner.step)
+			l_spinner.set_spinning (True)
+			w.request_render
+			assert_integers_equal ("a step a frame", (l_step + 1) \\ 12, l_spinner.step)
+		end
+
 	test_a_hosted_window_draws_takes_input_and_asks_its_host
 			-- 1i (2026-11-09): a window drawn inside a host's view never runs and never opens a
 			-- native window. The host resizes it and feeds it a click, and is told of each
