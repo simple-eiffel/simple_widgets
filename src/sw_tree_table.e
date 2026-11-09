@@ -176,10 +176,13 @@ feature -- Drawing
 					ix := x + 8.0 + row.depth * Indent_w
 					if row.has_kids then
 						a_p.set_color (t.ink_muted)
+							-- a drawn chevron, as SW_TREE's: no font lacks it
 						if open_nodes.has (row.node) then
-							a_p.text (ix, ry + Row_h - 8.0, {STRING_32} "%/9662/")
+							a_p.line (ix, ry + Row_h / 2.0 - 3.0, ix + 4.0, ry + Row_h / 2.0 + 3.0, 1.6)
+							a_p.line (ix + 4.0, ry + Row_h / 2.0 + 3.0, ix + 8.0, ry + Row_h / 2.0 - 3.0, 1.6)
 						else
-							a_p.text (ix, ry + Row_h - 8.0, {STRING_32} "%/9656/")
+							a_p.line (ix + 1.0, ry + Row_h / 2.0 - 5.0, ix + 7.0, ry + Row_h / 2.0, 1.6)
+							a_p.line (ix + 7.0, ry + Row_h / 2.0, ix + 1.0, ry + Row_h / 2.0 + 5.0, 1.6)
 						end
 					end
 					a_p.font ({SW_PAINTER}.Role_ui, 13.0, False)

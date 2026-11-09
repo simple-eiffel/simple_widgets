@@ -161,6 +161,74 @@ feature -- Batch 1: small controls, limits fallen
 			assert ("the removal agent fired", fired.item)
 		end
 
+	test_a_removable_chip_makes_room_for_its_cross
+			-- 2026-11-09: a removable chip is wider than a plain one with the same label by the
+			-- cross's room, so the cross never lands on the label's last letter.
+		local
+			w: SW_WINDOW
+			l_row: SW_ROW
+			plain, removable: SW_CHIP
+		do
+			create plain.make ("ada@example.org", {SW_CHIP}.Kind_neutral)
+			create removable.make ("ada@example.org", {SW_CHIP}.Kind_neutral)
+			removable := removable.with_remove (agent do end)
+			create l_row.make
+			l_row.put (plain)
+			l_row.put (removable)
+			create w.make ("chips", 0, 0, 600, 120, create {SW_THEME}.make_light)
+			w.set_root (l_row)
+			w.request_render
+			assert_reals_equal ("room for the cross", plain.width + removable.Remove_room, removable.width, 0.5)
+		end
+
+	test_a_hosted_window_draws_takes_input_and_asks_its_host
+			-- 1i (2026-11-09): a window drawn inside a host's view never runs and never opens a
+			-- native window. The host resizes it and feeds it a click, and is told of each
+			-- frame. It keeps the dwell timer for the window, and answers the dialogs. The
+			-- system appearance is never asked.
+		local
+			w: SW_WINDOW
+			l_column: SW_COLUMN
+			b: SW_BUTTON
+			l_clicks, l_frames: CELL [INTEGER]
+			l_appearance: TEST_COUNTING_APPEARANCE
+			l_file: detachable STRING_32
+			cx, cy: INTEGER
+		do
+			create l_clicks.put (0)
+			create l_frames.put (0)
+			create w.make ("hosted", 0, 0, 320, 200, create {SW_THEME}.make_light)
+			create l_appearance
+			w.set_system_appearance (l_appearance)
+			w.start_hosting
+			w.set_on_frame (agent (c: CELL [INTEGER]) do c.put (c.item + 1) end (l_frames))
+			create b.make ("Add a bar", agent (c: CELL [INTEGER]) do c.put (c.item + 1) end (l_clicks))
+			create l_column.make
+			l_column.put (b)
+			w.set_root (l_column)
+			w.host_event (16, 400, 240, 0)
+			w.request_render
+			assert ("a frame for the host", l_frames.item >= 1)
+			assert ("the frame holds the window", w.frame_surface.width >= 400 and w.frame_surface.height >= 240)
+			cx := (b.x + b.width / 2.0).truncated_to_integer
+			cy := (b.y + b.height / 2.0).truncated_to_integer
+			w.host_event (2, cx, cy, 0)
+			w.host_event (10, cx, cy, 0)
+			assert_integers_equal ("the host's click ran the button once", 1, l_clicks.item)
+			w.arm_dwell_timer (400)
+			assert ("a dwell request for the host", w.hosted_dwell_ms = 400 and w.is_dwell_timer_armed)
+			w.host_event (55, 0, 0, 0)
+			assert ("fired by the host, and disarmed", not w.is_dwell_timer_armed)
+			w.set_dialog_delegate (
+				agent (k: INTEGER; t, m: STRING_32; c: BOOLEAN): BOOLEAN do Result := m.same_string ("Delete?") end,
+				agent (s: BOOLEAN; t, d, n, e: STRING_32): detachable STRING_32 do Result := t end)
+			assert ("ask answered by the host", w.ask ({SW_DIALOG}.Kind_info, "Title", "Delete?", True))
+			l_file := w.choose_file_titled (False, "Pick", ".", "", "txt")
+			assert ("the file chosen by the host", attached l_file as al_f and then al_f.same_string ("Pick"))
+			assert ("never a native window", not w.is_window_open)
+			assert_integers_equal ("the system appearance never asked", 0, l_appearance.asks)
+		end
+
 	test_checkbox_tristate_resolves_to_checked
 		local
 			cb: SW_CHECK_BOX

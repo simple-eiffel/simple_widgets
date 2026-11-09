@@ -89,7 +89,14 @@ feature -- Layout
 		do
 			a_p.font ({SW_PAINTER}.Role_mono, a_p.theme.size_chip, False)
 			Result := a_p.advance (label) + 16.0
+			if is_removable then
+					-- room for the remove cross (drawn from width - 12 to width - 5)
+				Result := Result + Remove_room
+			end
 		end
+
+	Remove_room: REAL_64 = 14.0
+			-- Width a removable chip adds for its cross.
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 		do
