@@ -11,7 +11,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click, wants_hover_point
+			preferred_width, handle_click, wants_hover_point,
+			accessible_role, accessible_value
 		end
 
 create
@@ -195,6 +196,22 @@ feature -- Input
 				end
 				Result := True
 			end
+		end
+
+feature -- Accessibility
+
+	accessible_role: INTEGER
+			-- A value in a range, set by clicking a star.
+		do
+			Result := {SW_ACCESSIBILITY}.Role_slider
+		end
+
+	accessible_value: detachable STRING_32
+			-- "3 of 5".
+		do
+			create Result.make_from_string_general (value.out)
+			Result.append ({STRING_32} " of ")
+			Result.append_string_general (max_stars.out)
 		end
 
 invariant

@@ -126,6 +126,15 @@ feature -- Access
 
 	is_italic: BOOLEAN
 
+	is_underlined: BOOLEAN
+			-- A rule under the glyphs.
+
+	has_custom_ink: BOOLEAN
+			-- Colorized in `custom_ink' rather than the hue's ink?
+
+	custom_ink: NATURAL_32
+			-- 0xRRGGBB, when `has_custom_ink'.
+
 	Max_box_lines: INTEGER = 3
 
 	Max_text_outlines: INTEGER = 2
@@ -136,7 +145,7 @@ feature -- Status
 			-- Nothing visible?
 		do
 			Result := not has_wash and box_lines = 0 and text_outlines = 0
-				and not is_colorized and not is_bold and not is_italic
+				and not is_colorized and not is_bold and not is_italic and not is_underlined
 		end
 
 	changes_glyphs: BOOLEAN
@@ -319,6 +328,32 @@ feature -- Element change (fluent)
 			Result := Current
 		ensure
 			set: is_italic
+			chained: Result = Current
+		end
+
+	underlined: like Current
+			-- A rule under the glyphs (rich text's underline).
+		do
+			is_underlined := True
+			Result := Current
+		ensure
+			set: is_underlined
+			chained: Result = Current
+		end
+
+	with_ink (a_rgb: NATURAL_32): like Current
+			-- The glyphs in exactly `a_rgb' (0xRRGGBB) rather than the hue's ink: rich text's
+			-- color, which is any color, not one of the palette's twelve.
+		require
+			rgb_only: a_rgb <= 0xFFFFFF
+		do
+			is_colorized := True
+			has_custom_ink := True
+			custom_ink := a_rgb
+			Result := Current
+		ensure
+			colorized: is_colorized and has_custom_ink
+			set: custom_ink = a_rgb
 			chained: Result = Current
 		end
 

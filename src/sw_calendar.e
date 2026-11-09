@@ -13,7 +13,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click, wants_hover_point
+			preferred_width, handle_click, wants_hover_point,
+			accessible_role
 		end
 
 create
@@ -335,6 +336,14 @@ feature -- Input
 				end
 				Result := True
 			end
+		end
+
+feature -- Accessibility
+
+	accessible_role: INTEGER
+			-- A month of days (read as a grid in the shared vocabulary).
+		do
+			Result := {SW_ACCESSIBILITY}.Role_calendar
 		end
 
 invariant

@@ -3059,7 +3059,7 @@ feature {NONE} -- Rendering
 					if sheet_user_h > 0.0 then
 						sheet_ch := sheet_user_h
 					else
-						sheet_ch := s.preferred_height (painter, sheet_cw).min (win_h - 160.0)
+						sheet_ch := s.preferred_height (painter, sheet_cw).min (win_h - 160.0).max (0.0)   -- a window shorter than the margins shows an empty sheet, never a negative one
 					end
 					sheet_pw := sheet_cw + 32.0
 					sheet_ph := sheet_ch + 32.0 + Sheet_header_h
@@ -3099,7 +3099,7 @@ feature {NONE} -- Rendering
 					else
 						painter.vline (sheet_px + 0.5, 0.0, win_h)
 					end
-					s.set_bounds (sheet_px + 14.0, 14.0, sheet_pw - 28.0, win_h - 28.0)
+					s.set_bounds (sheet_px + 14.0, 14.0, (sheet_pw - 28.0).max (0.0), (win_h - 28.0).max (0.0))
 				elseif sheet_mode = Mode_top or sheet_mode = Mode_bottom then
 					painter.set_color_alpha (0x000000, 0.25)
 					painter.fill_rect (0.0, 0.0, win_w, win_h)
@@ -3119,14 +3119,14 @@ feature {NONE} -- Rendering
 					else
 						painter.hline (0.0, sheet_py + 0.5, win_w)
 					end
-					s.set_bounds (14.0, sheet_py + 14.0, win_w - 28.0, sheet_ph - 28.0)
+					s.set_bounds (14.0, sheet_py + 14.0, (win_w - 28.0).max (0.0), (sheet_ph - 28.0).max (0.0))
 				else
 						-- anchored popover: no backdrop, clamped into the window
 					sheet_pw := sheet_width + 24.0
 					sheet_ph := s.preferred_height (painter, sheet_width).min (win_h - 40.0) + 24.0
 					sheet_px := sheet_ax.min (win_w - sheet_pw - 4.0).max (4.0)
 					sheet_py := sheet_ay.min (win_h - sheet_ph - 4.0).max (4.0)
-					s.set_bounds (sheet_px + 12.0, sheet_py + 12.0, sheet_width, sheet_ph - 24.0)
+					s.set_bounds (sheet_px + 12.0, sheet_py + 12.0, sheet_width, (sheet_ph - 24.0).max (0.0))
 					painter.set_color (theme.surface)
 					painter.rrect_fill (sheet_px, sheet_py, sheet_pw, sheet_ph, theme.radius)
 					painter.set_color (theme.outline)
