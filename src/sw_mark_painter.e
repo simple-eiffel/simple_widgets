@@ -204,6 +204,20 @@ feature -- Painting
 									g.width, a_geo.height_of_line (g.line), lines)
 							end
 						end
+						if m.is_underlined then
+								-- a rule just under the baseline, in the glyphs' own ink
+							if m.is_colorized then
+								a_p.set_color (mark_ink (m, a_p.theme))
+							else
+								a_p.set_color (a_p.theme.ink)
+							end
+							across
+								segs as g
+							loop
+								a_p.fill_rect (a_ox + g.left, a_oy + a_geo.top_of_line (g.line) + a_geo.ascent_of_line (g.line) + 2.0,
+									g.width, 1.0)
+							end
+						end
 						if badges and then attached a_legend as l and then not segs.is_empty then
 							paint_badge (a_p, l.badge_of (s.reason), m, a_ox + segs.first.left,
 								a_oy + a_geo.top_of_line (segs.first.line))
@@ -216,12 +230,22 @@ feature -- Painting
 
 feature {NONE} -- Implementation
 
+	mark_ink (a_m: SW_MARK; a_theme: SW_THEME): NATURAL_32
+			-- The ink a colorized mark draws its glyphs in: its own color, or its hue's.
+		do
+			if a_m.has_custom_ink then
+				Result := a_m.custom_ink
+			else
+				Result := palette.ink (a_m.hue, a_theme)
+			end
+		end
+
 	paint_color_only (a_p: SW_PAINTER; a_geo: SW_TEXT_GEOMETRY; a_m: SW_MARK; a_line: INTEGER;
 			a_x, a_w, a_oy: REAL_64; a_draw_text: PROCEDURE [SW_PAINTER, REAL_64, REAL_64])
 			-- The text again in the hue's ink, clipped to one segment.
 		do
 			a_p.push_clip (a_x - 1.0, a_oy + a_geo.top_of_line (a_line), a_w + 2.0, a_geo.height_of_line (a_line))
-			a_p.set_color (palette.ink (a_m.hue, a_p.theme))
+			a_p.set_color (mark_ink (a_m, a_p.theme))
 			a_draw_text.call (a_p, 0.0, 0.0)
 			a_p.pop_clip
 		end
@@ -285,7 +309,7 @@ feature {NONE} -- Implementation
 			h := a_geo.height_of_line (a_line)
 			baseline := top + a_geo.ascent_of_line (a_line)
 			if a_m.is_colorized then
-				fill := palette.ink (a_m.hue, t)
+				fill := mark_ink (a_m, t)
 				ring := t.ink
 			else
 				fill := t.ink

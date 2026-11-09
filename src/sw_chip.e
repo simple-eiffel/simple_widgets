@@ -11,7 +11,8 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click,
-			preferred_width
+			preferred_width,
+			accessible_role, default_accessible_name
 		end
 
 create
@@ -184,6 +185,19 @@ feature -- Colors
 			else
 				Result := a_theme.ink
 			end
+		end
+
+feature -- Accessibility
+
+	accessible_role: INTEGER
+			-- A chip is pressed (and removed) like a button.
+		do
+			Result := {SW_ACCESSIBILITY}.Role_button
+		end
+
+	default_accessible_name: STRING_32
+		do
+			Result := label
 		end
 
 invariant

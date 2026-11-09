@@ -99,6 +99,41 @@ feature -- Tests
 			assert_true ("the favorite's star is drawn in gold", star_pixels (w, t) > 10)
 		end
 
+	test_a_mark_draws_exact_ink_and_an_underline
+			-- 2026-11-09 (rich text): with_ink draws the glyphs in exactly that color (not one of
+			-- the palette's twelve hues), and underlined draws a rule under them; a mark with
+			-- neither draws neither.
+		local
+			w: SW_WINDOW
+			b: SW_TEXT_BOX
+			ink: NATURAL_32
+			before, with_ink, with_rule: INTEGER
+			m: SW_MARK
+		do
+			ink := 0xCC3300
+			create w.make ("ink", 0, 0, 500, 200, create {SW_THEME}.make_light)
+			create b.make ("Rich text keeps its colors")
+			w.set_root (b)
+			w.request_render
+			before := color_pixels (w, b, ink)
+			assert_integers_equal ("no such ink yet", 0, before)
+			create m.make ({SW_MARK}.Hue_blue)
+			m := m.with_ink (ink)
+			assert_true ("colorized in its own ink", m.is_colorized and m.has_custom_ink and m.custom_ink = ink)
+			b.marks.mark_range_with (0, 4, "rich", m).do_nothing
+			w.request_render
+			with_ink := color_pixels (w, b, ink)
+			assert_true ("the exact ink is drawn", with_ink > 20)
+			b.marks.clear
+			create m.make ({SW_MARK}.Hue_blue)
+			m := m.with_ink (ink).underlined
+			assert_true ("underlined", m.is_underlined and not m.is_plain)
+			b.marks.mark_range_with (0, 4, "rich", m).do_nothing
+			w.request_render
+			with_rule := color_pixels (w, b, ink)
+			assert_true ("the rule adds ink under the word", with_rule > with_ink)
+		end
+
 	test_a_standing_range_washes_its_text
 			-- 0.51.0: a reader's quoted part is washed in the theme's gold, apart from the selection,
 			-- and a new document starts with none.
