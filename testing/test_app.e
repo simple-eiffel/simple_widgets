@@ -491,6 +491,7 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_checkbox_tristate_resolves_to_checked, "checkbox_tristate_resolves_to_checked")
 			run_test (agent deepening_tests.test_rating_read_only_and_halves, "rating_read_only_and_halves")
 			run_test (agent deepening_tests.test_slider_tick_snapping, "slider_tick_snapping")
+			run_test (agent deepening_tests.test_a_removable_chip_makes_room_for_its_cross, "a_removable_chip_makes_room_for_its_cross")
 			run_test (agent deepening_tests.test_number_box_direct_typing, "number_box_direct_typing")
 			run_test (agent deepening_tests.test_locale_number_formatting, "locale_number_formatting")
 			run_test (agent deepening_tests.test_badge_kind_and_zero_policy, "badge_kind_and_zero_policy")

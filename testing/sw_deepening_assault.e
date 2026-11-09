@@ -161,6 +161,26 @@ feature -- Batch 1: small controls, limits fallen
 			assert ("the removal agent fired", fired.item)
 		end
 
+	test_a_removable_chip_makes_room_for_its_cross
+			-- 2026-11-09: a removable chip is wider than a plain one with the same label by the
+			-- cross's room, so the cross never lands on the label's last letter.
+		local
+			w: SW_WINDOW
+			l_row: SW_ROW
+			plain, removable: SW_CHIP
+		do
+			create plain.make ("ada@example.org", {SW_CHIP}.Kind_neutral)
+			create removable.make ("ada@example.org", {SW_CHIP}.Kind_neutral)
+			removable := removable.with_remove (agent do end)
+			create l_row.make
+			l_row.put (plain)
+			l_row.put (removable)
+			create w.make ("chips", 0, 0, 600, 120, create {SW_THEME}.make_light)
+			w.set_root (l_row)
+			w.request_render
+			assert_reals_equal ("room for the cross", plain.width + removable.Remove_room, removable.width, 0.5)
+		end
+
 	test_checkbox_tristate_resolves_to_checked
 		local
 			cb: SW_CHECK_BOX
