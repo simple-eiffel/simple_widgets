@@ -34,6 +34,15 @@ feature -- Access
 
 	Top_inset: REAL_64 = 12.0
 
+feature -- Element change
+
+	set_title (a_title: READABLE_STRING_GENERAL)
+		do
+			create title.make_from_string_general (a_title)
+		ensure
+			set: title.same_string_general (a_title)
+		end
+
 
 feature -- Spacing (theme defaults; an explicit value still wins)
 

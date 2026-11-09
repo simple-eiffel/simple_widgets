@@ -1032,6 +1032,14 @@ feature -- Accessibility (GW-14)
 			end
 		end
 
+	shared_role_name: detachable STRING_32
+			-- This widget's role in the shared vocabulary (GTK 4's role names, which
+			-- simple_gui's tests read on every platform) when UI Automation's control type
+			-- cannot say it: a switch is a check box to UI Automation, a radio group a group.
+			-- Void: named from `accessible_role'.
+		do
+		end
+
 	accessible_item_count: INTEGER
 			-- Nodes this widget publishes below its own that are not widgets (a list's rows).
 		do

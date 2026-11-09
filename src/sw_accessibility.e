@@ -54,6 +54,7 @@ feature -- Shared vocabulary (W10)
 			when Role_header_item then Result := "column-header"
 			when Role_document then Result := "document"
 			when Role_separator then Result := "separator"
+			when Role_group then Result := "group"
 			when Role_window then Result := "application"
 			else
 				Result := "generic"

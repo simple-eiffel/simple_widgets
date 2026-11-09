@@ -12,7 +12,7 @@ class
 inherit
 	SW_TEXT_BOX
 		redefine
-			draw, changed
+			draw, changed, accessible_role
 		end
 
 create
@@ -124,6 +124,14 @@ feature {NONE} -- Engine
 				has_time := False
 				set_invalid (True)
 			end
+		end
+
+feature -- Accessibility
+
+	accessible_role: INTEGER
+			-- Hours and minutes stepped up and down: a spinner.
+		do
+			Result := {SW_ACCESSIBILITY}.Role_spinner
 		end
 
 invariant

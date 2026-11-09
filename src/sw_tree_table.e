@@ -17,7 +17,7 @@ class
 inherit
 	SW_TREE [G]
 		redefine
-			make, draw, row_at, max_scroll
+			make, draw, row_at, max_scroll, accessible_role
 		end
 
 create
@@ -42,6 +42,12 @@ feature -- Access
 		end
 
 	tree_col_width: REAL_64
+
+	tree_title: STRING_32
+			-- The tree column's header ("item" until set).
+		attribute
+			Result := {STRING_32} "item"
+		end
 			-- Width of the tree column; 220 px from `make'.
 
 	Header_h: REAL_64 = 26.0
@@ -80,6 +86,14 @@ feature -- Element change
 			Result := Current
 		ensure
 			chained: Result = Current
+		end
+
+	set_tree_title (a_title: READABLE_STRING_GENERAL)
+			-- Name the tree column's header.
+		do
+			tree_title := a_title.to_string_32
+		ensure
+			set: tree_title.same_string_general (a_title)
 		end
 
 	set_tree_col_width (a_width: REAL_64)
@@ -126,7 +140,7 @@ feature -- Drawing
 			a_p.fill_rect (x + 1.0, y + 1.0, width - 2.0, Header_h)
 			a_p.font ({SW_PAINTER}.Role_ui, 12.5, True)
 			a_p.set_color (t.ink_muted)
-			a_p.text (x + 10.0, y + Header_h - 8.0, {STRING_32} "item")
+			a_p.text (x + 10.0, y + Header_h - 8.0, tree_title)
 			from
 				ci := 1
 			until
@@ -188,6 +202,15 @@ feature -- Drawing
 			end
 			a_p.set_color (t.outline)
 			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
+		end
+
+feature -- Accessibility
+
+	accessible_role: INTEGER
+			-- A tree with columns: screen readers know it as a tree-grid, as GTK's column view
+			-- over a tree model and AppKit's outline view are.
+		do
+			Result := {SW_ACCESSIBILITY}.Role_data_grid
 		end
 
 invariant

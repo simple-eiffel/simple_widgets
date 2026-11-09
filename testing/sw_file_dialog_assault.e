@@ -46,24 +46,29 @@ feature -- Tests
 		end
 
 	test_drive_roots_and_hop
-			-- The drives row's engine: mask-derived roots (never
-			-- probed - probing dead letters blocks for minutes), and
-			-- hopping to one relands the listing there.
+			-- The drives row's engine: on Windows, mask-derived roots
+			-- (never probed - probing dead letters blocks for minutes);
+			-- on Linux and macOS the one root "/". Hopping to one relands
+			-- the listing there.
 		local
 			fd: SW_FILE_DIALOG
 		do
 			build_fixture
 			create fd.make_open (fixture_root)
-			assert ("this machine has drive roots", not fd.available_drives.is_empty)
+			assert ("this machine has roots", not fd.available_drives.is_empty)
 			across
 				fd.available_drives as d
 			loop
-				assert ("root is X-colon-backslash", d.count = 3)
+				if {PLATFORM}.is_windows then
+					assert ("root is X-colon-backslash", d.count = 3)
+				else
+					assert ("the root is /", d.same_string_general ("/"))
+				end
 			end
-			assert ("C root is always among them",
-				across fd.available_drives as d some d.same_string_general ("C:\") end)
-			fd.go_to_drive ({STRING_32} "C:\")
-			assert ("landed on the root", fd.current_dir.same_string_general ("C:\"))
+			assert ("the system root is among them",
+				across fd.available_drives as d some d.same_string (system_root) end)
+			fd.go_to_drive (system_root)
+			assert ("landed on the root", fd.current_dir.same_string (system_root))
 			assert ("listing refreshed", fd.entry_count >= 1)
 			drop_fixture
 		end
@@ -76,23 +81,70 @@ feature -- Tests
 		do
 			build_fixture
 			create fd.make_open (fixture_root)
-			fd.type_name ({STRING_32} "C:\")
+			fd.type_name (system_root)
 			fd.press_accept
-			assert ("hopped to the C root", fd.current_dir.same_string_general ("C:\"))
+			assert ("hopped to the root", fd.current_dir.same_string (system_root))
 			assert ("listing refreshed there", fd.entry_count >= 1)
 			drop_fixture
 		end
 
 	test_typed_bare_drive_normalizes
+			-- Windows: "C:" is a bare drive and lands on its root. Linux and macOS: "C:" is an
+			-- ordinary file name, so it stays relative to the folder shown.
 		local
 			fd: SW_FILE_DIALOG
 		do
 			build_fixture
 			create fd.make_open (fixture_root)
 			fd.type_name ({STRING_32} "C:")
-			fd.press_accept
-			assert ("bare drive lands on its root", fd.current_dir.same_string_general ("C:\"))
+			if {PLATFORM}.is_windows then
+				fd.press_accept
+				assert ("bare drive lands on its root", fd.current_dir.same_string_general ("C:\"))
+			else
+				assert ("a plain name here", fd.chosen_path.ends_with ({STRING_32} "/C:"))
+			end
 			drop_fixture
+		end
+
+	test_folder_mode_lists_folders_and_chooses
+			-- make_folder lists only folders; Choose with an empty name box accepts the folder
+			-- shown, and with a child folder's name accepts that child.
+		local
+			fd: SW_FILE_DIALOG
+		do
+			build_fixture
+			create fd.make_folder (fixture_root)
+			assert ("folder mode", fd.is_folder_mode and not fd.is_save_mode)
+			assert_integers_equal ("dotdot + the one folder, no files", 2, fd.entry_count)
+			assert ("the folder", fd.entry_name (2).same_string_general ("beta_dir"))
+			create accepted.make_empty
+			fd.set_on_accept (agent record_accept)
+			fd.press_accept
+			assert ("the folder shown", accepted.same_string (fd.current_dir))
+			fd.type_name ({STRING_32} "beta_dir")
+			fd.press_accept
+			assert ("the typed child", accepted.as_lower.ends_with ({STRING_32} "beta_dir"))
+			drop_fixture
+		end
+
+	system_file: STRING_32
+			-- An absolute file path on this platform.
+		do
+			if {PLATFORM}.is_windows then
+				Result := {STRING_32} "C:\Windows\win.ini"
+			else
+				Result := {STRING_32} "/etc/hosts"
+			end
+		end
+
+	system_root: STRING_32
+			-- This platform's root: C:\ on Windows, / elsewhere.
+		do
+			if {PLATFORM}.is_windows then
+				Result := {STRING_32} "C:\"
+			else
+				Result := {STRING_32} "/"
+			end
 		end
 
 	test_typed_relative_directory_descends
@@ -117,10 +169,9 @@ feature -- Tests
 			create fd.make_open (fixture_root)
 			create accepted.make_empty
 			fd.set_on_accept (agent record_accept)
-			fd.type_name ({STRING_32} "C:\Windows\win.ini")
+			fd.type_name (system_file)
 			fd.press_accept
-			assert ("typed absolute file accepted verbatim",
-				accepted.same_string_general ("C:\Windows\win.ini"))
+			assert ("typed absolute file accepted verbatim", accepted.same_string (system_file))
 			drop_fixture
 		end
 

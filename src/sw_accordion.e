@@ -13,7 +13,8 @@ inherit
 	SW_WIDGET
 		redefine
 			sub_widgets, accessible_children,
-			arrange, widget_at, handle_click, wants_hover_point
+			arrange, widget_at, handle_click, wants_hover_point,
+			accessible_item_count, publish_accessible_items
 		end
 
 create
@@ -283,6 +284,37 @@ feature -- Input
 					i := i + 1
 				end
 				Result := True
+			end
+		end
+
+feature -- Accessibility (each section's header a button)
+
+	accessible_item_count: INTEGER
+			-- One button per section header.
+		do
+			Result := sections.count.min (2_047)
+		end
+
+	publish_accessible_items (a_accessibility: SW_ACCESSIBILITY)
+			-- Each section's header as a button named by its title, its value "expanded" or
+			-- "collapsed".
+		local
+			i: INTEGER
+			l_value: STRING_32
+		do
+			from
+				i := 1
+			until
+				i > accessible_item_count
+			loop
+				if sections.i_th (i).is_open then
+					l_value := {STRING_32} "expanded"
+				else
+					l_value := {STRING_32} "collapsed"
+				end
+				a_accessibility.add_node (accessible_item_id (i), accessible_node_id, {SW_ACCESSIBILITY}.Role_button,
+					sections.i_th (i).title, l_value, x, y + (i - 1) * 32.0, width, 32.0, True, is_enabled)
+				i := i + 1
 			end
 		end
 

@@ -11,7 +11,7 @@ inherit
 	SW_WIDGET
 		redefine
 			preferred_width, handle_click,
-			accessible_role, default_accessible_name, accessible_value
+			accessible_role, default_accessible_name, accessible_value, shared_role_name
 		end
 
 create
@@ -152,6 +152,14 @@ feature -- Accessibility (GW-14)
 			else
 				Result := {STRING_32} "off"
 			end
+		end
+
+feature -- Accessibility (shared vocabulary)
+
+	shared_role_name: detachable STRING_32
+			-- A switch (UI Automation knows it as a check box).
+		do
+			Result := {STRING_32} "switch"
 		end
 
 invariant

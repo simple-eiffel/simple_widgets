@@ -12,7 +12,8 @@ inherit
 	SW_WIDGET
 		redefine
 			preferred_width, handle_click, wants_hover_point,
-			accessible_role, accessible_value
+			accessible_role, accessible_value, shared_role_name,
+			accessible_item_count, publish_accessible_items
 		end
 
 create
@@ -272,6 +273,55 @@ feature -- Accessibility (GW-14)
 		do
 			if selected_index >= 1 and selected_index <= options.count then
 				Result := options.i_th (selected_index).twin
+			end
+		end
+
+feature -- Accessibility (each option a radio)
+
+	shared_role_name: detachable STRING_32
+			-- A radio group (UI Automation knows it as a group).
+		do
+			Result := {STRING_32} "radio-group"
+		end
+
+	accessible_item_count: INTEGER
+			-- One radio per option.
+		do
+			Result := options.count.min (2_047)
+		end
+
+	publish_accessible_items (a_accessibility: SW_ACCESSIBILITY)
+			-- Each option as a radio under the group, named by its text; the chosen one's value
+			-- is "selected".
+		local
+			i: INTEGER
+			l_value: detachable STRING_32
+			l_x, l_y, l_w, l_h: REAL_64
+		do
+			from
+				i := 1
+			until
+				i > accessible_item_count
+			loop
+				if i = selected_index then
+					l_value := {STRING_32} "selected"
+				else
+					l_value := Void
+				end
+				if is_vertical then
+					l_x := x
+					l_w := width
+					l_y := y + (i - 1) * Row_h
+					l_h := Row_h
+				else
+					l_w := width / options.count
+					l_x := x + (i - 1) * l_w
+					l_y := y
+					l_h := height
+				end
+				a_accessibility.add_node (accessible_item_id (i), accessible_node_id, {SW_ACCESSIBILITY}.Role_radio_button,
+					options.i_th (i), l_value, l_x, l_y, l_w, l_h, False, is_enabled and then option_enabled.i_th (i))
+				i := i + 1
 			end
 		end
 

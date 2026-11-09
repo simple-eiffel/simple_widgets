@@ -738,6 +738,7 @@ feature {NONE} -- Test runners
 			run_test (agent fd_tests.test_drive_roots_and_hop, "drive_roots_and_hop")
 			run_test (agent fd_tests.test_typed_absolute_directory_navigates, "typed_absolute_directory_navigates")
 			run_test (agent fd_tests.test_typed_bare_drive_normalizes, "typed_bare_drive_normalizes")
+			run_test (agent fd_tests.test_folder_mode_lists_folders_and_chooses, "folder_mode_lists_folders_and_chooses")
 			run_test (agent fd_tests.test_typed_relative_directory_descends, "typed_relative_directory_descends")
 			run_test (agent fd_tests.test_typed_absolute_file_accepts, "typed_absolute_file_accepts")
 			run_test (agent fd_tests.test_accept_delivers_full_path, "accept_delivers_full_path")

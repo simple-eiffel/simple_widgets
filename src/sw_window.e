@@ -321,13 +321,21 @@ feature -- Accessibility (GW-14)
 	describe_accessibility: STRING_32
 			-- The published tree as simple_gui's shared tests read it (W10): one line per
 			-- node, "role: name", indented two spaces per level, in the shared role names
-			-- (SW_ACCESSIBILITY.role_name); generic nodes (panes, groups) are left out, as
-			-- GTK's walk leaves them out. Publishes first, so it is always current.
+			-- (SW_ACCESSIBILITY.role_name, or a widget's `shared_role_name' where UI Automation
+			-- has no word for it); generic nodes (panes) are left out, as GTK's walk leaves them
+			-- out. Publishes first, so it is always current.
 		local
 			i, d: INTEGER
 			l_role: STRING_32
+			l_named: HASH_TABLE [STRING_32, INTEGER]
 		do
 			publish_accessibility
+			create l_named.make (16)
+			across accessible_widgets as ic loop
+				if attached ic.shared_role_name as al_name then
+					l_named.force (al_name, ic.accessible_node_id)
+				end
+			end
 			create Result.make (256)
 			from
 				i := 1
@@ -335,6 +343,9 @@ feature -- Accessibility (GW-14)
 				i > accessibility.served_rows
 			loop
 				l_role := accessibility.role_name (accessibility.served_role (i))
+				if attached l_named.item (accessibility.served_id (i)) as al_shared then
+					l_role := al_shared
+				end
 				if not l_role.same_string ("generic") then
 					from
 						d := accessibility.served_depth (i)
