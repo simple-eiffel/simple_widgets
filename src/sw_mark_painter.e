@@ -214,7 +214,8 @@ feature -- Painting
 							across
 								segs as g
 							loop
-								a_p.fill_rect (a_ox + g.left, a_oy + a_geo.top_of_line (g.line) + a_geo.ascent_of_line (g.line) + 2.0,
+									-- on a whole pixel row: a rule between rows would blur into two pale ones
+								a_p.fill_rect (a_ox + g.left, (a_oy + a_geo.top_of_line (g.line) + a_geo.ascent_of_line (g.line) + 2.0).floor,
 									g.width, 1.0)
 							end
 						end
