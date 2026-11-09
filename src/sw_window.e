@@ -58,7 +58,9 @@ class
 inherit
 	SHELL_WINDOW
 		redefine
-			on_shell_open
+			on_shell_open,
+			arm_dwell_timer, cancel_dwell_timer, is_dwell_timer_armed,
+			set_cursor_kind, event_extra
 		end
 
 	SW_WIDGET_EXPORTING
@@ -977,6 +979,133 @@ feature {NONE} -- Dispatch
 			end
 		end
 
+feature -- Hosting (1i: drawn inside another toolkit's window)
+
+	is_hosted: BOOLEAN
+			-- Is this window drawn inside a host's view instead of a native window of its own?
+			-- Then it never runs: the host feeds it events with `host_event', presents
+			-- `frame_surface' when `on_frame' runs, keeps its timers (`hosted_dwell_ms', the
+			-- heartbeat), shows `hosted_cursor', and answers dialogs through the delegates.
+
+	start_hosting
+			-- Be drawn inside a host's view from now on.
+		require
+			never_run: not is_window_open
+		do
+			is_hosted := True
+		ensure
+			hosted: is_hosted
+		end
+
+	host_event (a_type, a_x, a_y, a_extra: INTEGER)
+			-- One event from the host, in device pixels, exactly as the native queue's would be
+			-- (types as `SHELL_WINDOW.dispatch' lists them: 2 press, 3 character, 4 key, 7 tick,
+			-- 8 double, 9 drag, 10 release, 11 context, 12 triple, 13 move, 14 leave, 15 wheel with
+			-- the delta in `a_extra' (120 a notch), 16 resize to (`a_x', `a_y'), 17 middle,
+			-- 25 fast tick, 55 the dwell shot). Modifiers come from SW_KEYS, which the host sets
+			-- with `SW_KEYS.simulate'.
+		require
+			hosted: is_hosted
+		do
+			hosted_extra := a_extra
+			if a_type = Event_dwell then
+				hosted_dwell_ms := 0
+			end
+			dispatch (a_type, a_x, a_y)
+			hosted_extra := 0
+		end
+
+	frame_surface: CAIRO_SURFACE
+			-- The rendered frame: its top-left `win_w' by `win_h' pixels are the window (the
+			-- surface may be larger; it grows in steps).
+		do
+			Result := offscreen
+		end
+
+	on_frame: detachable PROCEDURE
+			-- Run, when hosted, each time a new frame is ready in `frame_surface'.
+
+	set_on_frame (a_action: detachable PROCEDURE)
+		do
+			on_frame := a_action
+		ensure
+			set: on_frame = a_action
+		end
+
+	hosted_cursor: INTEGER
+			-- The pointer shape the host should show (`Cursor_arrow' .. `Cursor_wait').
+
+	hosted_dwell_ms: INTEGER
+			-- When hosted: a dwell shot the host should send as event 55 this many milliseconds
+			-- after `hosted_dwell_serial' last changed; 0 when none is pending.
+
+	hosted_dwell_serial: INTEGER
+			-- Counts every arming of the dwell shot, so a host fires only the latest.
+
+	ask_delegate: detachable FUNCTION [TUPLE [kind: INTEGER; title, message: STRING_32; confirm: BOOLEAN], BOOLEAN]
+			-- Answers `ask' instead of a drawn dialog (a hosted window has no loop of its own).
+
+	file_delegate: detachable FUNCTION [TUPLE [save: BOOLEAN; title, start_dir, suggested, extensions: STRING_32], detachable STRING_32]
+			-- Answers `choose_file' and `choose_file_titled' instead of the drawn file dialog.
+
+	set_dialog_delegate (an_ask: like ask_delegate; a_file: like file_delegate)
+			-- Answer `ask' through `an_ask' and the file choosers through `a_file' (Void: drawn).
+		do
+			ask_delegate := an_ask
+			file_delegate := a_file
+		ensure
+			set: ask_delegate = an_ask and file_delegate = a_file
+		end
+
+	arm_dwell_timer (a_ms: INTEGER)
+			-- When hosted, a request for the host (`hosted_dwell_ms'); else simple_shell's timer.
+		do
+			if is_hosted then
+				hosted_dwell_ms := a_ms
+				hosted_dwell_serial := hosted_dwell_serial + 1
+			else
+				Precursor (a_ms)
+			end
+		end
+
+	cancel_dwell_timer
+		do
+			if is_hosted then
+				hosted_dwell_ms := 0
+			else
+				Precursor
+			end
+		end
+
+	is_dwell_timer_armed: BOOLEAN
+		do
+			if is_hosted then
+				Result := hosted_dwell_ms > 0
+			else
+				Result := Precursor
+			end
+		end
+
+	set_cursor_kind (a_kind: INTEGER)
+			-- When hosted, recorded for the host (`hosted_cursor'); else simple_shell's.
+		do
+			if is_hosted then
+				hosted_cursor := a_kind
+			else
+				Precursor (a_kind)
+			end
+		end
+
+	event_extra: INTEGER
+			-- When hosted, the host's fourth field; else the native queue's.
+		do
+			if is_hosted then
+				Result := hosted_extra
+			else
+				Result := Precursor
+			end
+		end
+
 feature -- Dialogs
 
 	show_dialog (a_d: SW_DIALOG)
@@ -1020,15 +1149,19 @@ feature -- Dialogs
 			l_dialog: SW_DIALOG
 			l_ok: CELL [BOOLEAN]
 		do
-			create l_ok.put (False)
-			create l_dialog.make (a_kind, a_title, a_message)
-			l_dialog.add_button ("OK", True, agent l_ok.put (True))
-			if a_confirm then
-				l_dialog.add_button ("Cancel", False, Void)
+			if attached ask_delegate as al_ask then
+				Result := al_ask.item ([a_kind, a_title.to_string_32, a_message.to_string_32, a_confirm])
+			else
+				create l_ok.put (False)
+				create l_dialog.make (a_kind, a_title, a_message)
+				l_dialog.add_button ("OK", True, agent l_ok.put (True))
+				if a_confirm then
+					l_dialog.add_button ("Cancel", False, Void)
+				end
+				show_dialog (l_dialog)
+				run_modal_until (agent dialog_is_not (l_dialog))
+				Result := l_ok.item
 			end
-			show_dialog (l_dialog)
-			run_modal_until (agent dialog_is_not (l_dialog))
-			Result := l_ok.item
 		end
 
 	choose_file (a_save: BOOLEAN; a_start_dir, a_suggested, a_extensions: READABLE_STRING_GENERAL): detachable STRING_32
@@ -1046,23 +1179,28 @@ feature -- Dialogs
 			l_path: CELL [detachable STRING_32]
 		do
 			create l_path.put (Void)
-			if a_save then
-				create l_dialog.make_save (a_start_dir, a_suggested)
+			if attached file_delegate as al_file then
+				l_path.put (al_file.item ([a_save, a_title.to_string_32, a_start_dir.to_string_32,
+					a_suggested.to_string_32, a_extensions.to_string_32]))
 			else
-				create l_dialog.make_open (a_start_dir)
-			end
-			if not a_extensions.is_empty then
-				l_dialog.set_extension_filter (a_extensions)
-			end
-			if not a_title.is_empty then
-				l_dialog.set_title (a_title)
-			end
-			l_dialog.set_on_accept (agent take_path (?, l_path))
-			l_dialog.set_on_cancel (agent close_sheet)
-			show_sheet (l_dialog, 560.0)
-			run_modal_until (agent sheet_is_not (l_dialog))
-			if sheet = l_dialog then
-				close_sheet
+				if a_save then
+					create l_dialog.make_save (a_start_dir, a_suggested)
+				else
+					create l_dialog.make_open (a_start_dir)
+				end
+				if not a_extensions.is_empty then
+					l_dialog.set_extension_filter (a_extensions)
+				end
+				if not a_title.is_empty then
+					l_dialog.set_title (a_title)
+				end
+				l_dialog.set_on_accept (agent take_path (?, l_path))
+				l_dialog.set_on_cancel (agent close_sheet)
+				show_sheet (l_dialog, 560.0)
+				run_modal_until (agent sheet_is_not (l_dialog))
+				if sheet = l_dialog then
+					close_sheet
+				end
 			end
 			Result := l_path.item
 		end
@@ -3746,12 +3884,20 @@ feature {NONE} -- Notification internals
 		end
 
 	blit
+			-- The frame to the native window; when hosted, `on_frame' tells the host instead.
 		local
 			hdc: POINTER
 			ws: CAIRO_SURFACE
 			c2: CAIRO_CONTEXT
 		do
-			hdc := window_dc
+			if is_hosted then
+				if attached on_frame as al_frame then
+					al_frame.call
+				end
+				hdc := default_pointer
+			else
+				hdc := window_dc
+			end
 			if hdc /= default_pointer then
 				create ws.make_for_dc (hdc)
 				if ws.is_valid then
@@ -3765,6 +3911,9 @@ feature {NONE} -- Notification internals
 		end
 
 feature {NONE} -- State
+
+	hosted_extra: INTEGER
+			-- The current hosted event's fourth field.
 
 	capture: detachable SW_WIDGET
 			-- Owner of the pointer between press and release.
