@@ -212,7 +212,47 @@ feature -- Measurement
 			one_item_per_tab: Result.items.count = labels.count
 		end
 
+	page_glyphs: HASH_TABLE [INTEGER, INTEGER]
+			-- A glyph drawn before a tab's label, by tab number (simple_gui 1n).
+		attribute
+			create Result.make (0)
+		end
+
+	page_badges: HASH_TABLE [STRING_32, INTEGER]
+			-- A short text in a small red bubble after a tab's label, by tab number (simple_gui 1n).
+		attribute
+			create Result.make (0)
+		end
+
+	Tab_glyph_room: REAL_64 = 18.0
+
 feature -- Element change
+
+	set_page_glyph (i: INTEGER; a_glyph: INTEGER)
+			-- Draw `a_glyph' before tab `i''s label (0 removes it).
+		require
+			valid: i >= 1 and i <= labels.count
+			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_last
+		do
+			if a_glyph = 0 then
+				page_glyphs.remove (i)
+			else
+				page_glyphs.force (a_glyph, i)
+			end
+		end
+
+	set_page_badge (i: INTEGER; a_text: READABLE_STRING_GENERAL)
+			-- Show `a_text' as a badge after tab `i''s label (empty removes it).
+		require
+			valid: i >= 1 and i <= labels.count
+			short: a_text.count <= 8
+		do
+			if a_text.is_empty then
+				page_badges.remove (i)
+			else
+				page_badges.force (a_text.to_string_32, i)
+			end
+		end
 
 	add_page (a_label: READABLE_STRING_GENERAL; a_page: SW_WIDGET)
 		local
@@ -534,7 +574,7 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			tx, tw, l_label_w: REAL_64
+			tx, tw, l_label_w, l_text_x: REAL_64
 			i: INTEGER
 			l_ink: NATURAL_32
 		do
@@ -562,7 +602,20 @@ feature -- Drawing
 							l_label_w := (l_label_w - close_size - tab_pad / 2.0).max (1.0)
 						end
 						a_p.push_clip (label_left (i), y, l_label_w, bar_h)
-						a_p.text (label_left (i), y + (bar_h - a_p.text_extent) / 2.0 + a_p.font_ascent, labels.i_th (i))
+						l_text_x := label_left (i)
+						if page_glyphs.has (i) then
+							a_p.glyph (page_glyphs.item (i), l_text_x + 7.0, y + bar_h / 2.0, 13.0)
+							l_text_x := l_text_x + Tab_glyph_room
+						end
+						a_p.text (l_text_x, y + (bar_h - a_p.text_extent) / 2.0 + a_p.font_ascent, labels.i_th (i))
+						if attached page_badges.item (i) as al_badge then
+							l_text_x := l_text_x + a_p.advance (labels.i_th (i)) + 4.0
+							a_p.set_color (0xE01B24)
+							a_p.rrect_fill (l_text_x, y + bar_h / 2.0 - 8.0, a_p.advance (al_badge) + 10.0, 16.0, 8.0)
+							a_p.set_color (0xFFFFFF)
+							a_p.text (l_text_x + 5.0, y + (bar_h - a_p.text_extent) / 2.0 + a_p.font_ascent, al_badge)
+							a_p.set_color (l_ink)
+						end
 						a_p.pop_clip
 						if closables.i_th (i) then
 							draw_close_box (a_p, i, l_ink)
@@ -869,6 +922,12 @@ feature {NONE} -- Implementation
 				i > labels.count
 			loop
 				l_w := a_p.advance (labels.i_th (i)) + 2.0 * tab_pad
+				if page_glyphs.has (i) then
+					l_w := l_w + Tab_glyph_room
+				end
+				if attached page_badges.item (i) as al_badge then
+					l_w := l_w + a_p.advance (al_badge) + 14.0
+				end
 				if closables.i_th (i) then
 					l_w := l_w + close_size + tab_pad / 2.0
 				end

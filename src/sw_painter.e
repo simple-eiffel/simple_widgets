@@ -1070,7 +1070,29 @@ feature -- Glyphs (R7-pure: primitives, no font gambling)
 	Glyph_picture: INTEGER = 28
 			-- A framed picture, a hill and a sun (0.54.0): a picture to look at.
 
-	Glyph_last: INTEGER = 28
+	Glyph_open: INTEGER = 29
+	Glyph_save: INTEGER = 30
+	Glyph_copy: INTEGER = 31
+	Glyph_cut: INTEGER = 32
+	Glyph_paste: INTEGER = 33
+	Glyph_undo: INTEGER = 34
+	Glyph_redo: INTEGER = 35
+	Glyph_help: INTEGER = 36
+	Glyph_home: INTEGER = 37
+	Glyph_user: INTEGER = 38
+	Glyph_mail: INTEGER = 39
+	Glyph_calendar: INTEGER = 40
+	Glyph_clock: INTEGER = 41
+	Glyph_lock: INTEGER = 42
+	Glyph_bell: INTEGER = 43
+	Glyph_download: INTEGER = 44
+	Glyph_upload: INTEGER = 45
+	Glyph_print: INTEGER = 46
+	Glyph_filter: INTEGER = 47
+	Glyph_sort: INTEGER = 48
+			-- 29-48 (2026-11-09): simple_gui's icon vocabulary (1n), drawn like the rest.
+
+	Glyph_last: INTEGER = 48
 			-- The highest glyph code: what every glyph precondition checks against.
 
 	glyph (a_kind: INTEGER; a_cx, a_cy, a_s: REAL_64)
@@ -1239,8 +1261,132 @@ feature -- Glyphs (R7-pure: primitives, no font gambling)
 				pts.extend ([a_cx + h * 0.15, a_cy + h * 0.3])
 				pts.extend ([a_cx + h * 0.7, a_cy + h * 0.55])
 				polyline (pts, lw)
+			when 29 then
+				open_line (<<a_cx - h * 0.8, a_cy + h * 0.6, a_cx - h * 0.8, a_cy - h * 0.55, a_cx - h * 0.3, a_cy - h * 0.55,
+					a_cx - h * 0.15, a_cy - h * 0.35, a_cx + h * 0.6, a_cy - h * 0.35, a_cx + h * 0.6, a_cy - h * 0.05>>, lw)
+				open_line (<<a_cx - h * 0.8, a_cy + h * 0.6, a_cx - h * 0.45, a_cy - h * 0.05, a_cx + h * 0.9, a_cy - h * 0.05,
+					a_cx + h * 0.6, a_cy + h * 0.6, a_cx - h * 0.8, a_cy + h * 0.6>>, lw)
+			when 30 then
+				rrect_stroke (a_cx - h * 0.75, a_cy - h * 0.75, h * 1.5, h * 1.5, h * 0.15)
+				rrect_stroke (a_cx - h * 0.4, a_cy - h * 0.75, h * 0.8, h * 0.45, h * 0.05)
+				rrect_stroke (a_cx - h * 0.45, a_cy + h * 0.1, h * 0.9, h * 0.55, h * 0.05)
+			when 31 then
+				rrect_stroke (a_cx - h * 0.75, a_cy - h * 0.75, h * 1.0, h * 1.15, h * 0.12)
+				rrect_stroke (a_cx - h * 0.3, a_cy - h * 0.35, h * 1.0, h * 1.15, h * 0.12)
+			when 32 then
+				circle_stroke (a_cx - h * 0.45, a_cy + h * 0.5, h * 0.25)
+				circle_stroke (a_cx + h * 0.45, a_cy + h * 0.5, h * 0.25)
+				line (a_cx - h * 0.3, a_cy + h * 0.3, a_cx + h * 0.45, a_cy - h * 0.75, lw)
+				line (a_cx + h * 0.3, a_cy + h * 0.3, a_cx - h * 0.45, a_cy - h * 0.75, lw)
+			when 33 then
+				rrect_stroke (a_cx - h * 0.65, a_cy - h * 0.6, h * 1.3, h * 1.45, h * 0.12)
+				fill_rect (a_cx - h * 0.3, a_cy - h * 0.8, h * 0.6, h * 0.3)
+			when 34 then
+				set_line_width (lw)
+				arc_stroke (a_cx, a_cy + h * 0.15, h * 0.55, Pi_value, 2.0 * Pi_value)
+				open_fill (<<a_cx - h * 0.85, a_cy + h * 0.05, a_cx - h * 0.25, a_cy + h * 0.05, a_cx - h * 0.55, a_cy + h * 0.5>>)
+			when 35 then
+				set_line_width (lw)
+				arc_stroke (a_cx, a_cy + h * 0.15, h * 0.55, Pi_value, 2.0 * Pi_value)
+				open_fill (<<a_cx + h * 0.25, a_cy + h * 0.05, a_cx + h * 0.85, a_cy + h * 0.05, a_cx + h * 0.55, a_cy + h * 0.5>>)
+			when 36 then
+				circle_stroke (a_cx, a_cy, h * 0.8)
+				set_line_width (lw)
+				arc_stroke (a_cx, a_cy - h * 0.2, h * 0.28, 3.4, 7.1)
+				line (a_cx, a_cy + h * 0.07, a_cx, a_cy + h * 0.2, lw)
+				circle_fill (a_cx, a_cy + h * 0.45, lw * 0.6)
+			when 37 then
+				open_line (<<a_cx - h * 0.8, a_cy - h * 0.05, a_cx, a_cy - h * 0.75, a_cx + h * 0.8, a_cy - h * 0.05>>, lw)
+				open_line (<<a_cx - h * 0.55, a_cy - h * 0.25, a_cx - h * 0.55, a_cy + h * 0.75,
+					a_cx + h * 0.55, a_cy + h * 0.75, a_cx + h * 0.55, a_cy - h * 0.25>>, lw)
+				fill_rect (a_cx - h * 0.15, a_cy + h * 0.3, h * 0.3, h * 0.45)
+			when 38 then
+				circle_stroke (a_cx, a_cy - h * 0.35, h * 0.32)
+				set_line_width (lw)
+				arc_stroke (a_cx, a_cy + h * 0.85, h * 0.7, Pi_value + 0.25, 2.0 * Pi_value - 0.25)
+			when 39 then
+				rrect_stroke (a_cx - h * 0.8, a_cy - h * 0.55, h * 1.6, h * 1.1, h * 0.1)
+				open_line (<<a_cx - h * 0.8, a_cy - h * 0.5, a_cx, a_cy + h * 0.1, a_cx + h * 0.8, a_cy - h * 0.5>>, lw)
+			when 40 then
+				rrect_stroke (a_cx - h * 0.75, a_cy - h * 0.6, h * 1.5, h * 1.4, h * 0.12)
+				line (a_cx - h * 0.75, a_cy - h * 0.25, a_cx + h * 0.75, a_cy - h * 0.25, lw)
+				line (a_cx - h * 0.4, a_cy - h * 0.8, a_cx - h * 0.4, a_cy - h * 0.45, lw)
+				line (a_cx + h * 0.4, a_cy - h * 0.8, a_cx + h * 0.4, a_cy - h * 0.45, lw)
+				fill_rect (a_cx - h * 0.45, a_cy + h * 0.05, h * 0.25, h * 0.2)
+				fill_rect (a_cx - h * 0.1, a_cy + h * 0.05, h * 0.25, h * 0.2)
+				fill_rect (a_cx + h * 0.25, a_cy + h * 0.05, h * 0.25, h * 0.2)
+			when 41 then
+				circle_stroke (a_cx, a_cy, h * 0.8)
+				line (a_cx, a_cy, a_cx, a_cy - h * 0.5, lw)
+				line (a_cx, a_cy, a_cx + h * 0.35, a_cy + h * 0.2, lw)
+			when 42 then
+				rrect_stroke (a_cx - h * 0.6, a_cy - h * 0.1, h * 1.2, h * 0.9, h * 0.1)
+				set_line_width (lw)
+				arc_stroke (a_cx, a_cy - h * 0.1, h * 0.38, Pi_value, 2.0 * Pi_value)
+				circle_fill (a_cx, a_cy + h * 0.3, lw * 0.6)
+			when 43 then
+				set_line_width (lw)
+				arc_stroke (a_cx, a_cy - h * 0.1, h * 0.55, Pi_value, 2.0 * Pi_value)
+				line (a_cx - h * 0.55, a_cy - h * 0.1, a_cx - h * 0.6, a_cy + h * 0.45, lw)
+				line (a_cx + h * 0.55, a_cy - h * 0.1, a_cx + h * 0.6, a_cy + h * 0.45, lw)
+				line (a_cx - h * 0.8, a_cy + h * 0.45, a_cx + h * 0.8, a_cy + h * 0.45, lw)
+				circle_fill (a_cx, a_cy + h * 0.65, lw * 0.8)
+			when 44 then
+				line (a_cx, a_cy - h * 0.8, a_cx, a_cy + h * 0.25, lw)
+				open_line (<<a_cx - h * 0.4, a_cy - h * 0.15, a_cx, a_cy + h * 0.25, a_cx + h * 0.4, a_cy - h * 0.15>>, lw)
+				line (a_cx - h * 0.75, a_cy + h * 0.7, a_cx + h * 0.75, a_cy + h * 0.7, lw)
+			when 45 then
+				line (a_cx, a_cy + h * 0.4, a_cx, a_cy - h * 0.7, lw)
+				open_line (<<a_cx - h * 0.4, a_cy - h * 0.3, a_cx, a_cy - h * 0.7, a_cx + h * 0.4, a_cy - h * 0.3>>, lw)
+				line (a_cx - h * 0.75, a_cy + h * 0.75, a_cx + h * 0.75, a_cy + h * 0.75, lw)
+			when 46 then
+				rrect_stroke (a_cx - h * 0.8, a_cy - h * 0.25, h * 1.6, h * 0.75, h * 0.1)
+				rrect_stroke (a_cx - h * 0.45, a_cy - h * 0.8, h * 0.9, h * 0.55, h * 0.05)
+				rrect_stroke (a_cx - h * 0.45, a_cy + h * 0.25, h * 0.9, h * 0.55, h * 0.05)
+			when 47 then
+				open_fill (<<a_cx - h * 0.85, a_cy - h * 0.7, a_cx + h * 0.85, a_cy - h * 0.7, a_cx + h * 0.15, a_cy + h * 0.05,
+					a_cx + h * 0.15, a_cy + h * 0.8, a_cx - h * 0.15, a_cy + h * 0.6, a_cx - h * 0.15, a_cy + h * 0.05>>)
+			when 48 then
+				line (a_cx - h * 0.4, a_cy + h * 0.75, a_cx - h * 0.4, a_cy - h * 0.75, lw)
+				open_line (<<a_cx - h * 0.75, a_cy - h * 0.4, a_cx - h * 0.4, a_cy - h * 0.75, a_cx - h * 0.05, a_cy - h * 0.4>>, lw)
+				line (a_cx + h * 0.4, a_cy - h * 0.75, a_cx + h * 0.4, a_cy + h * 0.75, lw)
+				open_line (<<a_cx + h * 0.05, a_cy + h * 0.4, a_cx + h * 0.4, a_cy + h * 0.75, a_cx + h * 0.75, a_cy + h * 0.4>>, lw)
 			end
 		end
+
+	open_line (a_xy: ARRAY [REAL_64]; a_width: REAL_64)
+			-- A polyline through the points `a_xy' holds as x, y pairs.
+		require
+			pairs: a_xy.count >= 4 and a_xy.count \\ 2 = 0
+		local
+			l_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
+			i: INTEGER
+		do
+			create l_pts.make (a_xy.count // 2)
+			from i := a_xy.lower until i > a_xy.upper loop
+				l_pts.extend ([a_xy [i], a_xy [i + 1]])
+				i := i + 2
+			end
+			polyline (l_pts, a_width)
+		end
+
+	open_fill (a_xy: ARRAY [REAL_64])
+			-- A filled polygon through the points `a_xy' holds as x, y pairs.
+		require
+			pairs: a_xy.count >= 6 and a_xy.count \\ 2 = 0
+		local
+			l_pts: ARRAYED_LIST [TUPLE [px, py: REAL_64]]
+			i: INTEGER
+		do
+			create l_pts.make (a_xy.count // 2)
+			from i := a_xy.lower until i > a_xy.upper loop
+				l_pts.extend ([a_xy [i], a_xy [i + 1]])
+				i := i + 2
+			end
+			polygon_fill (l_pts)
+		end
+
+	Pi_value: REAL_64 = 3.141592653589793
 
 feature {NONE} -- Star geometry
 
