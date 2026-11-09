@@ -14,7 +14,7 @@ class
 inherit
 	SW_TEXT_BOX
 		redefine
-			draw, handle_click, changed
+			draw, handle_click, changed, accessible_role
 		end
 
 create
@@ -211,6 +211,14 @@ feature {NONE} -- Engine
 				selected_day := 0
 				set_invalid (True)
 			end
+		end
+
+feature -- Accessibility
+
+	accessible_role: INTEGER
+			-- A text with a calendar that drops down: a combo box.
+		do
+			Result := {SW_ACCESSIBILITY}.Role_combo_box
 		end
 
 invariant

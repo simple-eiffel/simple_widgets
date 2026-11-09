@@ -18,7 +18,7 @@ inherit
 		end
 
 create
-	make_open, make_save
+	make_open, make_save, make_folder
 
 feature {NONE} -- Initialization
 
@@ -35,6 +35,16 @@ feature {NONE} -- Initialization
 			make_dialog (a_start_dir, a_suggested)
 		ensure
 			saving: is_save_mode
+		end
+
+	make_folder (a_start_dir: READABLE_STRING_GENERAL)
+			-- Choose a folder: only folders are listed, and Choose accepts the folder shown
+			-- (or the one named in the name box).
+		do
+			is_folder_mode := True
+			make_dialog (a_start_dir, "")
+		ensure
+			choosing_a_folder: is_folder_mode
 		end
 
 	make_dialog (a_start_dir, a_name: READABLE_STRING_GENERAL)
@@ -56,7 +66,7 @@ feature {NONE} -- Initialization
 			entries_list.set_on_select (agent on_entry_selected)
 			entries_list.set_on_activate (agent on_entry_activated)
 			name_box.set_spellcheck (False)
-			create ttl.make (if is_save_mode then "Save File" else "Open File" end,
+			create ttl.make (if is_folder_mode then "Choose Folder" elseif is_save_mode then "Save File" else "Open File" end,
 				{SW_PAINTER}.Role_ui, 17.0, True)
 			put (ttl)
 			put (path_label.as_muted)
@@ -65,7 +75,7 @@ feature {NONE} -- Initialization
 			put (name_box)
 			create verbs.make
 			verbs.put (create {SW_BUTTON}.make_primary (
-				if is_save_mode then "Save" else "Open" end, agent do_accept))
+				if is_folder_mode then "Choose" elseif is_save_mode then "Save" else "Open" end, agent do_accept))
 			verbs.put (create {SW_BUTTON}.make ("Cancel", agent do_cancel))
 			put (verbs)
 			load_directory (current_dir)
@@ -93,6 +103,9 @@ feature -- Access
 	current_dir: STRING_32
 
 	is_save_mode: BOOLEAN
+
+	is_folder_mode: BOOLEAN
+			-- Choosing a folder rather than a file?
 
 	extension_filter: STRING_32
 			-- Lower-case suffix files must carry; empty = show all.
@@ -129,31 +142,36 @@ feature -- Access
 			-- WITHOUT touching media. Never probe letters with
 			-- DIRECTORY.exists: a disconnected network drive or empty
 			-- card slot blocks the pump for minutes (hand-test,
-			-- 2026-08-26). Empty on platforms without drive letters
-			-- (and the drives row then never appears).
+			-- 2026-08-26). On Linux and macOS, which have no drive
+			-- letters, the one root is "/".
 		local
 			i, l_mask: INTEGER
 			l_root: STRING_32
 			l_desktop: SHELL_DESKTOP
 		do
 			create Result.make (8)
-			create l_desktop
-			l_mask := l_desktop.logical_drives_mask
-			from
-				i := 0
-			until
-				i > 25
-			loop
-				if l_mask.bit_and (1 |<< i) /= 0 then
-					create l_root.make (3)
-					l_root.append_code ((65 + i).to_natural_32)
-					l_root.append_string_general (":\")
-					Result.extend (l_root)
+			if {PLATFORM}.is_windows then
+				create l_desktop
+				l_mask := l_desktop.logical_drives_mask
+				from
+					i := 0
+				until
+					i > 25
+				loop
+					if l_mask.bit_and (1 |<< i) /= 0 then
+						create l_root.make (3)
+						l_root.append_code ((65 + i).to_natural_32)
+						l_root.append_string_general (":\")
+						Result.extend (l_root)
+					end
+					i := i + 1
 				end
-				i := i + 1
+			else
+				Result.extend ({STRING_32} "/")
 			end
 		ensure
-			roots_shaped: across Result as r all r.count = 3 end
+			roots_shaped: across Result as r all
+				({PLATFORM}.is_windows and r.count = 3) or (not {PLATFORM}.is_windows and r.same_string ({STRING_32} "/")) end
 		end
 
 	chosen_path: STRING_32
@@ -169,7 +187,7 @@ feature -- Access
 			l_typed.left_adjust
 			l_typed.right_adjust
 			if is_absolute_path (l_typed) then
-				if l_typed.count = 2 and then l_typed.item (2).natural_32_code = 58 then
+				if {PLATFORM}.is_windows and then l_typed.count = 2 and then l_typed.item (2).natural_32_code = 58 then
 					l_typed.append_code (92) -- "C:" -> "C:\"
 				end
 				Result := l_typed
@@ -183,12 +201,17 @@ feature -- Access
 		end
 
 	is_absolute_path (a_text: READABLE_STRING_GENERAL): BOOLEAN
-			-- Drive-rooted ("X:...") or UNC (two leading backslashes)?
+			-- On Windows: drive-rooted ("X:...") or UNC (two leading backslashes). On Linux and
+			-- macOS: starting with "/" ("C:" is an ordinary name there).
 		do
-			Result := (a_text.count >= 2 and then a_text.item (2).natural_32_code = 58)
-				or else (a_text.count >= 2
-					and then a_text.item (1).natural_32_code = 92
-					and then a_text.item (2).natural_32_code = 92)
+			if {PLATFORM}.is_windows then
+				Result := (a_text.count >= 2 and then a_text.item (2).natural_32_code = 58)
+					or else (a_text.count >= 2
+						and then a_text.item (1).natural_32_code = 92
+						and then a_text.item (2).natural_32_code = 92)
+			else
+				Result := a_text.count >= 1 and then a_text.item (1).natural_32_code = 47
+			end
 		end
 
 feature -- Element change
@@ -380,11 +403,13 @@ feature {NONE} -- Engine
 				entry_names.extend (s)
 				entry_is_dir.extend (True)
 			end
-			across
-				files as s
-			loop
-				entry_names.extend (s)
-				entry_is_dir.extend (False)
+			if not is_folder_mode then
+				across
+					files as s
+				loop
+					entry_names.extend (s)
+					entry_is_dir.extend (False)
+				end
 			end
 			entries_list.set_row_count (entry_names.count)
 			entries_list.select_row (0)
@@ -472,7 +497,9 @@ feature {NONE} -- Engine
 		local
 			l_target: STRING_32
 		do
-			if not name_box.text.is_empty then
+			if is_folder_mode then
+				accept_folder
+			elseif not name_box.text.is_empty then
 				l_target := chosen_path
 				if (create {DIRECTORY}.make (l_target)).exists then
 					name_box.set_text ("")
@@ -480,6 +507,21 @@ feature {NONE} -- Engine
 				elseif attached on_accept as a then
 					a.call (l_target)
 				end
+			end
+		end
+
+	accept_folder
+			-- Folder mode: the folder named in the name box when it is one, else the folder shown.
+		local
+			l_target: STRING_32
+		do
+			if not name_box.text.is_empty and then (create {DIRECTORY}.make (chosen_path)).exists then
+				l_target := chosen_path
+			else
+				l_target := current_dir.twin
+			end
+			if attached on_accept as a then
+				a.call (l_target)
 			end
 		end
 
@@ -492,6 +534,7 @@ feature {NONE} -- Engine
 
 invariant
 	parallel_entries: entry_names.count = entry_is_dir.count
+	one_mode: not (is_folder_mode and is_save_mode)
 	filter_lower: extension_filter.same_string (extension_filter.as_lower)
 
 end

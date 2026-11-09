@@ -122,8 +122,13 @@ feature -- The emoji menu item (the simple_chat defect)
 					+ ", toy " + plain_color.out + ", differing " + differing.out + "%N")
 				assert_greater_than ("the SHAPED menu carries real color artwork",
 					shaped_color, 400)
-				assert_less_than ("the TOY menu carries essentially none - it drew boxes in ink",
-					plain_color, 50)
+				if {PLATFORM}.is_windows then
+						-- cairo's toy path finds no fallback face on Windows: boxes in ink.
+						-- On Linux and macOS fontconfig hands it the color emoji face too, so
+						-- there only the shaped path's artwork (above) is the contract.
+					assert_less_than ("the TOY menu carries essentially none - it drew boxes in ink",
+						plain_color, 50)
+				end
 				assert_greater_than ("and the two renderings are not the same pixels",
 					differing, 400)
 

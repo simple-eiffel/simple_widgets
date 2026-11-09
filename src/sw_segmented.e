@@ -11,7 +11,8 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click, wants_hover_point
+			preferred_width, handle_click, wants_hover_point,
+			accessible_role, shared_role_name, accessible_item_count, publish_accessible_items
 		end
 
 create
@@ -230,6 +231,58 @@ feature -- Input
 feature {NONE} -- Measurement support
 
 	probe_painter: detachable SW_PAINTER
+
+feature -- Accessibility (each segment a radio)
+
+	accessible_role: INTEGER
+			-- A group of mutually exclusive choices.
+		do
+			Result := {SW_ACCESSIBILITY}.Role_group
+		end
+
+	shared_role_name: detachable STRING_32
+			-- A radio group, as GTK and AppKit read a segmented control.
+		do
+			Result := {STRING_32} "radio-group"
+		end
+
+	accessible_item_count: INTEGER
+			-- One radio per segment.
+		do
+			Result := segments.count.min (2_047)
+		end
+
+	publish_accessible_items (a_accessibility: SW_ACCESSIBILITY)
+			-- Each segment as a radio, named by its text ("segment N" for an icon segment); the
+			-- chosen one's value is "selected".
+		local
+			i: INTEGER
+			l_name: STRING_32
+			l_value: detachable STRING_32
+			l_w: REAL_64
+		do
+			if segments.count > 0 then
+				l_w := width / segments.count
+			end
+			from
+				i := 1
+			until
+				i > accessible_item_count
+			loop
+				l_name := segments.i_th (i)
+				if l_name.is_empty then
+					l_name := {STRING_32} "segment " + i.out
+				end
+				if i = selected_index then
+					l_value := {STRING_32} "selected"
+				else
+					l_value := Void
+				end
+				a_accessibility.add_node (accessible_item_id (i), accessible_node_id, {SW_ACCESSIBILITY}.Role_radio_button,
+					l_name, l_value, x + (i - 1) * l_w, y, l_w, height, False, is_enabled)
+				i := i + 1
+			end
+		end
 
 invariant
 	segments_attached: segments /= Void
