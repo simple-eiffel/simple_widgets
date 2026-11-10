@@ -28,8 +28,9 @@ note
 		coordinate frame of the text's own origin.
 
 		TABS. A tab (U+0009) advances to the next tab stop: stops lie every
-		`Tab_spaces' (8) space-widths of the face, measured from the line's
-		start - GtkTextView's default. The tab's slot spans from where the
+		`tab_spaces' space-widths of the face (8 until `set_tab_spaces' -
+		GtkTextView's default), measured from the line's start. The tab's
+		slot spans from where the
 		pen stood to the stop, so a caret, a click, a selection wash and
 		the characters after it all read the stop from the same slot. On
 		the toy path this is part of the greedy wrap; on the shaped path a
@@ -73,10 +74,12 @@ feature {NONE} -- Initialization
 			line_height.extend (0.0)
 			line_offset.extend (0.0)
 			alignment := {SHAPING_CONSTANTS}.Align_left
+			tab_spaces := Default_tab_spaces
 		ensure
 			empty: count = 0
 			flush_left: alignment = {SHAPING_CONSTANTS}.Align_left
 			one_line: line_count = 1
+			default_stops: tab_spaces = Default_tab_spaces
 		end
 
 feature -- Access
@@ -107,11 +110,27 @@ feature -- Access
 			-- Per layout, its left edge right of the text origin: 0 for a
 			-- tab-free piece, the pen position for a segment after a tab.
 
-	Tab_spaces: INTEGER = 8
-			-- Space-widths between tab stops (GtkTextView's default).
+	Default_tab_spaces: INTEGER = 8
+			-- Space-widths between tab stops until `set_tab_spaces'
+			-- (GtkTextView's default).
+
+	tab_spaces: INTEGER
+			-- Space-widths between tab stops, from the next build on.
+
+	set_tab_spaces (a_count: INTEGER)
+			-- Put the tab stops every `a_count' space-widths. The next build
+			-- places by it: the host rebuilds (SW_TEXT_BOX.set_tab_spaces
+			-- drops its cached layout).
+		require
+			positive: a_count >= 1
+		do
+			tab_spaces := a_count
+		ensure
+			set: tab_spaces = a_count
+		end
 
 	tab_width: REAL_64
-			-- The distance between tab stops of the last build: `Tab_spaces'
+			-- The distance between tab stops of the last build: `tab_spaces'
 			-- spaces of the face laid out. Positive once something is laid out.
 
 	next_tab_stop (a_x: REAL_64): REAL_64
@@ -613,7 +632,7 @@ feature -- Building
 			toy_role := a_p.font_role
 			toy_size := a_p.font_size
 			toy_bold := a_p.font_bold
-			tab_width := (Tab_spaces * a_p.advance (" ")).max (1.0)
+			tab_width := (tab_spaces * a_p.advance (" ")).max (1.0)
 			row := a_p.theme.scaled_line_height
 			base := (row - a_p.text_extent) / 2.0 + a_p.font_ascent
 			n := a_text.count
@@ -707,7 +726,7 @@ feature -- Building
 		do
 			reset
 			is_shaped := True
-			tab_width := (Tab_spaces * shaped_space_width (a_kit, a_px)).max (1.0)
+			tab_width := (tab_spaces * shaped_space_width (a_kit, a_px)).max (1.0)
 			n := a_text.count
 			from
 				i := 1
@@ -1185,6 +1204,7 @@ feature {NONE} -- Implementation
 		end
 
 invariant
+	tab_stops_apart: tab_spaces >= 1
 	slots_parallel: lay_x.count = lay_adv.count and lay_adv.count = lay_line.count
 		and lay_line.count = lay_rtl.count and lay_rtl.count = lay_break.count
 	lines_parallel: line_top.count = line_ascent.count and line_ascent.count = line_height.count

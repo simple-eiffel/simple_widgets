@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A tab in `SW_TEXT_BOX` text advances to the next tab stop (every 8 space-widths from the line start, GtkTextView's default), on the toy and the shaped engine, in `SW_TEXT_GEOMETRY` (`tab_width`, `next_tab_stop`); caret, click, selection and wrap read the same slot. On the shaped path a paragraph with tabs is one layout per tab-free segment and wraps at tabs only.
 - `SW_LABEL` breaks lines at LF (CR LF counts once): taller by a line per break, as wide as its widest line, wrapping and alignment applied per line (`text_lines`, `has_line_breaks`). Hints and tooltips (`SW_WINDOW.draw_hint`, `hint_box_size`) do the same. New `SW_LINE_BREAKS`, `SW_PAINTER.broken_lines`.
 
+### Added (0.57.0 - a text box a code editor can be built on)
+
+- `SW_TEXT_BOX.text_left`, `text_top` and `wrap_width_in`: where the text starts and how wide it wraps, as queries a descendant may answer for itself (a gutter, a scroll offset, no wrapping). The drawing, the hit test (`offset_at`) and the caret all read them; a plain box answers what it always did (`x + Pad_x`, `y + Pad_y`, the width less both insets).
+- `SW_TEXT_BOX.draw` is three parts a descendant can call between its own clip and gutter: `draw_field`, `draw_content`, `draw_adornments`.
+- `SW_TEXT_BOX.set_text_role` / `text_role`: the face the text is set in (`Role_mono` for code); 0 keeps the field's own.
+- `SW_TEXT_BOX.set_tab_spaces` / `tab_spaces` and `SW_TEXT_GEOMETRY.set_tab_spaces`: tab stops every so many space-widths (8 until set; `Default_tab_spaces` replaces the constant `Tab_spaces`).
+- Tests: `SW_TEXT_FRAME_ASSAULT` (9), on the toy and the shaped engine.
+
 ### Added (0.56.0 - a notice with an action; shortcuts that yield to typing)
 
 - `SW_WINDOW.toast_with_action`: a notice that offers one action ("Undo") at its end, outlined; a click on it runs the action once and closes the notice. It lives about 8 seconds (`Action_toast_life`). `toast_action_spots` / `toast_action_at` say where the actions were drawn.
