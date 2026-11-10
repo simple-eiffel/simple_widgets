@@ -169,6 +169,8 @@ feature {NONE} -- Test runners
 			run_test (agent grid_view_tests.test_1v_a_a_picture_becomes_ready_one_decode_at_a_time, "1v_a_a_picture_becomes_ready_one_decode_at_a_time")
 			run_test (agent grid_view_tests.test_1v_a_a_missing_picture_does_not_crash, "1v_a_a_missing_picture_does_not_crash")
 			run_test (agent grid_view_tests.test_1v_a_drawing_decodes_a_picture_a_frame, "1v_a_drawing_decodes_a_picture_a_frame")
+			run_test (agent grid_view_tests.test_1v_a_a_jpeg_decodes_through_a_supplied_decoder, "1v_a_a_jpeg_decodes_through_a_supplied_decoder")
+			run_test (agent grid_view_tests.test_1v_a_a_loader_gets_at_most_two_requests_and_answers_come_back, "1v_a_a_loader_gets_at_most_two_requests_and_answers_come_back")
 			run_test (agent grid_view_tests.test_1v_a_selection_rules, "1v_a_selection_rules")
 			run_test (agent grid_view_tests.test_1v_a_removing_an_item_renumbers_the_selection, "1v_a_removing_an_item_renumbers_the_selection")
 			run_test (agent grid_view_tests.test_1v_a_arrows_move_in_two_dimensions, "1v_a_arrows_move_in_two_dimensions")

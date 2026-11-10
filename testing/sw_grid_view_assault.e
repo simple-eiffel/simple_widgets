@@ -99,6 +99,57 @@ feature -- Pictures
 			assert ("the next after the next frame", g.is_picture_ready (2))
 		end
 
+	test_1v_a_a_jpeg_decodes_through_a_supplied_decoder
+			-- Without a decoder only PNG reads; the host's decoder opens a JPEG.
+		local
+			g: SW_GRID_VIEW
+			l_jpg: STRING
+		do
+			l_jpg := written_jpeg ("grid_decoder_test.jpg", 12, 10)
+			g := grid_of (2, 600.0)
+			g.set_item_picture (1, l_jpg)
+			g.set_picture_decoder (agent jpeg_surface)
+			assert ("a decode ran", g.decode_next_picture)
+			assert ("the JPEG is ready", g.is_picture_ready (1))
+			assert ("its size is kept", attached g.item_picture (1) as al_s and then al_s.width = 12 and then al_s.height = 10)
+			g.set_item_picture (2, l_jpg)
+			g.set_picture_decoder (Void)
+			assert ("the PNG reader alone cannot open it", g.decode_next_picture and not g.is_picture_ready (2))
+			(create {RAW_FILE}.make_with_name (l_jpg)).delete
+		end
+
+	test_1v_a_a_loader_gets_at_most_two_requests_and_answers_come_back
+		local
+			g: SW_GRID_VIEW
+			l_asked: ARRAYED_LIST [STRING_32]
+			l_s: CAIRO_SURFACE
+		do
+			create l_asked.make (4)
+			g := grid_of (4, 600.0)
+			across 1 |..| 4 as ic loop
+				g.set_item_picture (ic, "photo" + ic.out + ".jpg")
+			end
+			g.set_picture_loader (agent (a_path: STRING_32; a_list: ARRAYED_LIST [STRING_32]) do a_list.extend (a_path) end (?, l_asked))
+			assert ("it asked", g.decode_next_picture)
+			assert_integers_equal ("two asked, no more", 2, l_asked.count)
+			assert_integers_equal ("two in flight", 2, g.in_flight_pictures)
+			assert ("the first photo was first", l_asked [1].same_string ("photo1.jpg") and l_asked [2].same_string ("photo2.jpg"))
+			assert ("nothing more while two are out", not g.decode_next_picture)
+			assert_integers_equal ("still two asked", 2, l_asked.count)
+			assert ("not ready until answered", not g.is_picture_ready (1))
+			create l_s.make (6, 4)
+			assert ("the answer lands", g.deliver_picture ("photo1.jpg", l_s))
+			assert ("photo 1 ready", g.is_picture_ready (1))
+			assert_integers_equal ("a slot is free", 1, g.in_flight_pictures)
+			assert ("the next is asked", g.decode_next_picture)
+			assert ("photo3 asked", l_asked.count = 3 and l_asked [3].same_string ("photo3.jpg"))
+			assert ("an answer nobody wants is dropped", not g.deliver_picture ("other.jpg", l_s))
+			assert ("a file that would not decode: answered with Void", g.deliver_picture ("photo2.jpg", Void))
+			assert ("no picture, but done", not g.is_picture_ready (2) and g.pending_pictures = 2)
+			g.set_item_picture (3, "changed.jpg")
+			assert ("a stale answer is dropped", not g.deliver_picture ("photo3.jpg", l_s))
+		end
+
 feature -- Selection
 
 	test_1v_a_selection_rules
@@ -288,6 +339,34 @@ feature -- Accessibility
 		end
 
 feature {NONE} -- Helpers
+
+	written_jpeg (a_name: STRING; a_width, a_height: INTEGER): STRING
+			-- A JPEG file of that size, written now.
+		local
+			l_stb: SIMPLE_STB
+			l_img: STB_IMAGE
+		do
+			create l_stb.make
+			l_img := l_stb.create_rgb (a_width, a_height)
+			l_img.fill (200, 40, 40, 255)
+			assert ("jpeg written", l_img.write_jpg (a_name, 90))
+			l_img.destroy
+			Result := a_name
+		end
+
+	jpeg_surface (a_path: READABLE_STRING_GENERAL): detachable CAIRO_SURFACE
+			-- A surface of the picture's size, read through simple_stb (what a host decoder does).
+		local
+			l_stb: SIMPLE_STB
+			l_img: STB_IMAGE
+		do
+			create l_stb.make
+			l_img := l_stb.load_rgba (a_path)
+			if l_img.is_valid then
+				create Result.make (l_img.width, l_img.height)
+			end
+			l_img.destroy
+		end
 
 	grid_of (a_count: INTEGER; a_width: REAL_64): SW_GRID_VIEW
 			-- A grid of `a_count' items, each titled "item N", laid out `a_width' by 300.
