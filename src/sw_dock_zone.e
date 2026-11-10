@@ -184,9 +184,9 @@ feature -- Buttons and the strip (0.46.0)
 		end
 
 	is_across: BOOLEAN
-			-- Does a strip run across (the south zone) rather than down?
+			-- Does a strip run across (the south and north zones) rather than down?
 		do
-			Result := zone_id = host.Zone_south
+			Result := zone_id = host.Zone_south or zone_id = host.Zone_north
 		end
 
 	buttons: ARRAYED_LIST [TUPLE [kind, panel: INTEGER; bx, by, side: REAL_64]]
@@ -337,7 +337,7 @@ feature -- Menu
 					from
 						z := host.Zone_west
 					until
-						z > host.Zone_south
+						z > host.Zone_north
 					loop
 						if z /= zone_id then
 							Result.add_item ({STRING_32} "Move to the " + host.zone_title (z), "", True, agent host.move_panel (id, z))
@@ -793,6 +793,8 @@ feature {NONE} -- Implementation
 				Result := 1
 			when 2 then
 				Result := 2
+			when 4 then
+				Result := -3
 			else
 				Result := 3
 			end

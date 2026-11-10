@@ -479,6 +479,224 @@ feature -- Files, queries, forms, charts of command
 			assert ("and the east stands up", r.rw > 0.0)
 		end
 
+feature -- Dock north zone
+
+	north_dock: SW_DOCK_HOST
+			-- An 800 x 500 host with a west, an east and a north panel.
+		do
+			create Result.make (create {SW_LABEL}.make_ui ("the document"))
+			Result.set_bounds (0.0, 0.0, 800.0, 500.0)
+			if Result.add_keyed_panel ("W1", "explorer", create {SW_LABEL}.make_ui ("tree"), Result.Zone_west) > 0 then end
+			if Result.add_keyed_panel ("E1", "properties", create {SW_LABEL}.make_ui ("form"), Result.Zone_east) > 0 then end
+			if Result.add_keyed_panel ("N1", "toolbox", create {SW_LABEL}.make_ui ("tools"), Result.Zone_north) > 0 then end
+		end
+
+	test_dock_north_band_across_the_top
+			-- A north panel takes a band across the top, full width; west
+			-- and east start below it; the center is what is left; an
+			-- empty north zone takes nothing.
+		local
+			dh: SW_DOCK_HOST
+			r: TUPLE [rx, ry, rw, rh: REAL_64]
+		do
+			create dh.make (create {SW_LABEL}.make_ui ("the document"))
+			dh.set_bounds (0.0, 0.0, 800.0, 500.0)
+			if dh.add_panel ("explorer", create {SW_LABEL}.make_ui ("tree"), dh.Zone_west) > 0 then end
+			r := dh.zone_rect (dh.Zone_north)
+			assert_reals_equal ("an empty north zone takes no height", 0.0, r.rh, 0.000_1)
+			r := dh.zone_rect (dh.Zone_west)
+			assert_reals_equal ("so the west still starts at the top", 0.0, r.ry, 0.000_1)
+			assert_reals_equal ("and runs the full height", 500.0, r.rh, 0.000_1)
+			dh := north_dock
+			r := dh.zone_rect (dh.Zone_north)
+			assert_reals_equal ("the band starts at the left", 0.0, r.rx, 0.000_1)
+			assert_reals_equal ("and at the top", 0.0, r.ry, 0.000_1)
+			assert_reals_equal ("it is full width", 800.0, r.rw, 0.000_1)
+			assert_reals_equal ("and its fraction of the height", 500.0 * 0.20, r.rh, 0.000_1)
+			r := dh.zone_rect (dh.Zone_west)
+			assert_reals_equal ("the west starts below the band", 100.0, r.ry, 0.000_1)
+			assert_reals_equal ("and runs to the bottom", 400.0, r.rh, 0.000_1)
+			r := dh.zone_rect (dh.Zone_east)
+			assert_reals_equal ("the east starts below the band", 100.0, r.ry, 0.000_1)
+			assert_reals_equal ("and runs to the bottom too", 400.0, r.rh, 0.000_1)
+			r := dh.center_rect
+			assert_reals_equal ("the center starts below the band", 100.0, r.ry, 0.000_1)
+			assert_reals_equal ("and keeps what is left down", 400.0, r.rh, 0.000_1)
+			assert_reals_equal ("and across", 800.0 - 800.0 * 0.22 - 800.0 * 0.24, r.rw, 0.000_1)
+			assert_true ("north is a zone", dh.is_zone (dh.Zone_north))
+			assert_false ("and nothing beyond it is", dh.is_zone (dh.Zone_north + 1))
+			assert_true ("it has a title for menus", dh.zone_title (dh.Zone_north).same_string ("top panel area"))
+		end
+
+	test_dock_north_and_south_keep_the_center
+			-- North and south together never leave the center less than
+			-- Min_center down.
+		local
+			dh: SW_DOCK_HOST
+			r, n, s: TUPLE [rx, ry, rw, rh: REAL_64]
+		do
+			dh := north_dock
+			if dh.add_keyed_panel ("S1", "output", create {SW_LABEL}.make_ui ("log"), dh.Zone_south) > 0 then end
+			dh.set_fraction (dh.Zone_north, dh.Max_fraction)
+			dh.set_fraction (dh.Zone_south, dh.Max_fraction)
+			r := dh.center_rect
+			assert_reals_equal ("the center keeps its minimum down", dh.Min_center, r.rh, 0.000_1)
+			n := dh.zone_rect (dh.Zone_north)
+			s := dh.zone_rect (dh.Zone_south)
+			assert_reals_equal ("the two bands and the center fill the host", 500.0, n.rh + s.rh + r.rh, 0.000_1)
+			assert_reals_equal ("the south ends at the bottom", 500.0, s.ry + s.rh, 0.000_1)
+			assert_reals_equal ("the center sits between them", n.ry + n.rh, r.ry, 0.000_1)
+			dh.set_bounds (0.0, 0.0, 800.0, 100.0)
+			r := dh.center_rect
+			assert_true ("a host shorter than the minimum still leaves no negative center", r.rh >= 0.0)
+		end
+
+	test_dock_north_edge_drags_to_resize
+			-- The inner edge of the north zone is its bottom edge: edge_at
+			-- finds it, a drag sets its fraction from y, and it clamps.
+		local
+			dh: SW_DOCK_HOST
+			r: TUPLE [rx, ry, rw, rh: REAL_64]
+		do
+			dh := north_dock
+			r := dh.zone_rect (dh.Zone_north)
+			assert_integers_equal ("the bottom edge of the band is the north edge", dh.Zone_north, dh.edge_at (300.0, r.ry + r.rh))
+			assert_integers_equal ("a little inside still grips", dh.Zone_north, dh.edge_at (300.0, r.ry + r.rh - 2.0))
+			assert_integers_equal ("the middle of the band is no edge", 0, dh.edge_at (300.0, r.ry + r.rh / 2.0))
+			assert_integers_equal ("the top of the host is no edge", 0, dh.edge_at (300.0, 0.0))
+			assert_true ("the edge answers as the host", attached dh.widget_at (300.0, r.ry + r.rh) as al_w and then al_w = dh)
+			assert_true ("a press grabs it", dh.handle_click (300.0, r.ry + r.rh))
+			dh.handle_drag (300.0, 250.0)
+			assert_reals_equal ("the drag sets the fraction from y", 0.5, dh.north_fraction, 0.000_1)
+			dh.handle_drag (300.0, 5.0)
+			assert_reals_equal ("and stops at the smallest share", dh.Min_fraction, dh.north_fraction, 0.000_1)
+			dh.handle_drag (300.0, 490.0)
+			assert_reals_equal ("and at the largest", dh.Max_fraction, dh.north_fraction, 0.000_1)
+			dh.set_fraction (dh.Zone_north, 0.3)
+			assert_reals_equal ("set_fraction reaches it too", 0.3, dh.fraction (dh.Zone_north), 0.000_1)
+			assert_reals_equal ("and the band follows", 150.0, dh.zone_rect (dh.Zone_north).rh, 0.000_1)
+			assert_integers_equal ("the west edge still works below the band", dh.Zone_west,
+				dh.edge_at (800.0 * 0.22, 300.0))
+			assert_integers_equal ("but not beside the band", 0, dh.edge_at (800.0 * 0.22, 50.0))
+		end
+
+	test_dock_north_fold_is_an_across_strip
+			-- Folding north makes an across strip along the top; expanding
+			-- restores the fraction.
+		local
+			dh: SW_DOCK_HOST
+			r: TUPLE [rx, ry, rw, rh: REAL_64]
+		do
+			dh := north_dock
+			dh.set_fraction (dh.Zone_north, 0.3)
+			assert_true ("north runs across", dh.zone_widget (dh.Zone_north).is_across)
+			assert_true ("so does south", dh.zone_widget (dh.Zone_south).is_across)
+			assert_false ("west runs down", dh.zone_widget (dh.Zone_west).is_across)
+			dh.collapse_zone (dh.Zone_north)
+			assert_true ("it is folded", dh.is_folded (dh.Zone_north))
+			r := dh.zone_rect (dh.Zone_north)
+			assert_reals_equal ("the strip is at the top", 0.0, r.ry, 0.000_1)
+			assert_reals_equal ("across the whole width", 800.0, r.rw, 0.000_1)
+			assert_reals_equal ("as tall as a bar and its margin", dh.strip_extent (dh.Zone_north), r.rh, 0.000_1)
+			assert_true ("and no taller than the band was", r.rh < 150.0)
+			assert_reals_equal ("the west starts below the strip", r.rh, dh.zone_rect (dh.Zone_west).ry, 0.000_1)
+			assert_integers_equal ("a folded zone has no edge", 0, dh.edge_at (300.0, r.rh))
+			dh.expand_zone (dh.Zone_north)
+			assert_false ("expanded", dh.is_folded (dh.Zone_north))
+			assert_reals_equal ("the fraction came back", 0.3, dh.north_fraction, 0.000_1)
+			assert_reals_equal ("and the band", 150.0, dh.zone_rect (dh.Zone_north).rh, 0.000_1)
+		end
+
+	test_dock_north_panels_move_and_the_menu_offers_it
+			-- move_panel to and from north; the zone context menu offers
+			-- "Move to the" and the title of north (and not from north to
+			-- itself).
+		local
+			w: SW_WINDOW
+			dh: SW_DOCK_HOST
+			z: SW_DOCK_ZONE
+		do
+			create w.make ("dock", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			create dh.make (create {SW_LABEL}.make_ui ("the document"))
+			if dh.add_keyed_panel ("W1", "explorer", create {SW_LABEL}.make_ui ("tree"), dh.Zone_west) > 0 then end
+			w.set_root (dh)
+			w.request_render
+			z := dh.zone_widget (dh.Zone_west)
+			w.simulate_context_click ((z.x + 20.0).truncated_to_integer, (z.y + 4.0).truncated_to_integer)
+			if attached w.open_popup as al_menu then
+				assert_true ("the menu offers the top", al_menu.index_of_label ({STRING_32} "Move to the " + dh.zone_title (dh.Zone_north)) > 0)
+				assert_true ("and still the bottom", al_menu.index_of_label ("Move to the bottom") > 0)
+				assert_true ("Collapse the west", al_menu.index_of_label ("Collapse the left side") > 0)
+			else
+				assert_true ("a title bar offers a menu", False)
+			end
+			dh.move_panel (1, dh.Zone_north)
+			assert_integers_equal ("the panel is in north", dh.Zone_north, dh.panels.i_th (1).zone)
+			assert_true ("the west emptied", dh.panels_in (dh.Zone_west).is_empty)
+			assert_reals_equal ("the west took nothing", 0.0, dh.zone_rect (dh.Zone_west).rw, 0.000_1)
+			assert_true ("north stands up", dh.zone_rect (dh.Zone_north).rh > 0.0)
+			create w.make ("dock", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			w.set_root (dh)
+			w.request_render
+			z := dh.zone_widget (dh.Zone_north)
+			w.simulate_context_click ((z.x + 20.0).truncated_to_integer, (z.y + 4.0).truncated_to_integer)
+			if attached w.open_popup as al_menu then
+				assert_true ("north offers the left side", al_menu.index_of_label ("Move to the left side") > 0)
+				assert_true ("and the bottom", al_menu.index_of_label ("Move to the bottom") > 0)
+				assert_true ("but not itself", al_menu.index_of_label ({STRING_32} "Move to the " + dh.zone_title (dh.Zone_north)) = 0)
+				assert_true ("and folds as the top", al_menu.index_of_label ({STRING_32} "Collapse the " + dh.zone_title (dh.Zone_north)) > 0)
+			else
+				assert_true ("a north title bar offers a menu", False)
+			end
+			dh.move_panel (1, dh.Zone_east)
+			assert_true ("and out of north", dh.panels_in (dh.Zone_north).is_empty)
+			assert_reals_equal ("north took nothing again", 0.0, dh.zone_rect (dh.Zone_north).rh, 0.000_1)
+		end
+
+	test_dock_north_snapshot_round_trip
+			-- layout_snapshot writes north like the others and restore_layout
+			-- reads it; a snapshot written without north restores as before.
+		local
+			a, b: SW_DOCK_HOST
+			snap, old_snap: STRING_32
+		do
+			a := north_dock
+			a.set_fraction (a.Zone_north, 0.35)
+			a.collapse_zone (a.Zone_north)
+			snap := a.layout_snapshot
+			assert_true ("the snapshot names north", snap.has_substring ("fraction%Tnorth%T0.3"))
+			assert_true ("and its fold", snap.has_substring ("collapsed%Tnorth"))
+			b := north_dock
+			b.set_fraction (b.Zone_north, 0.5)
+			b.restore_layout (snap)
+			assert_true ("it read", b.last_restore_ok)
+			assert_reals_equal ("the north share", 0.35, b.north_fraction, 0.000_1)
+			assert_true ("the north fold", b.is_collapsed (b.Zone_north))
+			assert_integers_equal ("N1 is in north", b.Zone_north, b.panels.i_th (b.panel_by_key ("N1")).zone)
+			assert_true ("the same layout, line for line", b.layout_snapshot.same_string (snap))
+				-- an old snapshot: the same text without any north line
+			create old_snap.make (200)
+			across snap.split ('%N') as ic loop
+				if not ic.has_substring ("north") then
+					if not old_snap.is_empty then
+						old_snap.append_character ('%N')
+					end
+					old_snap.append (ic)
+				end
+			end
+			assert_false ("the old text has no north", old_snap.has_substring ("north"))
+			create b.make (create {SW_LABEL}.make_ui ("the document"))
+			b.set_bounds (0.0, 0.0, 800.0, 500.0)
+			if b.add_keyed_panel ("W1", "explorer", create {SW_LABEL}.make_ui ("tree"), b.Zone_west) > 0 then end
+			if b.add_keyed_panel ("E1", "properties", create {SW_LABEL}.make_ui ("form"), b.Zone_east) > 0 then end
+			b.restore_layout (old_snap)
+			assert_true ("an old snapshot reads", b.last_restore_ok)
+			assert_true ("north stays empty", b.panels_in (b.Zone_north).is_empty)
+			assert_reals_equal ("with its default share", 0.20, b.north_fraction, 0.000_1)
+			assert_false ("and unfolded", b.is_collapsed (b.Zone_north))
+			assert_reals_equal ("west and east as before", 800.0 * 0.22, b.zone_rect (b.Zone_west).rw, 0.000_1)
+		end
+
 feature -- Dock (GW-05)
 
 	test_gw05_tabbed_zone_shows_one_panel

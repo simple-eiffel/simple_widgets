@@ -460,6 +460,12 @@ feature {NONE} -- Test runners
 			run_test (agent enterprise_tests.test_gw05_snapshot_round_trip, "gw05_snapshot_round_trip")
 			run_test (agent enterprise_tests.test_gw05_spacing_follows_the_theme, "gw05_spacing_follows_the_theme")
 			run_test (agent enterprise_tests.test_dock_panel_buttons_follow_their_conditions, "dock_panel_buttons_follow_their_conditions")
+			run_test (agent enterprise_tests.test_dock_north_band_across_the_top, "dock_north_band_across_the_top")
+			run_test (agent enterprise_tests.test_dock_north_and_south_keep_the_center, "dock_north_and_south_keep_the_center")
+			run_test (agent enterprise_tests.test_dock_north_edge_drags_to_resize, "dock_north_edge_drags_to_resize")
+			run_test (agent enterprise_tests.test_dock_north_fold_is_an_across_strip, "dock_north_fold_is_an_across_strip")
+			run_test (agent enterprise_tests.test_dock_north_panels_move_and_the_menu_offers_it, "dock_north_panels_move_and_the_menu_offers_it")
+			run_test (agent enterprise_tests.test_dock_north_snapshot_round_trip, "dock_north_snapshot_round_trip")
 		end
 
 	enterprise_tests: SW_ENTERPRISE_ASSAULT
