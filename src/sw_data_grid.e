@@ -1304,6 +1304,23 @@ feature -- Editing cells (simple_gui 1s)
 			edited.wipe_out
 		end
 
+	refuse_edit (a_model, a_column: INTEGER; a_old, a_message: READABLE_STRING_GENERAL)
+			-- An edit `on_cell_edit' accepted is refused after all (its program decided later):
+			-- the cell shows `a_old' again and `a_message' hangs under it until the next edit.
+		require
+			model_valid: a_model >= 1 and a_model <= rows.count
+			column_valid: a_column >= 1 and a_column <= columns.count
+		do
+			if holds_edits then
+				edited.force (a_old.to_string_32, edit_key (a_model, a_column))
+			end
+			cell_note := a_message.to_string_32
+			note_model := a_model
+			note_column := a_column
+		ensure
+			noted: cell_note.same_string_general (a_message)
+		end
+
 	edit_cell (a_model, a_column: INTEGER)
 			-- Start editing the cell: a text cell opens its editor with the text selected, a check
 			-- cell toggles, a choice cell offers its options. Clears the note.
