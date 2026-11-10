@@ -3386,6 +3386,7 @@ feature {NONE} -- Rendering
 				-- two-heartbeats-of-stillness debounce, stamped by
 				-- `resize_surface' and wound down by `flush_frame_echo'.
 			painter.set_resize_storm (busy_ticks > 0)
+			painter.set_pills_shown (reference_marks_shown)
 			painter.set_color (theme.background)
 			ctx.paint.do_nothing
 			if attached root as r then

@@ -506,6 +506,7 @@ feature -- Element change
 			forget_floating_key (panels.i_th (a_panel).key)
 			forget_key (maximizable_keys, panels.i_th (a_panel).key)
 			forget_key (marked_keys, panels.i_th (a_panel).key)
+			panel_fields.remove (panels.i_th (a_panel).key)
 			if maximized_panel = a_panel then
 				maximized_panel := 0
 			elseif maximized_panel > a_panel then
@@ -808,6 +809,146 @@ feature -- Folding and maximizing (0.46.0)
 		ensure
 			set: is_panel_marked (a_panel) = a_marked
 		end
+
+feature -- Panel fields and pills (1r-c)
+
+	panel_short_title (a_panel: INTEGER): STRING_32
+			-- What tabs and strip names call panel `a_panel' when set; empty when not.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			Result := field_of (a_panel, 1)
+		end
+
+	panel_description (a_panel: INTEGER): STRING_32
+			-- The panel's description, the tip of its pill; empty when not set.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			Result := field_of (a_panel, 2)
+		end
+
+	panel_tooltip (a_panel: INTEGER): STRING_32
+			-- The tooltip on the panel's tab and strip name; empty when not set.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			Result := field_of (a_panel, 3)
+		end
+
+	panel_pill (a_panel: INTEGER): STRING_32
+			-- The reference pill code shown on the panel's title bar and tab; empty for none.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			Result := field_of (a_panel, 4)
+		end
+
+	set_panel_short_title (a_panel: INTEGER; a_text: READABLE_STRING_GENERAL)
+			-- Tabs and strip names call panel `a_panel' `a_text'; the title bars keep the title.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			put_field (a_panel, 1, a_text)
+		ensure
+			set: panel_short_title (a_panel).same_string_general (a_text)
+		end
+
+	set_panel_description (a_panel: INTEGER; a_text: READABLE_STRING_GENERAL)
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			put_field (a_panel, 2, a_text)
+		ensure
+			set: panel_description (a_panel).same_string_general (a_text)
+		end
+
+	set_panel_tooltip (a_panel: INTEGER; a_text: READABLE_STRING_GENERAL)
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			put_field (a_panel, 3, a_text)
+		ensure
+			set: panel_tooltip (a_panel).same_string_general (a_text)
+		end
+
+	set_panel_pill (a_panel: INTEGER; a_code: READABLE_STRING_GENERAL)
+			-- Name panel `a_panel' with the reference pill `a_code' (empty: none).
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			put_field (a_panel, 4, a_code)
+		ensure
+			set: panel_pill (a_panel).same_string_general (a_code)
+		end
+
+	tab_text (a_panel: INTEGER): STRING_32
+			-- What panel `a_panel's tab and strip name show: the short title when set, else the title.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			if panel_short_title (a_panel).is_empty then
+				Result := panels.i_th (a_panel).title.twin
+			else
+				Result := panel_short_title (a_panel)
+			end
+		ensure
+			never_empty_when_titled: not panels.i_th (a_panel).title.is_empty implies not Result.is_empty
+		end
+
+	tab_tip (a_panel: INTEGER): STRING_32
+			-- The tooltip on panel `a_panel's tab: its tooltip when set, else its description.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+		do
+			if panel_tooltip (a_panel).is_empty then
+				Result := panel_description (a_panel)
+			else
+				Result := panel_tooltip (a_panel)
+			end
+		end
+
+feature {NONE} -- Panel field internals
+
+	panel_fields: HASH_TABLE [ARRAY [STRING_32], STRING_32]
+			-- Each panel's short title, description, tooltip and pill (in that order), by
+			-- the panel's KEY, so ids may shift on a removal and the fields stay.
+		attribute
+			create Result.make (8)
+		end
+
+	field_of (a_panel, a_field: INTEGER): STRING_32
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+			field_known: a_field >= 1 and a_field <= 4
+		do
+			if attached panel_fields.item (panels.i_th (a_panel).key) as al_fields then
+				Result := al_fields [a_field].twin
+			else
+				create Result.make_empty
+			end
+		end
+
+	put_field (a_panel, a_field: INTEGER; a_text: READABLE_STRING_GENERAL)
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+			field_known: a_field >= 1 and a_field <= 4
+		local
+			l_fields: detachable ARRAY [STRING_32]
+			l_key: STRING_32
+		do
+			l_key := panels.i_th (a_panel).key
+			l_fields := panel_fields.item (l_key)
+			if not attached l_fields then
+				create l_fields.make_filled (create {STRING_32}.make_empty, 1, 4)
+				panel_fields.force (l_fields, l_key.twin)
+			end
+			if attached l_fields as al_f then
+				al_f [a_field] := create {STRING_32}.make_from_string_general (a_text)
+			end
+		end
+
+feature -- Menu words
 
 	zone_title (a_zone: INTEGER): STRING_32
 			-- What a menu calls `a_zone': "left side", "right side", "bottom", "top panel area".
