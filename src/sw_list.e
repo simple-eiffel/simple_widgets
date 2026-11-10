@@ -67,7 +67,68 @@ feature -- Element change (bounds)
 		end
 
 	selected_index: INTEGER
-			-- 1-based selected row; 0 = none.
+			-- 1-based selected row; 0 = none. With several rows selected, the first of them.
+
+	is_multiple: BOOLEAN
+			-- May several rows be selected at once (a Ctrl-click adds or removes one)?
+
+	selected_rows: ARRAYED_LIST [INTEGER]
+			-- Every selected row, in order.
+		do
+			if is_multiple then
+				Result := selected_set.twin
+			else
+				create Result.make (1)
+				if selected_index > 0 then
+					Result.extend (selected_index)
+				end
+			end
+		ensure
+			first_is_selected_index: not Result.is_empty implies Result.first = selected_index
+		end
+
+	is_row_selected (a_i: INTEGER): BOOLEAN
+		do
+			if is_multiple then
+				Result := selected_set.has (a_i)
+			else
+				Result := a_i > 0 and a_i = selected_index
+			end
+		end
+
+	set_multiple (a_on: BOOLEAN)
+			-- Allow several selected rows, or back to one (the first stays).
+		do
+			is_multiple := a_on
+			selected_set.wipe_out
+			if a_on and selected_index > 0 then
+				selected_set.extend (selected_index)
+			end
+		ensure
+			set: is_multiple = a_on
+		end
+
+	extend_selection (a_i: INTEGER)
+			-- As a Ctrl-click: add row `a_i' to the selection, or take it out; `on_select' is told
+			-- the first selected row (0 for none).
+		require
+			multiple: is_multiple
+			in_range: a_i >= 1 and a_i <= row_count
+		do
+			if selected_set.has (a_i) then
+				selected_set.prune_all (a_i)
+			else
+				insert_sorted (a_i)
+			end
+			if selected_set.is_empty then
+				selected_index := 0
+			else
+				selected_index := selected_set.first
+			end
+			if attached on_select as a then
+				a.call (selected_index)
+			end
+		end
 
 	row_renderer: detachable PROCEDURE [SW_PAINTER, INTEGER, REAL_64, REAL_64, REAL_64, REAL_64]
 			-- Draws one row: (painter, index, x, y, width, height).
@@ -155,6 +216,16 @@ feature -- Element change
 			row_count := a_n
 			if selected_index > a_n then
 				selected_index := 0
+			end
+			from selected_set.start until selected_set.after loop
+				if selected_set.item > a_n then
+					selected_set.remove
+				else
+					selected_set.forth
+				end
+			end
+			if is_multiple and not selected_set.is_empty then
+				selected_index := selected_set.first
 			end
 			scroll_y := scroll_y.min (max_scroll)
 			bar.set_extent (height, content_height)
@@ -264,6 +335,7 @@ feature -- Element change
 			in_range: a_i >= 0 and a_i <= row_count
 		do
 			selected_index := a_i
+			reset_set (a_i)
 			if a_i > 0 and then attached on_select as a then
 				a.call (a_i)
 			end
@@ -278,6 +350,7 @@ feature -- Element change
 			in_range: a_i >= 0 and a_i <= row_count
 		do
 			selected_index := a_i
+			reset_set (a_i)
 		ensure
 			selected: selected_index = a_i
 		end
@@ -338,7 +411,7 @@ feature -- Drawing
 					i > last_visible
 				loop
 					ry := y + (i - 1) * row_height - scroll_y
-					if i = selected_index then
+					if is_row_selected (i) then
 						a_p.set_color (t.wash_accent)
 						a_p.fill_rect (rx, ry, inner_w, row_height)
 					elseif shows_hover and then not bar.contains (hover_px, hover_py)
@@ -401,7 +474,9 @@ feature -- Input
 				scroll_y := bar.press (a_py, scroll_y)
 			elseif row_count > 0 then
 				i := row_at (a_py)
-				if i > 0 then
+				if i > 0 and then is_multiple and then (create {SW_KEYS}).control_down then
+					extend_selection (i)
+				elseif i > 0 then
 					select_row (i)
 				end
 			end
@@ -498,7 +573,7 @@ feature -- Accessibility (GW-14)
 					else
 						l_name := {STRING_32} "row " + i.out
 					end
-					if i = selected_index then
+					if is_row_selected (i) then
 						l_value := {STRING_32} "selected"
 					else
 						l_value := Void
@@ -511,10 +586,46 @@ feature -- Accessibility (GW-14)
 			end
 		end
 
+feature {NONE} -- Several rows (simple_gui 1p)
+
+	selected_set: ARRAYED_LIST [INTEGER]
+			-- The selected rows, ascending, while `is_multiple'.
+		attribute
+			create Result.make (4)
+		end
+
+	reset_set (a_i: INTEGER)
+			-- Only row `a_i' (0: none) selected.
+		do
+			selected_set.wipe_out
+			if is_multiple and a_i > 0 then
+				selected_set.extend (a_i)
+			end
+		end
+
+	insert_sorted (a_i: INTEGER)
+		local
+			k: INTEGER
+		do
+			from k := 1 until k > selected_set.count or else selected_set [k] > a_i loop
+				k := k + 1
+			end
+			selected_set.go_i_th (k)
+			if k > selected_set.count then
+				selected_set.extend (a_i)
+			else
+				selected_set.put_left (a_i)
+			end
+		ensure
+			added: selected_set.has (a_i)
+		end
+
 invariant
 	rows_non_negative: row_count >= 0
 	row_height_positive: row_height > 0.0
 	selection_in_range: selected_index >= 0 and selected_index <= row_count
+	one_unless_multiple: not is_multiple implies selected_set.is_empty
+	first_of_several: (is_multiple and not selected_set.is_empty) implies selected_index = selected_set.first
 	scroll_bounded: scroll_y >= 0.0
 
 end
