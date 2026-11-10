@@ -41,6 +41,13 @@ feature -- Tooltip
 			kept: tooltip.same_string_general (a_tip)
 		end
 
+	tooltip_anchor: TUPLE [x, y, w, h: REAL_64]
+			-- The box the hint hangs below: the whole widget, or the part a widget with
+			-- several parts (a collapsed sidebar's rows) says the tooltip is about.
+		do
+			Result := [x, y, width, height]
+		end
+
 	with_tooltip (a_tip: READABLE_STRING_GENERAL): like Current
 			-- Fluent tooltip.
 		do
