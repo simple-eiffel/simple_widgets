@@ -843,8 +843,11 @@ feature -- Carrying and dropping (0.55.0)
 		end
 
 	accepts_pebble_at (a_pebble: ANY; a_px, a_py: REAL_64): BOOLEAN
+			-- A client's composition hooks (simple_gui) answer when set; else the folder drop.
 		do
-			if drop_action /= Void and then contains (a_px, a_py) then
+			if accepts_hook /= Void then
+				Result := Precursor (a_pebble, a_px, a_py)
+			elseif drop_action /= Void and then contains (a_px, a_py) then
 				if attached drop_welcome as al_welcome then
 					Result := al_welcome.item ([a_pebble, drop_spot_at (a_px, a_py).folder])
 				else
@@ -858,10 +861,14 @@ feature -- Carrying and dropping (0.55.0)
 		local
 			l_spot: like drop_spot_at
 		do
-			l_spot := drop_spot_at (a_px, a_py)
-			landed := l_spot.folder
-			if attached drop_action as al_action then
-				al_action.call ([a_pebble, l_spot.folder, l_spot.new_folder])
+			if receive_hook /= Void then
+				Precursor (a_pebble, a_px, a_py)
+			else
+				l_spot := drop_spot_at (a_px, a_py)
+				landed := l_spot.folder
+				if attached drop_action as al_action then
+					al_action.call ([a_pebble, l_spot.folder, l_spot.new_folder])
+				end
 			end
 		end
 
