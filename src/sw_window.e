@@ -3760,7 +3760,7 @@ feature {NONE} -- Rendering
 	draw_tooltip (a_w: SW_WIDGET)
 			-- A small drawn hint below the widget, clamped on screen.
 		do
-			draw_hint (a_w.tooltip, a_w.x, a_w.y, a_w.y + a_w.height)
+			draw_hint (a_w.tooltip, a_w.tooltip_anchor.x, a_w.tooltip_anchor.y, a_w.tooltip_anchor.y + a_w.tooltip_anchor.h)
 		end
 
 	draw_hint (a_text: READABLE_STRING_GENERAL; a_left, a_top, a_bottom: REAL_64)

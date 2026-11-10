@@ -443,6 +443,8 @@ feature {NONE} -- Test runners
 			run_test (agent chart_tests.test_world_clock_zone_math, "world_clock_zone_math")
 		end
 
+	navigation_tests: SW_NAVIGATION_ASSAULT
+
 	chart_tests: SW_CHART_ASSAULT
 
 	run_enterprise_tests
@@ -508,6 +510,20 @@ feature {NONE} -- Test runners
 			run_test (agent enterprise_tests.test_grid_1s_refusal_keeps_the_text_and_shows_a_note, "grid_1s_refusal_keeps_the_text_and_shows_a_note")
 			run_test (agent enterprise_tests.test_grid_1s_shown_models_and_counts, "grid_1s_shown_models_and_counts")
 			run_test (agent enterprise_tests.test_1s_rich_rows_and_open_editor_draw, "1s_rich_rows_and_open_editor_draw")
+			create navigation_tests
+			run_test (agent navigation_tests.test_1t_tabs_top_is_the_default, "1t_tabs_top_is_the_default")
+			run_test (agent navigation_tests.test_1t_tabs_bottom_puts_the_strip_under_the_page, "1t_tabs_bottom_puts_the_strip_under_the_page")
+			run_test (agent navigation_tests.test_1t_tabs_left_makes_a_column, "1t_tabs_left_makes_a_column")
+			run_test (agent navigation_tests.test_1t_tabs_right_makes_a_column_beside_the_page, "1t_tabs_right_makes_a_column_beside_the_page")
+			run_test (agent navigation_tests.test_1t_tabs_none_takes_no_room, "1t_tabs_none_takes_no_room")
+			run_test (agent navigation_tests.test_1t_sidebar_headings_are_not_pages, "1t_sidebar_headings_are_not_pages")
+			run_test (agent navigation_tests.test_1t_sidebar_first_page_shows, "1t_sidebar_first_page_shows")
+			run_test (agent navigation_tests.test_1t_sidebar_user_versus_code_notices, "1t_sidebar_user_versus_code_notices")
+			run_test (agent navigation_tests.test_1t_sidebar_keys_skip_headings, "1t_sidebar_keys_skip_headings")
+			run_test (agent navigation_tests.test_1t_sidebar_collapse_narrows_and_hides, "1t_sidebar_collapse_narrows_and_hides")
+			run_test (agent navigation_tests.test_1t_sidebar_collapsed_tooltip_names_the_row, "1t_sidebar_collapsed_tooltip_names_the_row")
+			run_test (agent navigation_tests.test_1t_sidebar_icon_and_badge_draw, "1t_sidebar_icon_and_badge_draw")
+			run_test (agent navigation_tests.test_1t_sidebar_collapsed_letter_circle, "1t_sidebar_collapsed_letter_circle")
 		end
 
 	enterprise_tests: SW_ENTERPRISE_ASSAULT
