@@ -243,9 +243,15 @@ feature -- Accessibility (GW-14)
 		end
 
 	accessible_id_of (a_widget: SW_WIDGET): INTEGER
-			-- The node id `a_widget' was published under (its own, stable
-			-- `accessible_node_id'); 0 when it was not published last time.
+			-- The node id `a_widget' is published under (its own, stable
+			-- `accessible_node_id'); 0 when it is not in the tree. A tree a
+			-- frame has outdated is published again first: with no client
+			-- listening (always, off Windows) frames do not publish, and a
+			-- section closed since would still answer (scan 13 on Linux).
 		do
+			if accessibility_is_stale and then is_accessible then
+				publish_accessibility
+			end
 			if accessible_widgets.has (a_widget) then
 				Result := a_widget.accessible_node_id
 			end
@@ -288,6 +294,7 @@ feature -- Accessibility (GW-14)
 			i: INTEGER
 			w: SW_WIDGET
 		do
+			accessibility_is_stale := False
 			accessible_widgets.wipe_out
 			create l_parents.make (64)
 			if attached root as al_root then
@@ -318,6 +325,7 @@ feature -- Accessibility (GW-14)
 			tell_accessible_focus
 		ensure
 			published: is_accessibility_published
+			fresh: not accessibility_is_stale
 		end
 
 	describe_accessibility: STRING_32
@@ -380,6 +388,9 @@ feature -- Accessibility (GW-14)
 
 	is_accessibility_published: BOOLEAN
 			-- Has the tree been published at least once?
+
+	accessibility_is_stale: BOOLEAN
+			-- Was a frame drawn since the tree was last published?
 
 feature -- Floating windows (GW-22)
 
@@ -3169,6 +3180,7 @@ feature {NONE} -- Rendering
 				then
 					publish_accessibility
 				else
+					accessibility_is_stale := True
 					tell_accessible_focus
 				end
 			end
