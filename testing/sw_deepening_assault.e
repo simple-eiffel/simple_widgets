@@ -218,6 +218,76 @@ feature -- Batch 1: small controls, limits fallen
 			assert_integers_equal ("a step a frame", (l_step + 1) \\ 12, l_spinner.step)
 		end
 
+	test_forms_several_rows_eye_focus_notes_and_suggestions
+			-- simple_gui 1p (2026-11-09): a list holds several rows (a Ctrl-click's work done by
+			-- extend_selection), told the first; a password box tells the eye's click and a lost
+			-- focus; a note sits under a widget; suggestions hang under a field and take Down,
+			-- Return and a click, while typing stays in the field.
+		local
+			w: SW_WINDOW
+			l_column: SW_COLUMN
+			l_list: SW_TEXT_LIST
+			l_secret, l_name: SW_TEXT_BOX
+			l_told, l_lost, l_chosen: CELL [INTEGER]
+			l_shown: CELL [BOOLEAN]
+			nx, ny: INTEGER
+		do
+			create l_told.put (-1)
+			create l_lost.put (0)
+			create l_chosen.put (0)
+			create l_shown.put (False)
+			create l_list.make (120.0)
+			l_list.extend ("Genesis")
+			l_list.extend ("Exodus")
+			l_list.extend ("Leviticus")
+			l_list.extend ("Numbers")
+			l_list.set_multiple (True)
+			l_list.set_on_select (agent (i: INTEGER; c: CELL [INTEGER]) do c.put (i) end (?, l_told))
+			create l_secret.make_password ("")
+			l_secret.set_on_reveal (agent (b: BOOLEAN; c: CELL [BOOLEAN]) do c.put (b) end (?, l_shown))
+			l_secret.set_on_focus_lost (agent (c: CELL [INTEGER]) do c.put (c.item + 1) end (l_lost))
+			create l_name.make_single_line ("")
+			create l_column.make
+			l_column.put (l_list)
+			l_column.put (l_secret)
+			l_column.put (l_name)
+			create w.make ("forms", 0, 0, 500, 400, create {SW_THEME}.make_light)
+			w.set_root (l_column)
+			w.request_render
+			l_list.select_row (2)
+			l_list.extend_selection (4)
+			assert_true ("two rows, in order", l_list.selected_rows.count = 2 and l_list.selected_rows.first = 2 and l_list.selected_rows.last = 4)
+			assert_integers_equal ("told the first", 2, l_told.item)
+			l_list.extend_selection (2)
+			assert_true ("a second Ctrl-click takes it out", l_list.selected_rows.count = 1 and l_list.selected_index = 4)
+			l_list.select_row (1)
+			assert_true ("a plain click replaces them", l_list.selected_rows.count = 1 and l_list.is_row_selected (1))
+			w.dispatch (2, (l_secret.x + 20.0).truncated_to_integer, (l_secret.y + l_secret.height / 2.0).truncated_to_integer)
+			w.dispatch (2, (l_secret.x + l_secret.width - 4.0).truncated_to_integer, (l_secret.y + l_secret.height / 2.0).truncated_to_integer)
+			assert_true ("the eye told, shown", l_shown.item and l_secret.is_revealed)
+			l_secret.set_revealed (False)
+			assert_false ("hidden by the program", l_secret.is_revealed)
+			nx := (l_name.x + 20.0).truncated_to_integer
+			ny := (l_name.y + l_name.height / 2.0).truncated_to_integer
+			w.dispatch (2, nx, ny)
+			assert_integers_equal ("leaving the box told", 1, l_lost.item)
+			w.set_widget_note (l_name, "Enter an email address")
+			assert_true ("noted", attached w.widget_note_text (l_name) as al_n and then al_n.same_string ("Enter an email address"))
+			w.request_render
+			w.set_widget_note (l_name, "")
+			assert_true ("cleared", w.widget_note_text (l_name) = Void)
+			w.show_suggestions (l_name, <<"alpha@example.org", "beta@example.org">>, agent (i: INTEGER; c: CELL [INTEGER]) do c.put (i) end (?, l_chosen))
+			w.request_render
+			w.dispatch (4, 0x28, 0)
+			assert_integers_equal ("Down highlights the first", 1, w.suggestion_at)
+			w.dispatch (4, 0x0D, 0)
+			assert_true ("Return chose it and the list went", l_chosen.item = 1 and w.suggestions_for = Void)
+			w.show_suggestions (l_name, <<"alpha@example.org", "beta@example.org">>, agent (i: INTEGER; c: CELL [INTEGER]) do c.put (i) end (?, l_chosen))
+			w.request_render
+			w.dispatch (2, nx, (l_name.y + l_name.height + 2.0 + 2.0 + 24.0 * 1.5).truncated_to_integer)
+			assert_integers_equal ("a click on the second", 2, l_chosen.item)
+		end
+
 	test_a_hosted_window_draws_takes_input_and_asks_its_host
 			-- 1i (2026-11-09): a window drawn inside a host's view never runs and never opens a
 			-- native window. The host resizes it and feeds it a click, and is told of each
