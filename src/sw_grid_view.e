@@ -5,9 +5,13 @@ note
 		over an ellipsized title and a dimmer subtitle. As many columns as fit the width; it
 		scrolls vertically.
 
-		Pictures are decoded one per heartbeat or frame (`decode_next_picture'), the cells in
-		view first, so a folder of photos never freezes the window; a cell shows its icon or a
-		blank frame until its picture is ready. Only PNG files decode today (simple_cairo).
+		Pictures decode in one of three ways, the cells in view first, so a folder of photos
+		never freezes the window; a cell shows its icon or a blank frame until its picture is
+		ready. With a loader (`set_picture_loader') the host decodes elsewhere, off the GUI
+		thread: each frame asks it for up to `Max_in_flight' pictures and the host answers with
+		`deliver_picture' on the GUI thread. With a decoder (`set_picture_decoder') one picture
+		a frame decodes through it on the GUI thread, any format the decoder reads. With neither,
+		one PNG a frame decodes through simple_cairo.
 
 		Item numbers are the model's everywhere; `set_filter_text' hides cells without changing
 		them. `on_select' and `on_activate' tell only of the user's acts; code calls are quiet.
@@ -84,6 +88,16 @@ feature -- Access
 			valid: 1 <= a_i and a_i <= count
 		do
 			Result := cells.i_th (a_i).path
+		end
+
+	item_picture (a_i: INTEGER): detachable CAIRO_SURFACE
+			-- Item `a_i''s decoded picture; Void until it is ready.
+		require
+			valid: a_i >= 1 and a_i <= count
+		do
+			Result := cells.i_th (a_i).picture
+		ensure
+			ready_means_there: is_picture_ready (a_i) = attached Result
 		end
 
 	is_picture_ready (a_i: INTEGER): BOOLEAN
@@ -531,6 +545,66 @@ feature -- Filtering
 
 feature -- Pictures
 
+	Max_in_flight: INTEGER = 2
+			-- The most pictures asked of the loader at one time.
+
+	picture_decoder: detachable FUNCTION [TUPLE [READABLE_STRING_GENERAL], detachable CAIRO_SURFACE]
+			-- The host's decoder for a picture file (any format); Void for the PNG reader.
+
+	picture_loader: detachable PROCEDURE [TUPLE [STRING_32]]
+			-- The host's asynchronous loader: asked for a picture file, it later answers with
+			-- `deliver_picture'. Void when pictures decode here.
+
+	set_picture_decoder (a_decoder: detachable FUNCTION [TUPLE [READABLE_STRING_GENERAL], detachable CAIRO_SURFACE])
+			-- Decode pictures through `a_decoder' (Void: PNG only). It runs on the GUI thread.
+		do
+			picture_decoder := a_decoder
+		ensure
+			set: picture_decoder = a_decoder
+		end
+
+	set_picture_loader (a_loader: detachable PROCEDURE [TUPLE [STRING_32]])
+			-- Have pictures loaded elsewhere: each frame asks `a_loader' for up to `Max_in_flight'
+			-- files, and its answers come back through `deliver_picture'.
+		do
+			picture_loader := a_loader
+		ensure
+			set: picture_loader = a_loader
+		end
+
+	in_flight_pictures: INTEGER
+			-- How many pictures the loader has been asked for and has not answered.
+		local
+			k: INTEGER
+		do
+			from k := 1 until k > cells.count loop
+				if cells.i_th (k).is_requested then
+					Result := Result + 1
+				end
+				k := k + 1
+			end
+		ensure
+			non_negative: Result >= 0
+		end
+
+	deliver_picture (a_path: READABLE_STRING_GENERAL; a_surface: detachable CAIRO_SURFACE): BOOLEAN
+			-- The loader's answer for file `a_path' (Void `a_surface': it would not decode): the
+			-- first cell that asked for it takes it. False when no cell waits for it any more (the
+			-- item was removed or given another picture meanwhile).
+		local
+			k: INTEGER
+		do
+			from k := 1 until k > cells.count or Result loop
+				if cells.i_th (k).is_requested and then cells.i_th (k).path.same_string_general (a_path) then
+					cells.i_th (k).deliver (a_surface)
+					Result := True
+				end
+				k := k + 1
+			end
+		ensure
+			one_fewer_in_flight: Result implies in_flight_pictures = old in_flight_pictures - 1
+		end
+
 	pending_pictures: INTEGER
 			-- How many pictures still wait to be decoded.
 		local
@@ -547,31 +621,57 @@ feature -- Pictures
 		end
 
 	decode_next_picture: BOOLEAN
-			-- Decode ONE waiting picture, the cells in view first; True when there was one. The
-			-- frame (every heartbeat) calls this, so a folder of photos fills in a cell at a time
-			-- and drawing is never held for more than one file. It runs on the GUI thread.
+			-- Move the pictures along, the cells in view first; True when something was done. The
+			-- frame (every heartbeat) calls this. With a loader it asks for pictures until
+			-- `Max_in_flight' are out, which costs nothing; otherwise it decodes ONE waiting
+			-- picture here, on the GUI thread, so drawing is never held for more than one file.
+		local
+			l_asking: BOOLEAN
+		do
+			if attached picture_loader as al_loader then
+				from
+					l_asking := True
+				until
+					not l_asking
+				loop
+					if in_flight_pictures < Max_in_flight and then attached next_waiting_cell as al_cell then
+						al_cell.request
+						al_loader.call ([al_cell.path])
+						Result := True
+					else
+						l_asking := False
+					end
+				end
+			elseif attached next_waiting_cell as al_cell then
+				al_cell.decode (picture_decoder)
+				Result := True
+			end
+		ensure
+			sync_one_fewer: picture_loader = Void and Result implies pending_pictures = old pending_pictures - 1
+		end
+
+feature {NONE} -- Pictures
+
+	next_waiting_cell: detachable SW_GRID_CELL
+			-- The first cell with a picture still to ask for, those in view before the rest.
 		local
 			p, l_item: INTEGER
 		do
 			if shown_count > 0 and then height > 0.0 then
-				from p := first_visible until p > last_visible or Result loop
+				from p := first_visible until p > last_visible or Result /= Void loop
 					l_item := model_at (p)
-					if cells.i_th (l_item).is_picture_pending then
-						cells.i_th (l_item).decode
-						Result := True
+					if cells.i_th (l_item).is_picture_waiting then
+						Result := cells.i_th (l_item)
 					end
 					p := p + 1
 				end
 			end
-			from p := 1 until p > cells.count or Result loop
-				if cells.i_th (p).is_picture_pending then
-					cells.i_th (p).decode
-					Result := True
+			from p := 1 until p > cells.count or Result /= Void loop
+				if cells.i_th (p).is_picture_waiting then
+					Result := cells.i_th (p)
 				end
 				p := p + 1
 			end
-		ensure
-			one_fewer: Result implies pending_pictures = old pending_pictures - 1
 		end
 
 feature -- Test hooks (what the user's hand does)

@@ -45,10 +45,19 @@ feature -- Access
 		end
 
 	is_picture_pending: BOOLEAN
-			-- Is the picture file still to be decoded?
+			-- Is the picture file still to be decoded (waiting, or asked for and not back yet)?
 		do
 			Result := is_picture_wanted and not is_decoded
 		end
+
+	is_picture_waiting: BOOLEAN
+			-- Is the picture file still to be decoded, and not yet asked of a loader?
+		do
+			Result := is_picture_pending and not is_requested
+		end
+
+	is_requested: BOOLEAN
+			-- Has a loader been asked for the picture, which has not come back yet?
 
 	is_picture_ready: BOOLEAN
 			-- Is the picture decoded and drawable?
@@ -86,24 +95,65 @@ feature -- Element change
 			create path.make_from_string_general (a_path)
 			picture := Void
 			is_decoded := False
+			is_requested := False
 		ensure
 			set: path.same_string_general (a_path)
 			pending: is_picture_wanted implies is_picture_pending
+			not_requested: not is_requested
 		end
 
-	decode
-			-- Decode the picture file; a file that is missing or will not decode leaves no picture.
+	request
+			-- Note that a loader has been asked for the picture.
 		require
-			wanted: is_picture_wanted
-		local
-			l_surface: CAIRO_SURFACE
+			waiting: is_picture_waiting
 		do
-			create l_surface.make_from_png (path)
-			if l_surface.is_valid and then l_surface.width > 0 and then l_surface.height > 0 then
-				picture := l_surface
+			is_requested := True
+		ensure
+			asked: is_requested and is_picture_pending
+		end
+
+	deliver (a_surface: detachable CAIRO_SURFACE)
+			-- A loader's answer: the decoded picture, or Void when the file would not decode.
+		require
+			asked: is_requested
+		do
+			if attached a_surface as al_surface and then al_surface.is_valid
+				and then al_surface.width > 0 and then al_surface.height > 0
+			then
+				picture := al_surface
 			else
 				picture := Void
 			end
+			is_requested := False
+			is_decoded := True
+		ensure
+			tried: is_decoded and not is_requested
+			ready_means_drawable: attached picture as al_picture implies al_picture.width > 0
+		end
+
+	decode (a_decoder: detachable FUNCTION [TUPLE [READABLE_STRING_GENERAL], detachable CAIRO_SURFACE])
+			-- Decode the picture file with `a_decoder', or as a PNG when there is none; a file that
+			-- is missing or will not decode leaves no picture.
+		require
+			wanted: is_picture_wanted
+		local
+			l_surface: detachable CAIRO_SURFACE
+			l_png: CAIRO_SURFACE
+		do
+			if attached a_decoder as al_decoder then
+				l_surface := al_decoder.item ([path])
+			else
+				create l_png.make_from_png (path)
+				l_surface := l_png
+			end
+			if attached l_surface as al_surface and then al_surface.is_valid
+				and then al_surface.width > 0 and then al_surface.height > 0
+			then
+				picture := al_surface
+			else
+				picture := Void
+			end
+			is_requested := False
 			is_decoded := True
 		ensure
 			tried: is_decoded
