@@ -1521,4 +1521,511 @@ feature -- Splitter collapse and dock panel fields 1r-c
 			assert_true ("a stacked title bar carries it too", zw.pill_rects.count >= 1)
 		end
 
+feature -- Rich lists and editable tables 1s
+
+	s_events: INTEGER
+	s_last_row: INTEGER
+	s_last_checked: BOOLEAN
+	s_closed_rows: INTEGER
+	s_closed_last: INTEGER
+	s_selects: INTEGER
+	s_last_select: INTEGER
+	s_edits: INTEGER
+	s_edit_model, s_edit_column: INTEGER
+	s_edit_text: STRING_32
+			attribute
+				create Result.make_empty
+			end
+	s_refuse: detachable STRING_32
+
+	s_check (a_row: INTEGER; a_checked: BOOLEAN)
+		do
+			s_events := s_events + 1
+			s_last_row := a_row
+			s_last_checked := a_checked
+		end
+
+	s_close (a_row: INTEGER)
+		do
+			s_closed_rows := s_closed_rows + 1
+			s_closed_last := a_row
+		end
+
+	s_select (a_row: INTEGER)
+		do
+			s_selects := s_selects + 1
+			s_last_select := a_row
+		end
+
+	s_edit (a_model, a_column: INTEGER; a_text: STRING_32): detachable STRING_32
+		do
+			s_edits := s_edits + 1
+			s_edit_model := a_model
+			s_edit_column := a_column
+			s_edit_text := a_text.twin
+			if attached s_refuse as al_message and then a_text.same_string ("x") then
+				Result := al_message
+			end
+		end
+
+	s_list: SW_TEXT_LIST
+			-- Four rows (Apple, Banana, Cherry, Bandana) in a 300 x 120 list, noting every notice.
+		do
+			create Result.make (120.0)
+			Result.set_bounds (0.0, 0.0, 300.0, 120.0)
+			Result.extend ("Apple")
+			Result.extend ("Banana")
+			Result.extend ("Cherry")
+			Result.extend ("Bandana")
+			Result.set_on_row_check (agent s_check)
+			Result.set_on_row_close (agent s_close)
+			Result.set_on_select (agent s_select)
+			s_events := 0
+			s_closed_rows := 0
+			s_selects := 0
+		end
+
+	s_grid: SW_DATA_GRID [ARRAY [STRING_32]]
+			-- Three rows by three columns (Name, Kind, Done) in a 400 x 200 grid; Name and Kind edit as
+			-- text, Done as a check.
+		local
+			l_rows: ARRAYED_LIST [ARRAY [STRING_32]]
+		do
+			create Result.make (200.0)
+			Result.set_bounds (0.0, 0.0, 400.0, 200.0)
+			Result.add_column (create {SW_GRID_COLUMN [ARRAY [STRING_32]]}.make ("Name", 120.0, agent (r: ARRAY [STRING_32]): STRING_32 do Result := r [1] end))
+			Result.add_column (create {SW_GRID_COLUMN [ARRAY [STRING_32]]}.make ("Kind", 150.0, agent (r: ARRAY [STRING_32]): STRING_32 do Result := r [2] end))
+			Result.add_column (create {SW_GRID_COLUMN [ARRAY [STRING_32]]}.make ("Done", 80.0, agent (r: ARRAY [STRING_32]): STRING_32 do Result := r [3] end))
+			create l_rows.make (3)
+			l_rows.extend (<<{STRING_32} "one", {STRING_32} "alpha", {STRING_32} "0">>)
+			l_rows.extend (<<{STRING_32} "two", {STRING_32} "beta", {STRING_32} "1">>)
+			l_rows.extend (<<{STRING_32} "three", {STRING_32} "gamma", {STRING_32} "0">>)
+			Result.set_rows (l_rows)
+			Result.set_column_editor (1, 1)
+			Result.set_column_editor (2, 1)
+			Result.set_column_editor (3, 2)
+			Result.set_on_cell_edit (agent s_edit)
+			s_edits := 0
+			s_refuse := Void
+			create s_edit_text.make_empty
+		end
+
+	test_list_1s_parts_round_trip
+		local
+			l: SW_TEXT_LIST
+		do
+			l := s_list
+			assert_false ("no subtitles yet", l.has_subtitles)
+			assert_reals_equal ("one line a row", 30.0, l.row_height, 0.001)
+			l.set_row_subtitle (2, "second line")
+			l.set_row_icon (1, "folder")
+			l.set_row_badge (3, 7)
+			l.set_row_checkable (1, True)
+			l.set_row_checked (1, True)
+			l.set_row_closable (4, True)
+			assert_strings_equal ("subtitle", "second line", l.row_subtitle (2))
+			assert_strings_equal ("no subtitle elsewhere", "", l.row_subtitle (1))
+			assert_strings_equal ("icon", "folder", l.row_icon (1))
+			assert_integers_equal ("badge", 7, l.row_badge (3))
+			assert_integers_equal ("no badge elsewhere", 0, l.row_badge (1))
+			assert_true ("checkable", l.is_row_checkable (1))
+			assert_true ("checked", l.is_row_checked (1))
+			assert_false ("row 2 is not checkable", l.is_row_checkable (2))
+			assert_true ("closable", l.is_row_closable (4))
+			assert_false ("row 1 is not closable", l.is_row_closable (1))
+			assert_true ("any subtitle", l.has_subtitles)
+			assert_reals_equal ("two lines a row", 60.0, l.row_height, 0.001)
+			assert_reals_equal ("content follows", 240.0, l.content_height, 0.001)
+			assert_integers_equal ("row_at follows the taller rows", 2, l.row_at (70.0))
+			l.set_row_subtitle (2, "")
+			assert_false ("no subtitles again", l.has_subtitles)
+			assert_reals_equal ("one line again", 30.0, l.row_height, 0.001)
+			assert_integers_equal ("code calls told nobody", 0, s_events)
+			assert_integers_equal ("and no selection notice", 0, s_selects)
+		end
+
+	test_list_1s_parts_move_with_reorder
+		local
+			l: SW_TEXT_LIST
+		do
+			l := s_list
+			l.set_row_subtitle (1, "s1")
+			l.set_row_badge (1, 5)
+			l.set_row_checkable (3, True)
+			l.set_row_checked (3, True)
+			l.set_row_closable (4, True)
+			l.select_row_quietly (3)
+			l.reorder (<<3, 1, 4, 2>>)
+			assert_strings_equal ("old 3 is first", "Cherry", l.i_th (1))
+			assert_strings_equal ("old 1 is second", "Apple", l.i_th (2))
+			assert_strings_equal ("old 4 is third", "Bandana", l.i_th (3))
+			assert_strings_equal ("old 2 is last", "Banana", l.i_th (4))
+			assert_true ("the check moved", l.is_row_checkable (1) and l.is_row_checked (1))
+			assert_strings_equal ("the subtitle moved", "s1", l.row_subtitle (2))
+			assert_integers_equal ("the badge moved", 5, l.row_badge (2))
+			assert_true ("the close glyph moved", l.is_row_closable (3))
+			assert_integers_equal ("the selection stays with its row", 1, l.selected_index)
+			assert_integers_equal ("quietly", 0, s_selects)
+			assert_false ("a bad order is refused", l.is_permutation (<<1, 1, 2, 3>>))
+			assert_false ("a short order is refused", l.is_permutation (<<1, 2, 3>>))
+		end
+
+	test_list_1s_user_acts_notify_code_calls_do_not
+		local
+			l: SW_TEXT_LIST
+			l_ok: BOOLEAN
+		do
+			l := s_list
+			l.set_row_checkable (2, True)
+			l.set_row_closable (2, True)
+			l.set_row_checkable (3, True)
+			l.set_row_closable (3, True)
+			l.set_row_checked (2, True)
+			assert_integers_equal ("code check: no notice", 0, s_events)
+			l_ok := l.handle_click (l.rows_x + 16.0, 45.0)
+			assert_true ("a click on the check box toggled it off", not l.is_row_checked (2))
+			assert_integers_equal ("and told", 1, s_events)
+			assert_integers_equal ("which row", 2, s_last_row)
+			assert_false ("with its new state", s_last_checked)
+			assert_integers_equal ("the click did not select the row", 0, l.selected_index)
+			l.press_row_check (3)
+			assert_true ("the test hook checks it", l.is_row_checked (3) and s_last_checked)
+			assert_integers_equal ("and tells", 2, s_events)
+			l.remove_row (1)
+			assert_integers_equal ("a code removal tells nobody", 0, s_closed_rows)
+			assert_integers_equal ("three rows", 3, l.count)
+			assert_true ("parts stay with their rows", l.is_row_checkable (1) and l.is_row_closable (1))
+				-- a click on row 1's close glyph (now Banana)
+			l_ok := l.handle_click (l.rows_x + (l.width - l.bar.bar_width - 4.0) - 15.0, 15.0)
+			assert_integers_equal ("the user's close removed the row", 2, l.count)
+			assert_integers_equal ("and told once", 1, s_closed_rows)
+			assert_integers_equal ("with the row it was", 1, s_closed_last)
+			assert_strings_equal ("the row after moved up", "Cherry", l.i_th (1))
+			l.press_row_close (1)
+			assert_integers_equal ("the hook closes too", 2, s_closed_rows)
+			assert_integers_equal ("one row left", 1, l.count)
+			l.select_row_quietly (1)
+			l.remove_row (1)
+			assert_integers_equal ("removing the selected row clears the selection", 0, l.selected_index)
+			assert_integers_equal ("quietly", 0, s_selects)
+		end
+
+	test_list_1s_removal_adjusts_the_selection
+		local
+			l: SW_TEXT_LIST
+		do
+			l := s_list
+			l.select_row_quietly (3)
+			l.remove_row (1)
+			assert_integers_equal ("the selection follows its row up", 2, l.selected_index)
+			assert_strings_equal ("still Cherry", "Cherry", l.i_th (l.selected_index))
+			l.remove_row (3)
+			assert_integers_equal ("a later removal leaves it", 2, l.selected_index)
+			assert_integers_equal ("quiet throughout", 0, s_selects)
+		end
+
+	test_list_1s_space_and_delete
+		local
+			l: SW_TEXT_LIST
+		do
+			l := s_list
+			l.set_row_checkable (2, True)
+			l.set_row_closable (2, True)
+			l.select_row_quietly (2)
+			l.handle_key (32, False)
+			assert_true ("Space toggled the selected row", l.is_row_checked (2))
+			assert_integers_equal ("and told", 1, s_events)
+			l.handle_char (32)
+			assert_integers_equal ("the character after the key does not toggle again", 1, s_events)
+			l.handle_char (32)
+			assert_false ("a lone Space character toggles", l.is_row_checked (2))
+			assert_integers_equal ("and tells", 2, s_events)
+			l.select_row_quietly (1)
+			l.handle_key (32, False)
+			l.handle_key (46, False)
+			assert_integers_equal ("a row without parts ignores Space and Delete", 2, s_events + s_closed_rows)
+			assert_integers_equal ("still four rows", 4, l.count)
+			l.select_row_quietly (2)
+			l.handle_key (46, False)
+			assert_integers_equal ("Delete closed the selected closable row", 3, l.count)
+			assert_integers_equal ("and told which", 2, s_closed_last)
+			assert_integers_equal ("once", 1, s_closed_rows)
+		end
+
+	test_list_1s_filter_keeps_model_numbers
+		local
+			l: SW_TEXT_LIST
+		do
+			l := s_list
+			l.set_filter_text ("AN")
+			assert_integers_equal ("Banana and Bandana show", 2, l.shown_count)
+			assert_integers_equal ("a hidden row is not found", 0, l.position_of (1))
+			assert_integers_equal ("the first shown row is the model's 2", 2, l.row_at (15.0))
+			assert_integers_equal ("the second is the model's 4", 4, l.row_at (45.0))
+			assert_integers_equal ("nothing below", 0, l.row_at (75.0))
+			assert_integers_equal ("model rows still count 4", 4, l.count)
+			assert_strings_equal ("and name themselves", "Bandana", l.i_th (4))
+			l.handle_key (40, False)
+			assert_integers_equal ("Down skips the hidden rows: first", 2, l.selected_index)
+			l.handle_key (40, False)
+			assert_integers_equal ("Down skips the hidden rows: second", 4, l.selected_index)
+			l.handle_key (38, False)
+			assert_integers_equal ("Up skips them too", 2, l.selected_index)
+			l.handle_key (35, False)
+			assert_integers_equal ("End is the last shown", 4, l.selected_index)
+			l.set_filter_text ("app")
+			assert_integers_equal ("only Apple shows", 1, l.shown_count)
+			assert_integers_equal ("the hidden selection is deselected", 0, l.selected_index)
+			assert_integers_equal ("with the notice", 0, s_last_select)
+			l.select_row_quietly (1)
+			s_selects := 0
+			l.set_filter_text ("")
+			assert_integers_equal ("an empty filter shows all", 4, l.shown_count)
+			assert_integers_equal ("a visible selection stays", 1, l.selected_index)
+			assert_integers_equal ("without a notice", 0, s_selects)
+			l.set_filter_text ("zzz")
+			assert_integers_equal ("nothing shows", 0, l.shown_count)
+			assert_integers_equal ("the selection went", 0, l.selected_index)
+			l.set_filter_text ("")
+			assert_integers_equal ("clearing does not select it again", 0, l.selected_index)
+			assert_integers_equal ("every row back", 4, l.shown_count)
+		end
+
+	test_list_1s_filter_follows_added_and_removed_rows
+		local
+			l: SW_TEXT_LIST
+		do
+			l := s_list
+			l.set_filter_text ("an")
+			l.extend ("Mango")
+			l.extend ("Kiwi")
+			assert_integers_equal ("a new matching row shows", 3, l.shown_count)
+			l.remove_row (2)
+			assert_integers_equal ("a removed row leaves the view", 2, l.shown_count)
+			assert_integers_equal ("and the rest keep model numbers", 4, l.row_at (45.0))
+			l.reorder (<<5, 4, 3, 2, 1>>)
+			assert_strings_equal ("reorder under a filter", "Kiwi", l.i_th (1))
+			assert_strings_equal ("and the second", "Mango", l.i_th (2))
+			assert_integers_equal ("the view follows the texts", 2, l.shown_count)
+		end
+
+	test_grid_1s_text_cell_edits_commit
+		local
+			g: SW_DATA_GRID [ARRAY [STRING_32]]
+			l_ok: BOOLEAN
+		do
+			g := s_grid
+			g.edit_cell_by_user (2, 2, "delta")
+			assert_strings_equal ("the grid shows the new text", "delta", g.cell_text (2, 2))
+			assert_integers_equal ("the program was asked once", 1, s_edits)
+			assert_integers_equal ("for model row 2", 2, s_edit_model)
+			assert_integers_equal ("column 2", 2, s_edit_column)
+			assert_strings_equal ("with the text", "delta", s_edit_text)
+			assert_strings_equal ("other cells are untouched", "alpha", g.cell_text (1, 2))
+				-- the real gestures: a double click opens the editor over the cell, typing replaces
+			l_ok := g.handle_double_click (150.0, 40.0)
+			assert_true ("a double click opens the editor", g.is_editing)
+			assert_integers_equal ("on row 1", 1, g.editing_model)
+			assert_integers_equal ("column 2", 2, g.editing_column)
+			g.handle_char (('z').code)
+			g.handle_char (13)
+			assert_false ("Return closed it", g.is_editing)
+			assert_strings_equal ("the typed text replaced the selected one", "z", g.cell_text (1, 2))
+			assert_integers_equal ("and was committed", 2, s_edits)
+				-- F2 opens the selected row's first editable column; Return commits
+			g.select_model_row_quietly (3, False)
+			g.handle_key (113, False)
+			assert_true ("F2 opens", g.is_editing)
+			assert_integers_equal ("the selected row", 3, g.editing_model)
+			assert_integers_equal ("its first editable column", 1, g.editing_column)
+			g.handle_key (13, False)
+			assert_false ("the Return key committed", g.is_editing)
+			g.handle_char (13)
+			assert_false ("its character did not reopen the cell", g.is_editing)
+			assert_integers_equal ("an unchanged text asks nobody", 2, s_edits)
+				-- Return alone opens, too
+			g.handle_key (13, False)
+			assert_true ("Return on the selected row opens", g.is_editing)
+			g.handle_char (13)
+			assert_true ("the character after the key does not commit", g.is_editing)
+			g.handle_char (27)
+			assert_false ("Escape closes it", g.is_editing)
+		end
+
+	test_grid_1s_leaving_commits
+		local
+			g: SW_DATA_GRID [ARRAY [STRING_32]]
+			l_ok: BOOLEAN
+		do
+			g := s_grid
+			l_ok := g.handle_double_click (50.0, 40.0)
+			assert_true ("open", g.is_editing)
+			g.handle_char (('q').code)
+			g.set_focused (False)
+			assert_false ("losing the focus closed it", g.is_editing)
+			assert_strings_equal ("and committed it", "q", g.cell_text (1, 1))
+			l_ok := g.handle_double_click (50.0, 40.0)
+			g.handle_char (('r').code)
+			l_ok := g.handle_click (50.0, 90.0)
+			assert_false ("a click on another row closed it", g.is_editing)
+			assert_strings_equal ("and committed it", "r", g.cell_text (1, 1))
+		end
+
+	test_grid_1s_escape_changes_nothing
+		local
+			g: SW_DATA_GRID [ARRAY [STRING_32]]
+			l_ok: BOOLEAN
+		do
+			g := s_grid
+			l_ok := g.handle_double_click (150.0, 40.0)
+			g.handle_char (('z').code)
+			g.handle_char (27)
+			assert_false ("closed", g.is_editing)
+			assert_strings_equal ("the text is the old one", "alpha", g.cell_text (1, 2))
+			assert_integers_equal ("nobody was asked", 0, s_edits)
+			g.cancel_edit_by_user (2, 2)
+			assert_strings_equal ("the hook cancels too", "beta", g.cell_text (2, 2))
+			assert_integers_equal ("still nobody", 0, s_edits)
+			assert_false ("closed again", g.is_editing)
+		end
+
+	test_grid_1s_check_cells_commit_at_once
+		local
+			g: SW_DATA_GRID [ARRAY [STRING_32]]
+			l_ok: BOOLEAN
+		do
+			g := s_grid
+			l_ok := g.handle_click (290.0, 40.0)
+			assert_strings_equal ("a click on a check cell toggled it", "1", g.cell_text (1, 3))
+			assert_integers_equal ("and committed", 1, s_edits)
+			assert_strings_equal ("with the new text", "1", s_edit_text)
+			assert_false ("no editor opened", g.is_editing)
+			l_ok := g.handle_click (290.0, 40.0)
+			assert_strings_equal ("toggled back", "0", g.cell_text (1, 3))
+			g.edit_cell_by_user (3, 3, "1")
+			assert_strings_equal ("the hook clicks it to a value", "1", g.cell_text (3, 3))
+			assert_integers_equal ("three commits", 3, s_edits)
+			g.edit_cell_by_user (3, 3, "1")
+			assert_integers_equal ("a value it already has asks nobody", 3, s_edits)
+		end
+
+	test_grid_1s_choice_cells_offer_and_commit
+		local
+			g: SW_DATA_GRID [ARRAY [STRING_32]]
+			l_ok: BOOLEAN
+		do
+			g := s_grid
+			g.set_column_editor (2, 3)
+			g.set_column_choices (2, <<{STRING_32} "alpha", {STRING_32} "beta", {STRING_32} "gamma">>)
+			assert_integers_equal ("the editor kind", 3, g.column_editor (2))
+			assert_integers_equal ("three choices", 3, g.column_choices (2).count)
+			l_ok := g.handle_click (150.0, 40.0)
+			assert_true ("a click offers the dropdown", g.pending_menu /= Void)
+			if attached g.take_pending_menu as al_menu then
+				assert_integers_equal ("one item a choice", 3, al_menu.items.count)
+				assert_reals_equal ("at the cell's left", 120.0, g.menu_left, 0.001)
+				assert_reals_equal ("under the cell", 56.0, g.menu_top, 0.001)
+				assert_strings_equal ("the second choice", "beta", al_menu.items.i_th (2).label)
+				if attached al_menu.items.i_th (2).action as al_action then
+					al_action.call ([])
+				end
+			end
+			assert_strings_equal ("choosing committed at once", "beta", g.cell_text (1, 2))
+			assert_integers_equal ("asked once", 1, s_edits)
+			g.edit_cell_by_user (3, 2, "alpha")
+			assert_strings_equal ("the hook chooses", "alpha", g.cell_text (3, 2))
+			g.select_model_row_quietly (2, False)
+			g.set_column_editor (1, 0)
+			g.handle_key (113, False)
+			assert_true ("F2 offers the choices of the first editable column", g.pending_menu /= Void)
+			assert_false ("without an editor", g.is_editing)
+		end
+
+	test_grid_1s_refusal_keeps_the_text_and_shows_a_note
+		local
+			g: SW_DATA_GRID [ARRAY [STRING_32]]
+		do
+			g := s_grid
+			s_refuse := "Not a good value"
+			assert_strings_equal ("no note yet", "", g.cell_note)
+			g.edit_cell_by_user (1, 2, "x")
+			assert_strings_equal ("the cell keeps its old text", "alpha", g.cell_text (1, 2))
+			assert_strings_equal ("and the message shows", "Not a good value", g.cell_note)
+			assert_integers_equal ("the program was asked", 1, s_edits)
+			g.edit_cell_by_user (2, 2, "fine")
+			assert_strings_equal ("the next edit clears the note", "", g.cell_note)
+			assert_strings_equal ("and an accepted text shows", "fine", g.cell_text (2, 2))
+			g.edit_cell_by_user (1, 2, "x")
+			assert_strings_equal ("refused again", "Not a good value", g.cell_note)
+			g.cancel_edit_by_user (3, 2)
+			assert_strings_equal ("an edit that starts clears it, even one cancelled", "", g.cell_note)
+			g.edit_cell_by_user (1, 2, "x")
+			g.edit_cell_by_user (3, 3, "1")
+			assert_strings_equal ("a check edit clears it too", "", g.cell_note)
+		end
+
+	test_grid_1s_shown_models_and_counts
+		local
+			g: SW_DATA_GRID [ARRAY [STRING_32]]
+		do
+			g := s_grid
+			g.set_on_select (agent s_select)
+			s_selects := 0
+			assert_integers_equal ("all three show", 3, g.shown_count)
+			g.select_model_row_quietly (2, False)
+			g.set_shown_models (<<1, 3>>)
+			assert_integers_equal ("two show", 2, g.shown_count)
+			assert_integers_equal ("the hidden selection is deselected", 0, g.selected_model)
+			assert_integers_equal ("with the notice", 1, s_selects)
+			assert_integers_equal ("saying 0", 0, s_last_select)
+			assert_integers_equal ("view rows are model numbers", 3, g.view.i_th (2))
+			g.set_shown_models (Void)
+			assert_integers_equal ("all show again", 3, g.shown_count)
+			assert_integers_equal ("the selection does not return", 0, g.selected_model)
+			g.set_filter (agent (r: ARRAY [STRING_32]): BOOLEAN do Result := r [1].has_substring ("t") end)
+			assert_integers_equal ("the filter still works (two, three)", 2, g.shown_count)
+			g.set_shown_models (<<1, 2>>)
+			assert_integers_equal ("both apply together", 1, g.shown_count)
+			assert_integers_equal ("model 2", 2, g.view.i_th (1))
+		end
+
+	test_1s_rich_rows_and_open_editor_draw
+			-- Drawing every part, a refusal note and an open editor runs under live contracts.
+		local
+			l: SW_TEXT_LIST
+			g: SW_DATA_GRID [ARRAY [STRING_32]]
+			w: SW_WINDOW
+			l_ok: BOOLEAN
+		do
+			l := s_list
+			l.set_row_subtitle (1, "a second line")
+			l.set_row_icon (1, "folder")
+			l.set_row_icon (2, "no-such-icon")
+			l.set_row_badge (1, 12)
+			l.set_row_checkable (1, True)
+			l.set_row_checked (1, True)
+			l.set_row_checkable (2, True)
+			l.set_row_closable (1, True)
+			l.set_row_closable (2, True)
+			l.set_filter_text ("a")
+			create w.make ("rows", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			w.set_root (l)
+			w.request_render
+			assert_true ("the list drew with its parts", l.shown_count = 3)
+			g := s_grid
+			g.set_column_editor (2, 3)
+			s_refuse := "Bad"
+			g.edit_cell_by_user (2, 1, "x")
+			l_ok := g.handle_double_click (50.0, 40.0)
+			create w.make ("grid", 0, 0, 500, 300, create {SW_THEME}.make_light)
+			w.set_root (g)
+			w.request_render
+			assert_true ("the editor drew over its cell", g.is_editing)
+			assert_strings_equal ("the note stood", "", g.cell_note)
+			g.cancel_edit
+			g.edit_cell_by_user (2, 1, "x")
+			w.request_render
+			assert_strings_equal ("the note drew", "Bad", g.cell_note)
+		end
+
 end

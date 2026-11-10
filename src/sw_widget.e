@@ -1049,6 +1049,13 @@ feature -- Input
 			Result := x
 		end
 
+	menu_top: REAL_64
+			-- Where that menu's top edge goes: just under the widget. A widget that offers it
+			-- from a part of itself (a table's cell, simple_gui 1s) says which.
+		do
+			Result := y + height + 2.0
+		end
+
 	context_menu (a_px, a_py: REAL_64): detachable SW_MENU
 			-- The menu this widget offers at the point, if any. The
 			-- window presents it; every widget is right-clickable, and

@@ -2168,6 +2168,15 @@ feature {NONE} -- Accelerator dispatch
 			end
 		end
 
+	present_pending_menu (a_w: SW_WIDGET)
+			-- A key opened a menu on `a_w' (a table's choice cell, simple_gui 1s): present it where
+			-- the widget says, as a click's menu would be.
+		do
+			if attached a_w.take_pending_menu as al_menu then
+				show_popup (al_menu, a_w.menu_left.truncated_to_integer, a_w.menu_top.truncated_to_integer)
+			end
+		end
+
 	route_key_down_past_suggestions (a_vk: INTEGER; a_ctrl, a_alt, a_shift: BOOLEAN)
 			-- `route_key_down' once the suggestions have passed on the key.
 		do
@@ -2177,6 +2186,7 @@ feature {NONE} -- Accelerator dispatch
 				after_input
 			elseif attached focused as w then
 				w.handle_key (a_vk, a_shift)
+				present_pending_menu (w)
 				after_input
 			end
 		end
@@ -2890,6 +2900,7 @@ feature {NONE} -- Popup lifecycle
 						after_input
 					elseif attached focused as w then
 						w.handle_char (a_x)
+						present_pending_menu (w)
 						after_input
 					end
 				end
@@ -3130,7 +3141,7 @@ feature {NONE} -- Popup lifecycle
 					cw.set_pressed (True)
 					if attached cw.take_pending_menu as pm then
 						show_popup (pm, cw.menu_left.truncated_to_integer,
-							(cw.y + cw.height + 2.0).truncated_to_integer)
+							cw.menu_top.truncated_to_integer)
 					end
 				end
 				if cw.take_sheet_close_request and then sheet /= Void then
