@@ -164,6 +164,59 @@ feature -- Pick up
 			assert_true ("the tree put its lights away", t.drop_folder = Void and t.new_row_at = 0)
 		end
 
+feature -- Composed sources and holes (simple_gui 1q)
+
+	test_hooked_widgets_pick_by_drag_and_by_secondary_click
+			-- 2026-11-09: plain widgets made a source and a hole with agents, not
+			-- subclasses. A press that moves lifts the pebble and the release over
+			-- the hole drops it; a secondary click lifts it and a click drops it; a
+			-- drop where nothing takes it is told as a cancel.
+		local
+			w: SW_WINDOW
+			l_column: SW_COLUMN
+			l_source, l_hole: SW_LABEL
+			l_got, l_cancels: CELL [INTEGER]
+			sx, sy, hx, hy: INTEGER
+		do
+			create l_got.put (0)
+			create l_cancels.put (0)
+			w := new_window
+			create l_source.make_ui ("A note")
+			create l_hole.make_ui ("Takes text")
+			l_source.set_pick_gestures (True, True)
+			l_source.set_pebble_hook (agent (x, y: REAL_64): detachable ANY do Result := {STRING_32} "note" end)
+			l_hole.set_drop_hooks (agent (p: ANY; x, y: REAL_64): BOOLEAN do Result := attached {STRING_32} p end,
+				agent (p: ANY; x, y: REAL_64; c: CELL [INTEGER]) do c.put (c.item + 1) end (?, ?, ?, l_got))
+			w.set_on_pick_cancelled (agent (c: CELL [INTEGER]) do c.put (c.item + 1) end (l_cancels))
+			create l_column.make
+			l_column.put (l_source)
+			l_column.put (l_hole)
+			w.set_root (l_column)
+			w.request_render
+			sx := (l_source.x + 10.0).truncated_to_integer
+			sy := (l_source.y + l_source.height / 2.0).truncated_to_integer
+			hx := (l_hole.x + 10.0).truncated_to_integer
+			hy := (l_hole.y + l_hole.height / 2.0).truncated_to_integer
+			w.dispatch (2, sx, sy)
+			assert_false ("a press alone is no pick", w.is_picking)
+			w.dispatch (9, sx + 30, sy)
+			assert_true ("a press that moves lifts it", w.is_picking and w.pick_by_drag)
+			w.dispatch (9, hx, hy)
+			w.dispatch (10, hx, hy)
+			assert_false ("the release drops it", w.is_picking)
+			assert_integers_equal ("into the hole", 1, l_got.item)
+			w.dispatch (11, sx, sy)
+			assert_true ("a secondary click lifts it", w.is_picking and not w.pick_by_drag)
+			w.dispatch (2, hx, hy)
+			assert_integers_equal ("a click drops it", 2, l_got.item)
+			assert_integers_equal ("no cancel yet", 0, l_cancels.item)
+			w.dispatch (11, sx, sy)
+			w.dispatch (2, sx, sy)
+			assert_false ("dropped on the source, which takes nothing", w.is_picking)
+			assert_integers_equal ("told as a cancel", 1, l_cancels.item)
+			assert_integers_equal ("and the hole had nothing", 2, l_got.item)
+		end
+
 feature -- The tree as the hole
 
 	test_a_resting_pick_springs_a_folder_that_closes_after

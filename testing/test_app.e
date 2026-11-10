@@ -1066,6 +1066,7 @@ feature {NONE} -- Test runners
 			print ("%N=== CARRY AND DROP (0.55.0) ===%N")
 			create carry_tests
 			run_test (agent carry_tests.test_a_selection_dragged_out_drops_in_the_folder_under_the_release, "a_selection_dragged_out_drops_in_the_folder_under_the_release")
+			run_test (agent carry_tests.test_hooked_widgets_pick_by_drag_and_by_secondary_click, "hooked_widgets_pick_by_drag_and_by_secondary_click")
 			run_test (agent carry_tests.test_a_press_on_the_selection_that_never_moves_clears_it, "a_press_on_the_selection_that_never_moves_clears_it")
 			run_test (agent carry_tests.test_a_drop_off_every_hole_goes_nowhere, "a_drop_off_every_hole_goes_nowhere")
 			run_test (agent carry_tests.test_middle_click_lifts_the_selection_with_its_card, "middle_click_lifts_the_selection_with_its_card")

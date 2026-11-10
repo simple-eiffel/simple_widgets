@@ -2554,7 +2554,10 @@ feature {NONE} -- Popup lifecycle
 	end_pick
 			-- Cancel: the pebble goes nowhere.
 		do
-			pick_pebble := Void
+			if pick_pebble /= Void then
+				pick_pebble := Void
+				tell_pick_cancelled
+			end
 			finish_pick
 		ensure
 			idle: pick_pebble = Void
@@ -2574,12 +2577,91 @@ feature {NONE} -- Popup lifecycle
 				pick_pebble := Void
 				if attached l_target as al_target then
 					al_target.receive_pebble_at (pb, a_x, a_y)
+				else
+					tell_pick_cancelled
 				end
 			end
 			finish_pick
 		ensure
 			idle: pick_pebble = Void
 		end
+
+feature -- Pick notices (simple_gui 1q)
+
+	on_pick_cancelled: detachable PROCEDURE
+			-- Told when a pick ends with the pebble going nowhere (Escape, a
+			-- secondary click, a drop where nothing takes it) - simple_gui 1q.
+
+	set_on_pick_cancelled (an_action: detachable PROCEDURE)
+		do
+			on_pick_cancelled := an_action
+		ensure
+			set: on_pick_cancelled = an_action
+		end
+
+	cancel_pick_quietly
+			-- End a pick without telling `on_pick_cancelled' (its owner ended it).
+		do
+			pick_pebble := Void
+			finish_pick
+		ensure
+			idle: pick_pebble = Void
+		end
+
+feature {NONE} -- Pick gestures (simple_gui 1q)
+
+	tell_pick_cancelled
+		do
+			if attached on_pick_cancelled as al_told then
+				al_told.call (Void)
+			end
+		end
+
+	drag_pick_source: detachable SW_WIDGET
+			-- The drag source a press armed, until the press moves or ends.
+
+	drag_pick_x, drag_pick_y: INTEGER
+
+	Drag_pick_slop: INTEGER = 6
+			-- How far a press moves before it is a drag.
+
+	arm_drag_pick (a_target: SW_WIDGET; a_x, a_y: INTEGER)
+			-- Arm a drag pick on the first enabled drag source from `a_target' up.
+		local
+			w: detachable SW_WIDGET
+		do
+			drag_pick_source := Void
+			from w := a_target until w = Void or drag_pick_source /= Void loop
+				if w.picks_on_drag and then w.is_enabled then
+					drag_pick_source := w
+					drag_pick_x := a_x
+					drag_pick_y := a_y
+				end
+				w := w.parent
+			end
+		end
+
+	secondary_pick (a_target: SW_WIDGET; a_x, a_y: INTEGER): BOOLEAN
+			-- Lift the pebble of the first enabled secondary-click source from
+			-- `a_target' up, if it offers one at the point.
+		local
+			w: detachable SW_WIDGET
+		do
+			from w := a_target until w = Void or Result loop
+				if w.picks_on_secondary and then w.is_enabled then
+					if attached w.pebble_at (a_x, a_y) as al_pebble then
+						begin_pick_with (al_pebble, w.pebble_card_at (a_x, a_y), a_x, a_y, False)
+						follow_pick (a_x, a_y)
+						Result := True
+					end
+					w := Void
+				else
+					w := w.parent
+				end
+			end
+		end
+
+feature {NONE} -- Popup lifecycle
 
 	finish_pick
 			-- Tell every spot the pick passed over that it is over.
@@ -2700,6 +2782,7 @@ feature {NONE} -- Popup lifecycle
 						w.set_focused (True)
 					end
 					capture := bubble_click (w, a_x, a_y, False)
+					arm_drag_pick (w, a_x, a_y)
 				elseif sheet = Void and then drawer_tab_at (a_x, a_y) > 0 then
 					open_drawer_from_tab (drawer_tab_at (a_x, a_y), True)
 				elseif sheet /= Void and then sheet_mode /= Mode_center
@@ -2793,6 +2876,17 @@ feature {NONE} -- Popup lifecycle
 					sheet_grab_x := a_x
 					sheet_grab_y := a_y
 					after_input
+				elseif attached drag_pick_source as al_source and then pick_pebble = Void
+					and then ((a_x - drag_pick_x).abs + (a_y - drag_pick_y).abs) > Drag_pick_slop
+				then
+						-- simple_gui 1q: a drag source lifts its pebble once the
+						-- press has moved; the release drops it
+					drag_pick_source := Void
+					if attached al_source.pebble_at (drag_pick_x, drag_pick_y) as al_pebble then
+						begin_pick_with (al_pebble, al_source.pebble_card_at (drag_pick_x, drag_pick_y), a_x, a_y, True)
+						follow_pick (a_x, a_y)
+					end
+					after_input
 				elseif attached capture as w then
 					w.handle_drag (a_x, a_y)
 					if attached w.take_pick_request as al_pick then
@@ -2804,6 +2898,7 @@ feature {NONE} -- Popup lifecycle
 					after_input
 				end
 			when Event_window_release then
+				drag_pick_source := Void
 				sheet_dragging := False
 				sheet_sizing := False
 				if attached capture as cw then
@@ -2902,7 +2997,9 @@ feature {NONE} -- Popup lifecycle
 					lens.reveal (Current, dw, a_x, a_y)
 					after_input
 				elseif attached target_at (a_x, a_y) as w then
-					bubble_context (w, a_x, a_y)
+					if not secondary_pick (w, a_x, a_y) then
+						bubble_context (w, a_x, a_y)
+					end
 				end
 				after_input
 			when Event_window_triple then
