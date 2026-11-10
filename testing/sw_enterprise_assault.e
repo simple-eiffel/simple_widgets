@@ -1264,4 +1264,261 @@ feature -- Dock (GW-05)
 	dock_changes: INTEGER
 
 
+feature -- Splitter collapse and dock panel fields 1r-c
+
+	rc_events: INTEGER
+	rc_last_pane: INTEGER
+	rc_last_collapsed: BOOLEAN
+
+	rc_note (a_pane: INTEGER; a_collapsed: BOOLEAN)
+		do
+			rc_events := rc_events + 1
+			rc_last_pane := a_pane
+			rc_last_collapsed := a_collapsed
+		end
+
+	rc_splitter: SW_SPLITTER
+			-- A 600 x 300 side-by-side splitter, both panes collapsible, noting its notices.
+		do
+			create Result.make (create {SW_LABEL}.make_ui ("left"), create {SW_LABEL}.make_ui ("right"))
+			Result.set_bounds (0.0, 0.0, 600.0, 300.0)
+			Result.set_collapsible (1, True)
+			Result.set_collapsible (2, True)
+			Result.set_on_collapse_change (agent rc_note)
+			rc_events := 0
+		end
+
+	test_splitter_1rc_collapse_expand_round_trips_the_ratio
+		local
+			sp: SW_SPLITTER
+		do
+			sp := rc_splitter
+			sp.set_ratio (0.3)
+			sp.collapse_pane (1)
+			assert_true ("pane 1 collapsed", sp.is_pane_collapsed (1))
+			assert_false ("pane 2 is not", sp.is_pane_collapsed (2))
+			assert_reals_equal ("all room to the other", 0.0, sp.ratio, 0.000_1)
+			sp.expand_pane (1)
+			assert_false ("open again", sp.is_pane_collapsed (1))
+			assert_reals_equal ("the ratio it had", 0.3, sp.ratio, 0.000_1)
+			sp.collapse_pane (2)
+			assert_reals_equal ("pane 2 collapsed: ratio 1", 1.0, sp.ratio, 0.000_1)
+			sp.expand_pane (2)
+			assert_reals_equal ("restored", 0.3, sp.ratio, 0.000_1)
+			assert_integers_equal ("code calls never notify", 0, rc_events)
+			assert_true ("collapsible flags kept", sp.is_collapsible (1) and sp.is_collapsible (2))
+			sp.set_collapsible (2, False)
+			assert_false ("and cleared", sp.is_collapsible (2))
+		end
+
+	test_splitter_1rc_collapsed_child_is_not_hit_or_arranged
+		local
+			sp: SW_SPLITTER
+			w: SW_WINDOW
+		do
+			sp := rc_splitter
+			create w.make ("split", 0, 0, 700, 400, create {SW_THEME}.make_light)
+			w.set_root (sp)
+			w.request_render
+			assert_true ("left hit when open", sp.widget_at (sp.x + 100.0, sp.y + 150.0) = sp.left_child)
+			sp.collapse_pane (1)
+			w.request_render
+			assert_reals_equal ("the collapsed child has no room", 0.0, sp.left_child.width, 0.000_1)
+			assert_true ("nothing at the left edge is the child", sp.widget_at (sp.x + 2.0, sp.y + 150.0) /= sp.left_child)
+			assert_true ("the other pane is hit", sp.widget_at (sp.x + 300.0, sp.y + 150.0) = sp.right_child)
+		end
+
+	test_splitter_1rc_user_acts_notify
+		local
+			sp: SW_SPLITTER
+			l_ok: BOOLEAN
+		do
+			sp := rc_splitter
+			sp.set_ratio (0.4)
+				-- the first pane's button on the divider
+			sp.locate_button (1)
+			assert_integers_equal ("button 1 is under its centre", 1, sp.button_pane_at (sp.button_center_x, sp.button_center_y))
+			l_ok := sp.handle_click (sp.button_center_x, sp.button_center_y)
+			assert_true ("the press is taken", l_ok)
+			assert_true ("pane 1 collapsed by the button", sp.is_pane_collapsed (1))
+			assert_integers_equal ("one notice", 1, rc_events)
+			assert_true ("for pane 1 collapsed", rc_last_pane = 1 and rc_last_collapsed)
+				-- drift while the button is held does nothing
+			sp.handle_drag (200.0, 150.0)
+			assert_true ("the button press drag is ignored", sp.is_pane_collapsed (1))
+			assert_integers_equal ("still one notice", 1, rc_events)
+				-- the button again opens it
+			sp.locate_button (1)
+			l_ok := sp.handle_click (sp.button_center_x, sp.button_center_y)
+			assert_false ("opened by the button", sp.is_pane_collapsed (1))
+			assert_reals_equal ("at its old ratio", 0.4, sp.ratio, 0.000_1)
+			assert_true ("notice: pane 1 open", rc_events = 2 and rc_last_pane = 1 and not rc_last_collapsed)
+				-- a double click on the bare divider: the first collapsible pane collapses
+			l_ok := sp.handle_double_click (sp.divider_left + 4.5, 150.0)
+			assert_true ("double click collapsed pane 1", l_ok and sp.is_pane_collapsed (1))
+			assert_true ("and noticed", rc_events = 3 and rc_last_pane = 1 and rc_last_collapsed)
+			l_ok := sp.handle_double_click (sp.divider_left + 4.5, 150.0)
+			assert_false ("a second one opens it", sp.is_pane_collapsed (1))
+			assert_true ("noticed", rc_events = 4 and not rc_last_collapsed)
+				-- pane 2 collapsible alone
+			sp.set_collapsible (1, False)
+			l_ok := sp.handle_double_click (sp.divider_left + 4.5, 150.0)
+			assert_true ("pane 2 collapsed", sp.is_pane_collapsed (2) and rc_last_pane = 2 and rc_last_collapsed)
+				-- dragging a collapsed pane open
+			rc_events := 0
+			l_ok := sp.handle_click (sp.divider_left + 4.5, 150.0)
+			sp.handle_drag (350.0, 150.0)
+			assert_false ("the drag opened it", sp.is_pane_collapsed (2))
+			assert_true ("counted as expanding", rc_events = 1 and rc_last_pane = 2 and not rc_last_collapsed)
+			assert_true ("a ratio from the drag", sp.ratio > 0.5 and sp.ratio < 0.7)
+		end
+
+	test_splitter_1rc_drag_to_the_edge_never_collapses
+		local
+			sp: SW_SPLITTER
+			l_ok: BOOLEAN
+		do
+			sp := rc_splitter
+			l_ok := sp.handle_click (sp.divider_left + 4.5, 150.0)
+			sp.handle_drag (-50.0, 150.0)
+			assert_false ("not collapsed at the left edge", sp.is_pane_collapsed (1) or sp.is_pane_collapsed (2))
+			assert_true ("held at the minimum", sp.ratio * 591.0 >= {SW_SPLITTER}.Min_pane - 0.01)
+			sp.handle_drag (900.0, 150.0)
+			assert_false ("nor at the right edge", sp.is_pane_collapsed (1) or sp.is_pane_collapsed (2))
+			assert_true ("held at the minimum there", (1.0 - sp.ratio) * 591.0 >= {SW_SPLITTER}.Min_pane - 0.01)
+			assert_integers_equal ("no notice", 0, rc_events)
+		end
+
+	test_splitter_1rc_precondition_one_collapsed_at_a_time
+			-- collapse_pane requires the other pane open; the user's routes honor it too.
+		local
+			sp: SW_SPLITTER
+			l_ok: BOOLEAN
+		do
+			sp := rc_splitter
+			sp.collapse_pane (1)
+			assert_true ("the precondition of collapse_pane (2) is false now", sp.is_pane_collapsed (3 - 2))
+			assert_false ("pane 2 shows no button while pane 1 is collapsed", sp.is_button_shown (2))
+			assert_true ("pane 1 keeps its button, to open it", sp.is_button_shown (1))
+			l_ok := sp.handle_double_click (sp.divider_left + 4.5, 150.0)
+			assert_false ("a double click opens pane 1, never collapses 2", sp.is_pane_collapsed (1) or sp.is_pane_collapsed (2))
+		end
+
+	test_splitter_1rc_no_collapsible_keeps_double_click_home
+		local
+			sp: SW_SPLITTER
+			l_ok: BOOLEAN
+		do
+			create sp.make (create {SW_LABEL}.make_ui ("l"), create {SW_LABEL}.make_ui ("r"))
+			sp.set_bounds (0.0, 0.0, 600.0, 300.0)
+			sp.set_ratio (0.2)
+			l_ok := sp.handle_double_click (sp.divider_left + 4.5, 150.0)
+			assert_true ("the divider took it", l_ok)
+			assert_reals_equal ("the ratio snaps home", 0.5, sp.ratio, 0.000_1)
+		end
+
+	rc_dock: SW_DOCK_HOST
+			-- rb_dock with the south zone tabbed.
+		do
+			Result := rb_dock
+			Result.set_tabbed (Result.Zone_south, True)
+		end
+
+	test_dock_1rc_tab_text_and_tab_tip_fall_back
+		local
+			dh: SW_DOCK_HOST
+		do
+			dh := rc_dock
+			assert_true ("no fields: empty", dh.panel_short_title (1).is_empty and dh.panel_description (1).is_empty
+				and dh.panel_tooltip (1).is_empty and dh.panel_pill (1).is_empty)
+			assert_strings_equal ("tab_text is the title", "alpha", dh.tab_text (1))
+			assert_strings_equal ("tab_tip is empty", "", dh.tab_tip (1))
+			dh.set_panel_short_title (1, "al")
+			assert_strings_equal ("the short title wins", "al", dh.tab_text (1))
+			assert_strings_equal ("the title itself is kept", "alpha", dh.panels.i_th (1).title)
+			dh.set_panel_description (1, "the first one")
+			assert_strings_equal ("tab_tip falls back to the description", "the first one", dh.tab_tip (1))
+			dh.set_panel_tooltip (1, "alpha tip")
+			assert_strings_equal ("the tooltip wins", "alpha tip", dh.tab_tip (1))
+			dh.set_panel_tooltip (1, "")
+			assert_strings_equal ("cleared: the description again", "the first one", dh.tab_tip (1))
+			dh.set_panel_pill (1, "D7")
+			assert_strings_equal ("pill", "D7", dh.panel_pill (1))
+			assert_strings_equal ("other panels untouched", "beta", dh.tab_text (2))
+		end
+
+	test_dock_1rc_fields_survive_removing_an_earlier_panel
+		local
+			dh: SW_DOCK_HOST
+		do
+			dh := rc_dock
+			dh.set_panel_short_title (3, "g")
+			dh.set_panel_description (3, "gamma description")
+			dh.set_panel_tooltip (3, "gamma tip")
+			dh.set_panel_pill (3, "D9")
+			dh.set_panel_short_title (1, "a")
+			dh.remove_panel (1)
+			assert_true ("gamma is now id 2", dh.panels.i_th (2).key.same_string ("C"))
+			assert_strings_equal ("short title kept", "g", dh.panel_short_title (2))
+			assert_strings_equal ("description kept", "gamma description", dh.panel_description (2))
+			assert_strings_equal ("tooltip kept", "gamma tip", dh.panel_tooltip (2))
+			assert_strings_equal ("pill kept", "D9", dh.panel_pill (2))
+			assert_strings_equal ("the removed panel fields did not move to beta", "", dh.panel_short_title (1))
+		end
+
+	test_dock_1rc_a_tab_draws_the_short_title_and_a_tip
+		local
+			dh: SW_DOCK_HOST
+			w: SW_WINDOW
+			zw: SW_DOCK_ZONE
+			l_wide: REAL_64
+			l_card: detachable SW_HOVER_CARD
+		do
+			dh := rc_dock
+			w := rb_window (dh)
+			zw := dh.zone_widget (dh.Zone_south)
+			l_wide := zw.tab_widths.i_th (1)
+			dh.set_panel_short_title (1, "a")
+			w.request_render
+			assert_true ("the tab got narrower with the short title", zw.tab_widths.i_th (1) < l_wide)
+			assert_strings_equal ("the tab shows tab_text", "a", dh.tab_text (zw.tab_ids.i_th (1)))
+			assert_true ("no tip: no card", zw.hover_card_at (zw.tab_lefts.i_th (1) + 3.0, zw.y + 3.0) = Void)
+			dh.set_panel_tooltip (1, "alpha panel")
+			w.request_render
+			l_card := zw.hover_card_at (zw.tab_lefts.i_th (1) + 3.0, zw.y + 3.0)
+			assert_true ("a tip: a card", l_card /= Void)
+			assert_true ("the zone asks for a dwell", zw.dwell_ms > 0)
+			assert_true ("a bar between tabs has none", zw.hover_card_at (zw.x + zw.width - 3.0, zw.y + 3.0) = Void)
+		end
+
+	test_dock_1rc_pills_show_only_while_the_window_shows_pills
+		local
+			dh: SW_DOCK_HOST
+			w: SW_WINDOW
+			zw: SW_DOCK_ZONE
+			l_plain: REAL_64
+			l_card: detachable SW_HOVER_CARD
+		do
+			dh := rc_dock
+			dh.set_panel_pill (1, "D7")
+			dh.set_panel_description (1, "the alpha panel")
+			w := rb_window (dh)
+			zw := dh.zone_widget (dh.Zone_south)
+			l_plain := zw.tab_widths.i_th (1)
+			assert_true ("hidden: no pill drawn", zw.pill_rects.is_empty)
+			w.set_reference_marks_shown (True)
+			w.request_render
+			assert_true ("shown: a pill drawn on the tab", zw.pill_rects.count >= 1)
+			assert_true ("and the tab made room", zw.tab_widths.i_th (1) > l_plain)
+			l_card := zw.hover_card_at (zw.pill_rects.first.px + 2.0, zw.pill_rects.first.py + 2.0)
+			assert_true ("its tip is the description", l_card /= Void)
+			w.set_reference_marks_shown (False)
+			w.request_render
+			assert_true ("hidden again", zw.pill_rects.is_empty)
+			dh.set_tabbed (dh.Zone_south, False)
+			w.set_reference_marks_shown (True)
+			w.request_render
+			assert_true ("a stacked title bar carries it too", zw.pill_rects.count >= 1)
+		end
+
 end

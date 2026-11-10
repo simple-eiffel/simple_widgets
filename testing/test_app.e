@@ -472,6 +472,16 @@ feature {NONE} -- Test runners
 			run_test (agent enterprise_tests.test_dock_1rb_auto_hide_pin_button, "dock_1rb_auto_hide_pin_button")
 			run_test (agent enterprise_tests.test_dock_1rb_maximize_center_round_trip, "dock_1rb_maximize_center_round_trip")
 			run_test (agent enterprise_tests.test_dock_1rb_snapshot_round_trip, "dock_1rb_snapshot_round_trip")
+			run_test (agent enterprise_tests.test_splitter_1rc_collapse_expand_round_trips_the_ratio, "splitter_1rc_collapse_expand_round_trips_the_ratio")
+			run_test (agent enterprise_tests.test_splitter_1rc_collapsed_child_is_not_hit_or_arranged, "splitter_1rc_collapsed_child_is_not_hit_or_arranged")
+			run_test (agent enterprise_tests.test_splitter_1rc_user_acts_notify, "splitter_1rc_user_acts_notify")
+			run_test (agent enterprise_tests.test_splitter_1rc_drag_to_the_edge_never_collapses, "splitter_1rc_drag_to_the_edge_never_collapses")
+			run_test (agent enterprise_tests.test_splitter_1rc_precondition_one_collapsed_at_a_time, "splitter_1rc_precondition_one_collapsed_at_a_time")
+			run_test (agent enterprise_tests.test_splitter_1rc_no_collapsible_keeps_double_click_home, "splitter_1rc_no_collapsible_keeps_double_click_home")
+			run_test (agent enterprise_tests.test_dock_1rc_tab_text_and_tab_tip_fall_back, "dock_1rc_tab_text_and_tab_tip_fall_back")
+			run_test (agent enterprise_tests.test_dock_1rc_fields_survive_removing_an_earlier_panel, "dock_1rc_fields_survive_removing_an_earlier_panel")
+			run_test (agent enterprise_tests.test_dock_1rc_a_tab_draws_the_short_title_and_a_tip, "dock_1rc_a_tab_draws_the_short_title_and_a_tip")
+			run_test (agent enterprise_tests.test_dock_1rc_pills_show_only_while_the_window_shows_pills, "dock_1rc_pills_show_only_while_the_window_shows_pills")
 		end
 
 	enterprise_tests: SW_ENTERPRISE_ASSAULT

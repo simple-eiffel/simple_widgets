@@ -40,6 +40,17 @@ feature -- Access
 
 	theme: SW_THEME
 
+	pills_shown: BOOLEAN
+			-- Does the window show its reference pills? The window sets it each frame, so
+			-- a widget that carries a pill of its own (a dock panel's) draws it only then.
+
+	set_pills_shown (a_shown: BOOLEAN)
+		do
+			pills_shown := a_shown
+		ensure
+			set: pills_shown = a_shown
+		end
+
 	twin_in_theme (a_theme: SW_THEME): SW_PAINTER
 			-- A painter on the same context in `a_theme', with the same
 			-- shaping kit: a print preview draws paper in paper inks on a

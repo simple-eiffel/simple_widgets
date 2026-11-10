@@ -39,7 +39,7 @@ inherit
 		redefine
 			widget_at, pebble_at, accepts_pebble, receive_pebble, arrange, handle_click, handle_double_click,
 			accessible_children, accessible_role, default_accessible_name, context_menu, wants_hover_point,
-			refresh_enabling, dwell_ms, handle_dwell
+			refresh_enabling, dwell_ms, handle_dwell, hover_card_at
 		end
 
 	SW_TAB_STRIP
@@ -317,12 +317,137 @@ feature -- Buttons and the strip (0.46.0)
 		end
 
 	dwell_ms: INTEGER
-			-- An auto-hide strip slides a name's panel out after a rest.
+			-- An auto-hide strip slides a name's panel out after a rest; a zone whose
+			-- tabs, names or pills carry a tip opens it after one too.
 		do
 			if is_folded and then host.is_auto_hide (zone_id) then
 				Result := Dwell_slide_ms
+			elseif offers_tips then
+				Result := Dwell_slide_ms
 			end
 		end
+
+	offers_tips: BOOLEAN
+			-- Does any panel of this zone have a tab tip or a pill?
+		do
+			Result := across host.panels_in (zone_id) as al_id some
+				not host.tab_tip (al_id).is_empty or not host.panel_pill (al_id).is_empty end
+		end
+
+	hover_card_at (a_px, a_py: REAL_64): detachable SW_HOVER_CARD
+			-- The tip of the tab or strip name under the point, or the description on a pill.
+		local
+			l_id, i: INTEGER
+			l_text: STRING_32
+		do
+			if contains (a_px, a_py) then
+				from
+					i := 1
+				until
+					i > pill_rects.count or l_id > 0
+				loop
+					if a_px >= pill_rects.i_th (i).px and a_px < pill_rects.i_th (i).px + pill_rects.i_th (i).pw
+						and a_py >= pill_rects.i_th (i).py and a_py < pill_rects.i_th (i).py + pill_rects.i_th (i).ph
+					then
+						l_id := pill_rects.i_th (i).panel
+						if host.panel_description (l_id).is_empty then
+							l_text := host.panel_pill (l_id)
+						else
+							l_text := host.panel_pill (l_id) + {STRING_32} "  " + host.panel_description (l_id)
+						end
+						Result := tip_card (l_text, pill_rects.i_th (i).px, pill_rects.i_th (i).py,
+							pill_rects.i_th (i).pw, pill_rects.i_th (i).ph)
+					end
+					i := i + 1
+				end
+				if Result = Void then
+					if is_folded then
+						l_id := strip_panel_at (a_px, a_py)
+						if l_id > 0 and then not host.tab_tip (l_id).is_empty then
+							across
+								strip_titles as al_s
+							loop
+								if al_s.panel = l_id then
+									if is_across then
+										Result := tip_card (host.tab_tip (l_id), al_s.lo, y, al_s.hi - al_s.lo, height)
+									else
+										Result := tip_card (host.tab_tip (l_id), x, al_s.lo, width, al_s.hi - al_s.lo)
+									end
+								end
+							end
+						end
+					elseif is_tabbed and then solo_panel = 0 and then a_py >= y and then a_py < y + bar_h then
+						i := tab_at (a_px, a_py)
+						if i > 0 and then not host.tab_tip (tab_ids.i_th (i)).is_empty then
+							Result := tip_card (host.tab_tip (tab_ids.i_th (i)), tab_lefts.i_th (i), y, tab_widths.i_th (i), bar_h)
+						end
+					end
+				end
+			end
+		end
+
+	tip_card (a_text: STRING_32; a_x, a_y, a_w, a_h: REAL_64): SW_HOVER_CARD
+			-- A card showing `a_text', anchored on the given box.
+		local
+			l_label: SW_LABEL
+		do
+			create l_label.make_body (a_text)
+			create Result.make (l_label, (a_text.count * 7.5 * text_scale_seen + 24.0).min (360.0 * text_scale_seen).max (80.0))
+			Result.set_anchor (a_x, a_y, a_w, a_h)
+		ensure
+			anchored: Result.has_anchor
+		end
+
+	text_scale_seen: REAL_64
+			-- The theme's `text_scale' at the last `arrange'.
+
+	pill_rects: ARRAYED_LIST [TUPLE [panel: INTEGER; px, py, pw, ph: REAL_64]]
+			-- The pills drawn by the last `draw'; empty while the window hides pills.
+		attribute
+			create Result.make (4)
+		end
+
+	Pill_gap: REAL_64 = 6.0
+			-- Room between a title and its pill.
+
+	pill_extent (a_p: SW_PAINTER; a_panel: INTEGER): REAL_64
+			-- The room panel `a_panel's pill takes after its title (the gap too); 0 when pills are
+			-- hidden or it has none. Leaves the painter's font set to the title font.
+		do
+			if a_p.pills_shown and then not host.panel_pill (a_panel).is_empty then
+				a_p.font ({SW_PAINTER}.Role_mono, 10.5, True)
+				Result := a_p.advance (host.panel_pill (a_panel)) + 14.0 * a_p.theme.text_scale + Pill_gap
+				title_font (a_p)
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	draw_pill (a_p: SW_PAINTER; a_panel: INTEGER; a_left, a_bar_top: REAL_64)
+			-- Panel `a_panel's pill, in the board orange with a white rim, at `a_left' on the
+			-- bar whose top is `a_bar_top'; nothing while pills are hidden or it has none.
+		local
+			l_w, l_h: REAL_64
+		do
+			if a_p.pills_shown and then not host.panel_pill (a_panel).is_empty then
+				a_p.font ({SW_PAINTER}.Role_mono, 10.5, True)
+				l_w := a_p.advance (host.panel_pill (a_panel)) + 14.0 * a_p.theme.text_scale
+				l_h := (bar_h - 4.0).min (19.0 * a_p.theme.text_scale)
+				a_p.set_color (Pill_fill)
+				a_p.rrect_fill (a_left, a_bar_top + (bar_h - l_h) / 2.0, l_w, l_h, l_h / 2.0)
+				a_p.set_color (0xFFFFFF)
+				a_p.set_line_width (1.5)
+				a_p.rrect_stroke (a_left, a_bar_top + (bar_h - l_h) / 2.0, l_w, l_h, l_h / 2.0)
+				a_p.set_line_width (1.0)
+				a_p.text (a_left + 7.0 * a_p.theme.text_scale, a_bar_top + (bar_h - l_h) / 2.0 + l_h / 2.0 + a_p.font_ascent / 2.0 - 1.0,
+					host.panel_pill (a_panel))
+				pill_rects.extend ([a_panel, a_left, a_bar_top + (bar_h - l_h) / 2.0, l_w, l_h])
+				title_font (a_p)
+			end
+		end
+
+	Pill_fill: NATURAL_32 = 0xC2410C
+			-- The pill color of the design boards, as the window's.
 
 	Dwell_slide_ms: INTEGER = 400
 			-- How long a rest on a strip name takes to slide its panel out.
@@ -605,6 +730,7 @@ feature -- Layout
 			l_naturals: ARRAYED_LIST [REAL_64]
 		do
 			title_font (a_p)
+			text_scale_seen := a_p.theme.text_scale
 			bar_h := a_p.text_extent + a_p.theme.padding
 			bar_text_y := (bar_h - a_p.text_extent) / 2.0 + a_p.font_ascent
 			tab_pad := a_p.theme.control_inset
@@ -633,7 +759,7 @@ feature -- Layout
 				across
 					mine as m
 				loop
-					l_len := a_p.advance (host.panels.i_th (m).title) + 2.0 * tab_pad + bar_h / 2.0
+					l_len := a_p.advance (host.tab_text (m)) + 2.0 * tab_pad + bar_h / 2.0
 					strip_titles.extend ([m.item, l_along, l_along + l_len])
 					l_along := l_along + l_len
 				end
@@ -653,7 +779,8 @@ feature -- Layout
 					i > mine.count
 				loop
 					tab_ids.extend (mine.i_th (i))
-					l_naturals.extend (a_p.advance (host.panels.i_th (mine.i_th (i)).title) + 2.0 * tab_pad)
+					l_naturals.extend (a_p.advance (host.tab_text (mine.i_th (i))) + 2.0 * tab_pad
+						+ pill_extent (a_p, mine.i_th (i)))
 					i := i + 1
 				end
 				place_tabs_shrinking (l_naturals, x + 2.0, (l_right - x - 4.0).max (0.0))
@@ -749,6 +876,7 @@ feature -- Drawing
 		do
 			if width > 1.0 and height > 1.0 then
 				t := a_p.theme
+				pill_rects.wipe_out
 				a_p.set_color (t.surface)
 				a_p.fill_rect (x, y, width, height)
 				mine := host.panels_in (zone_id)
@@ -760,6 +888,7 @@ feature -- Drawing
 					title_font (a_p)
 					a_p.set_color (t.ink)
 					a_p.text (x + tab_pad, y + bar_text_y, host.panels.i_th (solo_panel).title)
+					draw_pill (a_p, solo_panel, x + tab_pad + a_p.advance (host.panels.i_th (solo_panel).title) + Pill_gap, y)
 					draw_clipped (a_p, host.panels.i_th (solo_panel).content)
 				elseif is_tabbed then
 					a_p.set_color (t.surface_variant)
@@ -773,7 +902,9 @@ feature -- Drawing
 					loop
 						a_p.set_color (draw_tab_ground (a_p, i, tab_ids.i_th (i) = act, False))
 						a_p.push_clip (tab_lefts.i_th (i), y, tab_widths.i_th (i), bar_h)
-						a_p.text (tab_lefts.i_th (i) + tab_pad, y + bar_text_y, host.panels.i_th (tab_ids.i_th (i)).title)
+						a_p.text (tab_lefts.i_th (i) + tab_pad, y + bar_text_y, host.tab_text (tab_ids.i_th (i)))
+						draw_pill (a_p, tab_ids.i_th (i),
+							tab_lefts.i_th (i) + tab_pad + a_p.advance (host.tab_text (tab_ids.i_th (i))) + Pill_gap, y)
 						a_p.pop_clip
 						draw_tab_separator (a_p, i)
 						i := i + 1
@@ -794,6 +925,8 @@ feature -- Drawing
 						a_p.set_color (t.ink_muted)
 						a_p.text (x + tab_pad, sy + bar_text_y,
 							host.panels.i_th (mine.i_th (i)).title)
+						draw_pill (a_p, mine.i_th (i),
+							x + tab_pad + a_p.advance (host.panels.i_th (mine.i_th (i)).title) + Pill_gap, sy)
 						draw_clipped (a_p, host.panels.i_th (mine.i_th (i)).content)
 						i := i + 1
 					end
@@ -949,7 +1082,7 @@ feature {NONE} -- Implementation
 			across
 				strip_titles as al_s
 			loop
-				l_title := host.panels.i_th (al_s.panel).title
+				l_title := host.tab_text (al_s.panel)
 				l_adv := a_p.advance (l_title)
 				if is_across then
 					l_hot := shows_hover and then hover_px >= al_s.lo and then hover_px < al_s.hi and then contains (hover_px, hover_py)
