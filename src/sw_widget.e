@@ -683,16 +683,33 @@ feature -- Input
 
 	accepts_files: BOOLEAN
 			-- Does this widget welcome files dropped from the shell?
-			-- The pebble protocol's file-shaped sibling.
+			-- The pebble protocol's file-shaped sibling. By default: when
+			-- it has a `files_hook'.
 		do
+			Result := files_hook /= Void
 		end
 
 	receive_files (a_paths: ARRAYED_LIST [STRING_32]; a_px, a_py: REAL_64)
-			-- Take the dropped paths (drop point in widget space).
+			-- Take the dropped paths (drop point in widget space). By
+			-- default `files_hook' takes them.
 		require
 			welcome: accepts_files
 			something: not a_paths.is_empty
 		do
+			if attached files_hook as al_hook then
+				al_hook.call ([a_paths])
+			end
+		end
+
+	files_hook: detachable PROCEDURE [ARRAYED_LIST [STRING_32]]
+			-- Takes files dropped from the shell, for a client that composes
+			-- widgets rather than redefining them (simple_gui 1q-b).
+
+	set_files_hook (a_hook: like files_hook)
+		do
+			files_hook := a_hook
+		ensure
+			set: files_hook = a_hook
 		end
 
 	pebble_at (a_px, a_py: REAL_64): detachable ANY

@@ -217,6 +217,26 @@ feature -- Composed sources and holes (simple_gui 1q)
 			assert_integers_equal ("and the hole had nothing", 2, l_got.item)
 		end
 
+	test_a_hooked_widget_takes_files
+			-- simple_gui 1q-b (2026-11-09): a plain widget takes files from the shell through a
+			-- hook; without one it takes none.
+		local
+			l_label: SW_LABEL
+			l_paths: ARRAYED_LIST [STRING_32]
+			l_got: CELL [INTEGER]
+		do
+			create l_got.put (0)
+			create l_label.make_ui ("Drop files here")
+			assert_false ("no hook, no files", l_label.accepts_files)
+			l_label.set_files_hook (agent (a_p: ARRAYED_LIST [STRING_32]; c: CELL [INTEGER]) do c.put (a_p.count) end (?, l_got))
+			assert_true ("a hook takes files", l_label.accepts_files)
+			create l_paths.make (2)
+			l_paths.extend ("C:/notes.txt")
+			l_paths.extend ("C:/sermon.md")
+			l_label.receive_files (l_paths, 1.0, 1.0)
+			assert_integers_equal ("both", 2, l_got.item)
+		end
+
 feature -- The tree as the hole
 
 	test_a_resting_pick_springs_a_folder_that_closes_after
