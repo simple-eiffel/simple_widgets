@@ -697,6 +697,350 @@ feature -- Dock north zone
 			assert_reals_equal ("west and east as before", 800.0 * 0.22, b.zone_rect (b.Zone_west).rw, 0.000_1)
 		end
 
+feature -- Dock 1r-b
+
+	rb_events: INTEGER
+			-- How many times a 1r-b dock announced a layout change.
+
+	rb_bump
+		do
+			rb_events := rb_events + 1
+		end
+
+	rb_dock: SW_DOCK_HOST
+			-- An 800 x 500 host: south A, B, C (ids 1..3), west W (4), north N (5), east E (6).
+		do
+			create Result.make (create {SW_LABEL}.make_ui ("the document"))
+			Result.set_bounds (0.0, 0.0, 800.0, 500.0)
+			if Result.add_keyed_panel ("A", "alpha", create {SW_LABEL}.make_ui ("a"), Result.Zone_south) > 0 then end
+			if Result.add_keyed_panel ("B", "beta", create {SW_LABEL}.make_ui ("b"), Result.Zone_south) > 0 then end
+			if Result.add_keyed_panel ("C", "gamma", create {SW_LABEL}.make_ui ("c"), Result.Zone_south) > 0 then end
+			if Result.add_keyed_panel ("W", "west one", create {SW_LABEL}.make_ui ("w"), Result.Zone_west) > 0 then end
+			if Result.add_keyed_panel ("N", "north one", create {SW_LABEL}.make_ui ("n"), Result.Zone_north) > 0 then end
+			if Result.add_keyed_panel ("E", "east one", create {SW_LABEL}.make_ui ("e"), Result.Zone_east) > 0 then end
+		end
+
+	rb_window (a_host: SW_DOCK_HOST): SW_WINDOW
+			-- A window whose root is `a_host', rendered once.
+		do
+			create Result.make ("dock", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			Result.set_root (a_host)
+			Result.request_render
+		end
+
+	rb_same_rect (a, b: TUPLE [rx, ry, rw, rh: REAL_64]): BOOLEAN
+		do
+			Result := (a.rx - b.rx).abs < 0.000_1 and (a.ry - b.ry).abs < 0.000_1
+				and (a.rw - b.rw).abs < 0.000_1 and (a.rh - b.rh).abs < 0.000_1
+		end
+
+	test_dock_1rb_move_panel_to_orders_a_zone
+			-- move_panel_to sets the place among a zone's panels; ids stay;
+			-- panels_in, all_panels_in and the tabs follow; adds and moves append.
+		local
+			dh: SW_DOCK_HOST
+			w: SW_WINDOW
+			l_id: INTEGER
+		do
+			dh := rb_dock
+			dh.set_on_layout_change (agent rb_bump)
+			rb_events := 0
+			dh.move_panel_to (3, dh.Zone_south, 1)
+			assert_integers_equal ("C leads", 3, dh.all_panels_in (dh.Zone_south).first)
+			assert_true ("the order is C A B", dh.all_panels_in (dh.Zone_south).i_th (2) = 1 and dh.all_panels_in (dh.Zone_south).i_th (3) = 2)
+			assert_integers_equal ("one announcement", 1, rb_events)
+			assert_true ("ids did not change", dh.panels.i_th (3).key.same_string ("C") and dh.panels.i_th (1).key.same_string ("A")
+				and dh.panels.i_th (2).key.same_string ("B"))
+			dh.move_panel_to (3, dh.Zone_south, 1)
+			assert_integers_equal ("the same place says nothing", 1, rb_events)
+			dh.hide_panel (1)
+			assert_true ("panels_in follows the order and skips hidden", dh.panels_in (dh.Zone_south).count = 2
+				and dh.panels_in (dh.Zone_south).first = 3 and dh.panels_in (dh.Zone_south).last = 2)
+			assert_integers_equal ("all_panels_in still counts the hidden", 3, dh.all_panels_in (dh.Zone_south).count)
+			dh.show_panel (1)
+				-- from another zone: it moves, then takes its place
+			dh.move_panel_to (4, dh.Zone_south, 2)
+			assert_integers_equal ("W is now south", dh.Zone_south, dh.panels.i_th (4).zone)
+			assert_true ("and second there", dh.all_panels_in (dh.Zone_south).i_th (2) = 4)
+			assert_true ("the old zone let it go", dh.all_panels_in (dh.Zone_west).is_empty)
+			dh.move_panel_to (4, dh.Zone_south, 4)
+			assert_true ("the last place", dh.all_panels_in (dh.Zone_south).last = 4)
+			l_id := dh.add_keyed_panel ("F", "fifth", create {SW_LABEL}.make_ui ("f"), dh.Zone_south)
+			assert_integers_equal ("add_panel appends", l_id, dh.all_panels_in (dh.Zone_south).last)
+			dh.move_panel (3, dh.Zone_north)
+			assert_integers_equal ("move_panel appends to the new zone", 3, dh.all_panels_in (dh.Zone_north).last)
+			assert_true ("and leaves the old", not dh.all_panels_in (dh.Zone_south).has (3))
+				-- drawing and tabs follow the order
+			dh.set_tabbed (dh.Zone_south, True)
+			dh.move_panel_to (2, dh.Zone_south, 1)
+			w := rb_window (dh)
+			assert_true ("the tabs follow the order", dh.zone_widget (dh.Zone_south).tab_ids.count = dh.panels_in (dh.Zone_south).count)
+			assert_integers_equal ("first tab is B", 2, dh.zone_widget (dh.Zone_south).tab_ids.first)
+			assert_true ("and the rest as ordered", dh.zone_widget (dh.Zone_south).tab_ids.is_equal (dh.panels_in (dh.Zone_south)))
+			dh.set_tabbed (dh.Zone_south, False)
+			w.request_render
+			assert_integers_equal ("a stacked zone's first bar is B too", 2,
+				dh.zone_widget (dh.Zone_south).panel_at_bar (dh.zone_widget (dh.Zone_south).y + 2.0))
+		end
+
+	test_dock_1rb_remove_after_reordering
+			-- remove_panel drops the id from the orders and shifts the higher ids down.
+		local
+			dh: SW_DOCK_HOST
+		do
+			dh := rb_dock
+			dh.move_panel_to (3, dh.Zone_south, 1)
+			dh.remove_panel (1)
+			assert_integers_equal ("two left in the south", 2, dh.all_panels_in (dh.Zone_south).count)
+			assert_integers_equal ("C is now id 2 and leads", 2, dh.all_panels_in (dh.Zone_south).first)
+			assert_integers_equal ("B is now id 1", 1, dh.all_panels_in (dh.Zone_south).last)
+			assert_true ("the keys moved with the ids", dh.panels.i_th (2).key.same_string ("C") and dh.panels.i_th (1).key.same_string ("B"))
+			assert_integers_equal ("W shifted down to 3", 3, dh.all_panels_in (dh.Zone_west).first)
+			dh.remove_panel (2)
+			assert_integers_equal ("the last of the order goes too", 1, dh.all_panels_in (dh.Zone_south).count)
+			assert_integers_equal ("B stays", 1, dh.all_panels_in (dh.Zone_south).first)
+		end
+
+	test_dock_1rb_auto_hide_slides_a_panel_over_the_center
+			-- An auto-hide zone stands as its strip; slide_out shows the
+			-- panel over the center without reflow; slide_back hides it.
+		local
+			dh: SW_DOCK_HOST
+			w: SW_WINDOW
+			l_center, l_slide, l_zone: TUPLE [rx, ry, rw, rh: REAL_64]
+			l_strip: SW_DOCK_ZONE
+		do
+			dh := rb_dock
+			w := rb_window (dh)
+			dh.set_on_layout_change (agent rb_bump)
+			rb_events := 0
+			assert_false ("not auto-hide to begin with", dh.is_auto_hide (dh.Zone_west))
+			dh.set_auto_hide (dh.Zone_west, True)
+			w.request_render
+			assert_true ("it is auto-hide", dh.is_auto_hide (dh.Zone_west))
+			assert_false ("which is not collapse", dh.is_collapsed (dh.Zone_west))
+			assert_true ("it stands as a strip", dh.is_folded (dh.Zone_west))
+			assert_integers_equal ("announced", 1, rb_events)
+			l_zone := dh.zone_rect (dh.Zone_west)
+			assert_reals_equal ("a strip wide", dh.strip_extent (dh.Zone_west), l_zone.rw, 0.000_1)
+			l_strip := dh.zone_widget (dh.Zone_west)
+			assert_true ("the strip names the panel", l_strip.strip_titles.count = 1)
+			assert_integers_equal ("nothing slid out", 0, dh.slid_out_panel)
+			l_center := dh.center_rect
+			dh.slide_out (4)
+			w.request_render
+			assert_integers_equal ("W is out", 4, dh.slid_out_panel)
+			assert_integers_equal ("announced again", 2, rb_events)
+			assert_true ("the center did not reflow", rb_same_rect (l_center, dh.center_rect))
+			l_slide := dh.slide_rect
+			assert_reals_equal ("it stands beside the strip", l_zone.rx + l_zone.rw, l_slide.rx, 0.000_1)
+			assert_reals_equal ("at the zone's size", dh.width * dh.west_fraction, l_slide.rw, 0.000_1)
+			assert_true ("OVER the center", l_slide.rx < l_center.rx + l_center.rw and l_slide.rx + l_slide.rw > l_center.rx)
+			assert_true ("its content is seated inside it", dh.panels.i_th (4).content.x >= l_slide.rx
+				and dh.panels.i_th (4).content.x < l_slide.rx + l_slide.rw)
+			assert_true ("and answers hits", attached dh.widget_at (l_slide.rx + 30.0, l_slide.ry + 40.0) as al_h
+				and then al_h /= dh.center)
+			dh.slide_back
+			w.request_render
+			assert_integers_equal ("back in", 0, dh.slid_out_panel)
+			assert_true ("the slide has no extent", dh.slide_rect.rw = 0.0)
+			assert_integers_equal ("announced a third time", 3, rb_events)
+			dh.slide_back
+			assert_integers_equal ("a second slide_back says nothing", 3, rb_events)
+				-- a press on the name slides it out; a press outside sends it back
+			assert_true ("the strip takes the press", l_strip.handle_click (l_strip.x + l_strip.width / 2.0,
+				(l_strip.strip_titles.first.lo + l_strip.strip_titles.first.hi) / 2.0))
+			assert_integers_equal ("a press on the name slides it out", 4, dh.slid_out_panel)
+			assert_true ("a press on the center is outside", not dh.handle_click (l_center.rx + l_center.rw - 20.0, l_center.ry + 50.0))
+			assert_integers_equal ("and slides it back", 0, dh.slid_out_panel)
+				-- a rest on the name does it too
+			assert_true ("a strip dwells", l_strip.dwell_ms > 0)
+			l_strip.handle_dwell (l_strip.x + l_strip.width / 2.0, (l_strip.strip_titles.first.lo + l_strip.strip_titles.first.hi) / 2.0)
+			assert_integers_equal ("a rest slides it out", 4, dh.slid_out_panel)
+				-- a press inside it leaves it out
+			l_slide := dh.slide_rect
+			w.request_render
+			l_slide := dh.slide_rect
+			assert_false ("a press inside the slid panel keeps it", dh.handle_click (l_slide.rx + 20.0, l_slide.ry + 20.0))
+			assert_integers_equal ("still out", 4, dh.slid_out_panel)
+				-- expand_zone clears auto-hide and the slide
+			dh.expand_zone (dh.Zone_west)
+			assert_false ("expand_zone turns auto-hide off", dh.is_auto_hide (dh.Zone_west))
+			assert_integers_equal ("and takes the panel in", 0, dh.slid_out_panel)
+			assert_false ("the zone stands open", dh.is_folded (dh.Zone_west))
+			assert_reals_equal ("at its fraction", dh.width * dh.west_fraction, dh.zone_rect (dh.Zone_west).rw, 0.000_1)
+		end
+
+	test_dock_1rb_auto_hide_pin_button
+			-- The bar's pin button turns auto-hide on and off, and announces.
+		local
+			dh: SW_DOCK_HOST
+			w: SW_WINDOW
+			l_zone: SW_DOCK_ZONE
+			b: detachable TUPLE [kind, panel: INTEGER; bx, by, side: REAL_64]
+			i: INTEGER
+		do
+			dh := rb_dock
+			w := rb_window (dh)
+			dh.set_on_layout_change (agent rb_bump)
+			rb_events := 0
+			l_zone := dh.zone_widget (dh.Zone_east)
+			from
+				i := 1
+			until
+				i > l_zone.buttons.count
+			loop
+				if l_zone.buttons.i_th (i).kind = l_zone.Button_pin then
+					b := l_zone.buttons.i_th (i)
+				end
+				i := i + 1
+			end
+			assert_true ("the open zone's bar has a pin", b /= Void)
+			if attached b as al_b then
+				assert_integers_equal ("button_at finds it", l_zone.Button_pin, l_zone.button_at (al_b.bx + 2.0, al_b.by + 2.0).kind)
+				assert_true ("a click takes it", l_zone.handle_click (al_b.bx + 2.0, al_b.by + 2.0))
+			end
+			assert_true ("the pin turned auto-hide on", dh.is_auto_hide (dh.Zone_east))
+			assert_integers_equal ("and announced", 1, rb_events)
+			w.request_render
+			assert_true ("the strip has a pin as well", l_zone.buttons.count >= 2 and then l_zone.buttons.i_th (2).kind = l_zone.Button_pin)
+			l_zone.press_button (l_zone.Button_pin, 0)
+			assert_false ("pressed again it turns it off", dh.is_auto_hide (dh.Zone_east))
+			assert_integers_equal ("announced again", 2, rb_events)
+				-- the pin on a strip click path
+			dh.set_auto_hide (dh.Zone_east, True)
+			w.request_render
+			assert_true ("a click on the strip's pin", l_zone.handle_click (l_zone.buttons.i_th (2).bx + 2.0, l_zone.buttons.i_th (2).by + 2.0))
+			assert_false ("turns it off", dh.is_auto_hide (dh.Zone_east))
+		end
+
+	test_dock_1rb_maximize_center_round_trip
+			-- The center takes the host; every zone keeps its fold, auto-hide
+			-- state and fraction for restore_center.
+		local
+			dh: SW_DOCK_HOST
+			l_before: ARRAY [TUPLE [rx, ry, rw, rh: REAL_64]]
+			l_center: TUPLE [rx, ry, rw, rh: REAL_64]
+			z: INTEGER
+		do
+			dh := rb_dock
+			dh.set_on_layout_change (agent rb_bump)
+			dh.set_fraction (dh.Zone_south, 0.4)
+			dh.collapse_zone (dh.Zone_east)
+			dh.set_auto_hide (dh.Zone_north, True)
+			dh.slide_out (5)
+			create l_before.make_filled ([0.0, 0.0, 0.0, 0.0], dh.Zone_west, dh.Zone_north)
+			from
+				z := dh.Zone_west
+			until
+				z > dh.Zone_north
+			loop
+				l_before [z] := dh.zone_rect (z)
+				z := z + 1
+			end
+			l_center := dh.center_rect
+			rb_events := 0
+			dh.maximize_center
+			assert_true ("maximized", dh.is_center_maximized)
+			assert_integers_equal ("announced", 1, rb_events)
+			assert_integers_equal ("a slid panel goes in", 0, dh.slid_out_panel)
+			assert_true ("the center has the whole host", rb_same_rect (dh.center_rect, [0.0, 0.0, 800.0, 500.0]))
+			from
+				z := dh.Zone_west
+			until
+				z > dh.Zone_north
+			loop
+				assert_true ("every zone stands nowhere", dh.zone_rect (z).rw = 0.0 and dh.zone_rect (z).rh = 0.0)
+				assert_integers_equal ("no zone has an edge", 0, dh.edge_at (dh.zone_rect (z).rx + 1.0, 300.0))
+				z := z + 1
+			end
+			dh.maximize_center
+			assert_integers_equal ("again says nothing", 1, rb_events)
+			dh.restore_center
+			assert_false ("restored", dh.is_center_maximized)
+			assert_integers_equal ("announced", 2, rb_events)
+			assert_true ("east is still collapsed", dh.is_collapsed (dh.Zone_east))
+			assert_true ("north is still auto-hide", dh.is_auto_hide (dh.Zone_north))
+			assert_false ("and not collapsed", dh.is_collapsed (dh.Zone_north))
+			assert_reals_equal ("south has its fraction", 0.4, dh.south_fraction, 0.000_1)
+			from
+				z := dh.Zone_west
+			until
+				z > dh.Zone_north
+			loop
+				assert_true ("every zone is where it was", rb_same_rect (l_before [z], dh.zone_rect (z)))
+				z := z + 1
+			end
+			assert_true ("and the center", rb_same_rect (l_center, dh.center_rect))
+				-- maximize_panel keeps working, and the two do not combine
+			dh.set_maximizable (4, True)
+			dh.maximize_panel (4)
+			assert_integers_equal ("the panel has the host", 4, dh.maximized_panel)
+			dh.maximize_center
+			assert_integers_equal ("the center takes it from the panel", 0, dh.maximized_panel)
+			dh.maximize_panel (4)
+			assert_false ("and a panel takes it from the center", dh.is_center_maximized)
+			dh.restore_maximized
+			assert_integers_equal ("restore_maximized still works", 0, dh.maximized_panel)
+		end
+
+	test_dock_1rb_snapshot_round_trip
+			-- The snapshot writes and restores order, auto-hide and the
+			-- maximized center; an old snapshot restores with the order of ids.
+		local
+			a, b: SW_DOCK_HOST
+			snap, old_snap: STRING_32
+		do
+			a := rb_dock
+			a.move_panel_to (3, a.Zone_south, 1)
+			a.move_panel_to (1, a.Zone_south, 3)
+			a.set_auto_hide (a.Zone_west, True)
+			a.set_auto_hide (a.Zone_east, True)
+			a.collapse_zone (a.Zone_east)
+			a.maximize_center
+			snap := a.layout_snapshot
+			assert_true ("the snapshot has the order", snap.has_substring ("order%Tsouth%TC%TB%TA"))
+			assert_true ("and auto-hide", snap.has_substring ("autohide%Twest"))
+			assert_true ("and the maximized center", snap.has_substring ("center_maximized"))
+			b := rb_dock
+			b.restore_layout (snap)
+			assert_true ("it read", b.last_restore_ok)
+			assert_true ("the order came back", b.all_panels_in (b.Zone_south).count = 3
+				and b.panels.i_th (b.all_panels_in (b.Zone_south).i_th (1)).key.same_string ("C")
+				and b.panels.i_th (b.all_panels_in (b.Zone_south).i_th (2)).key.same_string ("B")
+				and b.panels.i_th (b.all_panels_in (b.Zone_south).i_th (3)).key.same_string ("A"))
+			assert_true ("west auto-hide", b.is_auto_hide (b.Zone_west))
+			assert_true ("east both", b.is_auto_hide (b.Zone_east) and b.is_collapsed (b.Zone_east))
+			assert_false ("south not", b.is_auto_hide (b.Zone_south))
+			assert_true ("the center is maximized", b.is_center_maximized)
+			assert_true ("line for line", b.layout_snapshot.same_string (snap))
+			a.restore_center
+			b.restore_layout (a.layout_snapshot)
+			assert_false ("a snapshot without the line restores the center", b.is_center_maximized)
+				-- an old snapshot: no order, autohide or center lines
+			create old_snap.make (200)
+			across snap.split ('%N') as ic loop
+				if not (ic.starts_with ("order") or ic.starts_with ("autohide") or ic.starts_with ("center_maximized")) then
+					if not old_snap.is_empty then
+						old_snap.append_character ('%N')
+					end
+					old_snap.append (ic)
+				end
+			end
+			assert_false ("the old text has no order line", old_snap.has_substring ("order"))
+			b := rb_dock
+			b.set_auto_hide (b.Zone_north, True)
+			b.maximize_center
+			b.restore_layout (old_snap)
+			assert_true ("an old snapshot reads", b.last_restore_ok)
+			assert_false ("without the center", b.is_center_maximized)
+			assert_false ("without auto-hide", b.is_auto_hide (b.Zone_north) or b.is_auto_hide (b.Zone_west))
+			assert_true ("collapse still restores", b.is_collapsed (b.Zone_east))
+			assert_true ("the order is that of the ids", b.all_panels_in (b.Zone_south).count = 3
+				and b.panels.i_th (b.all_panels_in (b.Zone_south).first).key.same_string ("A")
+				and b.panels.i_th (b.all_panels_in (b.Zone_south).last).key.same_string ("C"))
+		end
+
 feature -- Dock (GW-05)
 
 	test_gw05_tabbed_zone_shows_one_panel

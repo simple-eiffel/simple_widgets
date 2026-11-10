@@ -23,6 +23,12 @@ note
 		click on a name opens the zone showing that panel. A right-click
 		on a bar, a tab or the strip offers the same choices and Move to
 		another zone. `button_at' and `strip_panel_at' are public.
+
+		AUTO-HIDE (1r-b). A zone the host set auto-hide (set_auto_hide)
+		stands as the same strip, but a press or a rest on a name slides
+		that panel out over the center (SW_DOCK_HOST.slide_out) - seated
+		by `arrange_slid_out', painted by `draw_slid_out'. The bar's pin
+		button (Button_pin) turns auto-hide on and off.
 	]"
 
 class
@@ -33,7 +39,7 @@ inherit
 		redefine
 			widget_at, pebble_at, accepts_pebble, receive_pebble, arrange, handle_click, handle_double_click,
 			accessible_children, accessible_role, default_accessible_name, context_menu, wants_hover_point,
-			refresh_enabling
+			refresh_enabling, dwell_ms, handle_dwell
 		end
 
 	SW_TAB_STRIP
@@ -162,6 +168,8 @@ feature -- Buttons and the strip (0.46.0)
 			-- Put the maximized panel back.
 	Button_expand: INTEGER = 4
 			-- Open the folded zone.
+	Button_pin: INTEGER = 5
+			-- Turn the zone's auto-hide on or off.
 
 	Quarter_turn: REAL_64 = 1.5707963267948966
 			-- A strip name's turn on the west and east, in radians.
@@ -216,7 +224,7 @@ feature -- Buttons and the strip (0.46.0)
 				i := i + 1
 			end
 		ensure
-			known_kind: Result.kind >= 0 and Result.kind <= Button_expand
+			known_kind: Result.kind >= 0 and Result.kind <= Button_pin
 		end
 
 	strip_panel_at (a_px, a_py: REAL_64): INTEGER
@@ -271,7 +279,7 @@ feature -- Buttons and the strip (0.46.0)
 	press_button (a_kind, a_panel: INTEGER)
 			-- Do what button `a_kind' does for `a_panel'.
 		require
-			known_kind: a_kind >= Button_collapse and a_kind <= Button_expand
+			known_kind: a_kind >= Button_collapse and a_kind <= Button_pin
 		do
 			inspect a_kind
 			when Button_collapse then
@@ -284,8 +292,87 @@ feature -- Buttons and the strip (0.46.0)
 				end
 			when Button_restore then
 				host.restore_maximized
+			when Button_pin then
+				host.set_auto_hide (zone_id, not host.is_auto_hide (zone_id))
 			else
 				host.expand_zone (zone_id)
+			end
+		end
+
+	open_strip_name (a_panel: INTEGER)
+			-- A press (or rest) on a strip name: slide the panel out when the
+			-- zone is auto-hide (a second press sends it back), else open the zone.
+		require
+			panel_known: a_panel >= 1 and a_panel <= host.panels.count
+		do
+			if host.is_auto_hide (zone_id) then
+				if host.slid_out_panel = a_panel then
+					host.slide_back
+				else
+					host.slide_out (a_panel)
+				end
+			else
+				open_at_panel (a_panel)
+			end
+		end
+
+	dwell_ms: INTEGER
+			-- An auto-hide strip slides a name's panel out after a rest.
+		do
+			if is_folded and then host.is_auto_hide (zone_id) then
+				Result := Dwell_slide_ms
+			end
+		end
+
+	Dwell_slide_ms: INTEGER = 400
+			-- How long a rest on a strip name takes to slide its panel out.
+
+	handle_dwell (a_px, a_py: REAL_64)
+			-- Rested on a strip name of an auto-hide zone: slide that panel out.
+		local
+			id: INTEGER
+		do
+			if is_folded and then host.is_auto_hide (zone_id) then
+				id := strip_panel_at (a_px, a_py)
+				if id > 0 then
+					host.slide_out (id)
+				end
+			end
+		end
+
+	arrange_slid_out (a_p: SW_PAINTER; a_rect: TUPLE [rx, ry, rw, rh: REAL_64])
+			-- Seat the slid-out panel's content under its bar in `a_rect'.
+		require
+			something_out: host.slid_out_panel > 0
+		do
+			host.panels.i_th (host.slid_out_panel).content.set_bounds (a_rect.rx + content_pad, a_rect.ry + bar_h + content_pad,
+				(a_rect.rw - 2.0 * content_pad).max (1.0), (a_rect.rh - bar_h - 2.0 * content_pad).max (1.0))
+			host.panels.i_th (host.slid_out_panel).content.arrange (a_p)
+		end
+
+	draw_slid_out (a_p: SW_PAINTER)
+			-- The slid-out panel over the center: ground, title bar, content, frame.
+		require
+			something_out: host.slid_out_panel > 0
+		local
+			t: SW_THEME
+			r: TUPLE [rx, ry, rw, rh: REAL_64]
+		do
+			r := host.slide_rect
+			if r.rw > 1.0 and r.rh > 1.0 then
+				t := a_p.theme
+				a_p.set_color (t.surface)
+				a_p.fill_rect (r.rx, r.ry, r.rw, r.rh)
+				a_p.set_color (t.surface_variant)
+				a_p.fill_rect (r.rx + 1.0, r.ry + 1.0, r.rw - 2.0, bar_h - 1.0)
+				title_font (a_p)
+				a_p.set_color (t.ink)
+				a_p.text (r.rx + tab_pad, r.ry + bar_text_y, host.panels.i_th (host.slid_out_panel).title)
+				a_p.push_clip (r.rx + 1.0, r.ry + 1.0, (r.rw - 2.0).max (0.0), (r.rh - 2.0).max (0.0))
+				host.panels.i_th (host.slid_out_panel).content.draw (a_p)
+				a_p.pop_clip
+				a_p.set_color (t.outline)
+				a_p.rrect_stroke (r.rx + 0.5, r.ry + 0.5, r.rw - 1.0, r.rh - 1.0, 2.0)
 			end
 		end
 
@@ -331,6 +418,15 @@ feature -- Menu
 					end
 				elseif solo_panel = 0 then
 					Result.add_item ({STRING_32} "Collapse the " + host.zone_title (zone_id), "", True, agent host.collapse_zone (zone_id))
+				end
+				if solo_panel = 0 then
+					if host.is_auto_hide (zone_id) then
+						Result.add_item ({STRING_32} "Stop auto-hiding the " + host.zone_title (zone_id), "", True,
+							agent host.set_auto_hide (zone_id, False))
+					else
+						Result.add_item ({STRING_32} "Auto-hide the " + host.zone_title (zone_id), "", True,
+							agent host.set_auto_hide (zone_id, True))
+					end
 				end
 				if id > 0 and then solo_panel = 0 then
 					Result.add_separator
@@ -451,7 +547,7 @@ feature -- Input
 			elseif is_folded then
 				id := strip_panel_at (a_px, a_py)
 				if id > 0 then
-					open_at_panel (id)
+					open_strip_name (id)
 				end
 				Result := True
 			elseif solo_panel = 0 then
@@ -524,12 +620,15 @@ feature -- Layout
 			elseif is_folded then
 				send_away (mine, 0)
 				buttons.extend ([Button_expand, 0, x + (width - bar_h) / 2.0, y + 4.0, bar_h])
+				buttons.extend ([Button_pin, 0, x + (width - bar_h) / 2.0, y + 4.0 + bar_h, bar_h])
 				if is_across then
 					buttons.i_th (1).bx := x + 4.0
 					buttons.i_th (1).by := y + (height - bar_h) / 2.0
-					l_along := x + 4.0 + bar_h + tab_pad
+					buttons.i_th (2).bx := x + 4.0 + bar_h
+					buttons.i_th (2).by := y + (height - bar_h) / 2.0
+					l_along := x + 4.0 + 2.0 * bar_h + tab_pad
 				else
-					l_along := y + 4.0 + bar_h + tab_pad
+					l_along := y + 4.0 + 2.0 * bar_h + tab_pad
 				end
 				across
 					mine as m
@@ -736,8 +835,10 @@ feature {NONE} -- Implementation
 				buttons.extend ([Button_maximize, a_panel, Result, a_top, bar_h])
 			end
 			if a_with_collapse then
+				buttons.extend ([Button_pin, 0, Result - 2.0 * bar_h, a_top, bar_h])
 				Result := Result - bar_h
 				buttons.extend ([Button_collapse, 0, Result, a_top, bar_h])
+				Result := Result - bar_h
 			end
 		ensure
 			within: Result <= x + width
@@ -776,6 +877,14 @@ feature {NONE} -- Implementation
 					a_p.line (cx - s * 0.4, cy - s, cx + s, cy - s, 1.4)
 					a_p.line (cx + s, cy - s, cx + s, cy + s * 0.6, 1.4)
 					a_p.line (cx + s, cy + s * 0.6, cx + s * 0.6, cy + s * 0.6, 1.4)
+				when Button_pin then
+					if host.is_auto_hide (zone_id) then
+						a_p.circle_fill (cx - s * 0.6, cy, s * 0.55)
+						a_p.line (cx - s * 0.1, cy, cx + s * 1.2, cy, 1.4)
+					else
+						a_p.circle_fill (cx, cy - s * 0.6, s * 0.55)
+						a_p.line (cx, cy - s * 0.1, cx, cy + s * 1.2, 1.4)
+					end
 				when Button_collapse then
 					chevron (a_p, cx, cy, s, outward)
 				else

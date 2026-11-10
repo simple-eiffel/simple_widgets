@@ -37,6 +37,16 @@ note
 		                  window: enable_floating_panels, then a double
 		                  click on a tab or title bar); redock_panel puts it
 		                  back where it was
+		    ORDER         (1r-b) each zone keeps an explicit order of panel
+		                  ids; move_panel_to puts a panel at a place among
+		                  its zone's panels without changing any id
+		    AUTO-HIDE     (1r-b) set_auto_hide stands a zone as its folded
+		                  strip; a press (or a dwell) on a name slides
+		                  that panel OUT over the center (slide_out,
+		                  slide_back, slid_out_panel) without reflow
+		    CENTER        (1r-b) maximize_center gives the center the
+		                  whole host; restore_center brings every zone
+		                  back with its fold, auto-hide and fraction
 		    SNAPSHOT      layout_snapshot writes fractions, tab modes,
 		                  every panel's key, zone, visibility and order,
 		                  and each tabbed zone's active panel as text;
@@ -79,6 +89,8 @@ feature -- Zones
 feature {NONE} -- Initialization
 
 	make (a_center: SW_WIDGET)
+		local
+			l_z: INTEGER
 		do
 			center := a_center
 			create panels.make (6)
@@ -89,6 +101,16 @@ feature {NONE} -- Initialization
 			create tabbed_flags.make_filled (False, Zone_west, Zone_north)
 			create collapsed_flags.make_filled (False, Zone_west, Zone_north)
 			create active_ids.make_filled (0, Zone_west, Zone_north)
+			create auto_hide_flags.make_filled (False, Zone_west, Zone_north)
+			create zone_orders.make_filled (create {ARRAYED_LIST [INTEGER]}.make (0), Zone_west, Zone_north)
+			from
+				l_z := Zone_west
+			until
+				l_z > Zone_north
+			loop
+				zone_orders [l_z] := create {ARRAYED_LIST [INTEGER]}.make (4)
+				l_z := l_z + 1
+			end
 			a_center.set_parent (Current)
 		ensure
 			centered: center = a_center
@@ -141,43 +163,34 @@ feature -- Access
 		end
 
 	panels_in (a_zone: INTEGER): ARRAYED_LIST [INTEGER]
-			-- The VISIBLE panels of `a_zone', in order.
+			-- The VISIBLE panels of `a_zone', in the zone's order.
 		require
 			zone_known: is_zone (a_zone)
-		local
-			i: INTEGER
 		do
 			create Result.make (4)
-			from
-				i := 1
-			until
-				i > panels.count
+			across
+				zone_orders [a_zone] as ic
 			loop
-				if panels.i_th (i).zone = a_zone and then panels.i_th (i).is_visible then
-					Result.extend (i)
+				if panels.i_th (ic).is_visible then
+					Result.extend (ic)
 				end
-				i := i + 1
 			end
 		end
 
 	all_panels_in (a_zone: INTEGER): ARRAYED_LIST [INTEGER]
-			-- Every panel of `a_zone', hidden ones too, in order.
+			-- Every panel of `a_zone', hidden ones too, in the zone's order
+			-- (`move_panel_to' changes it).
 		require
 			zone_known: is_zone (a_zone)
-		local
-			i: INTEGER
 		do
 			create Result.make (4)
-			from
-				i := 1
-			until
-				i > panels.count
+			across
+				zone_orders [a_zone] as ic
 			loop
-				if panels.i_th (i).zone = a_zone then
-					Result.extend (i)
-				end
-				i := i + 1
+				Result.extend (ic)
 			end
+		ensure
+			all_there: Result.count >= panels_in (a_zone).count
 		end
 
 	panel_by_key (a_key: READABLE_STRING_GENERAL): INTEGER
@@ -244,7 +257,10 @@ feature -- Access
 		local
 			ww, ew, sh, nh, l_room, l_scale: REAL_64
 		do
-			if maximized_panel > 0 then
+			if center_maximized then
+					-- the center has the host; every zone stands nowhere
+				Result := [x, y, 0.0, 0.0]
+			elseif maximized_panel > 0 then
 					-- a maximized panel's zone takes the host; the rest stand nowhere
 				if panels.i_th (maximized_panel).zone = a_zone then
 					Result := [x, y, width, height]
@@ -290,7 +306,9 @@ feature -- Access
 			e_r := zone_rect (Zone_east)
 			s_r := zone_rect (Zone_south)
 			n_r := zone_rect (Zone_north)
-			if maximized_panel > 0 then
+			if center_maximized then
+				Result := [x, y, width, height]
+			elseif maximized_panel > 0 then
 				Result := [x, y, 0.0, 0.0]
 			else
 				Result := [x + w_r.rw, y + n_r.rh, width - w_r.rw - e_r.rw, height - n_r.rh - s_r.rh]
@@ -304,23 +322,23 @@ feature -- Access
 		local
 			r: TUPLE [rx, ry, rw, rh: REAL_64]
 		do
-			if contains (a_px, a_py) and then maximized_panel = 0 then
+			if contains (a_px, a_py) and then maximized_panel = 0 and then not center_maximized then
 				r := zone_rect (Zone_south)
-				if r.rh > 0.0 and then not is_collapsed (Zone_south) and then (a_py - r.ry).abs <= Edge_grip then
+				if r.rh > 0.0 and then not stands_as_strip (Zone_south) and then (a_py - r.ry).abs <= Edge_grip then
 					Result := Zone_south
 				end
 				r := zone_rect (Zone_north)
-				if Result = 0 and then r.rh > 0.0 and then not is_collapsed (Zone_north) and then (a_py - (r.ry + r.rh)).abs <= Edge_grip then
+				if Result = 0 and then r.rh > 0.0 and then not stands_as_strip (Zone_north) and then (a_py - (r.ry + r.rh)).abs <= Edge_grip then
 					Result := Zone_north
 				end
 				r := zone_rect (Zone_west)
-				if Result = 0 and then r.rw > 0.0 and then not is_collapsed (Zone_west) and then a_py >= r.ry and then a_py < r.ry + r.rh
+				if Result = 0 and then r.rw > 0.0 and then not stands_as_strip (Zone_west) and then a_py >= r.ry and then a_py < r.ry + r.rh
 					and then (a_px - (r.rx + r.rw)).abs <= Edge_grip
 				then
 					Result := Zone_west
 				end
 				r := zone_rect (Zone_east)
-				if Result = 0 and then r.rw > 0.0 and then not is_collapsed (Zone_east) and then a_py >= r.ry and then a_py < r.ry + r.rh
+				if Result = 0 and then r.rw > 0.0 and then not stands_as_strip (Zone_east) and then a_py >= r.ry and then a_py < r.ry + r.rh
 					and then (a_px - r.rx).abs <= Edge_grip
 				then
 					Result := Zone_east
@@ -381,11 +399,13 @@ feature -- Element change
 			a_content.set_parent (Current)
 			panels.extend ([l_title, a_content, a_zone, l_key, True])
 			Result := panels.count
+			zone_orders [a_zone].extend (Result)
 			announce
 		ensure
 			grew: panels.count = old panels.count + 1
 			last: Result = panels.count
 			visible: is_panel_visible (Result)
+			ends_its_zone: all_panels_in (a_zone).last = Result
 		end
 
 	move_panel (a_panel, a_zone: INTEGER)
@@ -395,15 +415,49 @@ feature -- Element change
 			zone_known: is_zone (a_zone)
 		do
 			if panels.i_th (a_panel).zone /= a_zone then
-				panels.i_th (a_panel).zone := a_zone
-				if not is_floating (a_panel) then
-						-- a floating panel only changes where it will dock (scan 19)
-					active_ids [a_zone] := a_panel
-				end
+				relocate (a_panel, a_zone)
 				announce
 			end
 		ensure
 			moved: panels.i_th (a_panel).zone = a_zone
+			ends_its_zone: all_panels_in (a_zone).last = a_panel
+		end
+
+	move_panel_to (a_panel, a_zone, a_position: INTEGER)
+			-- Put panel `a_panel' at place `a_position' (from 1) among the
+			-- panels of `a_zone', hidden ones counted, moving it there first
+			-- when it is elsewhere. No panel's id changes.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+			zone_known: is_zone (a_zone)
+			position_in_range: a_position >= 1 and a_position <= all_panels_in (a_zone).count
+				+ (if panels.i_th (a_panel).zone = a_zone then 0 else 1 end)
+		local
+			l_changed: BOOLEAN
+			l_order: ARRAYED_LIST [INTEGER]
+		do
+			if panels.i_th (a_panel).zone /= a_zone then
+				relocate (a_panel, a_zone)
+				l_changed := True
+			end
+			l_order := zone_orders [a_zone]
+			if l_order.i_th (a_position) /= a_panel then
+				l_order.prune_all (a_panel)
+				if a_position > l_order.count then
+					l_order.extend (a_panel)
+				else
+					l_order.go_i_th (a_position)
+					l_order.put_left (a_panel)
+				end
+				l_changed := True
+			end
+			if l_changed then
+				announce
+			end
+		ensure
+			placed: all_panels_in (a_zone).i_th (a_position) = a_panel
+			in_zone: panels.i_th (a_panel).zone = a_zone
+			ids_stay: panels.count = old panels.count
 		end
 
 	hide_panel (a_panel: INTEGER)
@@ -415,6 +469,9 @@ feature -- Element change
 				panels.i_th (a_panel).is_visible := False
 				if maximized_panel = a_panel then
 					maximized_panel := 0
+				end
+				if slid_out_panel = a_panel then
+					slid_out_panel := 0
 				end
 				announce
 			end
@@ -454,6 +511,11 @@ feature -- Element change
 			elseif maximized_panel > a_panel then
 				maximized_panel := maximized_panel - 1
 			end
+			if slid_out_panel = a_panel then
+				slid_out_panel := 0
+			elseif slid_out_panel > a_panel then
+				slid_out_panel := slid_out_panel - 1
+			end
 			panels.go_i_th (a_panel)
 			panels.remove
 			from
@@ -461,6 +523,17 @@ feature -- Element change
 			until
 				z > Zone_north
 			loop
+				zone_orders [z].prune_all (a_panel)
+				from
+					zone_orders [z].start
+				until
+					zone_orders [z].after
+				loop
+					if zone_orders [z].item > a_panel then
+						zone_orders [z].put (zone_orders [z].item - 1)
+					end
+					zone_orders [z].forth
+				end
 				if active_ids [z] = a_panel then
 					active_ids [z] := 0
 				elseif active_ids [z] > a_panel then
@@ -533,12 +606,13 @@ feature -- Folding and maximizing (0.46.0)
 		end
 
 	is_folded (a_zone: INTEGER): BOOLEAN
-			-- Does `a_zone' stand as a strip right now: collapsed, holding a
-			-- visible panel, and no panel maximized?
+			-- Does `a_zone' stand as a strip right now: collapsed or auto-hide,
+			-- holding a visible panel, and neither a panel nor the center maximized?
 		require
 			zone_known: is_zone (a_zone)
 		do
-			Result := collapsed_flags [a_zone] and then maximized_panel = 0 and then not panels_in (a_zone).is_empty
+			Result := stands_as_strip (a_zone) and then maximized_panel = 0 and then not center_maximized
+				and then not panels_in (a_zone).is_empty
 		end
 
 	strip_extent (a_zone: INTEGER): REAL_64
@@ -567,16 +641,20 @@ feature -- Folding and maximizing (0.46.0)
 		end
 
 	expand_zone (a_zone: INTEGER)
-			-- Bring folded `a_zone' back at its fraction.
+			-- Bring folded `a_zone' back at its fraction; auto-hide ends too.
 		require
 			zone_known: is_zone (a_zone)
 		do
-			if collapsed_flags [a_zone] then
+			if collapsed_flags [a_zone] or auto_hide_flags [a_zone] then
 				collapsed_flags [a_zone] := False
+				auto_hide_flags [a_zone] := False
+				if slid_out_panel > 0 and then panels.i_th (slid_out_panel).zone = a_zone then
+					slid_out_panel := 0
+				end
 				announce
 			end
 		ensure
-			opened: not is_collapsed (a_zone)
+			opened: not is_collapsed (a_zone) and not is_auto_hide (a_zone)
 		end
 
 	toggle_zone (a_zone: INTEGER)
@@ -632,7 +710,7 @@ feature -- Folding and maximizing (0.46.0)
 			until
 				z > Zone_north or not Result
 			loop
-				Result := panels_in (z).is_empty or else collapsed_flags [z]
+				Result := panels_in (z).is_empty or else stands_as_strip (z)
 				z := z + 1
 			end
 		end
@@ -671,13 +749,16 @@ feature -- Folding and maximizing (0.46.0)
 			maximizable: is_maximizable (a_panel)
 			visible: is_panel_visible (a_panel)
 		do
-			if maximized_panel /= a_panel then
+			if maximized_panel /= a_panel or center_maximized then
+				center_maximized := False
+				slid_out_panel := 0
 				maximized_panel := a_panel
 				active_ids [panels.i_th (a_panel).zone] := a_panel
 				announce
 			end
 		ensure
 			maximized: maximized_panel = a_panel
+			center_restored: not center_maximized
 		end
 
 	restore_maximized
@@ -743,6 +824,131 @@ feature -- Folding and maximizing (0.46.0)
 			else
 				Result := "bottom"
 			end
+		end
+
+feature -- Auto-hide and the maximized center (1r-b)
+
+	is_auto_hide (a_zone: INTEGER): BOOLEAN
+			-- Does `a_zone' stand as its strip, sliding a panel out over the
+			-- center on a press or a rest on its name? It is not `is_collapsed'.
+		require
+			zone_known: is_zone (a_zone)
+		do
+			Result := auto_hide_flags [a_zone]
+		end
+
+	set_auto_hide (a_zone: INTEGER; a_on: BOOLEAN)
+			-- Stand `a_zone' as an auto-hide strip, or bring it back.
+		require
+			zone_known: is_zone (a_zone)
+		do
+			if auto_hide_flags [a_zone] /= a_on then
+				auto_hide_flags [a_zone] := a_on
+				if not a_on and then slid_out_panel > 0 and then panels.i_th (slid_out_panel).zone = a_zone then
+					slid_out_panel := 0
+				end
+				announce
+			end
+		ensure
+			set: is_auto_hide (a_zone) = a_on
+			collapse_untouched: is_collapsed (a_zone) = old is_collapsed (a_zone)
+		end
+
+	slid_out_panel: INTEGER
+			-- The panel slid out over the center from an auto-hide strip; 0 = none.
+
+	slide_out (a_panel: INTEGER)
+			-- Show panel `a_panel' OVER the center, at its zone's size along
+			-- the window's edge; the center does not reflow.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+			visible: is_panel_visible (a_panel)
+			auto_hidden: is_auto_hide (panels.i_th (a_panel).zone)
+		do
+			if slid_out_panel /= a_panel then
+				slid_out_panel := a_panel
+				active_ids [panels.i_th (a_panel).zone] := a_panel
+				announce
+			end
+		ensure
+			slid: slid_out_panel = a_panel
+		end
+
+	slide_back
+			-- Take the slid-out panel back into its strip.
+		do
+			if slid_out_panel > 0 then
+				slid_out_panel := 0
+				announce
+			end
+		ensure
+			none: slid_out_panel = 0
+		end
+
+	slide_rect: TUPLE [rx, ry, rw, rh: REAL_64]
+			-- Where the slid-out panel stands, over the center and beside
+			-- its strip; zero extent when none is out.
+		local
+			r: TUPLE [rx, ry, rw, rh: REAL_64]
+			l_size: REAL_64
+			l_zone: INTEGER
+		do
+			Result := [x, y, 0.0, 0.0]
+			if slid_out_panel > 0 and then maximized_panel = 0 and then not center_maximized then
+				l_zone := panels.i_th (slid_out_panel).zone
+				r := zone_rect (l_zone)
+				inspect l_zone
+				when Zone_west then
+					l_size := (width * west_fraction).min ((width - r.rw).max (0.0))
+					Result := [r.rx + r.rw, r.ry, l_size, r.rh]
+				when Zone_east then
+					l_size := (width * east_fraction).min ((width - r.rw).max (0.0))
+					Result := [r.rx - l_size, r.ry, l_size, r.rh]
+				when Zone_north then
+					l_size := (height * north_fraction).min ((height - r.rh).max (0.0))
+					Result := [r.rx, r.ry + r.rh, r.rw, l_size]
+				else
+					l_size := (height * south_fraction).min ((height - r.rh).max (0.0))
+					Result := [r.rx, r.ry - l_size, r.rw, l_size]
+				end
+			end
+		end
+
+	center_maximized: BOOLEAN
+			-- Does the center have the whole host? Every zone stands nowhere
+			-- (as under `maximize_panel'); each keeps its fold, auto-hide
+			-- state and fraction, so `restore_center' gives them back.
+
+	is_center_maximized: BOOLEAN
+			-- Has `maximize_center' given the center the whole host?
+		do
+			Result := center_maximized
+		end
+
+	maximize_center
+			-- The center takes the whole host; every zone folds away.
+		do
+			if not center_maximized then
+				center_maximized := True
+				maximized_panel := 0
+				slid_out_panel := 0
+				announce
+			end
+		ensure
+			maximized: is_center_maximized
+			no_panel_maximized: maximized_panel = 0
+			nothing_slid: slid_out_panel = 0
+		end
+
+	restore_center
+			-- Give every zone back, with its fold, auto-hide state and fraction.
+		do
+			if center_maximized then
+				center_maximized := False
+				announce
+			end
+		ensure
+			restored: not is_center_maximized
 		end
 
 feature -- Floating (GW-22)
@@ -821,7 +1027,8 @@ feature -- Snapshot
 
 	layout_snapshot: STRING_32
 			-- The layout as text, one fact a line: fractions, tab modes,
-			-- every panel's key, zone and visibility in order, and each
+			-- every panel's key, zone and visibility in order, each zone's
+			-- order of panels, auto-hide, the maximized center, and each
 			-- tabbed zone's active panel. A host saves it with the session.
 		local
 			z, i: INTEGER
@@ -840,7 +1047,13 @@ feature -- Snapshot
 				if is_collapsed (z) then
 					Result.append ({STRING_32} "%Ncollapsed%T" + zone_name (z))
 				end
+				if is_auto_hide (z) then
+					Result.append ({STRING_32} "%Nautohide%T" + zone_name (z))
+				end
 				z := z + 1
+			end
+			if center_maximized then
+				Result.append ({STRING_32} "%Ncenter_maximized")
 			end
 			from
 				i := 1
@@ -854,6 +1067,21 @@ feature -- Snapshot
 					Result.append ({STRING_32} "%Thidden")
 				end
 				i := i + 1
+			end
+			from
+				z := Zone_west
+			until
+				z > Zone_north
+			loop
+				if not zone_orders [z].is_empty then
+					Result.append ({STRING_32} "%Norder%T" + zone_name (z))
+					across
+						zone_orders [z] as ic
+					loop
+						Result.append ({STRING_32} "%T" + panels.i_th (ic).key)
+					end
+				end
+				z := z + 1
 			end
 			from
 				z := Zone_west
@@ -885,6 +1113,9 @@ feature -- Snapshot
 			l_fracs: ARRAY [REAL_64]
 			l_tabbed: ARRAY [BOOLEAN]
 			l_collapsed: ARRAY [BOOLEAN]
+			l_auto: ARRAY [BOOLEAN]
+			l_center: BOOLEAN
+			l_orders: ARRAY [ARRAYED_LIST [STRING_32]]
 			l_entries: ARRAYED_LIST [TUPLE [key: STRING_32; zone: INTEGER; shown: BOOLEAN]]
 			l_actives: ARRAYED_LIST [TUPLE [zone: INTEGER; key: STRING_32]]
 			l_ok: BOOLEAN
@@ -899,6 +1130,16 @@ feature -- Snapshot
 			create l_fracs.make_filled (-1.0, Zone_west, Zone_north)
 			create l_tabbed.make_filled (False, Zone_west, Zone_north)
 			create l_collapsed.make_filled (False, Zone_west, Zone_north)
+			create l_auto.make_filled (False, Zone_west, Zone_north)
+			create l_orders.make_filled (create {ARRAYED_LIST [STRING_32]}.make (0), Zone_west, Zone_north)
+			from
+				z := Zone_west
+			until
+				z > Zone_north
+			loop
+				l_orders [z] := create {ARRAYED_LIST [STRING_32]}.make (4)
+				z := z + 1
+			end
 			create l_entries.make (panels.count)
 			create l_actives.make (3)
 			if l_ok then
@@ -920,6 +1161,19 @@ feature -- Snapshot
 							l_tabbed [zone_named (l_fields [2])] := True
 						elseif l_fields.count = 2 and then l_kind.same_string ("collapsed") and then zone_named (l_fields [2]) > 0 then
 							l_collapsed [zone_named (l_fields [2])] := True
+						elseif l_fields.count = 2 and then l_kind.same_string ("autohide") and then zone_named (l_fields [2]) > 0 then
+							l_auto [zone_named (l_fields [2])] := True
+						elseif l_fields.count = 1 and then l_kind.same_string ("center_maximized") then
+							l_center := True
+						elseif l_fields.count >= 3 and then l_kind.same_string ("order") and then zone_named (l_fields [2]) > 0 then
+							from
+								i := 3
+							until
+								i > l_fields.count
+							loop
+								l_orders [zone_named (l_fields [2])].extend (l_fields [i].to_string_32)
+								i := i + 1
+							end
 						elseif l_fields.count = 4 and then l_kind.same_string ("panel") and then zone_named (l_fields [3]) > 0
 							and then (l_fields [4].same_string ("shown") or l_fields [4].same_string ("hidden"))
 						then
@@ -944,6 +1198,7 @@ feature -- Snapshot
 					end
 					tabbed_flags [z] := l_tabbed [z]
 					collapsed_flags [z] := l_collapsed [z]
+					auto_hide_flags [z] := l_auto [z]
 					active_ids [z] := 0
 					z := z + 1
 				end
@@ -970,8 +1225,11 @@ feature -- Snapshot
 					i := i + 1
 				end
 				maximized_panel := 0
+				slid_out_panel := 0
+				center_maximized := l_center
 				panels.wipe_out
 				panels.append (l_new)
+				rebuild_orders (l_orders)
 				across l_actives as a loop
 					id := panel_by_key (a.key)
 					if id > 0 and then panels.i_th (id).zone = a.zone then
@@ -1009,6 +1267,9 @@ feature -- Layout
 				r := center_rect
 				center.set_bounds (r.rx, r.ry, r.rw, r.rh)
 				center.arrange (a_p)
+				if slid_out_panel > 0 then
+					zone_widget (panels.i_th (slid_out_panel).zone).arrange_slid_out (a_p, slide_rect)
+				end
 			end
 		end
 
@@ -1057,6 +1318,11 @@ feature -- Hit testing
 					if Result = Void then
 						Result := Current
 					end
+				elseif slid_out_panel > 0 and then in_rect (slide_rect, a_px, a_py) then
+					Result := panels.i_th (slid_out_panel).content.widget_at (a_px, a_py)
+					if Result = Void then
+						Result := Current
+					end
 				elseif edge_at (a_px, a_py) > 0 then
 					Result := Current
 				else
@@ -1083,8 +1349,13 @@ feature -- Hit testing
 feature -- Input
 
 	handle_click (a_px, a_py: REAL_64): BOOLEAN
-			-- A press on an edge grabs it.
+			-- A press on an edge grabs it; one outside the slid-out panel
+			-- (that no widget took) slides it back.
 		do
+			if slid_out_panel > 0 and then not in_rect (slide_rect, a_px, a_py) then
+					-- a press outside the slid-out panel sends it back
+				slide_back
+			end
 			dragging_edge := edge_at (a_px, a_py)
 			Result := dragging_edge > 0
 		end
@@ -1144,6 +1415,9 @@ feature -- Drawing
 				south_zone.draw (a_p)
 				north_zone.draw (a_p)
 				center.draw (a_p)
+				if slid_out_panel > 0 then
+					zone_widget (panels.i_th (slid_out_panel).zone).draw_slid_out (a_p)
+				end
 			end
 			e := dragging_edge
 			if e = 0 and then shows_hover then
@@ -1216,6 +1490,84 @@ feature {NONE} -- Organs
 	collapsed_flags: ARRAY [BOOLEAN]
 			-- Per zone: folded to a strip?
 
+	auto_hide_flags: ARRAY [BOOLEAN]
+			-- Per zone: auto-hide?
+
+	zone_orders: ARRAY [ARRAYED_LIST [INTEGER]]
+			-- Per zone: the ids of its panels (hidden ones too), in order.
+
+	stands_as_strip (a_zone: INTEGER): BOOLEAN
+			-- Is `a_zone' collapsed or auto-hide, so that it takes a strip?
+		require
+			zone_known: is_zone (a_zone)
+		do
+			Result := collapsed_flags [a_zone] or auto_hide_flags [a_zone]
+		end
+
+	in_rect (a_rect: TUPLE [rx, ry, rw, rh: REAL_64]; a_px, a_py: REAL_64): BOOLEAN
+			-- Is the point inside `a_rect' (which has some extent)?
+		do
+			Result := a_rect.rw > 0.0 and then a_rect.rh > 0.0 and then a_px >= a_rect.rx and then a_px < a_rect.rx + a_rect.rw
+				and then a_py >= a_rect.ry and then a_py < a_rect.ry + a_rect.rh
+		end
+
+	relocate (a_panel, a_zone: INTEGER)
+			-- Move panel `a_panel' to the end of `a_zone', silently.
+		require
+			panel_known: a_panel >= 1 and a_panel <= panels.count
+			zone_known: is_zone (a_zone)
+		do
+			zone_orders [panels.i_th (a_panel).zone].prune_all (a_panel)
+			panels.i_th (a_panel).zone := a_zone
+			zone_orders [a_zone].extend (a_panel)
+			if slid_out_panel = a_panel then
+				slid_out_panel := 0
+			end
+			if not is_floating (a_panel) then
+					-- a floating panel only changes where it will dock (scan 19)
+				active_ids [a_zone] := a_panel
+			end
+		ensure
+			moved: panels.i_th (a_panel).zone = a_zone
+			ends_its_zone: zone_orders [a_zone].last = a_panel
+		end
+
+	rebuild_orders (a_orders: ARRAY [ARRAYED_LIST [STRING_32]])
+			-- Each zone's order from the keys in `a_orders' (those that name
+			-- a panel of the zone), then the zone's other panels by id.
+		local
+			z, i, l_id: INTEGER
+			l_list: ARRAYED_LIST [INTEGER]
+		do
+			from
+				z := Zone_west
+			until
+				z > Zone_north
+			loop
+				create l_list.make (4)
+				across
+					a_orders [z] as ic
+				loop
+					l_id := panel_by_key (ic)
+					if l_id > 0 and then panels.i_th (l_id).zone = z and then not l_list.has (l_id) then
+						l_list.extend (l_id)
+					end
+				end
+				from
+					i := 1
+				until
+					i > panels.count
+				loop
+					if panels.i_th (i).zone = z and then not l_list.has (i) then
+						l_list.extend (i)
+					end
+					i := i + 1
+				end
+				zone_orders [z] := l_list
+				z := z + 1
+			end
+		end
+
 	maximizable_keys: ARRAYED_LIST [STRING_32]
 			-- The keys of the panels whose bars offer Maximize.
 		attribute
@@ -1261,7 +1613,7 @@ feature {NONE} -- Organs
 		do
 			if panels_in (a_zone).is_empty then
 				Result := 0.0
-			elseif collapsed_flags [a_zone] then
+			elseif stands_as_strip (a_zone) then
 				Result := strip_extent (a_zone).min (a_whole.max (0.0))
 			else
 				Result := a_whole * fraction (a_zone)
@@ -1350,6 +1702,11 @@ invariant
 		and active_ids.lower = Zone_west and active_ids.upper = Zone_north
 		and collapsed_flags.lower = Zone_west and collapsed_flags.upper = Zone_north
 	maximized_known: maximized_panel >= 0 and maximized_panel <= panels.count
+	per_zone_orders: auto_hide_flags.lower = Zone_west and auto_hide_flags.upper = Zone_north
+		and zone_orders.lower = Zone_west and zone_orders.upper = Zone_north
+	slid_known: slid_out_panel >= 0 and slid_out_panel <= panels.count
+	slid_is_auto_hidden: slid_out_panel > 0 implies
+		(auto_hide_flags [panels.i_th (slid_out_panel).zone] and panels.i_th (slid_out_panel).is_visible)
 	dragging_a_zone: dragging_edge >= 0 and dragging_edge <= Zone_north
 
 end
