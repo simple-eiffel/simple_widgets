@@ -492,6 +492,7 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_rating_read_only_and_halves, "rating_read_only_and_halves")
 			run_test (agent deepening_tests.test_slider_tick_snapping, "slider_tick_snapping")
 			run_test (agent deepening_tests.test_a_removable_chip_makes_room_for_its_cross, "a_removable_chip_makes_room_for_its_cross")
+			run_test (agent deepening_tests.test_an_info_bar_wears_its_kind_and_a_spinner_turns, "an_info_bar_wears_its_kind_and_a_spinner_turns")
 			run_test (agent deepening_tests.test_a_hosted_window_draws_takes_input_and_asks_its_host, "a_hosted_window_draws_takes_input_and_asks_its_host")
 			run_test (agent deepening_tests.test_number_box_direct_typing, "number_box_direct_typing")
 			run_test (agent deepening_tests.test_locale_number_formatting, "locale_number_formatting")
