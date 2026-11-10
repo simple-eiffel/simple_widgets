@@ -31,7 +31,8 @@ inherit
 	SW_WIDGET
 		redefine
 			handle_click, handle_double_click, handle_drag, handle_wheel,
-			handle_key, wants_hover_point, accepts_focus, cursor_kind, handle_release,
+			handle_key, handle_char, set_focused, takes_typing, menu_left, menu_top,
+			wants_hover_point, accepts_focus, cursor_kind, handle_release,
 			accessible_role, context_menu, dwell_ms, hover_card_at,
 			accessible_item_count, publish_accessible_items
 		end
@@ -117,12 +118,17 @@ feature -- Access
 		end
 
 	cell_text (a_model, a_column: INTEGER): STRING_32
-			-- What row `a_model' shows in column `a_column'.
+			-- What row `a_model' shows in column `a_column': an accepted edit's text, else the
+			-- column's own value (sorting and the filter predicate still read the source rows).
 		require
 			row_known: a_model >= 1 and a_model <= rows.count
 			column_known: a_column >= 1 and a_column <= columns.count
 		do
-			Result := columns.i_th (a_column).value.item ([rows.i_th (a_model)])
+			if not edited.is_empty and then attached edited.item (edit_key (a_model, a_column)) as al_text then
+				Result := al_text.twin
+			else
+				Result := columns.i_th (a_column).value.item ([rows.i_th (a_model)])
+			end
 		end
 
 	row_text (a_model: INTEGER): STRING_32
@@ -237,6 +243,10 @@ feature -- Element change
 			-- trip `view_never_exceeds_rows'. To reflect such a change, the
 			-- caller calls `set_rows' again - which every refresh already does.
 		do
+			cancel_edit
+			edited.wipe_out
+			cell_note.wipe_out
+			note_model := 0
 			rows := a_rows.twin
 			if selected_model > rows.count then
 				selected_model := 0
@@ -267,7 +277,7 @@ feature -- Element change
 		do
 			rows.extend (a_row)
 			l_model := rows.count
-			if attached filter as f implies f.item ([a_row]) then
+			if passes (l_model, a_row) then
 				if sort_column >= 1 and sort_column <= columns.count then
 					l_column := columns.i_th (sort_column)
 					l_key := l_column.sort_key (a_row)
@@ -307,7 +317,7 @@ feature -- Element change
 			sync_bar
 		ensure
 			grew: rows.count = old rows.count + 1
-			shown_when_it_passes: view.count = old view.count + (if attached filter as f implies f.item ([a_row]) then 1 else 0 end)
+			shown_when_it_passes: view.count = old view.count + (if passes (rows.count, a_row) then 1 else 0 end)
 		end
 
 	put_row (a_row: G; i: INTEGER)
@@ -318,7 +328,8 @@ feature -- Element change
 			valid: i >= 1 and i <= rows.count
 		do
 			rows.put_i_th (a_row, i)
-			if (sort_column >= 1 and sort_column <= columns.count) or filter /= Void or pinned /= Void then
+			forget_row_edits (i)
+			if (sort_column >= 1 and sort_column <= columns.count) or filter /= Void or shown_set /= Void or pinned /= Void then
 				rebuild_view
 			end
 		ensure
@@ -680,7 +691,7 @@ feature -- Drawing
 					loop
 						cx := l_lefts.i_th (ci)
 						col := columns.i_th (ci)
-						s := col.value.item ([rows.i_th (view.i_th (i))])
+						s := cell_text (view.i_th (i), ci)
 						a_p.push_clip (cx + 1.0, ry, shown_width (ci) - 2.0, Row_h)
 							-- a star or glyph sits on the leading side: the left, or the right when mirrored
 						if mirrors_layout then
@@ -690,7 +701,15 @@ feature -- Drawing
 							l_mark_x := cx + 15.0
 							l_text_x := cx + 16.0
 						end
-						if col.is_starred (rows.i_th (view.i_th (i))) then
+						if column_editor (ci) = Edit_check then
+								-- a check cell: a box, ticked when the text reads 1
+							if mirrors_layout then
+								l_mark_x := cx + shown_width (ci) - 22.0
+							else
+								l_mark_x := cx + 8.0
+							end
+							draw_check_box (a_p, l_mark_x + 7.0, ry + Row_h / 2.0, s.same_string ("1"))
+						elseif col.is_starred (rows.i_th (view.i_th (i))) then
 								-- a favorite (0.50.0): the star, then the text past it
 							a_p.set_color (t.star)
 							a_p.glyph ({SW_PAINTER}.Glyph_star, l_mark_x, ry + Row_h / 2.0, 12.0)
@@ -706,12 +725,24 @@ feature -- Drawing
 							a_p.set_color (t.ink)
 							a_p.text (cell_left (a_p, s, col.alignment, cx, shown_width (ci)), ry + Row_h - 8.0, s)
 						end
+						if column_editor (ci) = Edit_choice then
+								-- a choice cell: a chevron at its trailing edge
+							a_p.set_color (t.ink_muted)
+							if mirrors_layout then
+								l_arrow_x := cx + 6.0
+							else
+								l_arrow_x := cx + shown_width (ci) - 16.0
+							end
+							a_p.line (l_arrow_x, ry + Row_h / 2.0 - 2.0, l_arrow_x + 4.0, ry + Row_h / 2.0 + 2.0, 1.5)
+							a_p.line (l_arrow_x + 4.0, ry + Row_h / 2.0 + 2.0, l_arrow_x + 8.0, ry + Row_h / 2.0 - 2.0, 1.5)
+						end
 						a_p.pop_clip
 						ci := ci + 1
 					end
 					i := i + 1
 				end
 			end
+			draw_editing (a_p)
 				-- frozen header
 			a_p.set_color (t.surface_variant)
 			a_p.fill_rect (x, y, width, Header_h)
@@ -813,11 +844,19 @@ feature -- Input
 			edge, hc, vr: INTEGER
 		do
 			sync_bar
-			if is_enabled and then bar.contains (a_px, a_py) then
+			swallow_return_char := False
+			if is_enabled and then is_editing and then attached editor as al_editor
+				and then al_editor.contains (a_px, a_py)
+			then
+				Result := al_editor.handle_click (a_px, a_py)
+			elseif is_enabled and then bar.contains (a_px, a_py) then
 				resizing_column := 0
 				scroll_y := bar.press (a_py, scroll_y)
 				Result := True
 			elseif is_enabled then
+				if is_editing then
+					commit_edit
+				end
 				if a_py < y + Header_h then
 					edge := column_edge_at (a_px)
 					if edge > 0 then
@@ -847,6 +886,10 @@ feature -- Input
 					elseif vr > 0 then
 						also_selected.wipe_out
 						select_model_row (view.i_th (vr))
+						hc := header_column_at (a_px)
+						if hc > 0 and then (column_editor (hc) = Edit_check or else column_editor (hc) = Edit_choice) then
+							begin_edit (view.i_th (vr), hc)
+						end
 					end
 				end
 				Result := True
@@ -886,14 +929,28 @@ feature -- Input
 
 	handle_double_click (a_px, a_py: REAL_64): BOOLEAN
 		local
-			vr: INTEGER
+			vr, hc: INTEGER
 		do
-			if is_enabled then
+			if is_enabled and then is_editing and then attached editor as al_editor
+				and then al_editor.contains (a_px, a_py)
+			then
+				Result := al_editor.handle_double_click (a_px, a_py)
+			elseif is_enabled then
+				if is_editing then
+					commit_edit
+				end
 				vr := view_row_at (a_py)
 				if vr > 0 then
-					select_model_row (view.i_th (vr))
-					if attached on_activate as act then
-						act.call (view.i_th (vr))
+					hc := header_column_at (a_px)
+					if hc > 0 and then column_editor (hc) = Edit_text then
+						begin_edit (view.i_th (vr), hc)
+					elseif hc > 0 and then column_editor (hc) = Edit_check then
+						begin_edit (view.i_th (vr), hc)
+					else
+						select_model_row (view.i_th (vr))
+						if attached on_activate as act then
+							act.call (view.i_th (vr))
+						end
 					end
 				end
 				Result := True
@@ -908,6 +965,8 @@ feature -- Input
 		do
 			if bar.is_dragging then
 				scroll_y := bar.drag_to (a_py)
+			elseif is_editing and then attached editor as al_editor then
+				al_editor.handle_drag (a_px, a_py)
 			elseif resizing_column >= 1 and resizing_column <= columns.count then
 				l_left := column_lefts.i_th (resizing_column)
 				l_extra := shown_width (resizing_column) - columns.i_th (resizing_column).width
@@ -978,6 +1037,94 @@ feature -- Input
 		end
 
 	handle_key (a_vk: INTEGER; a_shift: BOOLEAN)
+		do
+			if is_editing and then attached editor as al_editor then
+				if a_vk = 13 then
+					commit_edit
+					swallow_return_char := True
+				elseif a_vk = 27 then
+					cancel_edit
+				else
+					al_editor.handle_key (a_vk, a_shift)
+				end
+			elseif a_vk = 113 or else a_vk = 13 then
+				if begin_edit_selected and then a_vk = 13 then
+					swallow_return_char := True
+				end
+			else
+				swallow_return_char := False
+				move_selection_by_key (a_vk)
+			end
+		end
+
+	handle_char (a_code: INTEGER)
+			-- While a cell is open the editor takes the characters: Return commits, Escape cancels.
+			-- A Return key that already acted is not acted on again by its character.
+		do
+			if swallow_return_char then
+				swallow_return_char := False
+				if a_code /= 13 then
+					handle_char_now (a_code)
+				end
+			else
+				handle_char_now (a_code)
+			end
+		end
+
+	takes_typing: BOOLEAN
+			-- An open cell keeps Ctrl+Z and the like for its editor.
+		do
+			Result := is_editing
+		end
+
+	set_focused (a_focused: BOOLEAN)
+			-- Leaving the grid commits an open cell.
+		do
+			if not a_focused and then is_editing then
+				commit_edit
+			end
+			Precursor (a_focused)
+		end
+
+	menu_left: REAL_64
+			-- A choice cell's dropdown opens at the cell's left edge.
+		do
+			if menu_cell_column >= 1 and then menu_cell_column <= columns.count then
+				Result := cell_left_of (menu_cell_column)
+			else
+				Result := Precursor
+			end
+		end
+
+	menu_top: REAL_64
+			-- and just under the cell.
+		do
+			if menu_cell_model >= 1 and then menu_cell_model <= rows.count and then view_position_of (menu_cell_model) > 0 then
+				Result := cell_top_of (menu_cell_model) + Row_h
+			else
+				Result := Precursor
+			end
+		end
+
+feature {NONE} -- Keys
+
+	handle_char_now (a_code: INTEGER)
+		do
+			if is_editing and then attached editor as al_editor then
+				if a_code = 13 then
+					commit_edit
+				elseif a_code = 27 then
+					cancel_edit
+				elseif a_code /= 9 then
+					al_editor.handle_char (a_code)
+				end
+			elseif a_code = 13 then
+				if begin_edit_selected then
+				end
+			end
+		end
+
+	move_selection_by_key (a_vk: INTEGER)
 		local
 			pos: INTEGER
 		do
@@ -1012,6 +1159,506 @@ feature -- Input
 			else
 			end
 			scroll_selection_into_view
+		end
+
+feature -- Editing cells (simple_gui 1s)
+
+	passes (a_model: INTEGER; a_row: G): BOOLEAN
+			-- Does model row `a_model' show: the filter and `set_shown_models' both allow it?
+		do
+			Result := (attached filter as al_filter implies al_filter.item ([a_row]))
+				and then (attached shown_set as al_set implies al_set.has (a_model))
+		end
+
+	Edit_none: INTEGER = 0
+	Edit_text: INTEGER = 1
+	Edit_check: INTEGER = 2
+	Edit_choice: INTEGER = 3
+
+	on_cell_edit: detachable FUNCTION [INTEGER, INTEGER, STRING_32, detachable STRING_32]
+			-- Asked (model row, column, new text) when the user commits an edit. A Void or empty
+			-- answer accepts it: the grid shows the new text. A message refuses it: the cell keeps its
+			-- old text and the message shows under the cell until the next edit starts.
+
+	holds_edits: BOOLEAN
+			-- Does the grid keep an accepted text (the default)? A grid whose program owns its rows
+			-- (a lazy table) turns it off and updates its own source on the notice.
+		do
+			Result := not edits_not_held
+		end
+
+	column_editor (a_column: INTEGER): INTEGER
+			-- How column `a_column' is edited: `Edit_none', `Edit_text', `Edit_check' or `Edit_choice'.
+		require
+			column_known: a_column >= 1 and a_column <= columns.count
+		do
+			if edit_kinds.has (a_column) then
+				Result := edit_kinds.item (a_column)
+			end
+		ensure
+			known: Result >= Edit_none and Result <= Edit_choice
+		end
+
+	column_choices (a_column: INTEGER): ARRAY [STRING_32]
+			-- The options of a choice column; empty for none.
+		require
+			column_known: a_column >= 1 and a_column <= columns.count
+		do
+			if attached edit_choices.item (a_column) as al_choices then
+				Result := al_choices
+			else
+				create Result.make_empty
+			end
+		end
+
+	is_editing: BOOLEAN
+			-- Is a text cell open under an editor?
+		do
+			Result := editing_column > 0
+		ensure
+			definition: Result = (editing_column > 0)
+		end
+
+	editing_model, editing_column: INTEGER
+			-- The cell under the editor; 0 when none.
+
+	cell_note: STRING_32
+			-- The refusal message showing under a cell; empty for none.
+		attribute
+			create Result.make_empty
+		end
+
+	shown_count: INTEGER
+			-- How many rows show (after the filter and `set_shown_models').
+		do
+			Result := view.count
+		ensure
+			definition: Result = view.count
+		end
+
+	view_position_of (a_model: INTEGER): INTEGER
+			-- Where model row `a_model' sits in the view; 0 when it is hidden.
+		local
+			i: INTEGER
+		do
+			from i := 1 until i > view.count or Result > 0 loop
+				if view.i_th (i) = a_model then
+					Result := i
+				end
+				i := i + 1
+			end
+		ensure
+			in_range: Result >= 0 and Result <= view.count
+		end
+
+	set_column_editor (a_column, a_kind: INTEGER)
+			-- Column `a_column' is edited as `a_kind': 0 none, 1 text, 2 check (the cell reads "1" or
+			-- "0"), 3 choice (see `set_column_choices').
+		require
+			column_known: a_column >= 1 and a_column <= columns.count
+			kind_known: a_kind >= Edit_none and a_kind <= Edit_choice
+		do
+			if is_editing and then editing_column = a_column then
+				cancel_edit
+			end
+			if a_kind = Edit_none then
+				edit_kinds.remove (a_column)
+			else
+				edit_kinds.force (a_kind, a_column)
+			end
+		ensure
+			set: column_editor (a_column) = a_kind
+		end
+
+	set_column_choices (a_column: INTEGER; a_choices: ARRAY [STRING_32])
+			-- The options a choice column offers.
+		require
+			column_known: a_column >= 1 and a_column <= columns.count
+		do
+			edit_choices.force (a_choices.twin, a_column)
+		ensure
+			set: column_choices (a_column).count = a_choices.count
+		end
+
+	set_on_cell_edit (a_action: detachable FUNCTION [INTEGER, INTEGER, STRING_32, detachable STRING_32])
+		do
+			on_cell_edit := a_action
+		ensure
+			set: on_cell_edit = a_action
+		end
+
+	set_holds_edits (a_on: BOOLEAN)
+			-- Keep accepted texts in the grid (the default), or leave them to the program's own rows.
+		do
+			edits_not_held := not a_on
+			if a_on = False then
+				edited.wipe_out
+			end
+		ensure
+			set: holds_edits = a_on
+		end
+
+	forget_edits
+			-- Drop every text the grid holds for an accepted edit: the cells show their source again.
+		do
+			edited.wipe_out
+		end
+
+	refuse_edit (a_model, a_column: INTEGER; a_old, a_message: READABLE_STRING_GENERAL)
+			-- An edit `on_cell_edit' accepted is refused after all (its program decided later):
+			-- the cell shows `a_old' again and `a_message' hangs under it until the next edit.
+		require
+			model_valid: a_model >= 1 and a_model <= rows.count
+			column_valid: a_column >= 1 and a_column <= columns.count
+		do
+			if holds_edits then
+				edited.force (a_old.to_string_32, edit_key (a_model, a_column))
+			end
+			cell_note := a_message.to_string_32
+			note_model := a_model
+			note_column := a_column
+		ensure
+			noted: cell_note.same_string_general (a_message)
+		end
+
+	edit_cell (a_model, a_column: INTEGER)
+			-- Start editing the cell: a text cell opens its editor with the text selected, a check
+			-- cell toggles, a choice cell offers its options. Clears the note.
+		require
+			column_known: a_column >= 1 and a_column <= columns.count
+			row_known: a_model >= 1 and a_model <= rows.count
+			shown: view_position_of (a_model) > 0
+			editable: column_editor (a_column) /= Edit_none
+		do
+			begin_edit (a_model, a_column)
+		end
+
+	commit_edit
+			-- Return in the editor, or leaving it: the text goes through `on_cell_edit'.
+		local
+			l_model, l_column: INTEGER
+			l_text: STRING_32
+		do
+			if attached editor as al_editor and then is_editing then
+				l_model := editing_model
+				l_column := editing_column
+				l_text := al_editor.text.twin
+				close_editor
+				submit_edit (l_model, l_column, l_text)
+			end
+		ensure
+			closed: not is_editing
+		end
+
+	cancel_edit
+			-- Escape in the editor: nothing changes.
+		do
+			close_editor
+		ensure
+			closed: not is_editing
+		end
+
+	set_shown_models (a_models: detachable ARRAY [INTEGER])
+			-- Show only the model rows named in `a_models' (that also pass the filter); Void shows
+			-- every row. Row numbers stay the model's. A selected row this hides is deselected and
+			-- `on_select' hears 0; it is not selected again when the set widens.
+		local
+			l_was: INTEGER
+			l_set: HASH_TABLE [BOOLEAN, INTEGER]
+		do
+			if attached a_models as al_models then
+				create l_set.make (al_models.count)
+				across al_models as ic loop
+					l_set.force (True, ic)
+				end
+				shown_set := l_set
+			else
+				shown_set := Void
+			end
+			l_was := selected_model
+			rebuild_view
+			if l_was > 0 and then selected_model = 0 and then attached on_select as al_select then
+				al_select.call (0)
+			end
+		ensure
+			within_rows: view.count <= rows.count
+		end
+
+feature -- Test hooks (what the user's hand does)
+
+	edit_cell_by_user (a_model, a_column: INTEGER; a_text: READABLE_STRING_GENERAL)
+			-- As the user typing `a_text' and pressing Return (a text cell), clicking a check to that
+			-- value, or choosing that option: the edit commits through `on_cell_edit'.
+		require
+			column_known: a_column >= 1 and a_column <= columns.count
+			row_known: a_model >= 1 and a_model <= rows.count
+			shown: view_position_of (a_model) > 0
+			editable: column_editor (a_column) /= Edit_none
+		do
+			if column_editor (a_column) = Edit_text then
+				begin_edit (a_model, a_column)
+				if attached editor as al_editor then
+					al_editor.set_text (a_text)
+				end
+				handle_char (13)
+			else
+				cell_note.wipe_out
+				note_model := 0
+				submit_edit (a_model, a_column, a_text.to_string_32)
+			end
+		ensure
+			closed: not is_editing
+		end
+
+	cancel_edit_by_user (a_model, a_column: INTEGER)
+			-- As the user opening a text cell and pressing Escape: nothing changes.
+		require
+			column_known: a_column >= 1 and a_column <= columns.count
+			row_known: a_model >= 1 and a_model <= rows.count
+			shown: view_position_of (a_model) > 0
+			editable_text: column_editor (a_column) = Edit_text
+		do
+			begin_edit (a_model, a_column)
+			handle_char (27)
+		ensure
+			closed: not is_editing
+		end
+
+feature {NONE} -- Cell editing
+
+	shown_set: detachable HASH_TABLE [BOOLEAN, INTEGER]
+			-- The model rows `set_shown_models' allows; Void: all.
+
+	edit_kinds: HASH_TABLE [INTEGER, INTEGER]
+			-- Each editable column's kind.
+		attribute
+			create Result.make (4)
+		end
+
+	edit_choices: HASH_TABLE [ARRAY [STRING_32], INTEGER]
+		attribute
+			create Result.make (4)
+		end
+
+	edited: HASH_TABLE [STRING_32, INTEGER_64]
+			-- The accepted edits, by `edit_key': what a cell shows in place of its source's text.
+		attribute
+			create Result.make (8)
+		end
+
+	edits_not_held: BOOLEAN
+
+	editor: detachable SW_TEXT_BOX
+			-- The box over the cell being edited.
+
+	note_model, note_column: INTEGER
+			-- The cell the note hangs under.
+
+	swallow_return_char: BOOLEAN
+			-- Did a Return key just act, so the Return character that follows it must not?
+
+	edit_key (a_model, a_column: INTEGER): INTEGER_64
+		do
+			Result := a_model.to_integer_64 * 65_536 + a_column
+		end
+
+	begin_edit (a_model, a_column: INTEGER)
+			-- The cell's own gesture; the note of the last refusal goes.
+		local
+			l_kind, l_pos: INTEGER
+			l_menu: SW_MENU
+			l_choices: ARRAY [STRING_32]
+			i: INTEGER
+		do
+			if is_editing then
+				commit_edit
+			end
+			cell_note.wipe_out
+			note_model := 0
+			l_kind := column_editor (a_column)
+			l_pos := view_position_of (a_model)
+			if l_pos > 0 then
+				select_model_row (a_model)
+				scroll_to_position (l_pos)
+				inspect l_kind
+				when Edit_text then
+					create editor.make_single_line (cell_text (a_model, a_column))
+					editing_model := a_model
+					editing_column := a_column
+					place_editor
+					if attached editor as al_editor then
+						al_editor.set_focused (True)
+						al_editor.select_all
+					end
+				when Edit_check then
+					if cell_text (a_model, a_column).same_string ("1") then
+						submit_edit (a_model, a_column, "0")
+					else
+						submit_edit (a_model, a_column, "1")
+					end
+				when Edit_choice then
+					l_choices := column_choices (a_column)
+					if not l_choices.is_empty then
+						create l_menu.make
+						from i := l_choices.lower until i > l_choices.upper loop
+							l_menu.add_item (l_choices [i], "", True, agent choose_cell (a_model, a_column, l_choices [i]))
+							i := i + 1
+						end
+						pending_menu := l_menu
+						menu_cell_column := a_column
+						menu_cell_model := a_model
+					end
+				else
+				end
+			end
+		end
+
+	choose_cell (a_model, a_column: INTEGER; a_text: STRING_32)
+			-- A choice picked from the dropdown commits at once.
+		do
+			submit_edit (a_model, a_column, a_text)
+		end
+
+	close_editor
+		do
+			if attached editor as al_editor then
+				al_editor.set_focused (False)
+			end
+			editor := Void
+			editing_model := 0
+			editing_column := 0
+		ensure
+			closed: not is_editing
+		end
+
+	submit_edit (a_model, a_column: INTEGER; a_text: STRING_32)
+			-- The new text goes to `on_cell_edit'; accepted, the grid shows it; refused, the cell
+			-- keeps its text and the message hangs under it.
+		local
+			l_answer: detachable STRING_32
+		do
+			if not a_text.same_string (cell_text (a_model, a_column)) then
+				if attached on_cell_edit as al_edit then
+					l_answer := al_edit.item ([a_model, a_column, a_text])
+				end
+				if l_answer = Void or else l_answer.is_empty then
+					if holds_edits then
+						edited.force (a_text.twin, edit_key (a_model, a_column))
+					end
+				else
+					cell_note := l_answer.twin
+					note_model := a_model
+					note_column := a_column
+				end
+			end
+		end
+
+	menu_cell_column, menu_cell_model: INTEGER
+			-- The cell the dropdown last offered was for.
+
+	forget_row_edits (a_model: INTEGER)
+			-- A row the program replaced shows its own texts again.
+		local
+			c: INTEGER
+		do
+			if not edited.is_empty then
+				from c := 1 until c > columns.count loop
+					edited.remove (edit_key (a_model, c))
+					c := c + 1
+				end
+			end
+		end
+
+	cell_left_of (a_column: INTEGER): REAL_64
+			-- Left edge of column `a_column' on screen.
+		require
+			column_known: a_column >= 1 and a_column <= columns.count
+		do
+			Result := column_lefts.i_th (a_column)
+		end
+
+	cell_top_of (a_model: INTEGER): REAL_64
+			-- Top edge of model row `a_model' on screen (the view position's row).
+		do
+			Result := y + Header_h + (view_position_of (a_model) - 1) * Row_h - scroll_y
+		end
+
+	place_editor
+			-- The editor sits over its cell.
+		do
+			if attached editor as al_editor and then is_editing then
+				al_editor.set_bounds (cell_left_of (editing_column) + 1.0, cell_top_of (editing_model),
+					shown_width (editing_column) - 2.0, Row_h)
+			end
+		end
+
+	first_editable_column: INTEGER
+			-- The first column with an editor; 0 for none.
+		local
+			c: INTEGER
+		do
+			from c := 1 until c > columns.count or Result > 0 loop
+				if column_editor (c) /= Edit_none then
+					Result := c
+				end
+				c := c + 1
+			end
+		end
+
+	begin_edit_selected: BOOLEAN
+			-- F2 or Return on the selected row: its first editable column starts. True when one did.
+		local
+			l_column: INTEGER
+		do
+			l_column := first_editable_column
+			if selected_model > 0 and then l_column > 0 and then view_position_of (selected_model) > 0 then
+				begin_edit (selected_model, l_column)
+				Result := True
+			end
+		end
+
+	draw_editing (a_p: SW_PAINTER)
+			-- The editor over its cell, and the note of a refusal under its cell.
+		local
+			t: SW_THEME
+			l_pos: INTEGER
+			l_w, l_x, l_y: REAL_64
+		do
+			t := a_p.theme
+			if attached editor as al_editor and then is_editing then
+				place_editor
+				al_editor.draw (a_p)
+			end
+			if not cell_note.is_empty and then note_model > 0 and then note_column >= 1 and then note_column <= columns.count then
+				l_pos := view_position_of (note_model)
+				if l_pos > 0 then
+					a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+					l_w := (a_p.advance (cell_note) + 12.0).max (shown_width (note_column))
+					l_x := cell_left_of (note_column)
+					l_y := cell_top_of (note_model) + Row_h
+					a_p.set_color (t.wash_danger)
+					a_p.rrect_fill (l_x, l_y, l_w, 20.0, 3.0)
+					a_p.set_color (t.ink_danger)
+					a_p.text (l_x + 6.0, l_y + 15.0, cell_note)
+				end
+			end
+		end
+
+	draw_check_box (a_p: SW_PAINTER; a_cx, a_cy: REAL_64; a_on: BOOLEAN)
+			-- A check cell's box, ticked or not.
+		local
+			t: SW_THEME
+		do
+			t := a_p.theme
+			if a_on then
+				a_p.set_color (t.accent)
+				a_p.rrect_fill (a_cx - 7.0, a_cy - 7.0, 14.0, 14.0, 3.0)
+				a_p.set_color (t.ink_on_accent)
+				a_p.glyph ({SW_PAINTER}.Glyph_check, a_cx, a_cy, 10.0)
+			else
+				a_p.set_color (t.outline)
+				a_p.rrect_stroke (a_cx - 6.5, a_cy - 6.5, 13.0, 13.0, 3.0)
+			end
 		end
 
 feature {NONE} -- Engine
@@ -1231,11 +1878,7 @@ feature {NONE} -- Engine
 			until
 				i > rows.count
 			loop
-				if attached filter as f then
-					if f.item ([rows.i_th (i)]) then
-						view.extend (i)
-					end
-				else
+				if passes (i, rows.i_th (i)) then
 					view.extend (i)
 				end
 				i := i + 1
@@ -1248,6 +1891,9 @@ feature {NONE} -- Engine
 			end
 			if selected_model > 0 and then selected_view_position = 0 then
 				selected_model := 0
+			end
+			if is_editing and then view_position_of (editing_model) = 0 then
+				cancel_edit
 			end
 			scroll_y := scroll_y.max (0.0)
 			sync_bar
@@ -1323,6 +1969,7 @@ invariant
 	view_never_exceeds_rows: view.count <= rows.count
 	sort_in_range: sort_column >= 0 and sort_column <= columns.count
 	selection_in_model: selected_model >= 0 and selected_model <= rows.count
+	editing_a_known_cell: is_editing implies (editing_model >= 1 and editing_model <= rows.count and editing_column >= 1 and editing_column <= columns.count)
 	context_in_model: context_model >= 0 and context_model <= rows.count
 
 end

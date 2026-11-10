@@ -482,6 +482,21 @@ feature {NONE} -- Test runners
 			run_test (agent enterprise_tests.test_dock_1rc_fields_survive_removing_an_earlier_panel, "dock_1rc_fields_survive_removing_an_earlier_panel")
 			run_test (agent enterprise_tests.test_dock_1rc_a_tab_draws_the_short_title_and_a_tip, "dock_1rc_a_tab_draws_the_short_title_and_a_tip")
 			run_test (agent enterprise_tests.test_dock_1rc_pills_show_only_while_the_window_shows_pills, "dock_1rc_pills_show_only_while_the_window_shows_pills")
+			run_test (agent enterprise_tests.test_list_1s_parts_round_trip, "list_1s_parts_round_trip")
+			run_test (agent enterprise_tests.test_list_1s_parts_move_with_reorder, "list_1s_parts_move_with_reorder")
+			run_test (agent enterprise_tests.test_list_1s_user_acts_notify_code_calls_do_not, "list_1s_user_acts_notify_code_calls_do_not")
+			run_test (agent enterprise_tests.test_list_1s_removal_adjusts_the_selection, "list_1s_removal_adjusts_the_selection")
+			run_test (agent enterprise_tests.test_list_1s_space_and_delete, "list_1s_space_and_delete")
+			run_test (agent enterprise_tests.test_list_1s_filter_keeps_model_numbers, "list_1s_filter_keeps_model_numbers")
+			run_test (agent enterprise_tests.test_list_1s_filter_follows_added_and_removed_rows, "list_1s_filter_follows_added_and_removed_rows")
+			run_test (agent enterprise_tests.test_grid_1s_text_cell_edits_commit, "grid_1s_text_cell_edits_commit")
+			run_test (agent enterprise_tests.test_grid_1s_leaving_commits, "grid_1s_leaving_commits")
+			run_test (agent enterprise_tests.test_grid_1s_escape_changes_nothing, "grid_1s_escape_changes_nothing")
+			run_test (agent enterprise_tests.test_grid_1s_check_cells_commit_at_once, "grid_1s_check_cells_commit_at_once")
+			run_test (agent enterprise_tests.test_grid_1s_choice_cells_offer_and_commit, "grid_1s_choice_cells_offer_and_commit")
+			run_test (agent enterprise_tests.test_grid_1s_refusal_keeps_the_text_and_shows_a_note, "grid_1s_refusal_keeps_the_text_and_shows_a_note")
+			run_test (agent enterprise_tests.test_grid_1s_shown_models_and_counts, "grid_1s_shown_models_and_counts")
+			run_test (agent enterprise_tests.test_1s_rich_rows_and_open_editor_draw, "1s_rich_rows_and_open_editor_draw")
 		end
 
 	enterprise_tests: SW_ENTERPRISE_ASSAULT
