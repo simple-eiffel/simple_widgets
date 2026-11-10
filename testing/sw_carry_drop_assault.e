@@ -237,6 +237,77 @@ feature -- Composed sources and holes (simple_gui 1q)
 			assert_integers_equal ("both", 2, l_got.item)
 		end
 
+	test_a_hooked_widget_takes_dragged_in_text
+			-- simple_gui 1q-c (2026-11-10): text other programs drag in reaches a widget's hook;
+			-- without one it takes none.
+		local
+			l_label: SW_LABEL
+			l_got: CELL [STRING_32]
+		do
+			create l_got.put ({STRING_32} "")
+			create l_label.make_ui ("Drop text here")
+			assert_false ("no hook, no text", l_label.accepts_text)
+			l_label.set_text_drop_hook (agent (a_t: STRING_32; c: CELL [STRING_32]) do c.put (a_t) end (?, l_got))
+			assert_true ("a hook takes text", l_label.accepts_text)
+			l_label.receive_text ({STRING_32} "Romans 8:28", 1.0, 1.0)
+			assert_strings_equal ("the text", "Romans 8:28", l_got.item)
+		end
+
+	test_a_press_that_moves_drags_data_out
+			-- simple_gui 1q-c: a widget with data for other programs and no pebble starts the
+			-- drag out when a press moves past the distance, and its hook hears how it ended.
+			-- With a pebble too, the pick runs inside and becomes the drag out when the pointer
+			-- leaves the window, the pick told as a cancel.
+		local
+			w: SW_WINDOW
+			l_column: SW_COLUMN
+			l_out, l_both: SW_LABEL
+			l_carried: CELL [STRING_32]
+			l_how, l_cancels: CELL [INTEGER]
+			ox, oy, bx, by: INTEGER
+		do
+			create l_carried.put ({STRING_32} "")
+			create l_how.put (-9)
+			create l_cancels.put (0)
+			w := new_window
+			w.set_drag_out_stand_in (agent (a_t, a_p: STRING_32; c: CELL [STRING_32]): INTEGER
+				do c.put (a_t + {STRING_32} "|" + a_p); Result := {SHELL_WINDOW}.Drag_copied end (?, ?, l_carried))
+			w.set_on_pick_cancelled (agent (c: CELL [INTEGER]) do c.put (c.item + 1) end (l_cancels))
+			create l_out.make_ui ("Data only")
+			create l_both.make_ui ("Pebble and data")
+			l_out.set_drag_out ("John 3:16", "C:/notes.txt")
+			l_out.set_drag_out_ended_hook (agent (a_h: INTEGER; c: CELL [INTEGER]) do c.put (a_h) end (?, l_how))
+			l_both.set_pick_gestures (True, False)
+			l_both.set_pebble_hook (agent (x, y: REAL_64): detachable ANY do Result := {STRING_32} "note" end)
+			l_both.set_drag_out ("Psalm 23", "")
+			create l_column.make
+			l_column.put (l_out)
+			l_column.put (l_both)
+			w.set_root (l_column)
+			w.request_render
+			ox := (l_out.x + 10.0).truncated_to_integer
+			oy := (l_out.y + l_out.height / 2.0).truncated_to_integer
+			bx := (l_both.x + 10.0).truncated_to_integer
+			by := (l_both.y + l_both.height / 2.0).truncated_to_integer
+			w.dispatch (2, ox, oy)
+			assert_strings_equal ("a press alone drags nothing", "", l_carried.item)
+			w.dispatch (9, ox + 30, oy)
+			assert_strings_equal ("a press that moves drags the data", "John 3:16|C:/notes.txt", l_carried.item)
+			assert_integers_equal ("its hook heard", {SHELL_WINDOW}.Drag_copied, l_how.item)
+			assert_false ("and no pick", w.is_picking)
+			l_carried.put ({STRING_32} "")
+			w.dispatch (2, bx, by)
+			w.dispatch (9, bx + 30, by)
+			assert_true ("with a pebble, a pick inside", w.is_picking and w.pick_by_drag)
+			assert_strings_equal ("no drag out yet", "", l_carried.item)
+			w.dispatch (9, -40, by)
+			assert_false ("leaving the window ends the pick", w.is_picking)
+			assert_integers_equal ("told as a cancel", 1, l_cancels.item)
+			assert_strings_equal ("and the data goes out", "Psalm 23|", l_carried.item)
+			l_out.set_drag_out ("", "")
+			assert_false ("emptied: nothing to drag", l_out.has_drag_out)
+		end
+
 feature -- The tree as the hole
 
 	test_a_resting_pick_springs_a_folder_that_closes_after
