@@ -2504,7 +2504,15 @@ feature {NONE} -- Popup lifecycle
 				end
 				after_input
 			when Event_window_move, Event_window_drag then
-				follow_pick (a_x, a_y)
+				if a_type = Event_window_drag and pick_by_drag and then attached pick_drag_out_source as al_out
+					and then (a_x < 0 or a_y < 0 or a_x >= alloc_w or a_y >= alloc_h)
+				then
+						-- 1q-c: the pick left the window; its data goes on to other programs
+					end_pick
+					run_drag_out (al_out)
+				else
+					follow_pick (a_x, a_y)
+				end
 				after_input
 			when Event_window_release then
 				if attached capture as cw then
@@ -2668,7 +2676,7 @@ feature {NONE} -- Pick gestures (simple_gui 1q)
 		do
 			drag_pick_source := Void
 			from w := a_target until w = Void or drag_pick_source /= Void loop
-				if w.picks_on_drag and then w.is_enabled then
+				if (w.picks_on_drag or w.has_drag_out) and then w.is_enabled then
 					drag_pick_source := w
 					drag_pick_x := a_x
 					drag_pick_y := a_y
@@ -2707,6 +2715,7 @@ feature {NONE} -- Popup lifecycle
 			l_visited := pick_visited.twin
 			pick_visited.wipe_out
 			pick_spot := Void
+			pick_drag_out_source := Void
 			pick_by_drag := False
 			create pick_card.make_empty
 			across l_visited as ic loop
@@ -2918,9 +2927,15 @@ feature {NONE} -- Popup lifecycle
 						-- simple_gui 1q: a drag source lifts its pebble once the
 						-- press has moved; the release drops it
 					drag_pick_source := Void
-					if attached al_source.pebble_at (drag_pick_x, drag_pick_y) as al_pebble then
+					if al_source.picks_on_drag and then attached al_source.pebble_at (drag_pick_x, drag_pick_y) as al_pebble then
 						begin_pick_with (al_pebble, al_source.pebble_card_at (drag_pick_x, drag_pick_y), a_x, a_y, True)
+						if al_source.has_drag_out then
+							pick_drag_out_source := al_source
+						end
 						follow_pick (a_x, a_y)
+					elseif al_source.has_drag_out then
+							-- simple_gui 1q-c: data for other programs, no pebble
+						run_drag_out (al_source)
 					end
 					after_input
 				elseif attached capture as w then
@@ -2993,6 +3008,8 @@ feature {NONE} -- Popup lifecycle
 				end
 			when Event_window_drop then
 				deliver_drop (a_x, a_y)
+			when Event_window_text_drop then
+				deliver_text_drop (a_x, a_y)
 			when Event_window_middle then
 				if lens.is_active (is_dev_mode) and then attached target_at (a_x, a_y) as dw
 					and then lens.observes (dw)
@@ -3179,6 +3196,60 @@ feature {NONE} -- Popup lifecycle
 					after_input
 				end
 			end
+		end
+
+	deliver_text_drop (a_x, a_y: INTEGER)
+			-- Text another program dragged in landed at (a_x, a_y): give it to the first
+			-- widget up the spine that welcomes text.
+		local
+			l_text: STRING_32
+		do
+			l_text := take_dropped_text
+			if not l_text.is_empty and then attached spine_text_taker (target_at (a_x, a_y)) as al_w then
+				al_w.receive_text (l_text, a_x, a_y)
+				after_input
+			end
+		end
+
+	run_drag_out (a_source: SW_WIDGET)
+			-- Drag `a_source''s data out to other programs (modal until the drop), then tell
+			-- its hook how it ended. The drag took the button's release, so the press ends here.
+		local
+			l_how: INTEGER
+		do
+			if attached a_source.drag_out_data as al_d then
+				if attached drag_out_stand_in as al_stand_in then
+					l_how := al_stand_in.item ([al_d.text, al_d.paths])
+				else
+					l_how := drag_out (al_d.text, al_d.paths)
+				end
+				if attached capture as cw then
+					if cw.is_pressed then
+						cw.set_pressed (False)
+					end
+					capture := Void
+				end
+				if attached a_source.drag_out_ended_hook as al_hook then
+					al_hook.call ([l_how])
+				end
+				after_input
+			end
+		end
+
+	pick_drag_out_source: detachable SW_WIDGET
+			-- The source of a drag pick that becomes a drag out if the pointer leaves the window.
+
+feature -- Dragging out (simple_gui 1q-c)
+
+	drag_out_stand_in: detachable FUNCTION [STRING_32, STRING_32, INTEGER]
+			-- Takes the place of the system's drag out when set: the test door. A real drag
+			-- out with no button down would drop at once on whatever is under the pointer.
+
+	set_drag_out_stand_in (a_stand_in: like drag_out_stand_in)
+		do
+			drag_out_stand_in := a_stand_in
+		ensure
+			set: drag_out_stand_in = a_stand_in
 		end
 
 	pick_from (a_target: SW_WIDGET; a_x, a_y: INTEGER)

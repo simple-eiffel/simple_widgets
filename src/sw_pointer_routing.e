@@ -114,6 +114,20 @@ feature {NONE} -- Walks
 			welcoming: attached Result as al_r implies al_r.accepts_files
 		end
 
+	spine_text_taker (a_target: detachable SW_WIDGET): detachable SW_WIDGET
+			-- The first enabled widget from `a_target' up that welcomes dragged-in text.
+		do
+			from
+				Result := a_target
+			until
+				Result = Void or else (Result.is_enabled and then Result.accepts_text)
+			loop
+				Result := Result.parent
+			end
+		ensure
+			welcoming: attached Result as al_r implies al_r.accepts_text
+		end
+
 	ring_neighbor (a_ring: LIST [SW_WIDGET]; a_current: detachable SW_WIDGET; a_dir: INTEGER): SW_WIDGET
 			-- The focus ring's stop `a_dir' steps (1 or -1) from `a_current',
 			-- wrapping; from outside the ring, its first (or last) stop.

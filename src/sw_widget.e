@@ -712,6 +712,71 @@ feature -- Input
 			set: files_hook = a_hook
 		end
 
+	accepts_text: BOOLEAN
+			-- Does this widget welcome text dragged in from other programs? By default: when
+			-- it has a `text_drop_hook'. The window takes text only after
+			-- `SHELL_WINDOW.set_accepts_text'.
+		do
+			Result := text_drop_hook /= Void
+		end
+
+	receive_text (a_text: STRING_32; a_px, a_py: REAL_64)
+			-- Take text dragged in (drop point in widget space). By default `text_drop_hook'
+			-- takes it.
+		require
+			welcome: accepts_text
+		do
+			if attached text_drop_hook as al_hook then
+				al_hook.call ([a_text])
+			end
+		end
+
+	text_drop_hook: detachable PROCEDURE [STRING_32]
+			-- Takes text other programs drag in, for a composing client (simple_gui 1q-c).
+
+	set_text_drop_hook (a_hook: like text_drop_hook)
+		do
+			text_drop_hook := a_hook
+		ensure
+			set: text_drop_hook = a_hook
+		end
+
+	drag_out_data: detachable TUPLE [text, paths: STRING_32]
+			-- What a drag out of this widget gives other programs: text, and file paths one
+			-- per line (simple_gui 1q-c). The client keeps it current.
+
+	has_drag_out: BOOLEAN
+			-- Does a drag out of this widget carry something?
+		do
+			Result := drag_out_data /= Void
+		end
+
+	set_drag_out (a_text, a_paths: READABLE_STRING_GENERAL)
+			-- Drag `a_text' and the newline-separated `a_paths' out of this widget (both empty:
+			-- nothing). A press that moves starts the drag; with a pebble too, the pick runs
+			-- inside the window and becomes this drag when the pointer leaves it.
+		do
+			if a_text.is_empty and a_paths.is_empty then
+				drag_out_data := Void
+			else
+				drag_out_data := [create {STRING_32}.make_from_string_general (a_text),
+					create {STRING_32}.make_from_string_general (a_paths)]
+			end
+		ensure
+			none_when_empty: (a_text.is_empty and a_paths.is_empty) = not has_drag_out
+		end
+
+	drag_out_ended_hook: detachable PROCEDURE [INTEGER]
+			-- Told how a drag out of this widget ended: `SHELL_WINDOW.Drag_copied',
+			-- `Drag_refused', or `Drag_landed_here'.
+
+	set_drag_out_ended_hook (a_hook: like drag_out_ended_hook)
+		do
+			drag_out_ended_hook := a_hook
+		ensure
+			set: drag_out_ended_hook = a_hook
+		end
+
 	pebble_at (a_px, a_py: REAL_64): detachable ANY
 			-- The pebble offered at a specific point - by default
 			-- `pebble_hook''s answer when there is one, else the
