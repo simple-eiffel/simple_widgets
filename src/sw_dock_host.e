@@ -61,6 +61,7 @@ feature -- Zones
 	Zone_west: INTEGER = 1
 	Zone_east: INTEGER = 2
 	Zone_south: INTEGER = 3
+	Zone_north: INTEGER = 4
 
 	Min_fraction: REAL_64 = 0.08
 			-- The smallest share a zone may be given.
@@ -84,14 +85,16 @@ feature {NONE} -- Initialization
 			west_fraction := 0.22
 			east_fraction := 0.24
 			south_fraction := 0.30
-			create tabbed_flags.make_filled (False, Zone_west, Zone_south)
-			create collapsed_flags.make_filled (False, Zone_west, Zone_south)
-			create active_ids.make_filled (0, Zone_west, Zone_south)
+			north_fraction := 0.20
+			create tabbed_flags.make_filled (False, Zone_west, Zone_north)
+			create collapsed_flags.make_filled (False, Zone_west, Zone_north)
+			create active_ids.make_filled (0, Zone_west, Zone_north)
 			a_center.set_parent (Current)
 		ensure
 			centered: center = a_center
 			empty: panels.is_empty
 			stacked: not is_tabbed (Zone_west) and not is_tabbed (Zone_east) and not is_tabbed (Zone_south)
+				and not is_tabbed (Zone_north)
 		end
 
 feature -- Access
@@ -102,9 +105,9 @@ feature -- Access
 			-- Every panel, visible or hidden, in order; a panel's id is its
 			-- index here.
 
-	west_fraction, east_fraction, south_fraction: REAL_64
+	west_fraction, east_fraction, south_fraction, north_fraction: REAL_64
 			-- Each zone's share of the host (west and east across, south
-			-- down) while it holds a visible panel.
+			-- and north down) while it holds a visible panel.
 
 	fraction (a_zone: INTEGER): REAL_64
 		require
@@ -115,6 +118,8 @@ feature -- Access
 				Result := west_fraction
 			when Zone_east then
 				Result := east_fraction
+			when Zone_north then
+				Result := north_fraction
 			else
 				Result := south_fraction
 			end
@@ -124,7 +129,7 @@ feature -- Access
 
 	is_zone (a_zone: INTEGER): BOOLEAN
 		do
-			Result := a_zone >= Zone_west and a_zone <= Zone_south
+			Result := a_zone >= Zone_west and a_zone <= Zone_north
 		end
 
 	is_usable_key (a_key: READABLE_STRING_GENERAL): BOOLEAN
@@ -237,7 +242,7 @@ feature -- Access
 		require
 			zone_known: is_zone (a_zone)
 		local
-			ww, ew, sh, l_room, l_scale: REAL_64
+			ww, ew, sh, nh, l_room, l_scale: REAL_64
 		do
 			if maximized_panel > 0 then
 					-- a maximized panel's zone takes the host; the rest stand nowhere
@@ -256,12 +261,20 @@ feature -- Access
 					ww := ww * l_scale
 					ew := ew * l_scale
 				end
-				sh := sh.min ((height - Min_center).max (0.0))
+				nh := zone_extent (Zone_north, height)
+				l_room := (height - Min_center).max (0.0)
+				if sh + nh > l_room and then sh + nh > 0.0 then
+					l_scale := l_room / (sh + nh)
+					sh := sh * l_scale
+					nh := nh * l_scale
+				end
 				inspect a_zone
 				when Zone_west then
-					Result := [x, y, ww, height - sh]
+					Result := [x, y + nh, ww, height - nh - sh]
 				when Zone_east then
-					Result := [x + width - ew, y, ew, height - sh]
+					Result := [x + width - ew, y + nh, ew, height - nh - sh]
+				when Zone_north then
+					Result := [x, y, width, nh]
 				else
 					Result := [x, y + height - sh, width, sh]
 				end
@@ -271,15 +284,16 @@ feature -- Access
 	center_rect: TUPLE [rx, ry, rw, rh: REAL_64]
 			-- Every pixel the zones do not take.
 		local
-			w_r, e_r, s_r: TUPLE [rx, ry, rw, rh: REAL_64]
+			w_r, e_r, s_r, n_r: TUPLE [rx, ry, rw, rh: REAL_64]
 		do
 			w_r := zone_rect (Zone_west)
 			e_r := zone_rect (Zone_east)
 			s_r := zone_rect (Zone_south)
+			n_r := zone_rect (Zone_north)
 			if maximized_panel > 0 then
 				Result := [x, y, 0.0, 0.0]
 			else
-				Result := [x + w_r.rw, y, width - w_r.rw - e_r.rw, height - s_r.rh]
+				Result := [x + w_r.rw, y + n_r.rh, width - w_r.rw - e_r.rw, height - n_r.rh - s_r.rh]
 			end
 		end
 
@@ -295,14 +309,18 @@ feature -- Access
 				if r.rh > 0.0 and then not is_collapsed (Zone_south) and then (a_py - r.ry).abs <= Edge_grip then
 					Result := Zone_south
 				end
+				r := zone_rect (Zone_north)
+				if Result = 0 and then r.rh > 0.0 and then not is_collapsed (Zone_north) and then (a_py - (r.ry + r.rh)).abs <= Edge_grip then
+					Result := Zone_north
+				end
 				r := zone_rect (Zone_west)
-				if Result = 0 and then r.rw > 0.0 and then not is_collapsed (Zone_west) and then a_py < r.ry + r.rh
+				if Result = 0 and then r.rw > 0.0 and then not is_collapsed (Zone_west) and then a_py >= r.ry and then a_py < r.ry + r.rh
 					and then (a_px - (r.rx + r.rw)).abs <= Edge_grip
 				then
 					Result := Zone_west
 				end
 				r := zone_rect (Zone_east)
-				if Result = 0 and then r.rw > 0.0 and then not is_collapsed (Zone_east) and then a_py < r.ry + r.rh
+				if Result = 0 and then r.rw > 0.0 and then not is_collapsed (Zone_east) and then a_py >= r.ry and then a_py < r.ry + r.rh
 					and then (a_px - r.rx).abs <= Edge_grip
 				then
 					Result := Zone_east
@@ -325,6 +343,8 @@ feature -- Access
 				Result := west_zone
 			when Zone_east then
 				Result := east_zone
+			when Zone_north then
+				Result := north_zone
 			else
 				Result := south_zone
 			end
@@ -439,7 +459,7 @@ feature -- Element change
 			from
 				z := Zone_west
 			until
-				z > Zone_south
+				z > Zone_north
 			loop
 				if active_ids [z] = a_panel then
 					active_ids [z] := 0
@@ -522,7 +542,7 @@ feature -- Folding and maximizing (0.46.0)
 		end
 
 	strip_extent (a_zone: INTEGER): REAL_64
-			-- How wide (west, east) or tall (south) a folded zone stands:
+			-- How wide (west, east) or tall (south, north) a folded zone stands:
 			-- its title bar's height and a margin, so it grows with the text.
 		require
 			zone_known: is_zone (a_zone)
@@ -583,7 +603,7 @@ feature -- Folding and maximizing (0.46.0)
 			from
 				z := Zone_west
 			until
-				z > Zone_south
+				z > Zone_north
 			loop
 				if collapsed_flags [z] /= a_collapsed then
 					collapsed_flags [z] := a_collapsed
@@ -598,6 +618,7 @@ feature -- Folding and maximizing (0.46.0)
 			west: is_collapsed (Zone_west) = a_collapsed
 			east: is_collapsed (Zone_east) = a_collapsed
 			south: is_collapsed (Zone_south) = a_collapsed
+			north: is_collapsed (Zone_north) = a_collapsed
 		end
 
 	is_focused_on_center: BOOLEAN
@@ -609,7 +630,7 @@ feature -- Folding and maximizing (0.46.0)
 			from
 				z := Zone_west
 			until
-				z > Zone_south or not Result
+				z > Zone_north or not Result
 			loop
 				Result := panels_in (z).is_empty or else collapsed_flags [z]
 				z := z + 1
@@ -708,7 +729,7 @@ feature -- Folding and maximizing (0.46.0)
 		end
 
 	zone_title (a_zone: INTEGER): STRING_32
-			-- What a menu calls `a_zone': "left side", "right side", "bottom".
+			-- What a menu calls `a_zone': "left side", "right side", "bottom", "top panel area".
 		require
 			zone_known: is_zone (a_zone)
 		do
@@ -717,6 +738,8 @@ feature -- Folding and maximizing (0.46.0)
 				Result := "left side"
 			when Zone_east then
 				Result := "right side"
+			when Zone_north then
+				Result := "top panel area"
 			else
 				Result := "bottom"
 			end
@@ -808,7 +831,7 @@ feature -- Snapshot
 			from
 				z := Zone_west
 			until
-				z > Zone_south
+				z > Zone_north
 			loop
 				Result.append ({STRING_32} "%Nfraction%T" + zone_name (z) + {STRING_32} "%T" + fraction (z).out)
 				if is_tabbed (z) then
@@ -835,7 +858,7 @@ feature -- Snapshot
 			from
 				z := Zone_west
 			until
-				z > Zone_south
+				z > Zone_north
 			loop
 				if is_tabbed (z) and then active_panel (z) > 0 then
 					Result.append ({STRING_32} "%Nactive%T" + zone_name (z) + {STRING_32} "%T" + panels.i_th (active_panel (z)).key)
@@ -873,9 +896,9 @@ feature -- Snapshot
 		do
 			l_lines := a_snapshot.to_string_32.split ('%N')
 			l_ok := not l_lines.is_empty and then trimmed (l_lines.first).same_string (Snapshot_header)
-			create l_fracs.make_filled (-1.0, Zone_west, Zone_south)
-			create l_tabbed.make_filled (False, Zone_west, Zone_south)
-			create l_collapsed.make_filled (False, Zone_west, Zone_south)
+			create l_fracs.make_filled (-1.0, Zone_west, Zone_north)
+			create l_tabbed.make_filled (False, Zone_west, Zone_north)
+			create l_collapsed.make_filled (False, Zone_west, Zone_north)
 			create l_entries.make (panels.count)
 			create l_actives.make (3)
 			if l_ok then
@@ -914,7 +937,7 @@ feature -- Snapshot
 				from
 					z := Zone_west
 				until
-					z > Zone_south
+					z > Zone_north
 				loop
 					if l_fracs [z] >= 0.0 then
 						put_fraction (z, l_fracs [z].max (Min_fraction).min (Max_fraction))
@@ -977,6 +1000,9 @@ feature -- Layout
 			r := zone_rect (Zone_south)
 			south_zone.set_bounds (r.rx, r.ry, r.rw, r.rh)
 			south_zone.arrange (a_p)
+			r := zone_rect (Zone_north)
+			north_zone.set_bounds (r.rx, r.ry, r.rw, r.rh)
+			north_zone.arrange (a_p)
 			if maximized_panel > 0 then
 				center.vanish
 			else
@@ -988,10 +1014,11 @@ feature -- Layout
 
 	sub_widgets: ARRAYED_LIST [SW_WIDGET]
 		do
-			create Result.make (4)
+			create Result.make (5)
 			Result.extend (west_zone)
 			Result.extend (east_zone)
 			Result.extend (south_zone)
+			Result.extend (north_zone)
 			Result.extend (center)
 		end
 
@@ -1011,7 +1038,7 @@ feature -- Layout
 			if e = 0 then
 				e := edge_at (hover_px, hover_py)
 			end
-			if e = Zone_south then
+			if e = Zone_south or e = Zone_north then
 				Result := 4
 			elseif e > 0 then
 				Result := 3
@@ -1039,6 +1066,9 @@ feature -- Hit testing
 					end
 					if Result = Void then
 						Result := south_zone.widget_at (a_px, a_py)
+					end
+					if Result = Void then
+						Result := north_zone.widget_at (a_px, a_py)
 					end
 					if Result = Void then
 						Result := center.widget_at (a_px, a_py)
@@ -1070,6 +1100,8 @@ feature -- Input
 					f := (a_px - x) / width
 				when Zone_east then
 					f := (x + width - a_px) / width
+				when Zone_north then
+					f := (a_py - y) / height
 				else
 					f := (y + height - a_py) / height
 				end
@@ -1110,6 +1142,7 @@ feature -- Drawing
 				west_zone.draw (a_p)
 				east_zone.draw (a_p)
 				south_zone.draw (a_p)
+				north_zone.draw (a_p)
 				center.draw (a_p)
 			end
 			e := dragging_edge
@@ -1124,6 +1157,8 @@ feature -- Drawing
 					a_p.fill_rect (r.rx + r.rw - 1.0, r.ry, 2.0, r.rh)
 				when Zone_east then
 					a_p.fill_rect (r.rx - 1.0, r.ry, 2.0, r.rh)
+				when Zone_north then
+					a_p.fill_rect (r.rx, r.ry + r.rh - 1.0, r.rw, 2.0)
 				else
 					a_p.fill_rect (r.rx, r.ry - 1.0, r.rw, 2.0)
 				end
@@ -1168,6 +1203,11 @@ feature {NONE} -- Organs
 	south_zone: SW_DOCK_ZONE
 		attribute
 			create Result.make_on (Current, Zone_south)
+		end
+
+	north_zone: SW_DOCK_ZONE
+		attribute
+			create Result.make_on (Current, Zone_north)
 		end
 
 	tabbed_flags: ARRAY [BOOLEAN]
@@ -1250,6 +1290,8 @@ feature {NONE} -- Organs
 				west_fraction := a_fraction
 			when Zone_east then
 				east_fraction := a_fraction
+			when Zone_north then
+				north_fraction := a_fraction
 			else
 				south_fraction := a_fraction
 			end
@@ -1266,6 +1308,8 @@ feature {NONE} -- Organs
 				Result := "west"
 			when Zone_east then
 				Result := "east"
+			when Zone_north then
+				Result := "north"
 			else
 				Result := "south"
 			end
@@ -1280,6 +1324,8 @@ feature {NONE} -- Organs
 				Result := Zone_east
 			elseif a_name.same_string ("south") then
 				Result := Zone_south
+			elseif a_name.same_string ("north") then
+				Result := Zone_north
 			end
 		ensure
 			zone_or_none: Result = 0 or else is_zone (Result)
@@ -1299,10 +1345,11 @@ invariant
 	fractions_in_range: west_fraction >= Min_fraction and west_fraction <= Max_fraction
 		and east_fraction >= Min_fraction and east_fraction <= Max_fraction
 		and south_fraction >= Min_fraction and south_fraction <= Max_fraction
-	per_zone_tables: tabbed_flags.lower = Zone_west and tabbed_flags.upper = Zone_south
-		and active_ids.lower = Zone_west and active_ids.upper = Zone_south
-		and collapsed_flags.lower = Zone_west and collapsed_flags.upper = Zone_south
+		and north_fraction >= Min_fraction and north_fraction <= Max_fraction
+	per_zone_tables: tabbed_flags.lower = Zone_west and tabbed_flags.upper = Zone_north
+		and active_ids.lower = Zone_west and active_ids.upper = Zone_north
+		and collapsed_flags.lower = Zone_west and collapsed_flags.upper = Zone_north
 	maximized_known: maximized_panel >= 0 and maximized_panel <= panels.count
-	dragging_a_zone: dragging_edge >= 0 and dragging_edge <= Zone_south
+	dragging_a_zone: dragging_edge >= 0 and dragging_edge <= Zone_north
 
 end
