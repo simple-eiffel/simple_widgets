@@ -178,6 +178,38 @@ feature -- Access
 			Result := not is_read_only
 		end
 
+	on_focus_lost: detachable PROCEDURE
+			-- Told when the box loses the keyboard focus (editing ended; simple_gui 1p).
+
+	on_reveal: detachable PROCEDURE [BOOLEAN]
+			-- Told when the user clicks the eye, with whether the text now shows.
+
+	set_on_focus_lost (an_action: detachable PROCEDURE)
+		do
+			on_focus_lost := an_action
+		ensure
+			set: on_focus_lost = an_action
+		end
+
+	set_on_reveal (an_action: detachable PROCEDURE [BOOLEAN])
+		do
+			on_reveal := an_action
+		ensure
+			set: on_reveal = an_action
+		end
+
+	set_revealed (a_on: BOOLEAN)
+			-- Show or hide a masked box's text, as the program: nothing is told.
+		require
+			masked_box: is_masked
+		do
+			if is_revealed /= a_on then
+				toggle_reveal
+			end
+		ensure
+			set: is_revealed = a_on
+		end
+
 	on_change: detachable PROCEDURE
 			-- Fired after every edit.
 
@@ -376,7 +408,12 @@ feature -- Clipboard and selection commands
 			elseif not a_focused then
 				is_just_focused := False
 			end
-			Precursor (a_focused)
+			if is_focused and not a_focused and then attached on_focus_lost as al_told then
+				Precursor (a_focused)
+				al_told.call (Void)
+			else
+				Precursor (a_focused)
+			end
 		end
 
 	select_all
@@ -1022,6 +1059,9 @@ feature -- Input
 		do
 			if is_masked and then a_px >= x + width - Eye_zone then
 				toggle_reveal
+				if attached on_reveal as al_told then
+					al_told.call ([is_revealed])
+				end
 			elseif shows_clear and then a_px >= x + width - Eye_zone then
 				if attached on_clear_request as cr then
 					cr.call

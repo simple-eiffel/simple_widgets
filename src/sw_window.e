@@ -243,9 +243,15 @@ feature -- Accessibility (GW-14)
 		end
 
 	accessible_id_of (a_widget: SW_WIDGET): INTEGER
-			-- The node id `a_widget' was published under (its own, stable
-			-- `accessible_node_id'); 0 when it was not published last time.
+			-- The node id `a_widget' is published under (its own, stable
+			-- `accessible_node_id'); 0 when it is not in the tree. A tree a
+			-- frame has outdated is published again first: with no client
+			-- listening (always, off Windows) frames do not publish, and a
+			-- section closed since would still answer (scan 13 on Linux).
 		do
+			if accessibility_is_stale and then is_accessible then
+				publish_accessibility
+			end
 			if accessible_widgets.has (a_widget) then
 				Result := a_widget.accessible_node_id
 			end
@@ -288,6 +294,7 @@ feature -- Accessibility (GW-14)
 			i: INTEGER
 			w: SW_WIDGET
 		do
+			accessibility_is_stale := False
 			accessible_widgets.wipe_out
 			create l_parents.make (64)
 			if attached root as al_root then
@@ -318,6 +325,7 @@ feature -- Accessibility (GW-14)
 			tell_accessible_focus
 		ensure
 			published: is_accessibility_published
+			fresh: not accessibility_is_stale
 		end
 
 	describe_accessibility: STRING_32
@@ -380,6 +388,9 @@ feature -- Accessibility (GW-14)
 
 	is_accessibility_published: BOOLEAN
 			-- Has the tree been published at least once?
+
+	accessibility_is_stale: BOOLEAN
+			-- Was a frame drawn since the tree was last published?
 
 feature -- Floating windows (GW-22)
 
@@ -934,6 +945,9 @@ feature {NONE} -- Dispatch
 				dispatch_to_dialog (d, a_type, a_x, a_y)
 			elseif attached popup as m then
 				dispatch_to_popup (m, a_type, a_x, a_y)
+			elseif a_type = Event_window_press and then suggestion_press (a_x, a_y) then
+					-- simple_gui 1p: a click on a suggestion chooses it
+				after_input
 			else
 				dispatch_normal (a_type, a_x, a_y)
 			end
@@ -2145,6 +2159,18 @@ feature {NONE} -- Accelerator dispatch
 			swallow_next_char := False
 				-- a handler may have hidden the focused widget since the last render
 			pass_focus_from_hidden
+				-- simple_gui 1p: the suggestions under the focused field take their keys first
+			if suggestion_key (a_vk) then
+				swallow_next_char := True
+				after_input
+			else
+				route_key_down_past_suggestions (a_vk, a_ctrl, a_alt, a_shift)
+			end
+		end
+
+	route_key_down_past_suggestions (a_vk: INTEGER; a_ctrl, a_alt, a_shift: BOOLEAN)
+			-- `route_key_down' once the suggestions have passed on the key.
+		do
 			if key_down_accelerator_fired (a_vk, a_ctrl, a_alt, a_shift) then
 				after_input
 			elseif a_alt and then key_down_mnemonic_fired (a_vk) then
@@ -3276,6 +3302,7 @@ feature {NONE} -- Rendering
 				then
 					publish_accessibility
 				else
+					accessibility_is_stale := True
 					tell_accessible_focus
 				end
 			end
@@ -3442,6 +3469,8 @@ feature {NONE} -- Rendering
 				lens.draw_chip (painter, theme, hw)
 			end
 			draw_widget_badges
+			draw_widget_notes
+			draw_suggestions
 			if reference_marks_shown then
 				draw_reference_marks
 			end
@@ -3773,6 +3802,207 @@ feature -- Widget badges (simple_gui 1n)
 						painter.set_color (0xFFFFFF)
 						painter.text (l_x + (l_w - painter.advance (ic.text)) / 2.0, painter.baseline_in (l_y, l_h), ic.text)
 					end
+				end
+			end
+		end
+
+feature -- Notes under widgets (simple_gui 1p)
+
+	widget_notes: ARRAYED_LIST [TUPLE [widget: SW_WIDGET; text: STRING_32]]
+			-- A short line in the danger ink just under each widget (a field's error).
+		attribute
+			create Result.make (2)
+		end
+
+	set_widget_note (a_widget: SW_WIDGET; a_text: READABLE_STRING_GENERAL)
+			-- Show `a_text' under `a_widget' (empty: no note).
+		do
+			clear_widget_note (a_widget)
+			if not a_text.is_empty then
+				widget_notes.extend ([a_widget, a_text.to_string_32])
+			end
+		ensure
+			noted: a_text.is_empty = not attached widget_note_text (a_widget)
+		end
+
+	clear_widget_note (a_widget: SW_WIDGET)
+		do
+			from widget_notes.start until widget_notes.after loop
+				if widget_notes.item.widget = a_widget then
+					widget_notes.remove
+				else
+					widget_notes.forth
+				end
+			end
+		ensure
+			none: widget_note_text (a_widget) = Void
+		end
+
+	widget_note_text (a_widget: SW_WIDGET): detachable STRING_32
+		do
+			across widget_notes as ic until Result /= Void loop
+				if ic.widget = a_widget then
+					Result := ic.text
+				end
+			end
+		end
+
+feature -- Suggestions under a field (simple_gui 1p)
+
+	suggestions_for: detachable SW_WIDGET
+			-- The field the suggestion list hangs under; Void while none shows.
+
+	suggestions: ARRAYED_LIST [STRING_32]
+		attribute
+			create Result.make (0)
+		end
+
+	suggestion_at: INTEGER
+			-- The highlighted suggestion (Up and Down move it); 0 for none.
+
+	on_suggestion: detachable PROCEDURE [INTEGER]
+			-- Told which suggestion the user chose.
+
+	show_suggestions (a_field: SW_WIDGET; a_items: ITERABLE [READABLE_STRING_GENERAL]; an_action: PROCEDURE [INTEGER])
+			-- A list of `a_items' under `a_field' that never takes the focus or the keyboard:
+			-- typing goes on in the field; Up, Down, Return and Escape and a click work the list.
+		do
+			suggestions.wipe_out
+			across a_items as ic loop
+				suggestions.extend (ic.to_string_32)
+			end
+			suggestion_at := 0
+			if suggestions.is_empty then
+				hide_suggestions
+			else
+				suggestions_for := a_field
+				on_suggestion := an_action
+			end
+			after_input
+		end
+
+	hide_suggestions
+		do
+			suggestions_for := Void
+			on_suggestion := Void
+			suggestion_at := 0
+			after_input
+		ensure
+			hidden: suggestions_for = Void
+		end
+
+	choose_suggestion (i: INTEGER)
+			-- As the user choosing suggestion `i'.
+		require
+			showing: suggestions_for /= Void
+			valid: i >= 1 and i <= suggestions.count
+		local
+			l_told: like on_suggestion
+		do
+			l_told := on_suggestion
+			hide_suggestions
+			if attached l_told as al_told then
+				al_told.call (i)
+			end
+		ensure
+			hidden: suggestions_for = Void
+		end
+
+feature {NONE} -- Notes and suggestions
+
+	draw_widget_notes
+		do
+			painter.font ({SW_PAINTER}.Role_ui, 9.5, False)
+			across widget_notes as ic loop
+				if not ic.widget.is_hidden and then ic.widget.width > 0.0 then
+					painter.set_color (theme.danger)
+					painter.text (ic.widget.x + 2.0, ic.widget.y + ic.widget.height + 1.0 + painter.font_ascent, ic.text)
+				end
+			end
+		end
+
+	suggestion_rect: TUPLE [x, y, w, h, row: REAL_64]
+			-- Where the suggestion list is drawn.
+		local
+			l_row, l_w: REAL_64
+		do
+			l_row := 24.0 * theme.text_scale
+			if attached suggestions_for as al_f then
+				painter.font ({SW_PAINTER}.Role_ui, theme.size_label, False)
+				l_w := al_f.width
+				across suggestions as ic loop
+					l_w := l_w.max (painter.advance (ic) + 20.0)
+				end
+				Result := [al_f.x, al_f.y + al_f.height + 2.0, l_w.min (win_w - al_f.x), l_row * suggestions.count + 4.0, l_row]
+			else
+				Result := [0.0, 0.0, 0.0, 0.0, l_row]
+			end
+		end
+
+	draw_suggestions
+		local
+			r: like suggestion_rect
+			i: INTEGER
+		do
+			if attached suggestions_for as al_f and then not al_f.is_hidden then
+				r := suggestion_rect
+				painter.set_color (theme.surface)
+				painter.rrect_fill (r.x, r.y, r.w, r.h, 4.0)
+				painter.set_color (theme.outline)
+				painter.rrect_stroke (r.x + 0.5, r.y + 0.5, r.w - 1.0, r.h - 1.0, 4.0)
+				from i := 1 until i > suggestions.count loop
+					if i = suggestion_at then
+						painter.set_color (theme.wash_accent)
+						painter.fill_rect (r.x + 2.0, r.y + 2.0 + (i - 1) * r.row, r.w - 4.0, r.row)
+					end
+					painter.set_color (theme.ink)
+					painter.text (r.x + 10.0, painter.baseline_in (r.y + 2.0 + (i - 1) * r.row, r.row), suggestions [i])
+					i := i + 1
+				end
+			end
+		end
+
+	suggestion_press (a_x, a_y: INTEGER): BOOLEAN
+			-- A press while suggestions show: on a row, choose it (True); anywhere else the list
+			-- goes and the press goes on as usual (False).
+		local
+			r: like suggestion_rect
+			i: INTEGER
+		do
+			if suggestions_for /= Void then
+				r := suggestion_rect
+				if a_x >= r.x and a_x <= r.x + r.w and a_y >= r.y + 2.0 and a_y < r.y + 2.0 + r.row * suggestions.count then
+					i := ((a_y - r.y - 2.0) / r.row).truncated_to_integer + 1
+					if i >= 1 and i <= suggestions.count then
+						choose_suggestion (i)
+						Result := True
+					end
+				else
+					hide_suggestions
+				end
+			end
+		end
+
+	suggestion_key (a_vk: INTEGER): BOOLEAN
+			-- Up, Down, Return and Escape for the suggestions under the focused field.
+		do
+			if attached suggestions_for as al_f and then focused = al_f then
+				inspect a_vk
+				when 0x28 then
+					suggestion_at := (suggestion_at + 1).min (suggestions.count)
+					Result := True
+				when 0x26 then
+					suggestion_at := (suggestion_at - 1).max (1)
+					Result := True
+				when 0x0D then
+					if suggestion_at > 0 then
+						choose_suggestion (suggestion_at)
+						Result := True
+					end
+				when 0x1B then
+					hide_suggestions
+					Result := True
+				else
 				end
 			end
 		end
