@@ -466,6 +466,12 @@ feature {NONE} -- Test runners
 			run_test (agent enterprise_tests.test_dock_north_fold_is_an_across_strip, "dock_north_fold_is_an_across_strip")
 			run_test (agent enterprise_tests.test_dock_north_panels_move_and_the_menu_offers_it, "dock_north_panels_move_and_the_menu_offers_it")
 			run_test (agent enterprise_tests.test_dock_north_snapshot_round_trip, "dock_north_snapshot_round_trip")
+			run_test (agent enterprise_tests.test_dock_1rb_move_panel_to_orders_a_zone, "dock_1rb_move_panel_to_orders_a_zone")
+			run_test (agent enterprise_tests.test_dock_1rb_remove_after_reordering, "dock_1rb_remove_after_reordering")
+			run_test (agent enterprise_tests.test_dock_1rb_auto_hide_slides_a_panel_over_the_center, "dock_1rb_auto_hide_slides_a_panel_over_the_center")
+			run_test (agent enterprise_tests.test_dock_1rb_auto_hide_pin_button, "dock_1rb_auto_hide_pin_button")
+			run_test (agent enterprise_tests.test_dock_1rb_maximize_center_round_trip, "dock_1rb_maximize_center_round_trip")
+			run_test (agent enterprise_tests.test_dock_1rb_snapshot_round_trip, "dock_1rb_snapshot_round_trip")
 		end
 
 	enterprise_tests: SW_ENTERPRISE_ASSAULT
