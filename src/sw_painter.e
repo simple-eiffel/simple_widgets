@@ -155,6 +155,18 @@ feature -- Type
 			end
 		end
 
+	broken_lines (a_s: READABLE_STRING_GENERAL): ARRAYED_LIST [STRING_32]
+			-- `a_s' cut at each line break: LF, CR LF (ONE break) or a lone
+			-- CR. Text without breaks is one line; a trailing break opens a
+			-- final empty line (as GtkLabel shows it). What every drawer of
+			-- program text uses so a break acts as a break and never paints a
+			-- missing-glyph box: SW_LABEL, hints.
+		do
+			Result := (create {SW_LINE_BREAKS}).lines_of (a_s)
+		ensure
+			at_least_one: not Result.is_empty
+		end
+
 	takes_shaped_path (a_s: READABLE_STRING_GENERAL): BOOLEAN
 			-- Will `text' and `advance' shape `a_s'? With a kit, after a
 			-- `font' call, and for non-empty text.

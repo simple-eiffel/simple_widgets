@@ -26,6 +26,17 @@ note
 		`segments' merges a character range into one rectangle per
 		visual line - what a wash, a box or a selection paints - in the
 		coordinate frame of the text's own origin.
+
+		TABS. A tab (U+0009) advances to the next tab stop: stops lie every
+		`Tab_spaces' (8) space-widths of the face, measured from the line's
+		start - GtkTextView's default. The tab's slot spans from where the
+		pen stood to the stop, so a caret, a click, a selection wash and
+		the characters after it all read the stop from the same slot. On
+		the toy path this is part of the greedy wrap; on the shaped path a
+		paragraph holding tabs is laid out as one layout per tab-free
+		segment, each placed at its pen position (`para_lefts'), and wraps
+		at tabs only (a segment is never broken inside) and is placed flush
+		left whatever the alignment.
 	]"
 	author: "Larry Rix"
 
@@ -53,6 +64,8 @@ feature {NONE} -- Initialization
 			create line_height.make (2)
 			create layouts.make (2)
 			create para_tops.make (2)
+			create para_lefts.make (2)
+			create tabbed_pieces.make (2)
 			create para_starts.make (2)
 			create line_offset.make (2)
 			line_top.extend (0.0)
@@ -89,6 +102,28 @@ feature -- Access
 
 	para_tops: ARRAYED_LIST [REAL_64]
 			-- Per layout, its top below the text origin.
+
+	para_lefts: ARRAYED_LIST [REAL_64]
+			-- Per layout, its left edge right of the text origin: 0 for a
+			-- tab-free piece, the pen position for a segment after a tab.
+
+	Tab_spaces: INTEGER = 8
+			-- Space-widths between tab stops (GtkTextView's default).
+
+	tab_width: REAL_64
+			-- The distance between tab stops of the last build: `Tab_spaces'
+			-- spaces of the face laid out. Positive once something is laid out.
+
+	next_tab_stop (a_x: REAL_64): REAL_64
+			-- The first tab stop strictly right of `a_x', measured from the
+			-- line's start.
+		require
+			positive_width: tab_width > 0.0
+		do
+			Result := ((a_x / tab_width + 0.000001).floor + 1) * tab_width
+		ensure
+			right_of_it: Result > a_x
+		end
 
 	x_of (a_i: INTEGER): REAL_64
 			-- Character `a_i''s left edge.
@@ -578,6 +613,7 @@ feature -- Building
 			toy_role := a_p.font_role
 			toy_size := a_p.font_size
 			toy_bold := a_p.font_bold
+			tab_width := (Tab_spaces * a_p.advance (" ")).max (1.0)
 			row := a_p.theme.scaled_line_height
 			base := (row - a_p.text_extent) / 2.0 + a_p.font_ascent
 			n := a_text.count
@@ -595,6 +631,11 @@ feature -- Building
 					end
 					add_slot (cx, 0.0, line, False, not a_single_line)
 					i := i + 1
+				elseif a_text.item (i) = '%T' and then not a_hidden then
+						-- a tab spans to the next stop from the line's start
+					add_slot (cx, next_tab_stop (cx) - cx, line, False, False)
+					cx := cx + lay_adv.last
+					i := i + 1
 				elseif a_text.item (i) = ' ' and then not a_hidden then
 					add_slot (cx, a_p.advance (" "), line, False, False)
 					cx := cx + lay_adv.last
@@ -603,7 +644,7 @@ feature -- Building
 					from
 						j := i
 					until
-						j >= n or else (not a_hidden and then (a_text.item (j + 1) = ' ' or else a_text.item (j + 1) = '%N'))
+						j >= n or else (not a_hidden and then (a_text.item (j + 1) = ' ' or else a_text.item (j + 1) = '%N' or else a_text.item (j + 1) = '%T'))
 					loop
 						j := j + 1
 					end
@@ -666,6 +707,7 @@ feature -- Building
 		do
 			reset
 			is_shaped := True
+			tab_width := (Tab_spaces * shaped_space_width (a_kit, a_px)).max (1.0)
 			n := a_text.count
 			from
 				i := 1
@@ -689,25 +731,17 @@ feature -- Building
 				loop
 					para_end := para_end + 1
 				end
-				if attached fonts as al_fonts then
-						-- GW-13: the host's policy, styled or not (no spans
-						-- is the plain layout itself).
-					if attached styles as al_fonts_styles then
-						lay := a_kit.facade.layout_styled (a_text.substring (para_start, para_end - 1).to_string_32,
-							a_wrap_px, a_px, al_fonts, al_fonts_styles.slice (para_start, para_end - para_start))
-					else
-						lay := a_kit.facade.layout (a_text.substring (para_start, para_end - 1).to_string_32,
-							a_wrap_px, a_px, al_fonts)
-					end
-				elseif attached styles as al_styles and then not al_styles.is_empty then
-						-- GW-08: this piece's spans, numbered from its start.
-					lay := a_kit.layout_with_styles (a_text.substring (para_start, para_end - 1),
-						a_wrap_px, a_px, al_styles.slice (para_start, para_end - para_start))
+				if a_text.index_of ('%T', para_start) < para_end and then a_text.index_of ('%T', para_start) > 0 then
+						-- a tab in this piece: segments, each at its pen position
+					build_tabbed_paragraph (a_kit, a_text, para_start, para_end, a_wrap_px, a_px, top, line)
+					top := tab_next_top
+					line := tab_next_line
+					pending_break := 0
 				else
-					lay := a_kit.layout_for (a_text.substring (para_start, para_end - 1), a_wrap_px, a_px)
-				end
+				lay := layout_piece (a_kit, a_text, para_start, para_end - 1, a_wrap_px, a_px)
 				layouts.extend (lay)
 				para_tops.extend (top)
+				para_lefts.extend (0.0)
 				para_starts.extend (para_start)
 				from
 					k := 1
@@ -787,6 +821,7 @@ feature -- Building
 					line := line + 1
 					k := k + 1
 				end
+				end
 				if para_end <= n then
 					lay_x.put_i_th (0.0, para_end)
 					lay_adv.put_i_th (0.0, para_end)
@@ -809,7 +844,7 @@ feature -- Building
 			one_slot_per_char: count = a_text.count
 			shaped: is_shaped
 			lines_measured: line_count >= 1
-			a_layout_per_piece: layouts.count = para_tops.count and layouts.count >= 1
+			a_layout_per_piece: layouts.count = para_tops.count
 		end
 
 feature -- Drawing
@@ -832,7 +867,10 @@ feature -- Drawing
 				until
 					k > layouts.count
 				loop
-					if is_aligned then
+					if para_lefts.i_th (k) > 0.0 or else is_tabbed_piece (k) then
+							-- a segment of a tabbed paragraph: flush left at its pen
+						a_p.draw_shaped_layout (layouts.i_th (k), a_ox + para_lefts.i_th (k), a_oy + para_tops.i_th (k))
+					elseif is_aligned then
 						a_p.draw_shaped_layout_aligned (layouts.i_th (k), a_ox, a_oy + para_tops.i_th (k),
 							box_width, alignment)
 					else
@@ -851,7 +889,7 @@ feature -- Drawing
 				until
 					k > count
 				loop
-					if not is_break (k) then
+					if not is_break (k) and then not (not a_hidden and then a_text.item (k) = '%T') then
 						ln := line_of (k)
 						a_p.text (a_ox + x_of (k), a_oy + top_of_line (ln) + ascent_of_line (ln),
 							glyph_of (a_text, k, a_hidden))
@@ -880,8 +918,210 @@ feature -- Drawing
 			until
 				k > layouts.count
 			loop
-				a_p.draw_shaped_layout_hooked (layouts.i_th (k), a_ox, a_oy + para_tops.i_th (k),
-					box_width, alignment, agent forward_run (para_starts.i_th (k), a_before_run, ?, ?, ?))
+				a_p.draw_shaped_layout_hooked (layouts.i_th (k), a_ox + para_lefts.i_th (k), a_oy + para_tops.i_th (k),
+					box_width, if is_tabbed_piece (k) then {SHAPING_CONSTANTS}.Align_left else alignment end, agent forward_run (para_starts.i_th (k), a_before_run, ?, ?, ?))
+				k := k + 1
+			end
+		end
+
+feature {NONE} -- Tabbed paragraphs
+
+	tab_next_top: REAL_64
+			-- Where the line after the last `build_tabbed_paragraph' starts.
+
+	tab_next_line: INTEGER
+			-- The index of the line after the last `build_tabbed_paragraph'.
+
+	tabbed_pieces: ARRAYED_LIST [INTEGER]
+			-- The layouts (indices) that are segments of a tabbed paragraph.
+
+	is_tabbed_piece (a_k: INTEGER): BOOLEAN
+			-- Is layout `a_k' a segment of a tabbed paragraph?
+		do
+			Result := tabbed_pieces.has (a_k)
+		end
+
+	shaped_space_width (a_kit: SW_SHAPING; a_px: INTEGER): REAL_64
+			-- The width of one blank in the face this build shapes in,
+			-- measured as the difference of "a a" and "aa" so no
+			-- trailing-blank trimming can read it as zero.
+		do
+			if attached fonts as al_fonts then
+				Result := a_kit.facade.layout ("a a", 0, a_px, al_fonts).total_width
+					- a_kit.facade.layout ("aa", 0, a_px, al_fonts).total_width
+			else
+				Result := a_kit.layout_for ("a a", 0, a_px).total_width
+					- a_kit.layout_for ("aa", 0, a_px).total_width
+			end
+			if Result <= 0.0 then
+				Result := a_px * 0.3
+			end
+		ensure
+			positive: Result > 0.0
+		end
+
+	layout_piece (a_kit: SW_SHAPING; a_text: READABLE_STRING_32; a_from, a_to, a_wrap_px, a_px: INTEGER): SHAPED_LAYOUT
+			-- Characters `a_from' .. `a_to' of `a_text' through the kit, in
+			-- the host's fonts and styles (numbered from the piece's start).
+		require
+			range_valid: a_from >= 1 and a_to >= a_from - 1 and a_to <= a_text.count
+		do
+			if attached fonts as al_fonts then
+					-- GW-13: the host's policy, styled or not (no spans
+					-- is the plain layout itself).
+				if attached styles as al_fonts_styles then
+					Result := a_kit.facade.layout_styled (a_text.substring (a_from, a_to).to_string_32,
+						a_wrap_px, a_px, al_fonts, al_fonts_styles.slice (a_from, a_to - a_from + 1))
+				else
+					Result := a_kit.facade.layout (a_text.substring (a_from, a_to).to_string_32,
+						a_wrap_px, a_px, al_fonts)
+				end
+			elseif attached styles as al_styles and then not al_styles.is_empty then
+					-- GW-08: this piece's spans, numbered from its start.
+				Result := a_kit.layout_with_styles (a_text.substring (a_from, a_to),
+					a_wrap_px, a_px, al_styles.slice (a_from, a_to - a_from + 1))
+			else
+				Result := a_kit.layout_for (a_text.substring (a_from, a_to), a_wrap_px, a_px)
+			end
+		end
+
+	build_tabbed_paragraph (a_kit: SW_SHAPING; a_text: READABLE_STRING_32; a_start, a_end, a_wrap_px, a_px: INTEGER;
+			a_top: REAL_64; a_line: INTEGER)
+			-- Characters `a_start' .. `a_end' - 1 (one LF piece holding a
+			-- tab) laid out as one unwrapped layout per tab-free segment,
+			-- each at its pen position; a tab's slot spans to the next stop.
+			-- A segment that would cross `a_wrap_px' (when above 0) starts
+			-- the next visual line instead. Sets `tab_next_top' and
+			-- `tab_next_line'.
+		require
+			range_valid: a_start >= 1 and a_end > a_start and a_end <= a_text.count + 1
+			has_a_tab: a_text.index_of ('%T', a_start) < a_end and a_text.index_of ('%T', a_start) > 0
+		local
+			pos, e, r, c, src, slot, first_layout, line: INTEGER
+			lay: SHAPED_LAYOUT
+			ln: SHAPED_LINE
+			rn: SHAPED_RUN
+			cx, top, run_left, cl, cr, line_asc, line_h, seg_w: REAL_64
+			asc_list: ARRAYED_LIST [REAL_64]
+		do
+			create asc_list.make (4)
+			line := a_line
+			top := a_top
+			first_layout := layouts.count + 1
+			line_h := floor_line_height (a_kit, a_px)
+			line_asc := 0.0
+			cx := 0.0
+			from
+				pos := a_start
+			until
+				pos > a_end
+			loop
+				e := a_text.index_of ('%T', pos)
+				if e = 0 or else e >= a_end then
+					e := a_end
+				end
+				if e > pos then
+					lay := layout_piece (a_kit, a_text, pos, e - 1, 0, a_px)
+					if not lay.lines.is_empty then
+						ln := lay.lines.first
+						seg_w := ln.width
+						if a_wrap_px > 0 and then cx > 0.0 and then cx + seg_w > a_wrap_px then
+							close_tabbed_line (top, line_asc, line_h, first_layout, asc_list)
+							top := top + line_h
+							line := line + 1
+							cx := 0.0
+							line_asc := 0.0
+							line_h := floor_line_height (a_kit, a_px)
+							first_layout := layouts.count + 1
+							asc_list.wipe_out
+						end
+						line_asc := line_asc.max (ln.ascent)
+						line_h := line_h.max (ln.height)
+						layouts.extend (lay)
+						para_tops.extend (top)
+						para_lefts.extend (cx)
+						para_starts.extend (pos)
+						tabbed_pieces.extend (layouts.count)
+						asc_list.extend (ln.ascent)
+						from
+							src := ln.source_start
+						until
+							src > ln.source_start + ln.source_count - 1
+						loop
+							slot := pos + src - 1
+							if slot >= 1 and slot < e then
+								lay_line.put_i_th (line, slot)
+								lay_x.put_i_th (cx + ln.width, slot)
+							end
+							src := src + 1
+						end
+						run_left := cx
+						from
+							r := 1
+						until
+							r > ln.runs.count
+						loop
+							rn := ln.runs.i_th (r)
+							from
+								c := 1
+							until
+								c > rn.source_count
+							loop
+								slot := pos + rn.source_start + c - 2
+								if slot >= 1 and slot < e then
+									cl := run_left + char_left_x (rn, c)
+									cr := run_left + char_right_x (rn, c)
+									lay_x.put_i_th (cl.min (cr), slot)
+									lay_adv.put_i_th ((cr - cl).abs, slot)
+									lay_line.put_i_th (line, slot)
+									lay_rtl.put_i_th (rn.is_rtl, slot)
+								end
+								c := c + 1
+							end
+							run_left := run_left + rn.advance_width
+							r := r + 1
+						end
+						cx := cx + seg_w
+					end
+				end
+				if e < a_end then
+					lay_x.put_i_th (cx, e)
+					lay_adv.put_i_th (next_tab_stop (cx) - cx, e)
+					lay_line.put_i_th (line, e)
+					lay_rtl.put_i_th (False, e)
+					cx := next_tab_stop (cx)
+				end
+				pos := e + 1
+			end
+			close_tabbed_line (top, line_asc, line_h, first_layout, asc_list)
+			tab_next_top := top + line_h
+			tab_next_line := line + 1
+		ensure
+			one_more_line_at_least: tab_next_line > a_line
+			below: tab_next_top > a_top
+		end
+
+	close_tabbed_line (a_top, a_ascent, a_height: REAL_64; a_first_layout: INTEGER; a_ascents: ARRAYED_LIST [REAL_64])
+			-- Record the visual line just filled, and drop each of its
+			-- segments so their baselines meet.
+		local
+			k: INTEGER
+			l_asc: REAL_64
+		do
+			l_asc := a_ascent
+			if l_asc <= 0.0 and then not a_ascents.is_empty then
+				l_asc := a_ascents.first
+			end
+			line_top.extend (a_top)
+			line_ascent.extend (l_asc)
+			line_height.extend (a_height)
+			line_offset.extend (0.0)
+			from
+				k := 1
+			until
+				k > a_ascents.count
+			loop
+				para_tops.put_i_th (a_top + l_asc - a_ascents.i_th (k), a_first_layout + k - 1)
 				k := k + 1
 			end
 		end
@@ -917,6 +1157,8 @@ feature {NONE} -- Implementation
 			line_offset.wipe_out
 			layouts.wipe_out
 			para_tops.wipe_out
+			para_lefts.wipe_out
+			tabbed_pieces.wipe_out
 			para_starts.wipe_out
 		end
 
@@ -948,5 +1190,6 @@ invariant
 	lines_parallel: line_top.count = line_ascent.count and line_ascent.count = line_height.count
 	offsets_parallel: line_offset.count = line_height.count
 	layouts_parallel: layouts.count = para_tops.count and para_starts.count = layouts.count
+		and para_lefts.count = layouts.count
 
 end
