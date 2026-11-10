@@ -26,6 +26,9 @@ feature {NONE} -- Initialization
 			print ("%N=== LIST MATH ===%N")
 			run_list_tests
 
+			print ("%N=== 1V-A GRID VIEW ===%N")
+			run_grid_view_tests
+
 			print ("%N=== CHROME + THEME ===%N")
 			run_chrome_tests
 
@@ -116,6 +119,8 @@ feature {NONE} -- Test runners
 
 	list_tests: SW_LIST_ASSAULT
 
+	grid_view_tests: SW_GRID_VIEW_ASSAULT
+
 	layout_grid_tests: SW_LAYOUT_GRID_ASSAULT
 
 	visibility_tests: SW_VISIBILITY_ASSAULT
@@ -154,6 +159,23 @@ feature {NONE} -- Test runners
 			run_test (agent engine_tests.test_astral_code_point_round_trip, "astral_code_point_round_trip (R8)")
 			run_test (agent engine_tests.test_combo_choose_option, "combo_choose_option")
 			run_test (agent engine_tests.test_caret_clamps_on_shorter_text, "caret_clamps_on_shorter_text")
+		end
+
+	run_grid_view_tests
+		do
+			create grid_view_tests
+			run_test (agent grid_view_tests.test_1v_a_columns_follow_the_width_and_cells_sit_on_a_lattice, "1v_a_columns_follow_the_width_and_cells_sit_on_a_lattice")
+			run_test (agent grid_view_tests.test_1v_a_the_grid_scrolls_to_a_selected_item, "1v_a_the_grid_scrolls_to_a_selected_item")
+			run_test (agent grid_view_tests.test_1v_a_a_picture_becomes_ready_one_decode_at_a_time, "1v_a_a_picture_becomes_ready_one_decode_at_a_time")
+			run_test (agent grid_view_tests.test_1v_a_a_missing_picture_does_not_crash, "1v_a_a_missing_picture_does_not_crash")
+			run_test (agent grid_view_tests.test_1v_a_drawing_decodes_a_picture_a_frame, "1v_a_drawing_decodes_a_picture_a_frame")
+			run_test (agent grid_view_tests.test_1v_a_selection_rules, "1v_a_selection_rules")
+			run_test (agent grid_view_tests.test_1v_a_removing_an_item_renumbers_the_selection, "1v_a_removing_an_item_renumbers_the_selection")
+			run_test (agent grid_view_tests.test_1v_a_arrows_move_in_two_dimensions, "1v_a_arrows_move_in_two_dimensions")
+			run_test (agent grid_view_tests.test_1v_a_space_toggles_in_multiple_mode_and_return_activates, "1v_a_space_toggles_in_multiple_mode_and_return_activates")
+			run_test (agent grid_view_tests.test_1v_a_the_filter_keeps_model_numbers, "1v_a_the_filter_keeps_model_numbers")
+			run_test (agent grid_view_tests.test_1v_a_activation_is_the_users, "1v_a_activation_is_the_users")
+			run_test (agent grid_view_tests.test_1v_a_cells_are_list_items_named_by_their_titles, "1v_a_cells_are_list_items_named_by_their_titles")
 		end
 
 	run_list_tests
