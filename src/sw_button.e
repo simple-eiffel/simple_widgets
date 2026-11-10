@@ -89,7 +89,29 @@ feature -- Access
 
 	on_click: detachable PROCEDURE
 
+	is_pill: BOOLEAN
+			-- Fully rounded ends (half the height), for simple_gui's pill style (1n)?
+
+	is_busy: BOOLEAN
+			-- Is a turning spinner drawn where the glyph goes (simple_gui's busy state, 1n)?
+
 feature -- Element change
+
+	set_pill (a_on: BOOLEAN)
+		do
+			is_pill := a_on
+		ensure
+			set: is_pill = a_on
+		end
+
+	set_busy (a_on: BOOLEAN)
+			-- Draw a spinner in the glyph's place; it turns a step each frame, so a host that
+			-- wants it turning steadily repaints on a fast tick while it is busy.
+		do
+			is_busy := a_on
+		ensure
+			set: is_busy = a_on
+		end
 
 	set_kind (a_kind: INTEGER)
 		require
@@ -135,11 +157,11 @@ feature -- Layout
 		do
 			t := a_p.theme
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
-			if label.is_empty and glyph_kind > 0 then
+			if label.is_empty and has_lead then
 				Result := (2.0 * t.control_inset + t.size_label * t.text_scale).max (36.0)
 			else
 				Result := a_p.min_control_width (label)
-				if glyph_kind > 0 then
+				if has_lead then
 					Result := Result + 19.0 * t.text_scale
 				end
 			end
@@ -226,13 +248,48 @@ feature -- Drawing (structure: three parts)
 	draw_background (a_p: SW_PAINTER)
 		do
 			a_p.set_color (fill_color (a_p.theme))
-			a_p.rrect_fill (x, y, width, height, a_p.theme.radius)
+			a_p.rrect_fill (x, y, width, height, corner_radius (a_p))
 		end
 
 	draw_border (a_p: SW_PAINTER)
 		do
 			a_p.set_color (border_color (a_p.theme))
-			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, a_p.theme.radius)
+			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, corner_radius (a_p))
+		end
+
+	corner_radius (a_p: SW_PAINTER): REAL_64
+			-- The theme's radius, or half the height for a pill.
+		do
+			if is_pill then
+				Result := (height / 2.0).max (0.0)
+			else
+				Result := a_p.theme.radius
+			end
+		end
+
+	has_lead: BOOLEAN
+			-- Is something drawn before the label (a glyph, or the busy spinner)?
+		do
+			Result := glyph_kind > 0 or is_busy
+		end
+
+	spinner_step: INTEGER
+			-- How far the busy spinner has turned (a step each frame).
+
+	draw_lead (a_p: SW_PAINTER; a_cx, a_cy, a_s: REAL_64)
+			-- The glyph, or the busy spinner: three quarters of a ring, turned a step more each frame.
+		local
+			l_from: REAL_64
+		do
+			if is_busy then
+				spinner_step := (spinner_step + 1) \\ 12
+				l_from := spinner_step * 3.141592653589793 / 6.0
+				a_p.set_line_width ((a_s / 8.0).max (1.5))
+				a_p.arc_stroke (a_cx, a_cy, a_s * 0.4, l_from, l_from + 4.7)
+				a_p.set_line_width (1.0)
+			else
+				a_p.glyph (glyph_kind, a_cx, a_cy, a_s)
+			end
 		end
 
 	draw_label (a_p: SW_PAINTER)
@@ -245,11 +302,11 @@ feature -- Drawing (structure: three parts)
 			inset := t.control_inset
 			a_p.set_color (label_color (t))
 			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
-			if glyph_kind > 0 then
+			if has_lead then
 				if label.is_empty then
-					a_p.glyph (glyph_kind, x + width / 2.0, y + height / 2.0, 15.0 * sc)
+					draw_lead (a_p, x + width / 2.0, y + height / 2.0, 15.0 * sc)
 				else
-					a_p.glyph (glyph_kind, x + 18.0 * sc, y + height / 2.0, 14.0 * sc)
+					draw_lead (a_p, x + 18.0 * sc, y + height / 2.0, 14.0 * sc)
 					a_p.text (x + 30.0 * sc, a_p.baseline_in (y, height), label)
 				end
 			else

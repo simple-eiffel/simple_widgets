@@ -56,7 +56,29 @@ feature -- Access
 	width: REAL_64
 	height: REAL_64
 
+	item_glyphs: HASH_TABLE [INTEGER, INTEGER]
+			-- A glyph (SW_PAINTER's) drawn before an item's label, by item number (simple_gui 1n).
+		attribute
+			create Result.make (0)
+		end
+
+	Glyph_room: REAL_64 = 22.0
+			-- What the labels move right when any item has a glyph.
+
 feature -- Element change
+
+	set_item_glyph (i: INTEGER; a_glyph: INTEGER)
+			-- Draw `a_glyph' before item `i''s label (0 removes it).
+		require
+			valid: i >= 1 and i <= items.count
+			known: a_glyph >= 0 and a_glyph <= {SW_PAINTER}.Glyph_last
+		do
+			if a_glyph = 0 then
+				item_glyphs.remove (i)
+			else
+				item_glyphs.force (a_glyph, i)
+			end
+		end
 
 	add_item (a_label: READABLE_STRING_GENERAL; a_hint: READABLE_STRING_GENERAL; a_enabled: BOOLEAN; a_action: detachable PROCEDURE)
 		local
@@ -448,6 +470,9 @@ feature -- Geometry
 					item_heights.extend (Sep_h)
 				else
 					lw := label_width (a_p, it.label) + 24.0
+					if not item_glyphs.is_empty then
+						lw := lw + Glyph_room
+					end
 					if not it.hint.is_empty then
 						lw := lw + hint_width (a_p, it.hint) + 28.0
 					end
@@ -576,6 +601,12 @@ feature -- Drawing
 					end
 					base := cy + rh - 10.0
 					lx := x + Pad + 10.0
+					if not item_glyphs.is_empty then
+						if item_glyphs.has (i) then
+							a_p.glyph (item_glyphs.item (i), lx + 7.0, cy + rh / 2.0, 13.0)
+						end
+						lx := lx + Glyph_room
+					end
 						-- THE SHAPED PATH WHEN THERE IS ONE. `text' is
 						-- cairo's toy `show_text': it resolves no color
 						-- emoji artwork and shapes no complex script, so a

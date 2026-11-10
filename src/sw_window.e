@@ -3346,6 +3346,7 @@ feature {NONE} -- Rendering
 			if lens.is_active (is_dev_mode) and then attached hovered as hw then
 				lens.draw_chip (painter, theme, hw)
 			end
+			draw_widget_badges
 			if reference_marks_shown then
 				draw_reference_marks
 			end
@@ -3600,6 +3601,85 @@ feature -- Title
 			set_caption (a_title)
 		ensure
 			set: title.same_string_general (a_title)
+		end
+
+feature -- Widget badges (simple_gui 1n)
+
+	widget_badges: ARRAYED_LIST [TUPLE [widget: SW_WIDGET; text: STRING_32]]
+			-- A small red bubble on each of these widgets, at its top right: the text (a count,
+			-- a word), or a dot for empty text. Always drawn, above the content.
+		attribute
+			create Result.make (0)
+		end
+
+	set_widget_badge (a_widget: SW_WIDGET; a_text: READABLE_STRING_GENERAL)
+			-- Badge `a_widget' with `a_text' (empty: a dot), replacing any badge it had.
+		require
+			short: a_text.count <= 8
+		do
+			clear_widget_badge (a_widget)
+			widget_badges.extend ([a_widget, a_text.to_string_32])
+		ensure
+			badged: has_widget_badge (a_widget)
+		end
+
+	clear_widget_badge (a_widget: SW_WIDGET)
+		local
+			i: INTEGER
+		do
+			from i := widget_badges.count until i < 1 loop
+				if widget_badges.i_th (i).widget = a_widget then
+					widget_badges.go_i_th (i)
+					widget_badges.remove
+				end
+				i := i - 1
+			end
+		ensure
+			none: not has_widget_badge (a_widget)
+		end
+
+	has_widget_badge (a_widget: SW_WIDGET): BOOLEAN
+		do
+			Result := across widget_badges as ic some ic.widget = a_widget end
+		end
+
+	widget_badge_text (a_widget: SW_WIDGET): detachable STRING_32
+			-- `a_widget''s badge text (empty for a dot), or Void.
+		do
+			across widget_badges as ic until attached Result loop
+				if ic.widget = a_widget then
+					Result := ic.text
+				end
+			end
+		end
+
+	draw_widget_badges
+			-- Each badge whose widget is laid out and shown: a red bubble over its top-right
+			-- corner, white text, or a dot.
+		local
+			l_w, l_h, l_x, l_y, sc: REAL_64
+		do
+			sc := theme.text_scale
+			painter.font ({SW_PAINTER}.Role_ui, 9.5, True)
+			across widget_badges as ic loop
+				if not ic.widget.is_hidden and then ic.widget.width > 0.0 then
+					if ic.text.is_empty then
+						l_w := 9.0 * sc
+						l_h := l_w
+					else
+						l_w := (painter.advance (ic.text) + 10.0 * sc).max (16.0 * sc)
+						l_h := 16.0 * sc
+					end
+					l_x := (ic.widget.x + ic.widget.width - l_w * 0.65).min (win_w - l_w).max (0.0)
+					l_y := (ic.widget.y - l_h * 0.35).max (0.0)
+					painter.set_color (0xE01B24)
+					painter.rrect_fill (l_x, l_y, l_w, l_h, l_h / 2.0)
+					if not ic.text.is_empty then
+						painter.set_color (0xFFFFFF)
+						painter.text (l_x + (l_w - painter.advance (ic.text)) / 2.0, painter.baseline_in (l_y, l_h), ic.text)
+					end
+				end
+			end
 		end
 
 feature -- Reference marks
