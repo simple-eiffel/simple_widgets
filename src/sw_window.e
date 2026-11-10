@@ -2588,6 +2588,16 @@ feature {NONE} -- Popup lifecycle
 
 feature -- Pick notices (simple_gui 1q)
 
+	open_menu_at (a_menu: SW_MENU; a_x, a_y: INTEGER)
+			-- Show `a_menu' as a popup at window point (`a_x', `a_y'), as a
+			-- context menu shows (simple_gui 1q's menu of drop targets).
+		do
+			show_popup (a_menu, a_x, a_y)
+			after_input
+		ensure
+			open: open_popup = a_menu
+		end
+
 	on_pick_cancelled: detachable PROCEDURE
 			-- Told when a pick ends with the pebble going nowhere (Escape, a
 			-- secondary click, a drop where nothing takes it) - simple_gui 1q.
