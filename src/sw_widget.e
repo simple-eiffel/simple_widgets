@@ -696,11 +696,64 @@ feature -- Input
 		end
 
 	pebble_at (a_px, a_py: REAL_64): detachable ANY
-			-- The pebble offered at a specific point - by default the
+			-- The pebble offered at a specific point - by default
+			-- `pebble_hook''s answer when there is one, else the
 			-- widget-wide `pebble'. Virtualized widgets redefine this
 			-- to offer per-row or per-cell pebbles.
 		do
-			Result := pebble
+			if attached pebble_hook as al_hook then
+				Result := al_hook.item ([a_px, a_py])
+			else
+				Result := pebble
+			end
+		end
+
+	pebble_hook: detachable FUNCTION [TUPLE [x, y: REAL_64], detachable ANY]
+			-- Answers the pebble at a point (window space), for a client
+			-- that composes widgets rather than redefining them (simple_gui
+			-- 1q); Void: `pebble'.
+
+	accepts_hook: detachable FUNCTION [TUPLE [pebble: ANY; x, y: REAL_64], BOOLEAN]
+			-- Answers whether a pebble may land at a point; Void: `accepts_pebble'.
+
+	receive_hook: detachable PROCEDURE [TUPLE [pebble: ANY; x, y: REAL_64]]
+			-- Takes a pebble landing at a point; Void: `receive_pebble'.
+
+	picks_on_drag: BOOLEAN
+			-- Does a press that moves a few pixels on this widget lift its
+			-- pebble (and the release drop it)?
+
+	picks_on_secondary: BOOLEAN
+			-- Does a secondary click on this widget lift its pebble (a line
+			-- follows the pointer, a click drops), before any context menu?
+
+	set_pebble_hook (a_hook: like pebble_hook)
+		do
+			pebble_hook := a_hook
+		ensure
+			set: pebble_hook = a_hook
+		end
+
+	set_drop_hooks (an_accepts: like accepts_hook; a_receive: like receive_hook)
+			-- Decide and take drops with agents (both, or neither).
+		require
+			both_or_neither: (an_accepts = Void) = (a_receive = Void)
+		do
+			accepts_hook := an_accepts
+			receive_hook := a_receive
+		ensure
+			accepts_set: accepts_hook = an_accepts
+			receive_set: receive_hook = a_receive
+		end
+
+	set_pick_gestures (a_drag, a_secondary: BOOLEAN)
+			-- Which gestures lift this widget's pebble.
+		do
+			picks_on_drag := a_drag
+			picks_on_secondary := a_secondary
+		ensure
+			drag_set: picks_on_drag = a_drag
+			secondary_set: picks_on_secondary = a_secondary
 		end
 
 	set_pebble (a_pebble: detachable ANY)
@@ -738,8 +791,13 @@ feature -- Input
 			-- (window space)? By default the pointless `accepts_pebble'; a
 			-- hole whose answer depends on the point (a tree row, a folder)
 			-- redefines this AND `receive_pebble_at' together (0.55.0).
+			-- `accepts_hook' answers instead when there is one.
 		do
-			Result := accepts_pebble (a_pebble)
+			if attached accepts_hook as al_hook then
+				Result := al_hook.item ([a_pebble, a_px, a_py])
+			else
+				Result := accepts_pebble (a_pebble)
+			end
 		end
 
 	receive_pebble_at (a_pebble: ANY; a_px, a_py: REAL_64)
@@ -749,7 +807,9 @@ feature -- Input
 			welcome: accepts_pebble_at (a_pebble, a_px, a_py)
 			enabled: is_enabled
 		do
-			if accepts_pebble (a_pebble) then
+			if attached receive_hook as al_hook then
+				al_hook.call ([a_pebble, a_px, a_py])
+			elseif accepts_pebble (a_pebble) then
 				receive_pebble (a_pebble)
 			end
 		end
