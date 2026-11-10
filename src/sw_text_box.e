@@ -933,7 +933,10 @@ feature -- Drawing
 					else
 						a_p.set_color (t.ink)
 					end
-					a_p.text (gx, gy, glyph (i))
+					if is_hiding or else text.item (i) /= '%T' then
+							-- a tab paints nothing: its slot spans to the stop
+						a_p.text (gx, gy, glyph (i))
+					end
 					i := i + 1
 				end
 			end

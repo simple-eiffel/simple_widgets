@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (tabs and line breaks no longer paint a missing-glyph box)
+
+- A tab in `SW_TEXT_BOX` text advances to the next tab stop (every 8 space-widths from the line start, GtkTextView's default), on the toy and the shaped engine, in `SW_TEXT_GEOMETRY` (`tab_width`, `next_tab_stop`); caret, click, selection and wrap read the same slot. On the shaped path a paragraph with tabs is one layout per tab-free segment and wraps at tabs only.
+- `SW_LABEL` breaks lines at LF (CR LF counts once): taller by a line per break, as wide as its widest line, wrapping and alignment applied per line (`text_lines`, `has_line_breaks`). Hints and tooltips (`SW_WINDOW.draw_hint`, `hint_box_size`) do the same. New `SW_LINE_BREAKS`, `SW_PAINTER.broken_lines`.
+
 ### Added (0.56.0 - a notice with an action; shortcuts that yield to typing)
 
 - `SW_WINDOW.toast_with_action`: a notice that offers one action ("Undo") at its end, outlined; a click on it runs the action once and closes the notice. It lives about 8 seconds (`Action_toast_life`). `toast_action_spots` / `toast_action_at` say where the actions were drawn.

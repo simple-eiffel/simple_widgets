@@ -3767,13 +3767,21 @@ feature {NONE} -- Rendering
 			-- `a_text' in an ink box just below the span `a_top'..`a_bottom' at `a_left', or just
 			-- above it when the window ends first; kept on screen and sized by `text_scale'. The
 			-- tooltip and the reference-mark tip share it (design scan 21: they had drifted).
+			-- A line break in `a_text' starts a new line (GtkTooltip does): the box is as wide as
+			-- the widest line and a line step taller for each break.
 		local
-			l_scale, l_w, l_h, l_x, l_y: REAL_64
+			l_scale, l_w, l_h, l_x, l_y, l_step: REAL_64
+			l_lines: ARRAYED_LIST [STRING_32]
+			l_size: TUPLE [w, h: REAL_64]
+			i: INTEGER
 		do
 			l_scale := theme.text_scale
+			l_lines := painter.broken_lines (a_text)
+			l_size := hint_box_size (a_text)
+			l_w := l_size.w
+			l_h := l_size.h
 			painter.font ({SW_PAINTER}.Role_ui, 10.5, False)
-			l_w := painter.advance (a_text) + 18.0 * l_scale
-			l_h := 26.0 * l_scale
+			l_step := painter.text_extent + 3.0 * l_scale
 			l_x := a_left.min (win_w - l_w - 4.0).max (4.0)
 			l_y := a_bottom + Hint_gap
 			if l_y + l_h > win_h then
@@ -3782,7 +3790,14 @@ feature {NONE} -- Rendering
 			painter.set_color (theme.ink)
 			painter.rrect_fill (l_x, l_y, l_w, l_h, theme.radius)
 			painter.set_color (theme.background)
-			painter.text (l_x + 9.0 * l_scale, l_y + 17.5 * l_scale, a_text)
+			from
+				i := 1
+			until
+				i > l_lines.count
+			loop
+				painter.text (l_x + 9.0 * l_scale, l_y + 17.5 * l_scale + (i - 1) * l_step, l_lines.i_th (i))
+				i := i + 1
+			end
 			last_hint_rect := [l_x, l_y, l_w, l_h]
 		end
 
@@ -3795,6 +3810,29 @@ feature -- Hints
 			-- Where the last hint (tooltip or reference-mark tip) was drawn, for hosts and tests.
 		attribute
 			Result := [0.0, 0.0, 0.0, 0.0]
+		end
+
+	hint_box_size (a_text: READABLE_STRING_GENERAL): TUPLE [w, h: REAL_64]
+			-- The ink box `draw_hint' gives `a_text': the widest line plus the
+			-- side padding wide, and one 26-pixel line (at 1x) plus a line
+			-- step for each line break tall.
+		local
+			l_scale, l_w, l_step: REAL_64
+			l_lines: ARRAYED_LIST [STRING_32]
+		do
+			l_scale := theme.text_scale
+			painter.font ({SW_PAINTER}.Role_ui, 10.5, False)
+			l_lines := painter.broken_lines (a_text)
+			across
+				l_lines as ln
+			loop
+				l_w := l_w.max (painter.advance (ln))
+			end
+			l_step := painter.text_extent + 3.0 * l_scale
+			Result := [l_w + 18.0 * l_scale, 26.0 * l_scale + (l_lines.count - 1) * l_step]
+		ensure
+			wide_enough: Result.w > 0.0
+			one_line_at_least: Result.h >= 26.0 * theme.text_scale
 		end
 
 feature {NONE} -- Hint internals

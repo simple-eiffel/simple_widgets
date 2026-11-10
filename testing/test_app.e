@@ -126,6 +126,8 @@ feature {NONE} -- Test runners
 
 	stage2_tests: SW_STAGE2_ASSAULT
 
+	breaks_and_tabs_tests: SW_BREAKS_AND_TABS_ASSAULT
+
 	doors_w11_tests: SW_DOORS_W11_ASSAULT
 
 	wrap_chars_tests: SW_WRAP_CHARS_ASSAULT
@@ -174,6 +176,15 @@ feature {NONE} -- Test runners
 			run_test (agent doors_w11_tests.test_type_text_reports_and_undoes, "type_text_reports_and_undoes")
 			create wrap_chars_tests
 			run_test (agent wrap_chars_tests.test_a_label_wraps_at_about_n_characters, "a_label_wraps_at_about_n_characters")
+			create breaks_and_tabs_tests
+			run_test (agent breaks_and_tabs_tests.test_a_tab_reaches_the_stop_on_the_toy_path, "a_tab_reaches_the_stop_on_the_toy_path")
+			run_test (agent breaks_and_tabs_tests.test_a_tab_reaches_the_stop_on_the_shaped_path, "a_tab_reaches_the_stop_on_the_shaped_path")
+			run_test (agent breaks_and_tabs_tests.test_toy_stop_is_eight_space_widths, "toy_stop_is_eight_space_widths")
+			run_test (agent breaks_and_tabs_tests.test_text_without_tabs_is_unchanged, "text_without_tabs_is_unchanged")
+			run_test (agent breaks_and_tabs_tests.test_a_label_break_is_two_lines_on_the_toy_path, "a_label_break_is_two_lines_on_the_toy_path")
+			run_test (agent breaks_and_tabs_tests.test_a_label_break_is_two_lines_on_the_shaped_path, "a_label_break_is_two_lines_on_the_shaped_path")
+			run_test (agent breaks_and_tabs_tests.test_a_wrapping_label_wraps_inside_each_line, "a_wrapping_label_wraps_inside_each_line")
+			run_test (agent breaks_and_tabs_tests.test_a_hint_breaks_lines, "a_hint_breaks_lines")
 			create stage2_tests
 			run_test (agent stage2_tests.test_a_header_click_is_reported_not_sorted, "a_header_click_is_reported_not_sorted")
 			run_test (agent stage2_tests.test_several_rows_select_quietly, "several_rows_select_quietly")

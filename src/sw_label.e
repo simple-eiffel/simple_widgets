@@ -122,22 +122,70 @@ feature -- Shaped text
 			positive: Result >= 1
 		end
 
+	takes_shaped_path_of (a_p: SW_PAINTER; a_line: READABLE_STRING_32): BOOLEAN
+			-- `takes_shaped_path' for the one line `a_line' of the text.
+		do
+			Result := a_p.has_shaping and is_shaped_role and not a_line.is_empty
+		ensure
+			definition: Result = (a_p.has_shaping and is_shaped_role and not a_line.is_empty)
+		end
+
 	shaped_layout (a_p: SW_PAINTER; a_width: REAL_64): detachable SHAPED_LAYOUT
 			-- `text' through `a_p''s kit: one unbounded line, or broken
 			-- to `a_width' when this label wraps (`a_width' under one
 			-- pixel means unbounded). Void when the label paints on the
-			-- toy path - no kit, a mono role, or nothing to shape.
+			-- toy path - no kit, a mono role, or nothing to shape. A text
+			-- with line breaks is laid out line by line (`shaped_layout_of').
 		do
-			if takes_shaped_path (a_p) and then attached a_p.shaping as al_kit then
-				if is_wrapping then
-					Result := al_kit.layout_styled (text, wrap_width (a_p, a_width).floor.max (0), pixel_size (a_p), role, is_bold)
-				else
-					Result := shaped.layout_styled_of (al_kit, text, pixel_size (a_p), role, is_bold)
-				end
-			end
+			Result := shaped_layout_of (a_p, text, a_width)
 		ensure
 			shaped_exactly_when: attached Result = takes_shaped_path (a_p)
 			at_this_size: attached Result as al_layout implies al_layout.pixel_size = pixel_size (a_p)
+		end
+
+	shaped_layout_of (a_p: SW_PAINTER; a_line: READABLE_STRING_32; a_width: REAL_64): detachable SHAPED_LAYOUT
+			-- The one line `a_line' through `a_p''s kit, wrapped within
+			-- `a_width' when this label wraps; Void on the toy path.
+		do
+			if takes_shaped_path_of (a_p, a_line) and then attached a_p.shaping as al_kit then
+				if is_wrapping then
+					Result := al_kit.layout_styled (a_line, wrap_width (a_p, a_width).floor.max (0), pixel_size (a_p), role, is_bold)
+				else
+					Result := shaped.layout_styled_of (al_kit, a_line, pixel_size (a_p), role, is_bold)
+				end
+			end
+		ensure
+			shaped_exactly_when: attached Result = takes_shaped_path_of (a_p, a_line)
+			at_this_size: attached Result as al_layout implies al_layout.pixel_size = pixel_size (a_p)
+		end
+
+feature -- Line breaks
+
+	has_line_breaks: BOOLEAN
+			-- Does `text' carry a line break (LF, CR LF or a lone CR)?
+		do
+			Result := text.has ('%N') or text.has ('%R')
+		ensure
+			definition: Result = (text.has ('%N') or text.has ('%R'))
+		end
+
+	text_lines: ARRAYED_LIST [STRING_32]
+			-- `text' cut at each line break: LF, CR LF (ONE break) or a
+			-- lone CR. A text without breaks is one line; a trailing break
+			-- opens a final empty line, as GtkLabel shows it.
+		do
+			Result := (create {SW_LINE_BREAKS}).lines_of (text)
+		ensure
+			at_least_one: not Result.is_empty
+			one_line_without_breaks: not has_line_breaks implies Result.count = 1
+		end
+
+	line_break_count: INTEGER
+			-- How many breaks `text' holds: one fewer than `text_lines'.
+		do
+			Result := text_lines.count - 1
+		ensure
+			non_negative: Result >= 0
 		end
 
 feature -- Alignment (GW-02)
@@ -243,16 +291,36 @@ feature -- Layout
 
 	preferred_width (a_p: SW_PAINTER): REAL_64
 			-- As wide as the text PAINTS: the shaped measure on the
-			-- shaped path, cairo's advance on the toy path.
+			-- shaped path, cairo's advance on the toy path; the WIDEST line
+			-- when the text has line breaks.
+		local
+			l_w: REAL_64
 		do
-			if attached shaped_layout (a_p, 0.0) as al_layout then
-				Result := al_layout.total_width
+			if has_line_breaks then
+				across
+					text_lines as ln
+				loop
+					l_w := line_width_of (a_p, ln)
+					if l_w > Result then
+						Result := l_w
+					end
+				end
 			else
-				a_p.font (role, size, is_bold)
-				Result := a_p.advance (text)
+				Result := line_width_of (a_p, text)
 			end
 			if wrap_chars > 0 then
 				Result := Result.min (wrap_chars * average_char_width (a_p))
+			end
+		end
+
+	line_width_of (a_p: SW_PAINTER; a_line: READABLE_STRING_32): REAL_64
+			-- The unwrapped width of the one line `a_line'.
+		do
+			if attached shaped_layout_of (a_p, a_line, 0.0) as al_layout then
+				Result := al_layout.total_width
+			else
+				a_p.font (role, size, is_bold)
+				Result := a_p.advance (a_line)
 			end
 		end
 
@@ -290,14 +358,23 @@ feature -- Layout
 			-- On the shaped path the step is the shaped line's own
 			-- height plus the same leading.
 		do
-			if attached shaped_layout (a_p, 0.0) as al_layout then
+			Result := line_step_of (a_p, text)
+		ensure
+			clears_the_glyphs: not takes_shaped_path (a_p) implies Result >= a_p.text_extent
+			leaded: Result >= a_p.theme.padding
+		end
+
+	line_step_of (a_p: SW_PAINTER; a_line: READABLE_STRING_32): REAL_64
+			-- `line_step' for the one line `a_line' (an empty line takes
+			-- the font's own step, so a blank line is as tall as the rest).
+		do
+			if attached shaped_layout_of (a_p, a_line, 0.0) as al_layout then
 				Result := al_layout.total_height + a_p.theme.padding
 			else
 				a_p.font (role, size, is_bold)
 				Result := a_p.text_extent + a_p.theme.padding
 			end
 		ensure
-			clears_the_glyphs: not takes_shaped_path (a_p) implies Result >= a_p.text_extent
 			leaded: Result >= a_p.theme.padding
 		end
 
@@ -315,21 +392,47 @@ feature -- Layout
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 			-- A wrapping label on the shaped path is as tall as the kit
 			-- breaks it; on the toy path, as many blank-broken lines as
-			-- `a_width' demands.
+			-- `a_width' demands. A text with line breaks stacks its lines:
+			-- one block per line, each wrapped within `a_width'.
 		do
-			if is_wrapping then
-				if attached shaped_layout (a_p, a_width) as al_layout then
-					Result := al_layout.total_height + a_p.theme.padding
-				else
-					Result := wrapped_lines (a_p, a_width).count * line_step (a_p)
+			if has_line_breaks then
+				across
+					text_lines as ln
+				loop
+					Result := Result + block_height_of (a_p, ln, a_width)
 				end
 			else
-				Result := line_step (a_p)
+				Result := block_height_of (a_p, text, a_width)
 			end
+		end
+
+	block_height_of (a_p: SW_PAINTER; a_line: READABLE_STRING_32; a_width: REAL_64): REAL_64
+			-- The height the one line `a_line' takes: its step, times the
+			-- rows it wraps into when this label wraps.
+		do
+			if is_wrapping then
+				if attached shaped_layout_of (a_p, a_line, a_width) as al_layout then
+					Result := al_layout.total_height + a_p.theme.padding
+				else
+					Result := wrapped_lines_of (a_p, a_line, a_width).count * line_step_of (a_p, a_line)
+				end
+			else
+				Result := line_step_of (a_p, a_line)
+			end
+		ensure
+			positive: Result > 0.0
 		end
 
 	wrapped_lines (a_p: SW_PAINTER; a_width: REAL_64): ARRAYED_LIST [STRING_32]
 			-- `text' broken at word boundaries to fit `a_width'.
+		do
+			Result := wrapped_lines_of (a_p, text, a_width)
+		ensure
+			at_least_one: not Result.is_empty
+		end
+
+	wrapped_lines_of (a_p: SW_PAINTER; a_line: READABLE_STRING_32; a_width: REAL_64): ARRAYED_LIST [STRING_32]
+			-- `a_line' broken at word boundaries to fit `a_width'.
 		local
 			words: LIST [STRING_32]
 			line: STRING_32
@@ -337,7 +440,7 @@ feature -- Layout
 		do
 			create Result.make (4)
 			a_p.font (role, size, is_bold)
-			words := text.split (' ')
+			words := a_line.to_string_32.split (' ')
 			create line.make (60)
 			across
 				words as w
@@ -375,10 +478,8 @@ feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
 		local
-			step, base: REAL_64
-			l_align: INTEGER
+			l_top: REAL_64
 		do
-			l_align := effective_text_alignment
 			if custom_color /= 0 then
 				a_p.set_color (custom_color)
 			elseif is_muted then
@@ -386,48 +487,71 @@ feature -- Drawing
 			else
 				a_p.set_color (a_p.theme.ink)
 			end
-			if attached shaped_layout (a_p, width) as al_layout then
-					-- The layout's TOP-LEFT goes where the toy path's
-					-- glyph box starts: half the leading below the top
-					-- edge, so both paths center a line in its step.
-				if l_align /= {SHAPING_CONSTANTS}.Align_left then
-						-- GW-02: placed in the label's own width.
-					a_p.draw_shaped_layout_aligned (al_layout, x, y + a_p.theme.padding / 2.0,
-						width.max (0.0), l_align)
-				else
-					a_p.draw_shaped_layout (al_layout, x, y + a_p.theme.padding / 2.0)
+			if has_line_breaks then
+				l_top := y
+				across
+					text_lines as ln
+				loop
+					l_top := l_top + draw_line (a_p, ln, l_top)
 				end
 			else
-				step := line_step (a_p)
-				base := baseline_offset (a_p)
-				a_p.font (role, size, is_bold)
-				draw_toy (a_p, step, base)
+				l_top := draw_line (a_p, text, y)
 			end
 		end
 
-	draw_toy (a_p: SW_PAINTER; a_step, a_base: REAL_64)
-			-- The toy path: cairo's `show_text', one line or blank-broken
-			-- lines `a_step' apart, the first baseline at `a_base'.
+	draw_line (a_p: SW_PAINTER; a_line: READABLE_STRING_32; a_top: REAL_64): REAL_64
+			-- Draw the one line `a_line' (wrapped within the width when
+			-- this label wraps) with its block top edge at `a_top', in
+			-- the painter current color, each row placed by the
+			-- alignment; the height the block took.
 		local
-			lines: ARRAYED_LIST [STRING_32]
-			i: INTEGER
-			step, base: REAL_64
+			step, base, l_dx: REAL_64
+			l_align, i: INTEGER
+			l_rows: ARRAYED_LIST [STRING_32]
 		do
-			step := a_step
-			base := a_base
-			if is_wrapping then
-				lines := wrapped_lines (a_p, width)
+			l_align := effective_text_alignment
+			if attached shaped_layout_of (a_p, a_line, width) as al_layout then
+					-- The layout TOP-LEFT goes where the toy path
+					-- glyph box starts: half the leading below the top
+					-- edge, so both paths center a line in its step.
+				if l_align /= {SHAPING_CONSTANTS}.Align_left then
+						-- GW-02: placed in the label own width.
+					a_p.draw_shaped_layout_aligned (al_layout, x, a_top + a_p.theme.padding / 2.0,
+						width.max (0.0), l_align)
+				else
+					a_p.draw_shaped_layout (al_layout, x, a_top + a_p.theme.padding / 2.0)
+				end
+			else
+				step := line_step_of (a_p, a_line)
+				base := baseline_offset (a_p)
+				a_p.font (role, size, is_bold)
+				if is_wrapping then
+					l_rows := wrapped_lines_of (a_p, a_line, width)
+				else
+					create l_rows.make (1)
+					l_rows.extend (a_line.to_string_32)
+				end
 				from
 					i := 1
 				until
-					i > lines.count
+					i > l_rows.count
 				loop
-					a_p.text (x, y + (i - 1) * step + base, lines.i_th (i))
+					l_dx := 0.0
+					if l_align = {SHAPING_CONSTANTS}.Align_center or l_align = {SHAPING_CONSTANTS}.Align_right
+						or l_align = {SHAPING_CONSTANTS}.Align_end
+					then
+						l_dx := (width - a_p.advance (l_rows.i_th (i))).max (0.0)
+						if l_align = {SHAPING_CONSTANTS}.Align_center then
+							l_dx := l_dx / 2.0
+						end
+					end
+					a_p.text (x + l_dx, a_top + (i - 1) * step + base, l_rows.i_th (i))
 					i := i + 1
 				end
-			else
-				a_p.text (x, y + base, text)
 			end
+			Result := block_height_of (a_p, a_line, width)
+		ensure
+			positive: Result > 0.0
 		end
 
 feature {NONE} -- Shaped text
