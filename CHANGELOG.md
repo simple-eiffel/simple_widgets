@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Changed (0.58.0 - large texts: a text box holding 10,000 lines stays usable)
+
+Measured through simple_gui's code editor on a text of 10,000 lines (388,893 characters), Windows, contract checking off in the timed steps: a test keystroke (which draws 3 to 5 frames) took 14,570 milliseconds before this work and 84 after; 1,000 lines 35, 250 lines 31, 30 lines 29.
+
+- `SW_TEXT_GEOMETRY.draw` and `draw_hooked` paint only the visual lines the clip lets through (new `SW_PAINTER.clip_band`); a text of any length costs a frame what its visible lines cost.
+- `SW_TEXT_GEOMETRY` keeps its layouts between frames (dropped when the fonts or the shaping policy change: new `SW_SHAPING.font_revision`), and a line index answers `line_of`, `top_of_line`, `height_of_line` and `line_count` without scanning the text.
+- An edit rebuilds only the paragraphs between what the old text and the new one share at the start and at the end (a patch); every edit used to lay the whole text out again.
+- `SW_TEXT_GEOMETRY.hold_draw_to_line`, `release_draw`, `held_line`, `last_drawn_count`: a draw held to one visual line. `SW_MARK_PAINTER` redraws each colored span that way; it redrew every layout in the clip, 5 to 6 a span.
+- New `SW_LIST_BLOCKS [G]`: `splice` removes and inserts a block of an `ARRAYED_LIST` in one move (the list has no bulk range removal).
+- Accessibility: `SW_WIDGET.accessible_value` answers `detachable READABLE_STRING_32` (descendants answering `STRING_32` are unchanged). `SW_TEXT_BOX` hands over one kept `IMMUTABLE_STRING_32` until its text differs, and `SW_ACCESSIBILITY` converts an immutable value to its native form once (`conversions` counts them). While a UI Automation client listens a window publishes its tree on every frame; the text of that size cost 10 to 14 milliseconds a frame there.
+- Tests: the clipped and the held draw match the whole draw pixel for pixel on the toy and the shaped path; a colored mark redraws its line alone; an unchanged text is converted once. The clipped draw is compared with a draw under the same clip that skips nothing, and with the whole draw on the lines the clip holds whole: on macOS cairo cuts a single character at a fractional x one column short inside a clip that crosses it, so a line the clip's edge cuts differs from the whole draw there on the toy path, whatever is skipped.
+
 ### Fixed (tabs and line breaks no longer paint a missing-glyph box)
 
 - A tab in `SW_TEXT_BOX` text advances to the next tab stop (every 8 space-widths from the line start, GtkTextView's default), on the toy and the shaped engine, in `SW_TEXT_GEOMETRY` (`tab_width`, `next_tab_stop`); caret, click, selection and wrap read the same slot. On the shaped path a paragraph with tabs is one layout per tab-free segment and wraps at tabs only.

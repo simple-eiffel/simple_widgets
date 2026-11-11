@@ -1860,13 +1860,28 @@ feature -- Accessibility (GW-14)
 			Result := {SW_ACCESSIBILITY}.Role_edit
 		end
 
-	accessible_value: detachable STRING_32
+	accessible_value: detachable IMMUTABLE_STRING_32
+			-- The text, as one kept copy handed over again until the text
+			-- differs: publishing an unchanged text costs one comparison,
+			-- no copy and no conversion. A masked line never tells its text.
 		do
-				-- a masked line never tells its text
-			if not is_masked then
-				Result := text.twin
+			if is_masked then
+				kept_accessible_value := Void
+			elseif attached kept_accessible_value as al_kept and then al_kept.same_string (text) then
+				Result := al_kept
+			else
+				create Result.make_from_string_32 (text)
+				kept_accessible_value := Result
 			end
+		ensure then
+			masked_untold: is_masked implies Result = Void
+			told_otherwise: not is_masked implies Result /= Void
 		end
+
+feature {NONE} -- Accessibility (kept)
+
+	kept_accessible_value: detachable IMMUTABLE_STRING_32
+			-- The copy `accessible_value' handed over last.
 
 invariant
 	text_attached: text /= Void
