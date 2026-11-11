@@ -650,8 +650,13 @@ feature -- Pebbles
 		end
 
 	receive_pebble (a_pebble: ANY)
+			-- A panel dropped here moves here, to the end; one dropped on its own zone keeps its
+			-- place (2026-11-11, port-coordination#58: `move_panel' now moves a panel already in
+			-- the zone to its end, and a drop on its own zone never did that).
 		do
-			if attached {INTEGER_REF} a_pebble as id then
+			if attached {INTEGER_REF} a_pebble as id and then id.item >= 1 and then id.item <= host.panels.count
+				and then host.panels.i_th (id.item).zone /= zone_id
+			then
 				host.move_panel (id.item, zone_id)
 			end
 		end

@@ -414,7 +414,9 @@ feature -- Element change
 			panel_known: a_panel >= 1 and a_panel <= panels.count
 			zone_known: is_zone (a_zone)
 		do
-			if panels.i_th (a_panel).zone /= a_zone then
+				-- 2026-11-11 (port-coordination#58): a panel already in `a_zone' but not last
+				-- moves to its end too, as `ends_its_zone' promises; it used to stay put.
+			if panels.i_th (a_panel).zone /= a_zone or else zone_orders [a_zone].last /= a_panel then
 				relocate (a_panel, a_zone)
 				announce
 			end

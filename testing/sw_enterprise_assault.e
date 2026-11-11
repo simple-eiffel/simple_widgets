@@ -785,6 +785,48 @@ feature -- Dock 1r-b
 				and (a.rw - b.rw).abs < 0.000_1 and (a.rh - b.rh).abs < 0.000_1
 		end
 
+	test_dock_move_panel_puts_a_present_panel_last
+			-- port-coordination#58 (2026-11-11): move_panel promises the panel ends its zone. A panel
+			-- already in the zone but not last stayed put and broke that promise; it now moves to the
+			-- end. One already last says nothing.
+		local
+			dh: SW_DOCK_HOST
+		do
+			dh := rb_dock
+			dh.set_on_layout_change (agent rb_bump)
+			rb_events := 0
+			dh.move_panel (1, dh.Zone_south)
+			assert_integers_equal ("A ends south", 1, dh.all_panels_in (dh.Zone_south).last)
+			assert_true ("the order is B C A", dh.all_panels_in (dh.Zone_south).i_th (1) = 2
+				and dh.all_panels_in (dh.Zone_south).i_th (2) = 3)
+			assert_integers_equal ("still south", dh.Zone_south, dh.panels.i_th (1).zone)
+			assert_integers_equal ("one announcement", 1, rb_events)
+			dh.move_panel (1, dh.Zone_south)
+			assert_integers_equal ("already last says nothing", 1, rb_events)
+		end
+
+	test_dock_a_panel_dropped_on_its_own_zone_keeps_its_place
+			-- A panel's bar dropped on its own zone did nothing, and still does now that move_panel
+			-- moves an already-present panel to the end (2026-11-11, port-coordination#58).
+		local
+			dh: SW_DOCK_HOST
+			l_ref: INTEGER_REF
+		do
+			dh := rb_dock
+			dh.set_on_layout_change (agent rb_bump)
+			rb_events := 0
+			create l_ref
+			l_ref.set_item (1)
+			dh.zone_widget (dh.Zone_south).receive_pebble (l_ref)
+			assert_true ("the order stays A B C", dh.all_panels_in (dh.Zone_south).i_th (1) = 1
+				and dh.all_panels_in (dh.Zone_south).i_th (2) = 2 and dh.all_panels_in (dh.Zone_south).i_th (3) = 3)
+			assert_integers_equal ("nothing announced", 0, rb_events)
+			l_ref.set_item (4)
+			dh.zone_widget (dh.Zone_south).receive_pebble (l_ref)
+			assert_integers_equal ("a panel from another zone still moves in", dh.Zone_south, dh.panels.i_th (4).zone)
+			assert_integers_equal ("to the end", 4, dh.all_panels_in (dh.Zone_south).last)
+		end
+
 	test_dock_1rb_move_panel_to_orders_a_zone
 			-- move_panel_to sets the place among a zone's panels; ids stay;
 			-- panels_in, all_panels_in and the tabs follow; adds and moves append.
