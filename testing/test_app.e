@@ -133,6 +133,8 @@ feature {NONE} -- Test runners
 
 	breaks_and_tabs_tests: SW_BREAKS_AND_TABS_ASSAULT
 
+	text_frame_tests: SW_TEXT_FRAME_ASSAULT
+
 	doors_w11_tests: SW_DOORS_W11_ASSAULT
 
 	wrap_chars_tests: SW_WRAP_CHARS_ASSAULT
@@ -209,6 +211,18 @@ feature {NONE} -- Test runners
 			run_test (agent breaks_and_tabs_tests.test_a_label_break_is_two_lines_on_the_shaped_path, "a_label_break_is_two_lines_on_the_shaped_path")
 			run_test (agent breaks_and_tabs_tests.test_a_wrapping_label_wraps_inside_each_line, "a_wrapping_label_wraps_inside_each_line")
 			run_test (agent breaks_and_tabs_tests.test_a_hint_breaks_lines, "a_hint_breaks_lines")
+			create text_frame_tests
+			run_test (agent text_frame_tests.test_tab_stops_follow_tab_spaces_on_the_toy_path, "tab_stops_follow_tab_spaces_on_the_toy_path")
+			run_test (agent text_frame_tests.test_tab_stops_follow_tab_spaces_on_the_shaped_path, "tab_stops_follow_tab_spaces_on_the_shaped_path")
+			run_test (agent text_frame_tests.test_mono_role_gives_equal_advances_on_the_toy_path, "mono_role_gives_equal_advances_on_the_toy_path")
+			run_test (agent text_frame_tests.test_mono_role_gives_equal_advances_on_the_shaped_path, "mono_role_gives_equal_advances_on_the_shaped_path")
+			run_test (agent text_frame_tests.test_mono_role_survives_a_missing_face_on_the_toy_path, "mono_role_survives_a_missing_face_on_the_toy_path")
+			run_test (agent text_frame_tests.test_mono_role_survives_a_missing_face_on_the_shaped_path, "mono_role_survives_a_missing_face_on_the_shaped_path")
+			run_test (agent text_frame_tests.test_a_plain_box_keeps_its_frame, "a_plain_box_keeps_its_frame")
+			run_test (agent text_frame_tests.test_a_moved_frame_moves_the_hit_test_on_the_toy_path, "a_moved_frame_moves_the_hit_test_on_the_toy_path")
+			run_test (agent text_frame_tests.test_a_moved_frame_moves_the_hit_test_on_the_shaped_path, "a_moved_frame_moves_the_hit_test_on_the_shaped_path")
+			run_test (agent text_frame_tests.test_a_moved_frame_moves_the_painted_text_on_the_toy_path, "a_moved_frame_moves_the_painted_text_on_the_toy_path")
+			run_test (agent text_frame_tests.test_a_moved_frame_moves_the_painted_text_on_the_shaped_path, "a_moved_frame_moves_the_painted_text_on_the_shaped_path")
 			create stage2_tests
 			run_test (agent stage2_tests.test_a_header_click_is_reported_not_sorted, "a_header_click_is_reported_not_sorted")
 			run_test (agent stage2_tests.test_several_rows_select_quietly, "several_rows_select_quietly")

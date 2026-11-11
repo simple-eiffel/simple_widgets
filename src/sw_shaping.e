@@ -60,6 +60,9 @@ note
 class
 	SW_SHAPING
 
+inherit {NONE}
+	SW_FIXED_PITCH_FACES
+
 create
 	make, make_with_assets
 
@@ -245,13 +248,22 @@ feature -- Measurement and layout
 			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
 				or a_role = {SW_PAINTER}.Role_mono
 		local
-			l_index: INTEGER
+			l_index, i: INTEGER
 		do
 			l_index := (a_role - 1) * 2 + (if a_bold then 2 else 1 end)
 			if attached role_fonts [l_index] as al_fonts then
 				Result := al_fonts
 			else
 				create Result.make_default
+				if a_role = {SW_PAINTER}.Role_mono then
+						-- 0.57.0: fixed-pitch faces every machine has, behind the theme's
+						-- mono face. Without them a machine that lacks the theme's face set
+						-- "mono" text in the general list's proportional face.
+					from i := mono_anchors.upper until i < mono_anchors.lower loop
+						Result := Result.with_leading_family (mono_anchors [i])
+						i := i - 1
+					end
+				end
 				if attached role_family (a_role) as al_family then
 						-- Leading, not a Latin prepend: the role's face must
 						-- also carry digits and punctuation (a mono label's

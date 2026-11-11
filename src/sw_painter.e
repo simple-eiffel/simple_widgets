@@ -13,6 +13,8 @@ class
 inherit {NONE}
 	SW_COLOR_MATH
 
+	SW_FIXED_PITCH_FACES
+
 create
 	make
 
@@ -87,7 +89,7 @@ feature -- Type
 			when 2 then
 				fam := theme.family_body
 			when 3 then
-				fam := theme.family_mono
+				fam := fixed_pitch_family
 			else
 				fam := theme.family_ui
 			end
@@ -108,6 +110,69 @@ feature -- Type
 			bold_kept: font_bold = a_bold
 			pixel_size_kept: font_pixel_size >= 1
 		end
+
+feature {NONE} -- Fixed-pitch face
+
+	fixed_pitch_family: STRING_32
+			-- The theme's mono face when Cairo's own text path draws it fixed-pitch on this
+			-- machine; otherwise the first of `mono_anchors', then `mono_system_faces', that
+			-- it does. Every platform silently puts a proportional face in place of a family
+			-- it lacks, so a name proves nothing: the test is that i and W advance alike.
+			-- Remembered per theme face; the theme's own face when none answers.
+		local
+			l_key: STRING_32
+			l_found: BOOLEAN
+		do
+			l_key := theme.family_mono
+			if attached fixed_pitch_choices.item (l_key) as al_choice then
+				Result := al_choice
+			else
+				Result := l_key
+				l_found := is_fixed_pitch (l_key)
+				across mono_anchors as a until l_found loop
+					if is_fixed_pitch (a) then
+						Result := a
+						l_found := True
+					end
+				end
+				across mono_system_faces as a until l_found loop
+					if is_fixed_pitch (a) then
+						Result := a
+						l_found := True
+					end
+				end
+				fixed_pitch_choices.force (Result, l_key.twin)
+			end
+		ensure
+			named: not Result.is_empty
+		end
+
+	is_fixed_pitch (a_family: READABLE_STRING_32): BOOLEAN
+			-- Do i and W advance alike in `a_family' on Cairo's own text path here? Leaves
+			-- the context's font changed: `font' sets it right after.
+		require
+			named: not a_family.is_empty
+		local
+			l_i, l_w: REAL_64
+		do
+			context.select_font (a_family, context.Slant_normal, context.Weight_normal).do_nothing
+			context.set_font_size (Probe_size).do_nothing
+			l_i := context.text_extents ({STRING_32} "i").x_advance
+			l_w := context.text_extents ({STRING_32} "W").x_advance
+			Result := l_i > 0.0 and then (l_i - l_w).abs < 0.01
+		end
+
+	Probe_size: REAL_64 = 32.0
+			-- The size `is_fixed_pitch' measures at.
+
+	fixed_pitch_choices: HASH_TABLE [STRING_32, STRING_32]
+			-- `fixed_pitch_family''s answers by theme face: one probe a process, not one a
+			-- frame. Fonts a program loads for itself must be loaded before the first draw.
+		once
+			create Result.make (2)
+		end
+
+feature -- Type, remembered
 
 	font_role: INTEGER
 			-- Role of the last `font' call (0 before the first).

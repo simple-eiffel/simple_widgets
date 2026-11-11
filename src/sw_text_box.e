@@ -796,7 +796,7 @@ feature -- Layout
 	row_baseline (a_p: SW_PAINTER): REAL_64
 			-- Baseline offset inside one row, from MEASURED metrics.
 		do
-			a_p.font ({SW_PAINTER}.Role_body, body_size (a_p), False)
+			a_p.font (face_role, body_size (a_p), False)
 			Result := (row_height (a_p) - a_p.text_extent) / 2.0 + a_p.font_ascent
 		end
 
@@ -804,7 +804,7 @@ feature -- Layout
 			-- The rows it needs plus the inside inset, never less than
 			-- the minimum the font demands: `minimum_height'.
 		do
-			ensure_layout (a_p, a_width - 2.0 * Pad_x)
+			ensure_layout (a_p, wrap_width_in (a_width))
 			Result := (content_height + 2.0 * Pad_y).max (minimum_height (a_p))
 		ensure then
 			at_least_the_minimum: Result >= minimum_height (a_p)
@@ -814,14 +814,14 @@ feature -- Layout
 			-- The least height this box may have: `SW_PAINTER.
 			-- min_control_height' (the font's ascent + descent plus the
 			-- theme's `control_inset' above and below) read under the BODY
-			-- font, the role the box paints its text in. That query measures
+			-- font (or `text_role''s), the role the box paints its text in. That query measures
 			-- the painter's CURRENT font, so the body font is selected here
 			-- first, as every other control selects its own. Before 0.8.2
 			-- only a toy-path relayout happened to select it; on the shaped
 			-- path one box, text and width measured 70, 75 or 80 px at 2x
 			-- depending on what had been drawn before it.
 		do
-			a_p.font ({SW_PAINTER}.Role_body, body_size (a_p), False)
+			a_p.font (face_role, body_size (a_p), False)
 			Result := a_p.min_control_height
 		ensure
 			clears_the_insets: Result >= 2.0 * a_p.theme.control_inset
@@ -832,21 +832,34 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 			-- The field; the highlight washes; the text through whichever
 			-- engine laid it out; the squiggles; the highlight effects
-			-- and boxes; the caret over everything.
+			-- and boxes; the caret over everything; the clear X and the
+			-- reveal eye. Three parts (`draw_field', `draw_content',
+			-- `draw_adornments') so a descendant that scrolls its text
+			-- can clip the middle one (simple_gui's code editor).
+		do
+			ensure_layout (a_p, wrap_width_in (width))
+			draw_field (a_p)
+			draw_content (a_p)
+			draw_adornments (a_p)
+		end
+
+	draw_text_at (a_p: SW_PAINTER; a_dx, a_dy: REAL_64)
+			-- The whole text shifted by (a_dx, a_dy) from its origin, in
+			-- the painter's current color - what the highlight painter
+			-- redraws through for its effects.
+		do
+			geometry.draw (a_p, text, is_hiding, text_left + a_dx, text_top + a_dy)
+		end
+
+feature {NONE} -- Drawing parts
+
+	draw_field (a_p: SW_PAINTER)
+			-- The field's fill and its frame: danger when invalid, the
+			-- accent when focused, the outline otherwise.
 		local
 			t: SW_THEME
-			i, n, ln: INTEGER
-			gx, gy, gw, cx, cy, asc, ext, ox, oy, px: REAL_64
-			seln: BOOLEAN
 		do
 			t := a_p.theme
-			ensure_layout (a_p, width - 2.0 * Pad_x)
-			a_p.font ({SW_PAINTER}.Role_body, body_size (a_p), False)
-			asc := a_p.font_ascent
-			ext := a_p.text_extent
-			ox := x + Pad_x
-			oy := y + Pad_y
-			px := body_size (a_p) * t.text_scale
 			if is_invalid then
 				a_p.set_color (t.wash_danger)
 			else
@@ -869,17 +882,39 @@ feature -- Drawing
 				end
 				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
 			end
+		end
+
+	draw_content (a_p: SW_PAINTER)
+			-- Everything that moves with the text, from the origin
+			-- (`text_left', `text_top'): the hint, the highlight washes,
+			-- the selection and the text, the squiggles, the highlight
+			-- effects and boxes, the caret over everything.
+		require
+			laid_out: is_laid_out
+		local
+			t: SW_THEME
+			i, n, ln: INTEGER
+			gx, gy, gw, cx, cy, asc, ext, ox, oy, px: REAL_64
+			seln: BOOLEAN
+		do
+			t := a_p.theme
+			a_p.font (face_role, body_size (a_p), False)
+			asc := a_p.font_ascent
+			ext := a_p.text_extent
+			ox := text_left
+			oy := text_top
+			px := body_size (a_p) * t.text_scale
 			n := text.count
 				-- Password boxes show their hint too: it is no secret (GTK and AppKit agree).
 			if n = 0 and then not placeholder.is_empty then
-				if a_p.has_shaping and not is_hiding then
+				if text_role = 0 and then a_p.has_shaping and then not is_hiding then
 						-- the face typed text is shaped in (the kit leads with the UI face)
 					a_p.font ({SW_PAINTER}.Role_ui, body_size (a_p), False)
 				end
 				a_p.set_color (t.ink_muted)
 				if effective_text_alignment = {SHAPING_CONSTANTS}.Align_right then
 						-- W4c: the hint sits where typing starts.
-					a_p.text (x + width - Pad_x - a_p.advance (placeholder), oy + asc, placeholder)
+					a_p.text (ox + wrap_width_in (width) - a_p.advance (placeholder), oy + asc, placeholder)
 				else
 					a_p.text (ox, oy + asc, placeholder)
 				end
@@ -927,7 +962,7 @@ feature -- Drawing
 						a_p.set_color (t.accent)
 						a_p.fill_rect (gx - 1.0, gy - asc, gw + 2.0, ext + 2.0)
 					end
-					a_p.font ({SW_PAINTER}.Role_body, body_size (a_p), False)
+					a_p.font (face_role, body_size (a_p), False)
 					if seln then
 						a_p.set_color (t.surface)
 					else
@@ -967,6 +1002,16 @@ feature -- Drawing
 				a_p.set_color (t.danger)
 				a_p.fill_rect (cx, cy, 2.0, geometry.height_of_line (ln))
 			end
+		end
+
+	draw_adornments (a_p: SW_PAINTER)
+			-- What sits over the field's right edge and does not move with
+			-- the text: the clear X and the reveal eye.
+		local
+			t: SW_THEME
+			cx, cy: REAL_64
+		do
+			t := a_p.theme
 			if shows_clear then
 					-- the clear X: muted at rest, danger under the pointer
 				cx := x + width - 17.0
@@ -994,14 +1039,6 @@ feature -- Drawing
 					a_p.line (cx - 8.0, cy + 6.0, cx + 8.0, cy - 6.0, 1.6)
 				end
 			end
-		end
-
-	draw_text_at (a_p: SW_PAINTER; a_dx, a_dy: REAL_64)
-			-- The whole text shifted by (a_dx, a_dy) from its origin, in
-			-- the painter's current color - what the highlight painter
-			-- redraws through for its effects.
-		do
-			geometry.draw (a_p, text, is_hiding, x + Pad_x + a_dx, y + Pad_y + a_dy)
 		end
 
 feature -- Input
@@ -1398,7 +1435,7 @@ feature -- Caret geometry
 			-- `a_py', then the nearest caret boundary along it.
 		do
 			if is_laid_out then
-				Result := geometry.offset_at (a_px - x - Pad_x, a_py - y - Pad_y)
+				Result := geometry.offset_at (a_px - text_left, a_py - text_top)
 			end
 		ensure
 			in_range: Result >= 0 and Result <= text.count
@@ -1417,11 +1454,89 @@ feature -- Metrics
 	Pad_x: REAL_64 = 9.0
 	Pad_y: REAL_64 = 6.0
 			-- The field's own inside inset at 1x: the text origin is
-			-- (x + Pad_x, y + Pad_y), which is what `x_at_offset' and
-			-- `offset_at' are measured against. (The HEIGHT minimum is
-			-- theme- and metric-driven; see `preferred_height'.)
+			-- (x + Pad_x, y + Pad_y) unless a descendant moves it (see
+			-- `text_left'), which is what `x_at_offset' and `offset_at'
+			-- are measured against. (The HEIGHT minimum is theme- and
+			-- metric-driven; see `preferred_height'.)
+
+feature -- Text frame
+
+	text_left: REAL_64
+			-- The window x of the text's origin: the field's left edge
+			-- plus its inset. A descendant that scrolls sideways or
+			-- carries a gutter answers its own; the drawing, the hit test
+			-- (`offset_at') and the caret all read this one query.
+		do
+			Result := x + Pad_x
+		end
+
+	text_top: REAL_64
+			-- The window y of the text's origin: the field's top edge plus
+			-- its inset. A descendant that scrolls answers its own.
+		do
+			Result := y + Pad_y
+		end
+
+	wrap_width_in (a_width: REAL_64): REAL_64
+			-- The width the lines wrap at in a field `a_width' wide: what
+			-- the insets leave. A descendant that never wraps (a code
+			-- editor) answers a width no line reaches.
+		do
+			Result := a_width - 2.0 * Pad_x
+		end
+
+	text_role: INTEGER
+			-- The face the text is set in: a painter role, or 0 for the
+			-- field's own (the shaping kit's policy, the body face on the
+			-- toy path).
+
+	set_text_role (a_role: INTEGER)
+			-- Set the text in `a_role''s face (`Role_mono' for code); 0
+			-- gives the field's own back.
+		require
+			role_known: a_role = 0 or a_role = {SW_PAINTER}.Role_ui
+				or a_role = {SW_PAINTER}.Role_body or a_role = {SW_PAINTER}.Role_mono
+		do
+			text_role := a_role
+			layout_width := -1.0
+		ensure
+			set: text_role = a_role
+		end
+
+	tab_spaces: INTEGER
+			-- Space-widths between tab stops (8 until `set_tab_spaces').
+		do
+			Result := geometry.tab_spaces
+		ensure
+			positive: Result >= 1
+		end
+
+	set_tab_spaces (a_count: INTEGER)
+			-- Put the tab stops every `a_count' space-widths of the face.
+		require
+			positive: a_count >= 1
+		do
+			geometry.set_tab_spaces (a_count)
+			layout_width := -1.0
+		ensure
+			set: tab_spaces = a_count
+		end
 
 feature {NONE} -- Engine
+
+	face_role: INTEGER
+			-- The painter role the text is measured and painted under:
+			-- `text_role', or the body face when that is 0.
+		do
+			if text_role > 0 then
+				Result := text_role
+			else
+				Result := {SW_PAINTER}.Role_body
+			end
+		ensure
+			a_role: Result = {SW_PAINTER}.Role_ui or Result = {SW_PAINTER}.Role_body
+				or Result = {SW_PAINTER}.Role_mono
+		end
 
 	body_size (a_p: SW_PAINTER): REAL_64
 			-- The size the text is set at, before the theme's scale: `text_size', or the
@@ -1482,7 +1597,7 @@ feature {NONE} -- Engine
 					al_styles.clamp_to (text.count)
 				end
 				geometry.set_styles (text_styles)
-				geometry.lay_out (a_p, text, a_wrap.max (0.0), 0, body_size (a_p), False,
+				geometry.lay_out (a_p, text, a_wrap.max (0.0), text_role, body_size (a_p), False,
 					is_single_line, is_hiding).do_nothing
 			end
 		ensure
