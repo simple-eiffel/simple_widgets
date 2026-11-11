@@ -507,6 +507,7 @@ feature {NONE} -- Test runners
 		do
 			create enterprise_tests
 			run_test (agent enterprise_tests.test_tree_table_slots_and_header, "tree_table_slots_and_header")
+			run_test (agent enterprise_tests.test_tree_table_scrolls_under_its_header, "tree_table_scrolls_under_its_header")
 			run_test (agent enterprise_tests.test_cells_aggregate_law, "cells_aggregate_law")
 			run_test (agent enterprise_tests.test_cells_range_propagation, "cells_range_propagation")
 			run_test (agent enterprise_tests.test_cells_undo_walks_both_ways, "cells_undo_walks_both_ways")

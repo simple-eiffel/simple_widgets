@@ -384,9 +384,26 @@ feature -- Layout
 
 	max_scroll: REAL_64
 		do
-			Result := (display_count * Row_h - height).max (0.0)
+			Result := (display_count * Row_h - rows_height).max (0.0)
 		ensure
 			non_negative: Result >= 0.0
+		end
+
+	rows_top: REAL_64
+			-- How far under the widget's top the rows begin: nothing here; a descendant
+			-- with a band above its rows (SW_TREE_TABLE's header) says how tall it is. The
+			-- scroll range, the scroll bar's track and the wheel all take it from here.
+		do
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	rows_height: REAL_64
+			-- The height the rows scroll in.
+		do
+			Result := (height - rows_top).max (0.0)
+		ensure
+			within: Result >= 0.0 and Result <= height.max (0.0)
 		end
 
 feature -- Drawing
@@ -410,8 +427,8 @@ feature -- Drawing
 			l_icon, k: INTEGER
 		do
 			t := a_p.theme
-			bar.place (x, y, width, height, t)
-			bar.set_extent (height, display_count * Row_h)
+			bar.place (x, y + rows_top, width, rows_height, t)
+			bar.set_extent (rows_height, display_count * Row_h)
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			a_p.push_clip (x, y, width, height)
@@ -503,7 +520,7 @@ feature -- Input
 			row: TUPLE [node: G; depth: INTEGER; has_kids: BOOLEAN]
 			ix: REAL_64
 		do
-			bar.set_extent (height, display_count * Row_h)
+			bar.set_extent (rows_height, display_count * Row_h)
 			if is_enabled and then bar.contains (a_px, a_py) then
 				scroll_y := bar.press (a_py, scroll_y)
 				Result := True
@@ -585,7 +602,7 @@ feature -- Input
 
 	handle_wheel (a_delta: INTEGER): BOOLEAN
 		do
-			bar.set_extent (height, display_count * Row_h)
+			bar.set_extent (rows_height, display_count * Row_h)
 			scroll_y := bar.wheel_scroll (scroll_y, a_delta, Row_h)
 			Result := True
 		end
@@ -704,7 +721,7 @@ feature {NONE} -- Engine
 				append_subtree (r, 0)
 			end
 			scroll_y := scroll_y.min (max_scroll)
-			bar.set_extent (height, display_count * Row_h)
+			bar.set_extent (rows_height, display_count * Row_h)
 		end
 
 	open_subtree (a_node: G)
