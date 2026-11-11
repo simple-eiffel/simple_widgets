@@ -243,11 +243,14 @@ feature {NONE} -- Implementation
 
 	paint_color_only (a_p: SW_PAINTER; a_geo: SW_TEXT_GEOMETRY; a_m: SW_MARK; a_line: INTEGER;
 			a_x, a_w, a_oy: REAL_64; a_draw_text: PROCEDURE [SW_PAINTER, REAL_64, REAL_64])
-			-- The text again in the hue's ink, clipped to one segment.
+			-- The text again in the hue's ink, clipped to one segment:
+			-- the segment's own line and no other (`hold_draw_to_line').
 		do
 			a_p.push_clip (a_x - 1.0, a_oy + a_geo.top_of_line (a_line), a_w + 2.0, a_geo.height_of_line (a_line))
 			a_p.set_color (mark_ink (a_m, a_p.theme))
+			a_geo.hold_draw_to_line (a_line)
 			a_draw_text.call (a_p, 0.0, 0.0)
+			a_geo.release_draw
 			a_p.pop_clip
 		end
 
@@ -296,7 +299,8 @@ feature {NONE} -- Implementation
 
 	paint_effect_segment (a_p: SW_PAINTER; a_geo: SW_TEXT_GEOMETRY; a_m: SW_MARK; a_line: INTEGER;
 			a_x, a_w, a_ox, a_oy: REAL_64; a_draw_text: PROCEDURE [SW_PAINTER, REAL_64, REAL_64])
-			-- Redraw the text inside one segment with the mark's effects.
+			-- Redraw the text inside one segment with the mark's effects:
+			-- the segment's own line and no other (`hold_draw_to_line').
 		local
 			t: SW_THEME
 			top, h, baseline: REAL_64
@@ -318,6 +322,7 @@ feature {NONE} -- Implementation
 			end
 			inner := t.surface
 			a_p.push_clip (a_x - Outer_radius - 1.0, top - 1.0, a_w + 2.0 * Outer_radius + 2.0, h + 2.0)
+			a_geo.hold_draw_to_line (a_line)
 			if a_m.is_italic then
 					-- x' = x - shear * (y - baseline): the top leans right
 				create buf.make (48)
@@ -349,6 +354,7 @@ feature {NONE} -- Implementation
 			if sheared then
 				a_p.context.restore.do_nothing
 			end
+			a_geo.release_draw
 			a_p.pop_clip
 		end
 
