@@ -493,16 +493,20 @@ feature -- Batch 2: toolkit-wide reach
 	test_screen_grab_marries_cairo
 			-- The carve's dividend: SHELL_DESKTOP's raw grab arrives
 			-- as a real CAIRO_SURFACE - 6x6 desktop pixels, for real.
+			-- Where the session offers no way to read the desktop (`can_grab': a Wayland
+			-- session without a Screenshot portal, a Mac without the Screen Recording
+			-- permission), there is no surface, and that is the right answer.
 		local
 			sc: SW_SCREEN
 		do
 			create sc
 			if attached sc.grab (sc.virtual_x, sc.virtual_y, 6, 6) as s then
+				assert ("a surface only where there is a way", sc.can_grab)
 				assert_integers_equal ("width honored", 6, s.width)
 				assert_integers_equal ("height honored", 6, s.height)
 				s.destroy
 			else
-				assert ("desktop unreadable only in a locked session", False)
+				assert ("desktop unreadable only where there is no way, or in a locked session", not sc.can_grab)
 			end
 		end
 

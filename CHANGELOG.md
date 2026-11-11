@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (the screen grab test asks whether the desktop can be read)
+
+- `screen_grab_marries_cairo` asks `can_grab` (simple_shell 1.41.0, inherited by `SW_SCREEN`): a surface only where the session offers a way to read the desktop, none where it offers none. The test had failed on every Linux run under WSLg, a Wayland session without a Screenshot portal. Linux now runs 799 passed, 0 failed. Needs simple_shell 1.41.0.
+
 ### Fixed (tabs and line breaks no longer paint a missing-glyph box)
 
 - A tab in `SW_TEXT_BOX` text advances to the next tab stop (every 8 space-widths from the line start, GtkTextView's default), on the toy and the shaped engine, in `SW_TEXT_GEOMETRY` (`tab_width`, `next_tab_stop`); caret, click, selection and wrap read the same slot. On the shaped path a paragraph with tabs is one layout per tab-free segment and wraps at tabs only.
