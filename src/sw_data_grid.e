@@ -34,7 +34,7 @@ inherit
 			handle_key, handle_char, set_focused, takes_typing, menu_left, menu_top,
 			wants_hover_point, accepts_focus, cursor_kind, handle_release,
 			accessible_role, context_menu, dwell_ms, hover_card_at,
-			accessible_item_count, publish_accessible_items
+			accessible_item_count, publish_accessible_items, shows_style
 		end
 
 	SW_COPYING
@@ -646,6 +646,14 @@ feature -- Layout
 
 feature -- Drawing
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The fill of the selected rows and when the scroll bar shows. (The rows keep
+			-- the theme's type: their heights are cut to it.)
+		do
+			Result := a_part = {SW_WIDGET_STYLE}.Part_selection
+				or a_part = {SW_WIDGET_STYLE}.Part_scroll_bars
+		end
+
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
@@ -674,7 +682,7 @@ feature -- Drawing
 				loop
 					ry := y + Header_h + ((i - 1) * Row_h - scroll_y)
 					if is_row_selected (view.i_th (i)) then
-						a_p.set_color (t.wash_accent)
+						a_p.set_color (styled_selection (t.wash_accent))
 						a_p.fill_rect (x, ry, width, Row_h)
 					elseif i \\ 2 = 0 then
 						a_p.set_color (t.surface_variant)
@@ -788,6 +796,7 @@ feature -- Drawing
 			a_p.set_color (t.outline)
 			a_p.hline (x, y + Header_h - 0.5, width)
 				-- vertical scrollbar
+			bar.set_mode (styled_scroll_bars)
 			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
 			a_p.pop_clip
 			a_p.set_color (t.outline)

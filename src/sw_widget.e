@@ -303,6 +303,383 @@ feature -- Edit commands (W8)
 		do
 		end
 
+feature -- Own appearance (a style over the theme)
+
+	style: detachable SW_WIDGET_STYLE
+			-- This widget's own appearance; Void: the theme's.
+
+	set_style (a_style: detachable SW_WIDGET_STYLE)
+			-- Wear `a_style' (Void: the theme's own again). A font or a padding changes the
+			-- preferred sizes, so the caller lays the window out again.
+		do
+			style := a_style
+		ensure
+			set: style = a_style
+		end
+
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- Has this widget's drawing a place for the style part `a_part' (an
+			-- SW_WIDGET_STYLE Part_* code)? Nothing here: each class says what it shows, and
+			-- its drawing takes every styled value through `shown_style', so what a class
+			-- does not claim it cannot draw.
+		require
+			part_known: a_part >= {SW_WIDGET_STYLE}.Part_foreground and a_part <= {SW_WIDGET_STYLE}.Part_scroll_bars
+		do
+		end
+
+	shown_style (a_part: INTEGER): detachable SW_WIDGET_STYLE
+			-- `style' when it sets `a_part' and this widget shows that part; Void otherwise.
+		require
+			part_known: a_part >= {SW_WIDGET_STYLE}.Part_foreground and a_part <= {SW_WIDGET_STYLE}.Part_scroll_bars
+		do
+			if attached style as al_style and then al_style.has (a_part) and then shows_style (a_part) then
+				Result := al_style
+			end
+		ensure
+			only_set_and_shown: attached Result as al_shown implies
+				(al_shown = style and al_shown.has (a_part) and shows_style (a_part))
+		end
+
+	styled_ink (a_own: NATURAL_32): NATURAL_32
+			-- The text color: the style's foreground when shown, else `a_own'.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_foreground) as al_style then
+				Result := al_style.foreground
+			else
+				Result := a_own
+			end
+		end
+
+	styled_ground (a_own: NATURAL_32): NATURAL_32
+			-- The fill behind the widget: the style's background when shown, else `a_own'.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_background) as al_style then
+				Result := al_style.background
+			else
+				Result := a_own
+			end
+		end
+
+	styled_placeholder (a_own: NATURAL_32): NATURAL_32
+			-- The placeholder's color: the style's when shown, else `a_own'.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_placeholder) as al_style then
+				Result := al_style.placeholder
+			else
+				Result := a_own
+			end
+		end
+
+	styled_selection (a_own: NATURAL_32): NATURAL_32
+			-- The fill behind what is selected: the style's when shown, else `a_own'.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_selection) as al_style then
+				Result := al_style.selection
+			else
+				Result := a_own
+			end
+		end
+
+	styled_size (a_own: REAL_64): REAL_64
+			-- The type size: the style's when shown, else `a_own'.
+		require
+			positive: a_own > 0.0
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_size) as al_style then
+				Result := al_style.size
+			else
+				Result := a_own
+			end
+		ensure
+			positive: Result > 0.0
+		end
+
+	styled_weight (a_bold: BOOLEAN): INTEGER
+			-- The weight: the style's when shown, else 700 for `a_bold' and 400 otherwise.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_weight) as al_style then
+				Result := al_style.weight
+			elseif a_bold then
+				Result := 700
+			else
+				Result := 400
+			end
+		ensure
+			in_range: Result >= 1 and Result <= 1000
+		end
+
+	styled_role (a_own: INTEGER): INTEGER
+			-- The type role: the style's when it names one and the family part is shown,
+			-- else `a_own'.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_family) as al_style and then al_style.font_role /= 0 then
+				Result := al_style.font_role
+			else
+				Result := a_own
+			end
+		end
+
+	styled_family: detachable STRING_32
+			-- The family that leads the role's faces, when the style names one and it is shown.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_family) as al_style and then not al_style.family.is_empty then
+				Result := al_style.family
+			end
+		ensure
+			never_empty: attached Result as al_family implies not al_family.is_empty
+		end
+
+	styled_italic: BOOLEAN
+			-- Is the text slanted by the style?
+		do
+			Result := attached shown_style ({SW_WIDGET_STYLE}.Part_italic) as al_style and then al_style.is_italic
+		end
+
+	has_styled_font: BOOLEAN
+			-- Does the style change the font this widget's text is set in?
+		do
+			Result := attached shown_style ({SW_WIDGET_STYLE}.Part_family)
+				or attached shown_style ({SW_WIDGET_STYLE}.Part_size)
+				or attached shown_style ({SW_WIDGET_STYLE}.Part_weight)
+				or attached shown_style ({SW_WIDGET_STYLE}.Part_italic)
+		end
+
+	use_font (a_p: SW_PAINTER; a_role: INTEGER; a_size: REAL_64; a_bold: BOOLEAN)
+			-- Select into `a_p' the font this widget's text is drawn in: `a_role', `a_size'
+			-- and `a_bold' as the class asks, with the style's family, size, weight and slant
+			-- in their place where it sets them.
+		require
+			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
+				or a_role = {SW_PAINTER}.Role_mono
+			size_positive: a_size > 0.0
+		do
+			if has_styled_font then
+				a_p.font_faced (styled_role (a_role), styled_size (a_size), styled_weight (a_bold),
+					styled_italic, styled_family)
+			else
+				a_p.font (a_role, a_size, a_bold)
+			end
+		ensure
+			faced_exactly_when_styled: a_p.is_font_faced = has_styled_font
+		end
+
+	style_inset_top: REAL_64
+			-- The room the style's frame takes at the top: its padding plus its border.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_padding) as al_style then
+				Result := al_style.padding_top
+			end
+			Result := Result + style_border
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	style_inset_bottom: REAL_64
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_padding) as al_style then
+				Result := al_style.padding_bottom
+			end
+			Result := Result + style_border
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	style_inset_start: REAL_64
+			-- At the side reading starts from.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_padding) as al_style then
+				Result := al_style.padding_start
+			end
+			Result := Result + style_border
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	style_inset_end: REAL_64
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_padding) as al_style then
+				Result := al_style.padding_end
+			end
+			Result := Result + style_border
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	style_inset_left: REAL_64
+			-- The start side's room, or the end side's when this widget `mirrors_layout'.
+		do
+			if mirrors_layout then
+				Result := style_inset_end
+			else
+				Result := style_inset_start
+			end
+		end
+
+	style_inset_right: REAL_64
+		do
+			if mirrors_layout then
+				Result := style_inset_start
+			else
+				Result := style_inset_end
+			end
+		end
+
+	style_inset_width: REAL_64
+			-- The frame's room on both sides together.
+		do
+			Result := style_inset_start + style_inset_end
+		ensure
+			definition: Result = style_inset_start + style_inset_end
+		end
+
+	style_inset_height: REAL_64
+			-- The frame's room above and below together.
+		do
+			Result := style_inset_top + style_inset_bottom
+		ensure
+			definition: Result = style_inset_top + style_inset_bottom
+		end
+
+	style_radius: REAL_64
+			-- The corner radius the style gives the frame, no more than half the smaller side.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_radius) as al_style then
+				Result := al_style.radius.min (width.min (height) / 2.0)
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	styled_scroll_bars: INTEGER
+			-- When this widget's scroll bars show: the style's kind where it sets one and
+			-- the widget shows it, else Scroll_bars_system. (An owner hands it to its bar:
+			-- SW_SCROLLBAR.set_mode.)
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_scroll_bars) as al_style then
+				Result := al_style.scroll_bars
+			end
+		ensure
+			a_kind: Result >= {SW_WIDGET_STYLE}.Scroll_bars_system and Result <= {SW_WIDGET_STYLE}.Scroll_bars_hidden
+		end
+
+	has_style_frame: BOOLEAN
+			-- Does the style draw anything on this widget's bounds: a shadow, a background
+			-- or a border?
+		do
+			Result := attached shown_style ({SW_WIDGET_STYLE}.Part_shadow)
+				or attached shown_style ({SW_WIDGET_STYLE}.Part_background)
+				or (attached shown_style ({SW_WIDGET_STYLE}.Part_border) and style_border > 0.0)
+		end
+
+	draw_style_frame (a_p: SW_PAINTER)
+			-- `draw_style_frame_rounded' at the style's own radius (square without one).
+		do
+			draw_style_frame_rounded (a_p, style_radius)
+		end
+
+	draw_style_frame_rounded (a_p: SW_PAINTER; a_radius: REAL_64)
+			-- The shadow, the background and the border the style gives this widget, on its
+			-- bounds, with corners of `a_radius' (a class with corners of its own passes
+			-- them). A border without a color of its own (the style's colors are dropped
+			-- under a contrast theme) takes the theme's ink.
+		require
+			radius_non_negative: a_radius >= 0.0
+		do
+			draw_style_shadow (a_p, a_radius)
+			draw_style_ground (a_p, a_radius)
+			draw_style_border (a_p, a_radius)
+		end
+
+	draw_style_shadow (a_p: SW_PAINTER; a_radius: REAL_64)
+			-- The shadow the style casts from this widget's bounds; nothing without one.
+		require
+			radius_non_negative: a_radius >= 0.0
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_shadow) as al_style then
+				a_p.shadow_rrect (x + al_style.shadow_x, y + al_style.shadow_y, width, height, a_radius,
+					al_style.shadow_blur, (if al_style.has_shadow_color then al_style.shadow_color else {NATURAL_32} 0 end),
+					al_style.shadow_alpha)
+			end
+		end
+
+	draw_style_ground (a_p: SW_PAINTER; a_radius: REAL_64)
+			-- The style's background over this widget's bounds; nothing without one.
+		require
+			radius_non_negative: a_radius >= 0.0
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_background) as al_style then
+				a_p.set_color (al_style.background)
+				a_p.rrect_fill (x, y, width, height, a_radius)
+			end
+		end
+
+	draw_style_border (a_p: SW_PAINTER; a_radius: REAL_64)
+			-- The style's border, inside this widget's bounds; nothing without one.
+		require
+			radius_non_negative: a_radius >= 0.0
+		local
+			l_bw: REAL_64
+		do
+			l_bw := style_border
+			if l_bw > 0.0 and then attached shown_style ({SW_WIDGET_STYLE}.Part_border) as al_style
+				and then width > l_bw and then height > l_bw
+			then
+				a_p.set_color (if al_style.has_border_color then al_style.border_color else a_p.theme.ink end)
+				a_p.set_line_width (l_bw)
+				a_p.rrect_stroke (x + l_bw / 2.0, y + l_bw / 2.0, width - l_bw, height - l_bw,
+					(a_radius - l_bw / 2.0).max (0.0))
+				a_p.set_line_width (1.0)
+			end
+		end
+
+	within_style_frame (a_action: PROCEDURE)
+			-- Run `a_action' with the bounds inset by the style's frame, then restore them.
+		local
+			l_x, l_y, l_w, l_h: REAL_64
+		do
+			if style_inset_width > 0.0 or style_inset_height > 0.0 then
+				l_x := x
+				l_y := y
+				l_w := width
+				l_h := height
+				set_bounds (l_x + style_inset_left, l_y + style_inset_top,
+					(l_w - style_inset_width).max (0.0), (l_h - style_inset_height).max (0.0))
+				a_action.call
+				set_bounds (l_x, l_y, l_w, l_h)
+			else
+				a_action.call
+			end
+		ensure
+			bounds_kept: x = old x and y = old y and width = old width and height = old height
+		end
+
+feature {NONE} -- Own appearance: parts by kind
+
+	style_border: REAL_64
+			-- The width of the border the style gives this widget, 0 without one.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_border) as al_style then
+				Result := al_style.border_width
+			end
+		ensure
+			non_negative: Result >= 0.0
+		end
+
+	is_text_style_part (a_part: INTEGER): BOOLEAN
+			-- Is `a_part' one of the parts text is drawn with: its color and its font?
+		do
+			Result := a_part = {SW_WIDGET_STYLE}.Part_foreground
+				or (a_part >= {SW_WIDGET_STYLE}.Part_family and a_part <= {SW_WIDGET_STYLE}.Part_italic)
+		end
+
+	is_frame_style_part (a_part: INTEGER): BOOLEAN
+			-- Is `a_part' one of the parts `draw_style_frame' and `within_style_frame' show:
+			-- background, padding, border, radius or shadow?
+		do
+			Result := a_part = {SW_WIDGET_STYLE}.Part_background
+				or (a_part >= {SW_WIDGET_STYLE}.Part_padding and a_part <= {SW_WIDGET_STYLE}.Part_shadow)
+		end
+
 feature -- Layout
 
 	preferred_width (a_p: SW_PAINTER): REAL_64

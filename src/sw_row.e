@@ -12,7 +12,7 @@ class
 inherit
 	SW_BOX_CONTAINER
 		redefine
-			preferred_width,
+			preferred_width, shows_style,
 			arrange, widget_at
 		end
 
@@ -116,7 +116,7 @@ feature -- Layout
 			if l_kids.count > 1 then
 				Result := Result + effective_gap (a_p) * (l_kids.count - 1)
 			end
-			Result := padded (Result)
+			Result := framed_width (Result)
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
@@ -129,7 +129,7 @@ feature -- Layout
 			line_h, l_width: REAL_64
 		do
 			l_kids := laid_out
-			l_width := unpadded (a_width)
+			l_width := unframed_width (a_width)
 			if is_wrapping then
 				create widths.make (l_kids.count)
 				create heights.make (l_kids.count)
@@ -177,7 +177,7 @@ feature -- Layout
 					end
 				end
 			end
-			Result := padded (Result)
+			Result := framed_height (Result)
 		end
 
 	wrap_starts (a_widths: ARRAYED_LIST [REAL_64]; a_gap, a_avail: REAL_64): ARRAYED_LIST [INTEGER]
@@ -216,7 +216,7 @@ feature -- Layout
 			-- One line (growers share leftover), or greedy wrapped
 			-- lines when `is_wrapping', inside the padding.
 		do
-			lay_out_within_padding (agent arrange_children (a_p))
+			lay_out_within_frame (agent arrange_children (a_p))
 			vanish_hidden
 		end
 
@@ -359,10 +359,19 @@ feature -- Layout
 
 feature -- Drawing
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The frame: background, padding, border, radius and shadow, around the children.
+		do
+			Result := is_frame_style_part (a_part)
+		end
+
 	draw (a_p: SW_PAINTER)
 		local
 			l_kids: ARRAYED_LIST [SW_WIDGET]
 		do
+			if attached style then
+				draw_style_frame (a_p)
+			end
 			l_kids := laid_out
 			across
 				l_kids as c

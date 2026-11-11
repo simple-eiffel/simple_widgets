@@ -10,7 +10,7 @@ class
 inherit
 	SW_COLUMN
 		redefine
-			draw, arrange, default_padding
+			draw, arrange, default_padding, shows_style
 		end
 
 create
@@ -60,6 +60,12 @@ feature -- Layout
 		end
 
 feature -- Drawing
+
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- Only the padding: this is a surface with its own drawing.
+		do
+			Result := a_part = {SW_WIDGET_STYLE}.Part_padding
+		end
 
 	draw (a_p: SW_PAINTER)
 		local

@@ -11,7 +11,7 @@ class
 inherit
 	SW_COLUMN
 		redefine
-			draw, arrange, preferred_height, default_padding,
+			draw, arrange, preferred_height, default_padding, shows_style,
 			accessible_role, default_accessible_name
 		end
 
@@ -75,19 +75,39 @@ feature -- Layout
 
 feature -- Drawing
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The frame, on the box under the title, and the title's color and font.
+		do
+			Result := Precursor (a_part) or is_text_style_part (a_part)
+		end
+
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			tw: REAL_64
+			tw, keep_y, keep_h: REAL_64
 		do
 			t := a_p.theme
-			a_p.set_color (t.outline)
-			a_p.rrect_stroke (x + 0.5, y + Top_inset + 0.5, width - 1.0, height - Top_inset - 1.0, t.radius)
-			a_p.font ({SW_PAINTER}.Role_ui, t.size_chip + 1.0, True)
+			if attached style then
+					-- the style's frame goes on the box under the title, where `arrange' insets
+				keep_y := y
+				keep_h := height
+				y := keep_y + Top_inset
+				height := (keep_h - Top_inset).max (0.0)
+				draw_style_frame (a_p)
+				y := keep_y
+				height := keep_h
+			end
+			if not attached shown_style ({SW_WIDGET_STYLE}.Part_border) then
+					-- its own outline, unless the style draws the border
+				a_p.set_color (t.outline)
+				a_p.rrect_stroke (x + 0.5, y + Top_inset + 0.5, width - 1.0, height - Top_inset - 1.0,
+					(if attached shown_style ({SW_WIDGET_STYLE}.Part_radius) as al_style then al_style.radius else t.radius end))
+			end
+			use_font (a_p, {SW_PAINTER}.Role_ui, t.size_chip + 1.0, True)
 			tw := a_p.advance (title) + 16.0
-			a_p.set_color (t.background)
+			a_p.set_color (styled_ground (t.background))
 			a_p.fill_rect (x + 14.0, y + Top_inset - 7.0, tw, 15.0)
-			a_p.set_color (t.ink_muted)
+			a_p.set_color (styled_ink (t.ink_muted))
 			a_p.text (x + 22.0, y + Top_inset + 5.0, title)
 			across
 				children as c

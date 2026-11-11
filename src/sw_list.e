@@ -20,7 +20,8 @@ inherit
 			widget_at, handle_wheel, handle_click, handle_drag,
 			wants_hover_point, pebble_at, handle_double_click,
 			handle_key, accepts_focus, handle_release, set_bounds,
-			accessible_role, accessible_item_count, publish_accessible_items, handle_char
+			accessible_role, accessible_item_count, publish_accessible_items, handle_char,
+			shows_style
 		end
 
 create
@@ -421,6 +422,10 @@ feature -- Drawing
 			bar.set_extent (height, content_height)
 			scroll_y := scroll_y.min (max_scroll)
 			a_p.push_clip (x, y, width, height)
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_background) as al_style then
+				a_p.set_color (al_style.background)
+				a_p.fill_rect (x, y, width, height)
+			end
 			inner_w := width - bar.bar_width - 4.0
 			rx := rows_x
 			if shown_count > 0 and then attached row_renderer as rr then
@@ -432,7 +437,7 @@ feature -- Drawing
 					i := model_at (p)
 					ry := y + (p - 1) * row_height - scroll_y
 					if is_row_selected (i) then
-						a_p.set_color (t.wash_accent)
+						a_p.set_color (styled_selection (t.wash_accent))
 						a_p.fill_rect (rx, ry, inner_w, row_height)
 					elseif shows_hover and then not bar.contains (hover_px, hover_py)
 						and then hover_py >= ry and then hover_py < ry + row_height
@@ -445,7 +450,17 @@ feature -- Drawing
 				end
 			end
 			a_p.pop_clip
+			bar.set_mode (styled_scroll_bars)
 			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
+		end
+
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The list's own drawing: the background, the fill of the selected rows and when
+			-- the scroll bar shows. (What a row shows is its renderer's: see the heirs.)
+		do
+			Result := a_part = {SW_WIDGET_STYLE}.Part_background
+				or a_part = {SW_WIDGET_STYLE}.Part_selection
+				or a_part = {SW_WIDGET_STYLE}.Part_scroll_bars
 		end
 
 	place_bar (a_theme: SW_THEME)

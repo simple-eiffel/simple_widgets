@@ -19,7 +19,7 @@ inherit
 			accessible_role, context_menu, pebble_at, pebble_card_at,
 			accessible_item_count, publish_accessible_items,
 			accepts_pebble_at, receive_pebble_at, responds_to_pick, pick_hover,
-			pick_tick, pick_click, pick_ended
+			pick_tick, pick_click, pick_ended, shows_style
 		end
 
 	SW_COPYING
@@ -391,6 +391,14 @@ feature -- Layout
 
 feature -- Drawing
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The fill of the selected rows and when the scroll bar shows. (The rows keep
+			-- the theme's type: their heights are cut to it.)
+		do
+			Result := a_part = {SW_WIDGET_STYLE}.Part_selection
+				or a_part = {SW_WIDGET_STYLE}.Part_scroll_bars
+		end
+
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
@@ -424,7 +432,7 @@ feature -- Drawing
 					row := visible.i_th (k)
 					sel := attached selected_node as sn and then sn = row.node
 					if sel then
-						a_p.set_color (t.wash_accent)
+						a_p.set_color (styled_selection (t.wash_accent))
 						a_p.fill_rect (x, ry, width, Row_h)
 					elseif shows_hover and then hover_py >= ry and then hover_py < ry + Row_h then
 						a_p.set_color (t.surface_variant)
@@ -481,6 +489,7 @@ feature -- Drawing
 			end
 			a_p.pop_clip
 				-- scrollbar
+			bar.set_mode (styled_scroll_bars)
 			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
 			a_p.set_color (t.outline)
 			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)

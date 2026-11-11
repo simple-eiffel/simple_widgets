@@ -167,7 +167,7 @@ feature -- Drawing
 					row := visible.i_th (i)
 					ry := y + Header_h + (i - 1) * Row_h - scroll_y
 					if attached selected_node as sel and then sel = row.node then
-						a_p.set_color (t.wash_accent)
+						a_p.set_color (styled_selection (t.wash_accent))
 						a_p.fill_rect (x + 1.0, ry, width - 2.0, Row_h)
 					elseif i \\ 2 = 0 then
 						a_p.set_color (t.surface_variant)

@@ -213,6 +213,70 @@ feature -- Measurement and layout
 			remembered: memo.has (memo_key (a_text, a_width_pixels, a_pixel_size, a_role, a_bold))
 		end
 
+	layout_faced (a_text: READABLE_STRING_GENERAL; a_width_pixels, a_pixel_size, a_role, a_weight: INTEGER;
+			a_italic: BOOLEAN; a_family: detachable READABLE_STRING_32): SHAPED_LAYOUT
+			-- `a_text' laid out like `layout_styled', in a face of the caller's choosing: the
+			-- fonts of `a_role' at `a_weight' (100 to 900; 400 regular, 700 bold), slanted when
+			-- `a_italic', led by the family `a_family' when one is given. One widget's own font
+			-- (SW_WIDGET_STYLE) comes through here. Remembered beside `layout_styled''s layouts.
+		require
+			width_non_negative: a_width_pixels >= 0
+			size_positive: a_pixel_size > 0
+			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
+				or a_role = {SW_PAINTER}.Role_mono
+			weight_in_range: a_weight >= 1 and a_weight <= 1000
+		local
+			l_key: STRING_32
+		do
+			if facade.policy_revision /= memo_revision then
+				forget_layouts
+			end
+			l_key := faced_key (a_text, a_width_pixels, a_pixel_size, a_role, a_weight, a_italic, a_family)
+			if attached memo.item (l_key) as al_layout then
+				Result := al_layout
+			elseif attached older_memo.item (l_key) as al_older then
+				Result := al_older
+				remember (l_key, al_older)
+			else
+				Result := facade.layout (a_text.to_string_32, a_width_pixels, a_pixel_size,
+					faced_fonts (a_role, a_pixel_size, a_weight, a_italic, a_family))
+				remember (l_key, Result)
+			end
+		ensure
+			parameters_kept: Result.width_pixels = a_width_pixels
+				and Result.pixel_size = a_pixel_size
+		end
+
+	faced_fonts (a_role, a_pixel_size, a_weight: INTEGER; a_italic: BOOLEAN;
+			a_family: detachable READABLE_STRING_32): FONT_LIST
+			-- The policy `layout_faced' uses: `fonts_for_role' for `a_role' at `a_pixel_size',
+			-- led by `a_family' when one is given, at `a_weight', slanted when `a_italic'.
+			-- A list of its own (FONT_LIST's setters change the list they are called on, and
+			-- the role's list is shared), remembered until the next font policy change.
+		require
+			role_known: a_role = {SW_PAINTER}.Role_ui or a_role = {SW_PAINTER}.Role_body
+				or a_role = {SW_PAINTER}.Role_mono
+			size_positive: a_pixel_size > 0
+			weight_in_range: a_weight >= 1 and a_weight <= 1000
+		local
+			l_key: STRING_32
+		do
+			l_key := faced_key ("", 0, (if a_pixel_size < small_size_below then 1 else 2 end), a_role, a_weight, a_italic, a_family)
+			if attached face_fonts.item (l_key) as al_fonts then
+				Result := al_fonts
+			else
+				Result := fonts_for_role (a_role, a_pixel_size, False).twin
+				if attached a_family as al_family and then not al_family.is_empty then
+					Result := Result.with_leading_family (al_family)
+				end
+				Result := Result.with_style (a_weight, a_italic)
+				face_fonts.force (Result, l_key)
+			end
+		ensure
+			styled: Result.weight = a_weight and Result.is_italic = a_italic
+			usable: not Result.is_empty
+		end
+
 	memo_count: INTEGER
 			-- Layouts `layout_styled' remembers now.
 		do
@@ -230,6 +294,7 @@ feature -- Measurement and layout
 		do
 			memo.wipe_out
 			older_memo.wipe_out
+			face_fonts.wipe_out
 			memo_revision := facade.policy_revision
 		ensure
 			forgotten: memo_count = 0
@@ -462,6 +527,39 @@ feature {NONE} -- The layout memo (GW-29)
 			Result.append_character (if a_bold then 'b' else 'r' end)
 			Result.append_character ('|')
 			Result.append_string_general (a_text)
+		end
+
+	faced_key (a_text: READABLE_STRING_GENERAL; a_width_pixels, a_pixel_size, a_role, a_weight: INTEGER;
+			a_italic: BOOLEAN; a_family: detachable READABLE_STRING_32): STRING_32
+			-- `memo_key' for `layout_faced'. The "f" after the role is where `memo_key' puts
+			-- its "b" or "r", so the two never meet; the family goes in behind its own length,
+			-- so no family and text together can forge another call's key.
+		do
+			create Result.make (a_text.count + 32)
+			Result.append_integer (a_pixel_size)
+			Result.append_character (',')
+			Result.append_integer (a_width_pixels)
+			Result.append_character (',')
+			Result.append_integer (a_role)
+			Result.append_character ('f')
+			Result.append_integer (a_weight)
+			Result.append_character (if a_italic then 'i' else 'u' end)
+			if attached a_family as al_family then
+				Result.append_integer (al_family.count)
+				Result.append_character (':')
+				Result.append (al_family)
+			else
+				Result.append_character ('0')
+				Result.append_character (':')
+			end
+			Result.append_character ('|')
+			Result.append_string_general (a_text)
+		end
+
+	face_fonts: HASH_TABLE [FONT_LIST, STRING_32]
+			-- What `faced_fonts' has made, by `faced_key' without a text.
+		once ("OBJECT")
+			create Result.make (8)
 		end
 
 feature {NONE} -- Per-role policies (GW-04)

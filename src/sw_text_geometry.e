@@ -302,6 +302,18 @@ feature -- Alignment (GW-02)
 			set: fonts = a_fonts
 		end
 
+	own_faces: detachable FONT_LIST
+			-- The faces `lay_out' shapes under in place of its role's (a widget's own
+			-- style: SW_SHAPING.faced_fonts); Void: the role's.
+
+	set_own_faces (a_faces: detachable FONT_LIST)
+			-- Have `lay_out' shape under `a_faces' (Void: under its role's faces again).
+		do
+			own_faces := a_faces
+		ensure
+			set: own_faces = a_faces
+		end
+
 	toy_role: INTEGER
 			-- The painter font `build_toy' measured with, which `draw'
 			-- selects again (0: the body face).
@@ -598,7 +610,9 @@ feature -- Building
 		do
 			px := (a_size * a_p.theme.text_scale).rounded.max (1)
 			if a_p.has_shaping and then not a_hidden and then attached a_p.shaping as al_kit then
-				if a_role > 0 then
+				if attached own_faces as al_faces then
+					set_fonts (al_faces)
+				elseif a_role > 0 then
 					set_fonts (al_kit.fonts_for_role (a_role, px, a_bold))
 				else
 					set_fonts (Void)

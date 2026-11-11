@@ -21,7 +21,7 @@ inherit
 		rename
 			make as make_list
 		redefine
-			row_part_clicked, handle_char, handle_key
+			row_part_clicked, handle_char, handle_key, shows_style, set_style
 		end
 
 create
@@ -581,15 +581,24 @@ feature {NONE} -- Row geometry and drawing
 				else
 					l_text_x := a_x + l_lead
 				end
-				if is_doubled then
+				a_p.push_clip (l_text_x, a_y, l_text_w, a_h)
+				use_font (a_p, {SW_PAINTER}.Role_ui, t.size_body, False)
+				if has_styled_font then
+						-- a face of the style's own: centered by its metrics in the row, or in
+						-- the upper half over a subtitle
+					if is_doubled then
+						l_title_y := a_p.baseline_in (a_y, a_h / 2.0)
+						l_sub_y := a_y + a_h - 11.0
+					else
+						l_title_y := a_p.baseline_in (a_y, a_h)
+					end
+				elseif is_doubled then
 					l_title_y := a_y + a_h / 2.0 - 3.0
 					l_sub_y := a_y + a_h - 11.0
 				else
 					l_title_y := a_y + a_h - 9.0
 				end
-				a_p.push_clip (l_text_x, a_y, l_text_w, a_h)
-				a_p.font ({SW_PAINTER}.Role_ui, t.size_body, False)
-				a_p.set_color (t.ink)
+				a_p.set_color (styled_ink (t.ink))
 				if mirrors_layout then
 						-- W4c: flush right in right-to-left layout.
 					a_p.text (l_text_x + l_text_w - a_p.advance (rows.i_th (a_i)), l_title_y, rows.i_th (a_i))
@@ -608,6 +617,32 @@ feature {NONE} -- Row geometry and drawing
 				a_p.pop_clip
 			end
 		end
+
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The list's own parts, and the color and the font of the row titles. (A
+			-- subtitle keeps the theme's smaller muted type.)
+		do
+			Result := Precursor (a_part) or is_text_style_part (a_part)
+		end
+
+	set_style (a_style: detachable SW_WIDGET_STYLE)
+			-- <Precursor> The rows grow with a type size larger than the theme's.
+		local
+			l_factor: REAL_64
+		do
+			Precursor (a_style)
+			l_factor := (styled_size (bar_theme.size_body) / bar_theme.size_body).max (1.0)
+			if l_factor /= 1.0 + style_row_growth then
+				set_row_height (row_height / (1.0 + style_row_growth) * l_factor)
+				style_row_growth := l_factor - 1.0
+			end
+		ensure then
+			never_shrunk: style_row_growth >= 0.0
+		end
+
+	style_row_growth: REAL_64
+			-- How much taller the style's type size has made the rows, as a share of their
+			-- height (0: not at all).
 
 	label_of (a_i: INTEGER): READABLE_STRING_GENERAL
 		do

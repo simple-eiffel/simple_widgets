@@ -30,7 +30,7 @@ feature -- Geometry
 	contains (a_px, a_py: REAL_64): BOOLEAN
 			-- Is (`a_px', `a_py') on the bar's row, while it is needed?
 		do
-			Result := is_needed and then a_py >= track_y and then a_py < track_y + bar_width
+			Result := takes_pointer and then a_py >= track_y and then a_py < track_y + bar_width
 				and then a_px >= track_x - Track_inset * scale
 				and then a_px <= track_x + track_w + Track_inset * scale
 		end
@@ -59,10 +59,12 @@ feature -- Drawing
 		local
 			t: SW_THEME
 		do
-			if is_needed then
+			if is_shown then
 				t := a_p.theme
-				a_p.set_color (t.surface_variant)
-				a_p.rrect_fill (track_x, track_y, track_w, bar_width - 2.0 * scale, 4.0 * scale)
+				if has_track then
+					a_p.set_color (t.surface_variant)
+					a_p.rrect_fill (track_x, track_y, track_w, bar_width - 2.0 * scale, 4.0 * scale)
+				end
 				if is_dragging or a_hot then
 					a_p.set_color (t.accent)
 				else

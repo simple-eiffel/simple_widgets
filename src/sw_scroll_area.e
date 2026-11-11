@@ -14,7 +14,7 @@ inherit
 		redefine
 			sub_widgets,
 			arrange, widget_at, handle_wheel, handle_click, handle_drag,
-			wants_hover_point, handle_release
+			wants_hover_point, handle_release, shows_style
 		end
 
 create
@@ -146,6 +146,12 @@ feature -- Layout
 
 feature -- Drawing
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- When the scroll bar shows; everything else is the content's own.
+		do
+			Result := a_part = {SW_WIDGET_STYLE}.Part_scroll_bars
+		end
+
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
@@ -157,6 +163,7 @@ feature -- Drawing
 				c.draw (a_p)
 			end
 			a_p.pop_clip
+			bar.set_mode (styled_scroll_bars)
 			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
 			if max_scroll_x > 0.0 then
 				bw := bar.bar_width

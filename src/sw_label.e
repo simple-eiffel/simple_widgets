@@ -27,7 +27,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width,
+			preferred_width, shows_style,
 			accessible_role, default_accessible_name, context_menu
 		end
 
@@ -97,9 +97,9 @@ feature -- Shaped text
 			-- there? ui and body do; mono keeps cairo's toy path (see
 			-- the class note).
 		do
-			Result := role /= {SW_PAINTER}.Role_mono
+			Result := styled_role (role) /= {SW_PAINTER}.Role_mono
 		ensure
-			definition: Result = (role /= {SW_PAINTER}.Role_mono)
+			definition: Result = (styled_role (role) /= {SW_PAINTER}.Role_mono)
 		end
 
 	takes_shaped_path (a_p: SW_PAINTER): BOOLEAN
@@ -117,7 +117,7 @@ feature -- Shaped text
 			-- theme's `text_scale', the same number `SW_PAINTER.font'
 			-- hands cairo on the toy path.
 		do
-			Result := (size * a_p.theme.text_scale).rounded.max (1)
+			Result := (styled_size (size) * a_p.theme.text_scale).rounded.max (1)
 		ensure
 			positive: Result >= 1
 		end
@@ -148,7 +148,12 @@ feature -- Shaped text
 			-- `a_width' when this label wraps; Void on the toy path.
 		do
 			if takes_shaped_path_of (a_p, a_line) and then attached a_p.shaping as al_kit then
-				if is_wrapping then
+				if has_styled_font then
+						-- its own face (SW_WIDGET_STYLE): the kit's faced layout, wrapped or not
+					Result := al_kit.layout_faced (a_line,
+						(if is_wrapping then wrap_width (a_p, a_width).floor.max (0) else 0 end),
+						pixel_size (a_p), styled_role (role), styled_weight (is_bold), styled_italic, styled_family)
+				elseif is_wrapping then
 					Result := al_kit.layout_styled (a_line, wrap_width (a_p, a_width).floor.max (0), pixel_size (a_p), role, is_bold)
 				else
 					Result := shaped.layout_styled_of (al_kit, a_line, pixel_size (a_p), role, is_bold)
@@ -311,6 +316,7 @@ feature -- Layout
 			if wrap_chars > 0 then
 				Result := Result.min (wrap_chars * average_char_width (a_p))
 			end
+			Result := Result + style_inset_width
 		end
 
 	line_width_of (a_p: SW_PAINTER; a_line: READABLE_STRING_32): REAL_64
@@ -319,7 +325,7 @@ feature -- Layout
 			if attached shaped_layout_of (a_p, a_line, 0.0) as al_layout then
 				Result := al_layout.total_width
 			else
-				a_p.font (role, size, is_bold)
+				use_font (a_p, role, size, is_bold)
 				Result := a_p.advance (a_line)
 			end
 		end
@@ -327,7 +333,7 @@ feature -- Layout
 	average_char_width (a_p: SW_PAINTER): REAL_64
 			-- The advance of an average lowercase letter in this label's font.
 		do
-			a_p.font (role, size, is_bold)
+			use_font (a_p, role, size, is_bold)
 			Result := a_p.advance ("abcdefghijklmnopqrstuvwxyz") / 26.0
 		ensure
 			non_negative: Result >= 0.0
@@ -371,7 +377,7 @@ feature -- Layout
 			if attached shaped_layout_of (a_p, a_line, 0.0) as al_layout then
 				Result := al_layout.total_height + a_p.theme.padding
 			else
-				a_p.font (role, size, is_bold)
+				use_font (a_p, role, size, is_bold)
 				Result := a_p.text_extent + a_p.theme.padding
 			end
 		ensure
@@ -383,13 +389,25 @@ feature -- Layout
 			-- the measured ascent plus half the leading, so a line of
 			-- text is centered in the step it occupies.
 		do
-			a_p.font (role, size, is_bold)
+			use_font (a_p, role, size, is_bold)
 			Result := a_p.font_ascent + a_p.theme.padding / 2.0
 		ensure
 			non_negative: Result >= 0.0
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- `text_height' within the style's frame, plus the frame.
+		do
+			if a_width >= 1.0 then
+				Result := text_height (a_p, (a_width - style_inset_width).max (1.0))
+			else
+				Result := text_height (a_p, a_width)
+			end
+			Result := Result + style_inset_height
+		end
+
+	text_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
+			-- The height of the text alone in `a_width' (under one pixel: unbounded).
 			-- A wrapping label on the shaped path is as tall as the kit
 			-- breaks it; on the toy path, as many blank-broken lines as
 			-- `a_width' demands. A text with line breaks stacks its lines:
@@ -439,7 +457,7 @@ feature -- Layout
 			cx, ww: REAL_64
 		do
 			create Result.make (4)
-			a_p.font (role, size, is_bold)
+			use_font (a_p, role, size, is_bold)
 			words := a_line.to_string_32.split (' ')
 			create line.make (60)
 			across
@@ -477,15 +495,32 @@ feature -- Layout
 feature -- Drawing
 
 	draw (a_p: SW_PAINTER)
+		do
+			if attached style then
+				draw_style_frame (a_p)
+				within_style_frame (agent draw_text (a_p))
+			else
+				draw_text (a_p)
+			end
+		end
+
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The text's color and font, and the whole frame.
+		do
+			Result := is_text_style_part (a_part) or is_frame_style_part (a_part)
+		end
+
+	draw_text (a_p: SW_PAINTER)
+			-- The text, from the top left corner of the bounds as they are now.
 		local
 			l_top: REAL_64
 		do
 			if custom_color /= 0 then
-				a_p.set_color (custom_color)
+				a_p.set_color (styled_ink (custom_color))
 			elseif is_muted then
-				a_p.set_color (a_p.theme.ink_muted)
+				a_p.set_color (styled_ink (a_p.theme.ink_muted))
 			else
-				a_p.set_color (a_p.theme.ink)
+				a_p.set_color (styled_ink (a_p.theme.ink))
 			end
 			if has_line_breaks then
 				l_top := y
@@ -524,7 +559,7 @@ feature -- Drawing
 			else
 				step := line_step_of (a_p, a_line)
 				base := baseline_offset (a_p)
-				a_p.font (role, size, is_bold)
+				use_font (a_p, role, size, is_bold)
 				if is_wrapping then
 					l_rows := wrapped_lines_of (a_p, a_line, width)
 				else

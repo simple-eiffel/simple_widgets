@@ -10,7 +10,7 @@ class
 inherit
 	SW_BOX_CONTAINER
 		redefine
-			preferred_width,
+			preferred_width, shows_style,
 			arrange, widget_at
 		end
 
@@ -148,7 +148,7 @@ feature -- Layout
 			loop
 				Result := Result.max (c.clamped_width (c.preferred_width (a_p)))
 			end
-			Result := Result + 2.0 * pad
+			Result := Result + 2.0 * pad + style_inset_width
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
@@ -160,7 +160,7 @@ feature -- Layout
 			l_kids := laid_out
 			pad := effective_padding (a_p)
 			gp := effective_gap (a_p)
-			inner := (a_width - 2.0 * pad).max (0.0)
+			inner := (a_width - 2.0 * pad - style_inset_width).max (0.0)
 			across
 				l_kids as c
 			loop
@@ -170,10 +170,20 @@ feature -- Layout
 			if n > 1 then
 				Result := Result + gp * (n - 1)
 			end
-			Result := Result + 2.0 * pad
+			Result := Result + 2.0 * pad + style_inset_height
 		end
 
 	arrange (a_p: SW_PAINTER)
+			-- `arrange_stack' inside the style's frame.
+		do
+			if attached style then
+				within_style_frame (agent arrange_stack (a_p))
+			else
+				arrange_stack (a_p)
+			end
+		end
+
+	arrange_stack (a_p: SW_PAINTER)
 			-- Natural heights first; leftover container height splits
 			-- among growers by weight; a fitting column takes a shortfall
 			-- back from them by weight, down to each one's `min_height'.
@@ -243,10 +253,19 @@ feature -- Layout
 
 feature -- Drawing
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The frame: background, padding, border, radius and shadow, around the children.
+		do
+			Result := is_frame_style_part (a_part)
+		end
+
 	draw (a_p: SW_PAINTER)
 		local
 			l_kids: ARRAYED_LIST [SW_WIDGET]
 		do
+			if attached style then
+				draw_style_frame (a_p)
+			end
 			l_kids := laid_out
 			across
 				l_kids as c

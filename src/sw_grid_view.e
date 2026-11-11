@@ -26,7 +26,7 @@ inherit
 			widget_at, handle_wheel, handle_click, handle_drag,
 			wants_hover_point, handle_double_click,
 			handle_key, accepts_focus, handle_release, set_bounds,
-			accessible_role, accessible_item_count, publish_accessible_items, handle_char
+			accessible_role, accessible_item_count, publish_accessible_items, handle_char, shows_style
 		end
 
 	SW_ICON_NAMES
@@ -829,6 +829,14 @@ feature -- Input
 
 feature -- Drawing
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The fill of the selected rows and when the scroll bar shows. (The rows keep
+			-- the theme's type: their heights are cut to it.)
+		do
+			Result := a_part = {SW_WIDGET_STYLE}.Part_selection
+				or a_part = {SW_WIDGET_STYLE}.Part_scroll_bars
+		end
+
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
@@ -848,6 +856,7 @@ feature -- Drawing
 				end
 			end
 			a_p.pop_clip
+			bar.set_mode (styled_scroll_bars)
 			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
 				-- one picture a frame; the next waits for the next heartbeat
 			l_more := decode_next_picture
@@ -1130,7 +1139,7 @@ feature {NONE} -- Cell drawing
 				and then hover_px >= a_x and then hover_px < a_x + l_w
 				and then hover_py >= a_y and then hover_py < a_y + l_h
 			if a_selected then
-				a_p.set_color (t.wash_accent)
+				a_p.set_color (styled_selection (t.wash_accent))
 				a_p.rrect_fill (a_x, a_y, l_w, l_h, t.radius)
 			elseif l_hover then
 				a_p.set_color (t.surface_variant)
