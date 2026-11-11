@@ -21,13 +21,16 @@ create
 feature {NONE} -- Initialization
 
 	make (a_context: CAIRO_CONTEXT; a_theme: SW_THEME)
-			-- Off Windows, text is drawn in gray antialiasing: fontconfig's subpixel (RGB) default
-			-- leaves colored fringes in an image that is composited, scaled or saved (on Linux
-			-- they matched a theme wash within a few levels). Windows keeps its rendering.
+			-- Text is drawn in gray antialiasing on every platform. A subpixel (RGB) mode leaves
+			-- colored fringes in an image that is composited, scaled or saved; they matched a
+			-- theme wash within a few levels, on Linux with fontconfig's default and on Windows
+			-- once cairo 1.18.0 brought subpixel text there. Larry, 2026-11-11: "gray on Windows
+			-- as well. There's no reason Windows ought to differ if we can make them all the
+			-- same."
 		do
 			context := a_context
 			theme := a_theme
-			if not {PLATFORM}.is_windows and then a_context.is_valid then
+			if a_context.is_valid then
 				a_context.set_font_antialias (a_context.Antialias_gray).do_nothing
 			end
 		ensure
