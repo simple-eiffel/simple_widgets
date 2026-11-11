@@ -17,7 +17,7 @@ Measured through simple_gui's code editor on a text of 10,000 lines (388,893 cha
 - `SW_TEXT_GEOMETRY.hold_draw_to_line`, `release_draw`, `held_line`, `last_drawn_count`: a draw held to one visual line. `SW_MARK_PAINTER` redraws each colored span that way; it redrew every layout in the clip, 5 to 6 a span.
 - New `SW_LIST_BLOCKS [G]`: `splice` removes and inserts a block of an `ARRAYED_LIST` in one move (the list has no bulk range removal).
 - Accessibility: `SW_WIDGET.accessible_value` answers `detachable READABLE_STRING_32` (descendants answering `STRING_32` are unchanged). `SW_TEXT_BOX` hands over one kept `IMMUTABLE_STRING_32` until its text differs, and `SW_ACCESSIBILITY` converts an immutable value to its native form once (`conversions` counts them). While a UI Automation client listens a window publishes its tree on every frame; the text of that size cost 10 to 14 milliseconds a frame there.
-- Tests: the clipped and the held draw match the whole draw pixel for pixel on the toy and the shaped path; a colored mark redraws its line alone; an unchanged text is converted once.
+- Tests: the clipped and the held draw match the whole draw pixel for pixel on the toy and the shaped path; a colored mark redraws its line alone; an unchanged text is converted once. The clipped draw is compared with a draw under the same clip that skips nothing, and with the whole draw on the lines the clip holds whole: on macOS cairo cuts a single character at a fractional x one column short inside a clip that crosses it, so a line the clip's edge cuts differs from the whole draw there on the toy path, whatever is skipped.
 
 ### Fixed (tabs and line breaks no longer paint a missing-glyph box)
 

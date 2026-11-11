@@ -13,7 +13,9 @@ note
 
 		DRAWING INSIDE THE CLIP (SW_TEXT_GEOMETRY.draw): a long text
 		paints only what the painter's clip can show, and what it shows
-		there is pixel for pixel what the whole draw shows; a tabbed
+		there is pixel for pixel what a draw that skips nothing shows
+		(and what the whole draw shows, on every line the clip holds
+		whole); a tabbed
 		line stays flush left in an aligned text, wherever it stands
 		among the layouts. Held to a line (`hold_draw_to_line'), a draw
 		paints that line's layouts alone and shows on the line's rows
@@ -1232,15 +1234,25 @@ feature {NONE} -- Clip checks
 
 	check_a_clipped_draw_matches (a_p: SW_PAINTER; a_path: STRING)
 			-- Sixty paragraphs (tabbed, wrapping, empty, plain) drawn whole, then
-			-- again under a clip over a band of rows: inside the band the two agree
-			-- pixel for pixel, and the clipped draw painted a fraction of the text.
+			-- again under a clip over a band of rows. Inside the band the clipped
+			-- draw agrees pixel for pixel with a draw under the same band that
+			-- skips nothing, and with the whole draw on the rows of the lines the
+			-- band holds whole; and it painted a fraction of the text.
+			--
+			-- The whole draw is not compared on a line the band's edge cuts: there
+			-- the two differ by what the cut does to a glyph, which is cairo's
+			-- matter, not the draw's. On macOS (cairo 1.18, the Quartz font
+			-- backend) a character drawn alone at a fractional x, as the toy path
+			-- draws each one, loses its leftmost column inside a clip that cuts it.
 		local
 			g: SW_TEXT_GEOMETRY
 			l_text: STRING_32
-			l_whole, l_part: CAIRO_SURFACE
+			l_whole, l_part, l_unskipped: CAIRO_SURFACE
 			l_h: REAL_64
-			l_height, l_whole_count, l_unit_count, l_line: INTEGER
+			l_height, l_whole_count, l_part_count, l_unit_count, l_line: INTEGER
 			l_bands: ARRAY [TUPLE [top, bottom: INTEGER]]
+			l_rows: TUPLE [top, bottom: INTEGER]
+			l_name: STRING
 		do
 			l_text := sixty_paragraphs
 			create g.make
@@ -1264,11 +1276,18 @@ feature {NONE} -- Clip checks
 			across
 				l_bands as ic_band
 			loop
+				l_name := a_path + ": rows " + ic_band.top.out + " to " + ic_band.bottom.out
 				l_part := drawn_under_clip (g, l_text, a_p, l_height, ic_band.top, ic_band.bottom)
-				assert_integers_equal (a_path + ": rows " + ic_band.top.out + " to " + ic_band.bottom.out + " match the whole draw", 0,
-					differing_in (l_whole, l_part, ic_band.top, ic_band.bottom))
-				assert_less_than (a_path + ": rows " + ic_band.top.out + " to " + ic_band.bottom.out + " paint a fraction of the text",
-					g.last_drawn_count, l_unit_count // 2)
+				l_part_count := g.last_drawn_count
+				l_unskipped := drawn_unskipped (g, l_text, a_p, l_height, ic_band.top, ic_band.bottom)
+				assert_integers_equal (l_name + ": the draw to compare with skips nothing", l_whole_count, g.last_drawn_count)
+				assert_integers_equal (l_name + " show what a draw that skips nothing shows", 0,
+					differing_in (l_unskipped, l_part, ic_band.top, ic_band.bottom))
+				l_rows := rows_of_whole_lines (g, ic_band.top, ic_band.bottom)
+				assert_greater_than (l_name + " hold a whole line", l_rows.bottom, l_rows.top)
+				assert_integers_equal (l_name + " match the whole draw on their whole lines", 0,
+					differing_in (l_whole, l_part, l_rows.top, l_rows.bottom))
+				assert_less_than (l_name + " paint a fraction of the text", l_part_count, l_unit_count // 2)
 			end
 				-- one line's clip paints a handful
 			l_part := drawn_under_clip (g, l_text, a_p, l_height, l_bands [2].top, l_bands [2].bottom)
@@ -1410,6 +1429,70 @@ feature {NONE} -- Clip checks
 			a_g.draw (l_p, a_text, False, 10.0, 5.0)
 			l_p.pop_clip
 			Result.flush.do_nothing
+		end
+
+	drawn_unskipped (a_g: SW_TEXT_GEOMETRY; a_text: STRING_32; a_p: SW_PAINTER; a_height, a_top, a_bottom: INTEGER): CAIRO_SURFACE
+			-- As `drawn_under_clip', by a draw that skips nothing: the clip is
+			-- rows `a_top' to `a_bottom' and one pixel more in the first row and
+			-- in the last, at the right edge, where no text is. The clip then
+			-- reaches from the top of the text to its bottom, so every line may
+			-- show, and the rows of the band are cut as `drawn_under_clip' cuts them.
+		require
+			band: 0 <= a_top and a_top < a_bottom and a_bottom <= a_height
+		local
+			l_ctx: CAIRO_CONTEXT
+			l_p: SW_PAINTER
+		do
+			create Result.make (320, a_height)
+			create l_ctx.make (Result)
+			l_ctx.set_color_rgb (1.0, 1.0, 1.0).paint.do_nothing
+			create l_p.make (l_ctx, a_p.theme)
+			l_p.set_shaping (a_p.shaping)
+			l_ctx.save.do_nothing
+			l_ctx.new_path.do_nothing
+			l_ctx.rectangle (0.0, a_top, 320.0, a_bottom - a_top).do_nothing
+			l_ctx.rectangle (319.0, 0.0, 1.0, 1.0).do_nothing
+			l_ctx.rectangle (319.0, a_height - 1, 1.0, 1.0).do_nothing
+			l_ctx.clip.do_nothing
+			l_p.set_color (l_p.theme.ink)
+			a_g.draw (l_p, a_text, False, 10.0, 5.0)
+			l_ctx.restore.do_nothing
+			Result.flush.do_nothing
+		end
+
+	rows_of_whole_lines (a_g: SW_TEXT_GEOMETRY; a_top, a_bottom: INTEGER): TUPLE [top, bottom: INTEGER]
+			-- The rows, `top' up to `bottom', of the lines of `a_g' (drawn from
+			-- row 5) that stand whole inside rows `a_top' to `a_bottom';
+			-- `bottom' = `top' when no line does.
+		local
+			i, l_first, l_last: INTEGER
+			l_line_top, l_line_bottom: REAL_64
+			l_found: BOOLEAN
+		do
+			from
+				i := 0
+			until
+				i >= a_g.line_count
+			loop
+				l_line_top := 5.0 + a_g.top_of_line (i)
+				l_line_bottom := l_line_top + a_g.height_of_line (i)
+				if l_line_top >= a_top and l_line_bottom <= a_bottom then
+					if not l_found then
+						l_first := l_line_top.ceiling
+						l_found := True
+					end
+					l_last := l_line_bottom.floor
+				end
+				i := i + 1
+			end
+			if l_found then
+				Result := [l_first, l_last.max (l_first)]
+			else
+				Result := [a_top, a_top]
+			end
+		ensure
+			ordered: Result.bottom >= Result.top
+			inside: Result.top >= a_top and Result.bottom <= a_bottom
 		end
 
 	differing_in (a_one, a_other: CAIRO_SURFACE; a_y0, a_y1: INTEGER): INTEGER
