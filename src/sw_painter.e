@@ -609,6 +609,24 @@ feature -- Shapes
 			context.restore.do_nothing
 		end
 
+	clip_band: TUPLE [top, bottom: REAL_64]
+			-- The rows the current clip lets through (its bounding box, in
+			-- the coordinates drawing uses now). What lies wholly above
+			-- `top' or below `bottom' cannot show, so a long text skips it
+			-- (SW_TEXT_GEOMETRY.draw).
+		local
+			l_box: TUPLE [x1, y1, x2, y2: REAL_64]
+		do
+			if context.is_valid then
+				l_box := context.clip_extents
+				Result := [l_box.y1, l_box.y2]
+			else
+				Result := [0.0, 0.0]
+			end
+		ensure
+			ordered: Result.bottom >= Result.top
+		end
+
 	push_transform (a_dx, a_dy, a_scale: REAL_64)
 			-- Move the origin to (`a_dx', `a_dy') and draw everything `a_scale'
 			-- times its size until `pop_transform'; nests with the clips

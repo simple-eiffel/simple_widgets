@@ -177,6 +177,64 @@ feature -- Scan 13 (since fc84965)
 			assert_integers_equal ("told once, not on every publish", l_told, w.accessible_focus_tellings)
 		end
 
+	test_an_unchanged_text_is_converted_once
+			-- While a UI Automation client listens a window publishes on every
+			-- frame, and a text box's value was a fresh copy of its text,
+			-- converted each time (measured 2026-11-10: 10 to 14 milliseconds a
+			-- frame at 388,893 characters). The box now hands over one kept
+			-- immutable copy until the text differs, and the bridge converts
+			-- that object once.
+		local
+			w: SW_WINDOW
+			col: SW_COLUMN
+			tx: SW_TEXT_BOX
+			acc: SW_ACCESSIBILITY
+			l_first: detachable IMMUTABLE_STRING_32
+			l_converted: INTEGER
+		do
+			create w.make ("gw14", 0, 0, 600, 400, create {SW_THEME}.make_light)
+			create col.make
+			create tx.make_single_line ("In the beginning")
+			col.add (tx).do_nothing
+			w.set_root (col)
+			w.request_render
+			acc := w.accessibility
+			w.publish_accessibility
+			l_first := tx.accessible_value
+			l_converted := acc.conversions
+			assert_true ("the value is the text", attached l_first as al_first and then al_first.same_string ("In the beginning"))
+			assert_true ("it was converted", l_converted >= 1)
+			w.publish_accessibility
+			w.publish_accessibility
+			assert_true ("an unchanged text hands over the same object", tx.accessible_value = l_first)
+			assert_integers_equal ("and is not converted again", l_converted, acc.conversions)
+			assert_true ("it is served as before", acc.served_value (row_of (w, tx)).same_string ("In the beginning"))
+			tx.set_text ("In the end")
+			assert_true ("a changed text hands over another object", tx.accessible_value /= l_first)
+			w.publish_accessibility
+			assert_integers_equal ("converted once more", l_converted + 1, acc.conversions)
+			assert_true ("the new text is served", acc.served_value (row_of (w, tx)).same_string ("In the end"))
+				-- a change that keeps the length
+			tx.set_text ("In the eNd")
+			w.publish_accessibility
+			assert_true ("a change of one character is served", acc.served_value (row_of (w, tx)).same_string ("In the eNd"))
+			assert_integers_equal ("after one more conversion", l_converted + 2, acc.conversions)
+				-- changed and changed back between two publishes: the kept copy still reads true
+			tx.set_text ("x")
+			tx.set_text ("In the eNd")
+			w.publish_accessibility
+			assert_true ("a text changed and changed back is served", acc.served_value (row_of (w, tx)).same_string ("In the eNd"))
+			assert_integers_equal ("without another conversion", l_converted + 2, acc.conversions)
+				-- masked: nothing told, nothing kept; unmasked: told again
+			tx.set_masked (True)
+			w.publish_accessibility
+			assert_true ("a masked box hands over nothing", tx.accessible_value = Void)
+			assert_true ("and serves no value", not acc.served_has_value (row_of (w, tx)))
+			tx.set_masked (False)
+			w.publish_accessibility
+			assert_true ("unmasked, the text is served again", acc.served_value (row_of (w, tx)).same_string ("In the eNd"))
+		end
+
 	test_scan13_a_request_republishes
 			-- HIGH 2: a window renders only on input, so a reader that asked
 			-- later was served a stale tree. A request (event 59) republishes.

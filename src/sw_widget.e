@@ -1546,9 +1546,11 @@ feature -- Accessibility (GW-14)
 			end
 		end
 
-	accessible_value: detachable STRING_32
+	accessible_value: detachable READABLE_STRING_32
 			-- Its current value, read-only, when it has one (a text box's
-			-- text, a progress percentage); Void for none.
+			-- text, a progress percentage); Void for none. A long value is
+			-- best handed over as one IMMUTABLE_STRING_32 for as long as it
+			-- stands: SW_ACCESSIBILITY converts such an object once.
 		do
 		end
 

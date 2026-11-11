@@ -296,13 +296,21 @@ feature -- Measurement and layout
 			older_memo.wipe_out
 			face_fonts.wipe_out
 			memo_revision := facade.policy_revision
+			font_revision := font_revision + 1
 		ensure
 			forgotten: memo_count = 0
 			in_step: memo_revision = facade.policy_revision
+			revised: font_revision = old font_revision + 1
 		end
 
 	memo_revision: INTEGER
 			-- The facade's `policy_revision' the memo's layouts were made under.
+
+	font_revision: INTEGER
+			-- Counts every `forget_layouts': a change of this kit's fonts, or
+			-- one noticed on `facade'. A client that keeps layouts of its own
+			-- (SW_TEXT_GEOMETRY) compares it, and `facade.policy_revision'
+			-- with it, and drops them when either moved.
 
 	styled_fonts (a_role: INTEGER; a_bold: BOOLEAN): FONT_LIST
 			-- The policy for `a_role' at regular or bold weight: the role's
