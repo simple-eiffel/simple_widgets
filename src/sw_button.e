@@ -20,7 +20,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click,
+			preferred_width, handle_click, shows_style,
 			accessible_role, default_accessible_name
 		end
 
@@ -156,7 +156,7 @@ feature -- Layout
 			t: SW_THEME
 		do
 			t := a_p.theme
-			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+			use_font (a_p, {SW_PAINTER}.Role_ui, t.size_label, False)
 			if label.is_empty and has_lead then
 				Result := (2.0 * t.control_inset + t.size_label * t.text_scale).max (36.0)
 			else
@@ -165,6 +165,7 @@ feature -- Layout
 					Result := Result + 19.0 * t.text_scale
 				end
 			end
+			Result := Result + style_inset_width
 		ensure then
 			clears_the_insets: Result >= 2.0 * a_p.theme.control_inset
 		end
@@ -175,8 +176,8 @@ feature -- Layout
 			-- below - whichever is larger. A larger explicit anchor still
 			-- wins through `clamped_height'; a smaller one is clamped up.
 		do
-			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
-			Result := a_p.theme.button_height.max (a_p.min_control_height)
+			use_font (a_p, {SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			Result := a_p.theme.button_height.max (a_p.min_control_height) + style_inset_height
 		ensure then
 			at_least_the_minimum: Result >= a_p.min_control_height
 		end
@@ -238,33 +239,63 @@ feature -- Style (the rule layer: variant and state select tokens)
 
 feature -- Drawing (structure: three parts)
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- Every button: the label's color and font, and the padding. A quiet button,
+			-- which has no chrome of its own for a style to fight, also the background, the
+			-- border, the shadow and (unless it is a pill) the radius.
+		do
+			Result := is_text_style_part (a_part) or a_part = {SW_WIDGET_STYLE}.Part_padding
+				or (kind = Kind_quiet and is_frame_style_part (a_part)
+					and (a_part /= {SW_WIDGET_STYLE}.Part_radius or not is_pill))
+		end
+
 	draw (a_p: SW_PAINTER)
 		do
 			draw_background (a_p)
 			draw_border (a_p)
-			draw_label (a_p)
+			if attached style then
+				within_style_frame (agent draw_label (a_p))
+			else
+				draw_label (a_p)
+			end
 		end
 
 	draw_background (a_p: SW_PAINTER)
 		do
-			a_p.set_color (fill_color (a_p.theme))
-			a_p.rrect_fill (x, y, width, height, corner_radius (a_p))
+			if has_style_frame then
+					-- the style's own frame; hover and press still answer, as a veil of ink
+				draw_style_frame_rounded (a_p, corner_radius (a_p))
+				if is_enabled and (is_pressed or shows_hover) then
+					a_p.set_color_alpha (a_p.theme.ink, (if is_pressed then 0.16 else 0.08 end))
+					a_p.rrect_fill (x, y, width, height, corner_radius (a_p))
+				end
+			else
+				a_p.set_color (fill_color (a_p.theme))
+				a_p.rrect_fill (x, y, width, height, corner_radius (a_p))
+			end
 		end
 
 	draw_border (a_p: SW_PAINTER)
+			-- The button's own border; none over a style's frame.
 		do
-			a_p.set_color (border_color (a_p.theme))
-			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, corner_radius (a_p))
+			if not has_style_frame then
+				a_p.set_color (border_color (a_p.theme))
+				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, corner_radius (a_p))
+			end
 		end
 
 	corner_radius (a_p: SW_PAINTER): REAL_64
-			-- The theme's radius, or half the height for a pill.
+			-- Half the height for a pill; else the style's radius where it shows, or the theme's.
 		do
 			if is_pill then
 				Result := (height / 2.0).max (0.0)
+			elseif attached shown_style ({SW_WIDGET_STYLE}.Part_radius) then
+				Result := style_radius
 			else
 				Result := a_p.theme.radius
 			end
+		ensure
+			non_negative: Result >= 0.0
 		end
 
 	has_lead: BOOLEAN
@@ -300,8 +331,13 @@ feature -- Drawing (structure: three parts)
 			t := a_p.theme
 			sc := t.text_scale
 			inset := t.control_inset
-			a_p.set_color (label_color (t))
-			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+			if is_enabled then
+				a_p.set_color (styled_ink (label_color (t)))
+			else
+					-- a disabled button keeps its muted label, whatever the style says
+				a_p.set_color (label_color (t))
+			end
+			use_font (a_p, {SW_PAINTER}.Role_ui, t.size_label, False)
 			if has_lead then
 				if label.is_empty then
 					draw_lead (a_p, x + width / 2.0, y + height / 2.0, 15.0 * sc)

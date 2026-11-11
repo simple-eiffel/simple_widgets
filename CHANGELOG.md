@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Fixed (the screen grab test asks whether the desktop can be read)
+
+- `screen_grab_marries_cairo` asks `can_grab` (simple_shell 1.41.0, inherited by `SW_SCREEN`): a surface only where the session offers a way to read the desktop, none where it offers none. The test had failed on every Linux run under WSLg, a Wayland session without a Screenshot portal. Linux now runs 799 passed, 0 failed. Needs simple_shell 1.41.0.
+
 ### Changed (0.58.0 - large texts: a text box holding 10,000 lines stays usable)
 
 Measured through simple_gui's code editor on a text of 10,000 lines (388,893 characters), Windows, contract checking off in the timed steps: a test keystroke (which draws 3 to 5 frames) took 14,570 milliseconds before this work and 84 after; 1,000 lines 35, 250 lines 31, 30 lines 29.

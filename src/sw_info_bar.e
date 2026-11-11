@@ -14,7 +14,7 @@ inherit
 		rename
 			make as make_row
 		redefine
-			draw, accessible_role
+			draw, accessible_role, shows_style
 		end
 
 create
@@ -85,6 +85,12 @@ feature -- Colors
 		end
 
 feature -- Drawing
+
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- Only the padding: this is a surface with its own drawing.
+		do
+			Result := a_part = {SW_WIDGET_STYLE}.Part_padding
+		end
 
 	draw (a_p: SW_PAINTER)
 		local

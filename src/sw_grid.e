@@ -17,7 +17,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			sub_widgets, preferred_width, arrange, widget_at
+			sub_widgets, preferred_width, arrange, widget_at, shows_style
 		end
 
 	SW_PADDED
@@ -134,7 +134,7 @@ feature -- Layout
 			across l_widths as ic loop
 				Result := Result + ic
 			end
-			Result := padded (Result + gaps_total (occupied (True), effective_column_gap (a_p)))
+			Result := framed_width (Result + gaps_total (occupied (True), effective_column_gap (a_p)))
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
@@ -142,18 +142,18 @@ feature -- Layout
 		local
 			l_heights: ARRAYED_LIST [REAL_64]
 		do
-			l_heights := row_heights (a_p, column_widths (a_p, unpadded (a_width)))
+			l_heights := row_heights (a_p, column_widths (a_p, unframed_width (a_width)))
 			across l_heights as ic loop
 				Result := Result + ic
 			end
-			Result := padded (Result + gaps_total (occupied (False), effective_row_gap (a_p)))
+			Result := framed_height (Result + gaps_total (occupied (False), effective_row_gap (a_p)))
 		end
 
 	arrange (a_p: SW_PAINTER)
 			-- Size the columns to `width', the rows to their content, and place every cell,
 			-- inside the padding.
 		do
-			lay_out_within_padding (agent arrange_cells (a_p))
+			lay_out_within_frame (agent arrange_cells (a_p))
 		end
 
 	arrange_cells (a_p: SW_PAINTER)
@@ -181,9 +181,18 @@ feature -- Layout
 
 feature -- Drawing
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The frame: background, padding, border, radius and shadow, around the children.
+		do
+			Result := is_frame_style_part (a_part)
+		end
+
 	draw (a_p: SW_PAINTER)
 			-- Each shown child, clipped to its cells.
 		do
+			if attached style then
+				draw_style_frame (a_p)
+			end
 			across children as ic loop
 					-- a cell with no area draws nothing (and cairo refuses an empty clip)
 				if not ic.is_hidden and ic.width > 0.0 and ic.height > 0.0 then

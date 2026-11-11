@@ -61,6 +61,57 @@ feature -- Tree table
 				tt.row_at (tt.y + tt.Header_h + 2.0))
 		end
 
+	test_tree_table_scrolls_under_its_header
+			-- The rows scroll in the space under the header band: the wheel reaches the
+			-- last row, and the scroll bar is drawn there and not over the header.
+		local
+			tt: SW_TREE_TABLE [DEMO_NODE]
+			roots: ARRAYED_LIST [DEMO_NODE]
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			i: INTEGER
+			l_ok: BOOLEAN
+		do
+			create roots.make (30)
+			from
+				i := 1
+			until
+				i > 30
+			loop
+				roots.extend (create {DEMO_NODE}.make ("node " + i.out))
+				i := i + 1
+			end
+			create tt.make (260.0)
+			tt.set_label (agent label_of)
+			tt.set_children (agent kids_of)
+			tt.set_roots (roots)
+			tt.add_column (create {SW_GRID_COLUMN [DEMO_NODE]}.make ("kids", 80.0, agent size_of))
+			tt.set_bounds (0.0, 0.0, 400.0, 200.0)
+			assert_reals_equal ("the rows scroll in the height under the header",
+				30.0 * tt.Row_h - (200.0 - tt.Header_h), tt.max_scroll, 0.000_1)
+			from
+				i := 1
+			until
+				i > 200
+			loop
+				l_ok := tt.handle_wheel (-120)
+				i := i + 1
+			end
+			assert_reals_equal ("the wheel reaches the last row", tt.max_scroll, tt.scroll_y, 0.000_1)
+			assert_integers_equal ("which sits at the bottom edge", 30, tt.row_at (tt.y + 199.0))
+			create th.make_light
+			create surf.make (400, 200)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			tt.draw (p)
+			assert_true ("the bar is there, under the header",
+				tt.bar.contains (tt.x + 400.0 - 2.0, tt.y + tt.Header_h + 20.0))
+			assert_true ("and not over the header band",
+				not tt.bar.contains (tt.x + 400.0 - 2.0, tt.y + 2.0))
+		end
+
 feature -- The graduated engine
 
 	test_cells_aggregate_law

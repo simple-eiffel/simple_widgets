@@ -85,14 +85,7 @@ feature -- Type
 		local
 			fam: STRING_32
 		do
-			inspect a_role
-			when 2 then
-				fam := theme.family_body
-			when 3 then
-				fam := fixed_pitch_family
-			else
-				fam := theme.family_ui
-			end
+			fam := face_of_role (a_role)
 			if a_bold then
 				context.select_font (fam, context.Slant_normal, context.Weight_bold).do_nothing
 			else
@@ -104,14 +97,81 @@ feature -- Type
 			font_bold := a_bold
 			font_size := a_size
 			font_pixel_size := (a_size * theme.text_scale).rounded.max (1)
+			is_font_faced := False
+			font_weight := if a_bold then 700 else 400 end
+			font_italic := False
+			font_family := Void
 		ensure
 			size_kept: font_size = a_size
 			role_kept: font_role = a_role
 			bold_kept: font_bold = a_bold
 			pixel_size_kept: font_pixel_size >= 1
+			plain: not is_font_faced and not font_italic and font_family = Void
+		end
+
+	font_faced (a_role: INTEGER; a_size: REAL_64; a_weight: INTEGER; a_italic: BOOLEAN;
+			a_family: detachable READABLE_STRING_32)
+			-- `font' in a face of the caller's choosing: the role `a_role' at `a_weight'
+			-- (100 to 900; 400 regular, 700 bold), slanted when `a_italic', led by the family
+			-- `a_family' when one is given. One widget's own font (SW_WIDGET_STYLE) is selected
+			-- here; `text' and `advance' then shape with it. Cairo's own text path knows two
+			-- weights, so there 600 and up is bold.
+		require
+			role_known: a_role = Role_ui or a_role = Role_body or a_role = Role_mono
+			size_positive: a_size > 0.0
+			weight_in_range: a_weight >= 1 and a_weight <= 1000
+		local
+			fam: STRING_32
+		do
+			font (a_role, a_size, a_weight >= 600)
+			if attached a_family as al_family and then not al_family.is_empty then
+				create fam.make_from_string (al_family)
+				font_family := fam
+			else
+				fam := face_of_role (a_role)
+			end
+			context.select_font (fam, (if a_italic then context.Slant_italic else context.Slant_normal end),
+				(if a_weight >= 600 then context.Weight_bold else context.Weight_normal end)).do_nothing
+			font_weight := a_weight
+			font_italic := a_italic
+			is_font_faced := True
+		ensure
+			size_kept: font_size = a_size
+			role_kept: font_role = a_role
+			weight_kept: font_weight = a_weight
+			italic_kept: font_italic = a_italic
+			family_kept: attached a_family as al_asked and then not al_asked.is_empty implies
+				(attached font_family as al_kept and then al_kept.same_string (al_asked))
+			faced: is_font_faced
 		end
 
 feature {NONE} -- Fixed-pitch face
+
+	face_of_role (a_role: INTEGER): STRING_32
+			-- The family cairo's own text path sets `a_role' in.
+		do
+			inspect a_role
+			when 2 then
+				Result := theme.family_body
+			when 3 then
+				Result := fixed_pitch_family
+			else
+				Result := theme.family_ui
+			end
+		end
+
+	kit_layout (a_kit: SW_SHAPING; a_s: READABLE_STRING_GENERAL): SHAPED_LAYOUT
+			-- `a_s' on one unbounded line in the font selected last: the kit's faced layout
+			-- after `font_faced', its styled one after `font'.
+		require
+			font_selected: font_pixel_size >= 1
+		do
+			if is_font_faced then
+				Result := a_kit.layout_faced (a_s, 0, font_pixel_size, font_role, font_weight, font_italic, font_family)
+			else
+				Result := a_kit.layout_styled (a_s, 0, font_pixel_size, font_role, font_bold)
+			end
+		end
 
 	fixed_pitch_family: STRING_32
 			-- The theme's mono face when Cairo's own text path draws it fixed-pitch on this
@@ -188,6 +248,18 @@ feature -- Type, remembered
 			-- Pixel size of the last `font' call, through `text_scale'
 			-- (0 before the first).
 
+	is_font_faced: BOOLEAN
+			-- Was the font selected last through `font_faced'?
+
+	font_weight: INTEGER
+			-- The weight selected last: 400 or 700 after `font'.
+
+	font_italic: BOOLEAN
+			-- Is the font selected last slanted?
+
+	font_family: detachable STRING_32
+			-- The family `font_faced' was given to lead the role's faces, if any.
+
 	text (a_x, a_y: REAL_64; a_s: READABLE_STRING_GENERAL)
 			-- Draw `a_s' with its baseline at (`a_x', `a_y'), in the
 			-- current font and color.
@@ -199,7 +271,7 @@ feature -- Type, remembered
 			-- unchanged.
 		do
 			if takes_shaped_path (a_s) and then attached shaping as al_kit then
-				if attached al_kit.layout_styled (a_s, 0, font_pixel_size, font_role, font_bold) as al_layout
+				if attached kit_layout (al_kit, a_s) as al_layout
 					and then not al_layout.lines.is_empty
 				then
 					draw_shaped_layout (al_layout, a_x, a_y - al_layout.lines.first.ascent)
@@ -214,7 +286,7 @@ feature -- Type, remembered
 			-- width when `text' would shape it (GW-04), cairo's otherwise.
 		do
 			if takes_shaped_path (a_s) and then attached shaping as al_kit then
-				Result := al_kit.layout_styled (a_s, 0, font_pixel_size, font_role, font_bold).total_width
+				Result := kit_layout (al_kit, a_s).total_width
 			else
 				Result := context.text_extents (a_s.to_string_32).x_advance
 			end
@@ -447,6 +519,43 @@ feature -- Shapes
 			rrect_path (a_x, a_y, a_w, a_h, a_r)
 			context.stroke.do_nothing
 		end
+
+	shadow_rrect (a_x, a_y, a_w, a_h, a_r, a_blur: REAL_64; a_rgb: NATURAL_32; a_alpha: REAL_64)
+			-- A soft shadow of the rounded rectangle: `a_rgb' at `a_alpha' under the shape,
+			-- fading to nothing across `a_blur' pixels centered on its edge. Pass the rectangle
+			-- already moved by the shadow's offset. Painted as rings of falling strength: the
+			-- toolkit draws vectors and has no blur filter. The rings each add the same share,
+			-- so together they reach `a_alpha' where all of them overlap.
+		require
+			size_non_negative: a_w >= 0.0 and a_h >= 0.0
+			radius_non_negative: a_r >= 0.0
+			blur_non_negative: a_blur >= 0.0
+			alpha_in_range: a_alpha >= 0.0 and a_alpha <= 1.0
+		local
+			i, n: INTEGER
+			l_out, l_share: REAL_64
+		do
+			if a_alpha > 0.0 then
+				n := a_blur.ceiling.max (1).min (Shadow_rings)
+				l_share := 1.0 - (1.0 - a_alpha) ^ (1.0 / n)
+				from
+					i := n
+				until
+					i < 1
+				loop
+						-- ring i reaches `l_out' beyond the edge (inside it when negative)
+					l_out := a_blur * ((i - 0.5) / n - 0.5)
+					if a_w + 2.0 * l_out > 0.0 and a_h + 2.0 * l_out > 0.0 then
+						set_color_alpha (a_rgb, l_share)
+						rrect_fill (a_x - l_out, a_y - l_out, a_w + 2.0 * l_out, a_h + 2.0 * l_out, (a_r + l_out).max (0.0))
+					end
+					i := i - 1
+				end
+			end
+		end
+
+	Shadow_rings: INTEGER = 12
+			-- The most rings `shadow_rrect' paints, however wide the blur.
 
 	set_line_width (a_w: REAL_64)
 		require
@@ -1532,12 +1641,23 @@ feature {NONE} -- Star geometry
 feature {NONE} -- Implementation
 
 	rrect_path (a_x, a_y, a_w, a_h, a_r: REAL_64)
+			-- The outline of the rectangle with corners of radius `a_r': square ones at 0
+			-- (an arc needs a radius).
+		require
+			radius_non_negative: a_r >= 0.0
 		do
 			context.new_path.do_nothing
-			context.arc (a_x + a_w - a_r, a_y + a_r, a_r, -1.5708, 0.0).do_nothing
-			context.arc (a_x + a_w - a_r, a_y + a_h - a_r, a_r, 0.0, 1.5708).do_nothing
-			context.arc (a_x + a_r, a_y + a_h - a_r, a_r, 1.5708, 3.1416).do_nothing
-			context.arc (a_x + a_r, a_y + a_r, a_r, 3.1416, 4.7124).do_nothing
+			if a_r > 0.0 then
+				context.arc (a_x + a_w - a_r, a_y + a_r, a_r, -1.5708, 0.0).do_nothing
+				context.arc (a_x + a_w - a_r, a_y + a_h - a_r, a_r, 0.0, 1.5708).do_nothing
+				context.arc (a_x + a_r, a_y + a_h - a_r, a_r, 1.5708, 3.1416).do_nothing
+				context.arc (a_x + a_r, a_y + a_r, a_r, 3.1416, 4.7124).do_nothing
+			else
+				context.move_to (a_x, a_y).do_nothing
+				context.line_to (a_x + a_w, a_y).do_nothing
+				context.line_to (a_x + a_w, a_y + a_h).do_nothing
+				context.line_to (a_x, a_y + a_h).do_nothing
+			end
 			context.close_path.do_nothing
 		end
 

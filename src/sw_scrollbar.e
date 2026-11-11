@@ -118,6 +118,55 @@ feature -- Geometry
 		deferred
 		end
 
+feature -- Showing (SW_WIDGET_STYLE's Scroll_bars_* kinds)
+
+	mode: INTEGER
+			-- When the bar shows: while there is something to scroll (Scroll_bars_system,
+			-- the default); the same, as a thumb with no track (Scroll_bars_overlay); with
+			-- nothing to scroll too (Scroll_bars_always); never (Scroll_bars_hidden: the
+			-- wheel and the keys still scroll).
+
+	is_mode (a_mode: INTEGER): BOOLEAN
+			-- Is `a_mode' one of SW_WIDGET_STYLE's Scroll_bars_* kinds?
+		do
+			Result := a_mode >= {SW_WIDGET_STYLE}.Scroll_bars_system and a_mode <= {SW_WIDGET_STYLE}.Scroll_bars_hidden
+		end
+
+	set_mode (a_mode: INTEGER)
+			-- Show the bar by `a_mode'.
+		require
+			known: is_mode (a_mode)
+		do
+			mode := a_mode
+		ensure
+			set: mode = a_mode
+		end
+
+	is_shown: BOOLEAN
+			-- Is the bar drawn?
+		do
+			Result := mode = {SW_WIDGET_STYLE}.Scroll_bars_always
+				or (is_needed and mode /= {SW_WIDGET_STYLE}.Scroll_bars_hidden)
+		ensure
+			never_when_hidden: mode = {SW_WIDGET_STYLE}.Scroll_bars_hidden implies not Result
+			always_when_asked: mode = {SW_WIDGET_STYLE}.Scroll_bars_always implies Result
+		end
+
+	takes_pointer: BOOLEAN
+			-- Does a press on the bar scroll: is it shown with something to scroll?
+		do
+			Result := is_needed and mode /= {SW_WIDGET_STYLE}.Scroll_bars_hidden
+		ensure
+			needed: Result implies is_needed
+			shown: Result implies is_shown
+		end
+
+	has_track: BOOLEAN
+			-- Is the track drawn under the thumb?
+		do
+			Result := mode /= {SW_WIDGET_STYLE}.Scroll_bars_overlay
+		end
+
 feature -- Status
 
 	is_dragging: BOOLEAN
@@ -219,5 +268,6 @@ invariant
 	sizes_positive: bar_width > 0.0 and min_thumb > 0.0 and scale > 0.0
 	track_positive: track_length > 0.0
 	extent_non_negative: viewport >= 0.0 and content >= 0.0
+	mode_known: is_mode (mode)
 
 end

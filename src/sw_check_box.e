@@ -11,7 +11,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click,
+			preferred_width, handle_click, shows_style,
 			accessible_role, default_accessible_name, accessible_value
 		end
 
@@ -89,14 +89,14 @@ feature -- Layout
 
 	preferred_width (a_p: SW_PAINTER): REAL_64
 		do
-			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			use_font (a_p, {SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
 			Result := box_side (a_p) + 9.0 * a_p.theme.text_scale + a_p.advance (label)
 		end
 
 	preferred_height (a_p: SW_PAINTER; a_width: REAL_64): REAL_64
 			-- 26 px nominal, or the font's minimum, whichever is larger.
 		do
-			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			use_font (a_p, {SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
 			Result := (26.0).max (a_p.min_control_height)
 		ensure then
 			at_least_the_minimum: Result >= a_p.min_control_height
@@ -104,13 +104,19 @@ feature -- Layout
 
 feature -- Drawing
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The label's color and font. (The box is the theme's.)
+		do
+			Result := is_text_style_part (a_part)
+		end
+
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
 			bx, by, bs: REAL_64
 		do
 			t := a_p.theme
-			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+			use_font (a_p, {SW_PAINTER}.Role_ui, t.size_label, False)
 			bx := x
 			bs := box_side (a_p)
 			by := y + (height - bs) / 2.0
@@ -143,9 +149,9 @@ feature -- Drawing
 				a_p.line (bx + bs * 0.417, by + bs * 0.722,
 					bx + bs * 0.778, by + bs * 0.306, 2.0)
 			end
-			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+			use_font (a_p, {SW_PAINTER}.Role_ui, t.size_label, False)
 			if is_enabled then
-				a_p.set_color (t.ink)
+				a_p.set_color (styled_ink (t.ink))
 			else
 				a_p.set_color (t.ink_muted)
 			end

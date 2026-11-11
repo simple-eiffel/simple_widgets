@@ -29,6 +29,9 @@ feature {NONE} -- Initialization
 			print ("%N=== 1V-A GRID VIEW ===%N")
 			run_grid_view_tests
 
+			print ("%N=== 1w: A WIDGET'S OWN STYLE ===%N")
+			run_widget_style_tests
+
 			print ("%N=== CHROME + THEME ===%N")
 			run_chrome_tests
 
@@ -161,6 +164,21 @@ feature {NONE} -- Test runners
 			run_test (agent engine_tests.test_astral_code_point_round_trip, "astral_code_point_round_trip (R8)")
 			run_test (agent engine_tests.test_combo_choose_option, "combo_choose_option")
 			run_test (agent engine_tests.test_caret_clamps_on_shorter_text, "caret_clamps_on_shorter_text")
+		end
+
+	widget_style_tests: SW_WIDGET_STYLE_ASSAULT
+
+	run_widget_style_tests
+		do
+			create widget_style_tests
+			run_test (agent widget_style_tests.test_1w_a_style_holds_only_the_parts_it_was_given, "1w_a_style_holds_only_the_parts_it_was_given")
+			run_test (agent widget_style_tests.test_1w_a_label_wears_a_background_and_grows_by_its_padding, "1w_a_label_wears_a_background_and_grows_by_its_padding")
+			run_test (agent widget_style_tests.test_1w_a_larger_size_makes_a_label_larger, "1w_a_larger_size_makes_a_label_larger")
+			run_test (agent widget_style_tests.test_1w_only_a_quiet_button_takes_a_background, "1w_only_a_quiet_button_takes_a_background")
+			run_test (agent widget_style_tests.test_1w_a_text_box_takes_a_ground_a_placeholder_and_a_selection, "1w_a_text_box_takes_a_ground_a_placeholder_and_a_selection")
+			run_test (agent widget_style_tests.test_1w_a_list_takes_a_size_a_selection_and_a_bar_mode_but_no_padding, "1w_a_list_takes_a_size_a_selection_and_a_bar_mode_but_no_padding")
+			run_test (agent widget_style_tests.test_1w_a_scroll_bar_shows_by_its_mode, "1w_a_scroll_bar_shows_by_its_mode")
+			run_test (agent widget_style_tests.test_1w_a_row_insets_its_content_by_the_padding, "1w_a_row_insets_its_content_by_the_padding")
 		end
 
 	run_grid_view_tests
@@ -503,6 +521,7 @@ feature {NONE} -- Test runners
 		do
 			create enterprise_tests
 			run_test (agent enterprise_tests.test_tree_table_slots_and_header, "tree_table_slots_and_header")
+			run_test (agent enterprise_tests.test_tree_table_scrolls_under_its_header, "tree_table_scrolls_under_its_header")
 			run_test (agent enterprise_tests.test_cells_aggregate_law, "cells_aggregate_law")
 			run_test (agent enterprise_tests.test_cells_range_propagation, "cells_range_propagation")
 			run_test (agent enterprise_tests.test_cells_undo_walks_both_ways, "cells_undo_walks_both_ways")

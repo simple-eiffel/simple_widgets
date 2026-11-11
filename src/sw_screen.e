@@ -16,7 +16,10 @@ feature -- Capture
 
 	grab (a_x, a_y, a_w, a_h: INTEGER): detachable CAIRO_SURFACE
 			-- The desktop region as an ARGB32 surface; Void when the
-			-- desktop cannot be read (locked session, secure screen).
+			-- desktop cannot be read: always where `can_grab' is False (a
+			-- Wayland session without a Screenshot portal, a Mac without the
+			-- Screen Recording permission), and in a locked session or on the
+			-- secure screen.
 		require
 			positive: a_w > 0 and a_h > 0
 		local

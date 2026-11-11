@@ -37,7 +37,7 @@ inherit
 			handle_triple_click, handle_drag, handle_char, handle_key,
 			context_menu, accepts_pebble, receive_pebble, cursor_kind,
 			accessible_role, accessible_value, set_focused, takes_typing,
-			can_edit, perform_edit
+			can_edit, perform_edit, shows_style, set_style
 		end
 
 	SW_CLUSTER_MATH
@@ -796,7 +796,7 @@ feature -- Layout
 	row_baseline (a_p: SW_PAINTER): REAL_64
 			-- Baseline offset inside one row, from MEASURED metrics.
 		do
-			a_p.font (face_role, body_size (a_p), False)
+			use_font (a_p, face_role, body_size (a_p), False)
 			Result := (row_height (a_p) - a_p.text_extent) / 2.0 + a_p.font_ascent
 		end
 
@@ -805,7 +805,7 @@ feature -- Layout
 			-- the minimum the font demands: `minimum_height'.
 		do
 			ensure_layout (a_p, wrap_width_in (a_width))
-			Result := (content_height + 2.0 * Pad_y).max (minimum_height (a_p))
+			Result := (content_height + 2.0 * Pad_y).max (minimum_height (a_p)) + style_inset_height
 		ensure then
 			at_least_the_minimum: Result >= minimum_height (a_p)
 		end
@@ -821,7 +821,7 @@ feature -- Layout
 			-- path one box, text and width measured 70, 75 or 80 px at 2x
 			-- depending on what had been drawn before it.
 		do
-			a_p.font (face_role, body_size (a_p), False)
+			use_font (a_p, face_role, body_size (a_p), False)
 			Result := a_p.min_control_height
 		ensure
 			clears_the_insets: Result >= 2.0 * a_p.theme.control_inset
@@ -855,32 +855,49 @@ feature {NONE} -- Drawing parts
 
 	draw_field (a_p: SW_PAINTER)
 			-- The field's fill and its frame: danger when invalid, the
-			-- accent when focused, the outline otherwise.
+			-- accent when focused, the outline otherwise. A style (SW_WIDGET_STYLE)
+			-- gives the shadow, the fill, the corners and the resting border; invalid
+			-- and focused still show over it.
 		local
 			t: SW_THEME
+			r: REAL_64
 		do
 			t := a_p.theme
+			r := field_radius (a_p)
+			draw_style_shadow (a_p, r)
 			if is_invalid then
 				a_p.set_color (t.wash_danger)
 			else
-				a_p.set_color (t.surface)
+				a_p.set_color (styled_ground (t.surface))
 			end
-			a_p.rrect_fill (x, y, width, height, t.radius)
+			a_p.rrect_fill (x, y, width, height, r)
 			if is_invalid then
 				a_p.set_color (t.danger)
-				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
+				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, r)
 			elseif is_focused then
 				a_p.set_color (t.accent)
 				a_p.set_line_width (2.0)
-				a_p.rrect_stroke (x + 1.0, y + 1.0, width - 2.0, height - 2.0, t.radius)
+				a_p.rrect_stroke (x + 1.0, y + 1.0, width - 2.0, height - 2.0, r)
 				a_p.set_line_width (1.0)
+			elseif style_border > 0.0 then
+				draw_style_border (a_p, r)
 			else
 				if shows_hover then
 					a_p.set_color (t.ink_muted)
 				else
 					a_p.set_color (t.outline)
 				end
-				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
+				a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, r)
+			end
+		end
+
+	field_radius (a_p: SW_PAINTER): REAL_64
+			-- The field's corners: the style's where it shows, else the theme's.
+		do
+			if attached shown_style ({SW_WIDGET_STYLE}.Part_radius) then
+				Result := style_radius
+			else
+				Result := a_p.theme.radius
 			end
 		end
 
@@ -898,7 +915,7 @@ feature {NONE} -- Drawing parts
 			seln: BOOLEAN
 		do
 			t := a_p.theme
-			a_p.font (face_role, body_size (a_p), False)
+			use_font (a_p, face_role, body_size (a_p), False)
 			asc := a_p.font_ascent
 			ext := a_p.text_extent
 			ox := text_left
@@ -909,9 +926,9 @@ feature {NONE} -- Drawing parts
 			if n = 0 and then not placeholder.is_empty then
 				if text_role = 0 and then a_p.has_shaping and then not is_hiding then
 						-- the face typed text is shaped in (the kit leads with the UI face)
-					a_p.font ({SW_PAINTER}.Role_ui, body_size (a_p), False)
+					use_font (a_p, {SW_PAINTER}.Role_ui, body_size (a_p), False)
 				end
-				a_p.set_color (t.ink_muted)
+				a_p.set_color (styled_placeholder (t.ink_muted))
 				if effective_text_alignment = {SHAPING_CONSTANTS}.Align_right then
 						-- W4c: the hint sits where typing starts.
 					a_p.text (ox + wrap_width_in (width) - a_p.advance (placeholder), oy + asc, placeholder)
@@ -931,7 +948,7 @@ feature {NONE} -- Drawing parts
 					-- a shaped run paints as one stroke and cannot be
 					-- recoloured a character at a time
 				if is_focused and then has_selection then
-					a_p.set_color (t.wash_accent)
+					a_p.set_color (styled_selection (t.wash_accent))
 					from
 						i := 1
 					until
@@ -945,7 +962,7 @@ feature {NONE} -- Drawing parts
 						i := i + 1
 					end
 				end
-				a_p.set_color (t.ink)
+				a_p.set_color (styled_ink (t.ink))
 				draw_text_at (a_p, 0.0, 0.0)
 			else
 				from
@@ -959,14 +976,15 @@ feature {NONE} -- Drawing parts
 					gw := geometry.width_of (i)
 					seln := is_focused and then has_selection and then is_char_selected (i)
 					if seln then
-						a_p.set_color (t.accent)
+						a_p.set_color (styled_selection (t.accent))
 						a_p.fill_rect (gx - 1.0, gy - asc, gw + 2.0, ext + 2.0)
 					end
-					a_p.font (face_role, body_size (a_p), False)
-					if seln then
+					use_font (a_p, face_role, body_size (a_p), False)
+					if seln and then not attached shown_style ({SW_WIDGET_STYLE}.Part_selection) then
 						a_p.set_color (t.surface)
 					else
-						a_p.set_color (t.ink)
+							-- over a selection color of the style's the text keeps its ink
+						a_p.set_color (styled_ink (t.ink))
 					end
 					if is_hiding or else text.item (i) /= '%T' then
 							-- a tab paints nothing: its slot spans to the stop
@@ -1467,14 +1485,14 @@ feature -- Text frame
 			-- carries a gutter answers its own; the drawing, the hit test
 			-- (`offset_at') and the caret all read this one query.
 		do
-			Result := x + Pad_x
+			Result := x + Pad_x + style_inset_left
 		end
 
 	text_top: REAL_64
 			-- The window y of the text's origin: the field's top edge plus
 			-- its inset. A descendant that scrolls answers its own.
 		do
-			Result := y + Pad_y
+			Result := y + Pad_y + style_inset_top
 		end
 
 	wrap_width_in (a_width: REAL_64): REAL_64
@@ -1482,7 +1500,27 @@ feature -- Text frame
 			-- the insets leave. A descendant that never wraps (a code
 			-- editor) answers a width no line reaches.
 		do
-			Result := a_width - 2.0 * Pad_x
+			Result := a_width - 2.0 * Pad_x - style_inset_width
+		end
+
+feature -- Own appearance
+
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The text's color and font, the placeholder's and the selection's colors, and
+			-- the frame: background, padding, border, radius and shadow. (The border is the
+			-- resting one: focus and an invalid entry still draw their own.) No scroll bars:
+			-- the box grows with its text.
+		do
+			Result := is_text_style_part (a_part) or is_frame_style_part (a_part)
+				or a_part = {SW_WIDGET_STYLE}.Part_placeholder
+				or a_part = {SW_WIDGET_STYLE}.Part_selection
+		end
+
+	set_style (a_style: detachable SW_WIDGET_STYLE)
+			-- <Precursor> The text is laid out again: the face or the padding may differ.
+		do
+			Precursor (a_style)
+			layout_width := -1.0
 		end
 
 	text_role: INTEGER
@@ -1528,9 +1566,8 @@ feature {NONE} -- Engine
 			-- The painter role the text is measured and painted under:
 			-- `text_role', or the body face when that is 0.
 		do
-			if text_role > 0 then
-				Result := text_role
-			else
+			Result := styled_role (text_role)
+			if Result = 0 then
 				Result := {SW_PAINTER}.Role_body
 			end
 		ensure
@@ -1543,9 +1580,9 @@ feature {NONE} -- Engine
 			-- theme's body size when that is 0.
 		do
 			if text_size > 0.0 then
-				Result := text_size
+				Result := styled_size (text_size)
 			else
-				Result := a_p.theme.size_body
+				Result := styled_size (a_p.theme.size_body)
 			end
 		ensure
 			positive: Result > 0.0
@@ -1597,8 +1634,17 @@ feature {NONE} -- Engine
 					al_styles.clamp_to (text.count)
 				end
 				geometry.set_styles (text_styles)
-				geometry.lay_out (a_p, text, a_wrap.max (0.0), text_role, body_size (a_p), False,
-					is_single_line, is_hiding).do_nothing
+				if has_styled_font and then attached a_p.shaping as al_kit then
+						-- its own face (SW_WIDGET_STYLE); a box without a role leads with the
+						-- UI face, as the kit's own policy does
+					geometry.set_own_faces (al_kit.faced_fonts (
+						(if styled_role (text_role) > 0 then styled_role (text_role) else {SW_PAINTER}.Role_ui end),
+						px, styled_weight (False), styled_italic, styled_family))
+				else
+					geometry.set_own_faces (Void)
+				end
+				geometry.lay_out (a_p, text, a_wrap.max (0.0), styled_role (text_role), body_size (a_p),
+					styled_weight (False) >= 600, is_single_line, is_hiding).do_nothing
 			end
 		ensure
 			laid_out: is_laid_out

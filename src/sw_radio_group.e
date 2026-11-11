@@ -11,7 +11,7 @@ class
 inherit
 	SW_WIDGET
 		redefine
-			preferred_width, handle_click, wants_hover_point,
+			preferred_width, handle_click, wants_hover_point, shows_style,
 			accessible_role, accessible_value, shared_role_name,
 			accessible_item_count, publish_accessible_items
 		end
@@ -117,9 +117,15 @@ feature -- Layout
 	Dot_s: REAL_64 = 18.0
 	Gap_between: REAL_64 = 22.0
 
+	shows_style (a_part: INTEGER): BOOLEAN
+			-- The options' color and face; not a size: the rows are `Row_h' tall.
+		do
+			Result := is_text_style_part (a_part) and a_part /= {SW_WIDGET_STYLE}.Part_size
+		end
+
 	preferred_width (a_p: SW_PAINTER): REAL_64
 		do
-			a_p.font ({SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
+			use_font (a_p, {SW_PAINTER}.Role_ui, a_p.theme.size_label, False)
 			if is_vertical then
 				across
 					options as o
@@ -164,7 +170,7 @@ feature -- Drawing
 			t := a_p.theme
 			cx := x
 			cy := y + height / 2.0
-			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+			use_font (a_p, {SW_PAINTER}.Role_ui, t.size_label, False)
 			if is_vertical then
 				cy := y + 13.0
 			end
@@ -200,7 +206,7 @@ feature -- Drawing
 					a_p.circle_fill (cx + Dot_s / 2.0, cy, Dot_s / 2.0 - 6.0)
 				end
 				if is_enabled and option_enabled.i_th (i) then
-					a_p.set_color (t.ink)
+					a_p.set_color (styled_ink (t.ink))
 				else
 					a_p.set_color (t.ink_muted)
 				end

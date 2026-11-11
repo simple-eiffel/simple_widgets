@@ -17,7 +17,7 @@ class
 inherit
 	SW_TREE [G]
 		redefine
-			make, draw, row_at, max_scroll, accessible_role
+			make, draw, row_at, rows_top, accessible_role
 		end
 
 create
@@ -118,9 +118,10 @@ feature -- Layout
 			end
 		end
 
-	max_scroll: REAL_64
+	rows_top: REAL_64
+			-- The rows begin under the header band.
 		do
-			Result := (visible.count * Row_h - (height - Header_h)).max (0.0)
+			Result := Header_h
 		end
 
 feature -- Drawing
@@ -133,6 +134,8 @@ feature -- Drawing
 			row: TUPLE [node: G; depth: INTEGER; has_kids: BOOLEAN]
 		do
 			t := a_p.theme
+			bar.place (x, y + rows_top, width, rows_height, t)
+			bar.set_extent (rows_height, display_count * Row_h)
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 				-- the header band
@@ -167,7 +170,7 @@ feature -- Drawing
 					row := visible.i_th (i)
 					ry := y + Header_h + (i - 1) * Row_h - scroll_y
 					if attached selected_node as sel and then sel = row.node then
-						a_p.set_color (t.wash_accent)
+						a_p.set_color (styled_selection (t.wash_accent))
 						a_p.fill_rect (x + 1.0, ry, width - 2.0, Row_h)
 					elseif i \\ 2 = 0 then
 						a_p.set_color (t.surface_variant)
@@ -203,6 +206,9 @@ feature -- Drawing
 				end
 				a_p.pop_clip
 			end
+				-- the scroll bar, under the header (the tree's own draw is not run here)
+			bar.set_mode (styled_scroll_bars)
+			bar.draw (a_p, scroll_y, shows_hover and then bar.contains (hover_px, hover_py))
 			a_p.set_color (t.outline)
 			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
 		end
