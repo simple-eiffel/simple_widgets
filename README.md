@@ -82,6 +82,7 @@ theme, with evidence PNGs in `evidence/`.
 | 0.28.0 | GW-29 | 100,000 shaped rows at 60 Hz: `SW_SHAPING.layout_styled` remembers layouts (`forget_layouts`), `SW_GRID_COLUMN.sort_key`; measured numbers below |
 | 0.28.1 | - | The sixth scan's fixes: editing a proximity's distance is heard, and a long distance renders |
 | 0.57.0 | - | A text box a code editor can be built on: a movable text origin and wrap width, a face role (monospace), settable tab stops |
+| 0.58.0 | - | Large texts: a draw paints the visible lines only, layouts are kept, an edit rebuilds the edited paragraphs only, a text is published to screen readers once per change |
 | 0.56.0 | - | A notice with an action (Undo); shortcuts that yield to typing |
 | 0.55.0 | - | Carry and drop: a selection dragged, picked up or middle-clicked to a tree folder that lights, springs open and offers New folder; tabs spring open |
 | 0.54.0 | - | A hover card for a grid cell; a glyph column; a picture glyph |

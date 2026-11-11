@@ -15,7 +15,10 @@ note
 		by clipping to the span's rectangles and drawing the text
 		AGAIN through the widget's own `a_draw_text' agent -
 		(painter, dx, dy) draws the whole text shifted by (dx, dy) in
-		the painter's current color:
+		the painter's current color (the geometry is held to the span's
+		line meanwhile, `hold_draw_to_line', so one line is drawn, not
+		every line in the clip; ink of a neighboring line that reaches
+		into the span's rectangle is therefore left as it was):
 
 		    outline   eight offset passes in the outline color, then
 		              the fill (a double outline: an outer ring in the
