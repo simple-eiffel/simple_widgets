@@ -46,6 +46,18 @@ feature -- Face
 			check_mono_role_gives_equal_advances (shaped_painter, "shaped")
 		end
 
+	test_mono_role_survives_a_missing_face_on_the_toy_path
+			-- A machine without the theme's mono face still gets one advance for every
+			-- character: a fixed-pitch face stands behind it.
+		do
+			check_mono_role_gives_equal_advances (plain_painter_without_mono_face, "toy, face missing")
+		end
+
+	test_mono_role_survives_a_missing_face_on_the_shaped_path
+		do
+			check_mono_role_gives_equal_advances (shaped_painter_without_mono_face, "shaped, face missing")
+		end
+
 feature -- Frame
 
 	test_a_plain_box_keeps_its_frame
@@ -263,6 +275,41 @@ feature {NONE} -- Fixture
 			create surf.make (600, 300)
 			create ctx.make (surf)
 			create th.make_light
+			create kit.make
+			kit.set_theme_faces (th)
+			create Result.make (ctx, th)
+			Result.set_shaping (kit)
+		end
+
+	Missing_mono_face: STRING = "No Such Mono Face 1vb"
+			-- A family no machine has.
+
+	plain_painter_without_mono_face: SW_PAINTER
+			-- Cairo's toy path, under a theme whose mono face is not installed.
+		local
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			th: SW_THEME
+		once
+			create surf.make (600, 300)
+			create ctx.make (surf)
+			create th.make_light
+			th.set_families (th.family_ui, th.family_body, Missing_mono_face)
+			create Result.make (ctx, th)
+		end
+
+	shaped_painter_without_mono_face: SW_PAINTER
+			-- The shaped path, under a theme whose mono face is not installed.
+		local
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			th: SW_THEME
+			kit: SW_SHAPING
+		once
+			create surf.make (600, 300)
+			create ctx.make (surf)
+			create th.make_light
+			th.set_families (th.family_ui, th.family_body, Missing_mono_face)
 			create kit.make
 			kit.set_theme_faces (th)
 			create Result.make (ctx, th)

@@ -18,7 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SW_TEXT_BOX.draw` is three parts a descendant can call between its own clip and gutter: `draw_field`, `draw_content`, `draw_adornments`.
 - `SW_TEXT_BOX.set_text_role` / `text_role`: the face the text is set in (`Role_mono` for code); 0 keeps the field's own.
 - `SW_TEXT_BOX.set_tab_spaces` / `tab_spaces` and `SW_TEXT_GEOMETRY.set_tab_spaces`: tab stops every so many space-widths (8 until set; `Default_tab_spaces` replaces the constant `Tab_spaces`).
-- Tests: `SW_TEXT_FRAME_ASSAULT` (9), on the toy and the shaped engine.
+- Tests: `SW_TEXT_FRAME_ASSAULT` (11), on the toy and the shaped engine.
+
+### Fixed (0.57.0 - the mono role is fixed-pitch on a machine without the theme's mono face)
+
+- The theme names its mono face (IBM Plex Mono by default) but does not install it, and every platform silently puts a proportional face in place of a family it lacks: on such a machine `Role_mono` text was proportional (on Linux an i advanced 4 pixels and a W 15). Fixed-pitch faces now stand behind the theme's face, listed once in the new `SW_FIXED_PITCH_FACES` (`mono_anchors`: Consolas, Courier New; `mono_system_faces`: Menlo, DejaVu Sans Mono, monospace).
+- Shaped path: `SW_SHAPING.styled_fonts` puts `mono_anchors` behind the theme's face for `Role_mono`; simple_shaping drops whichever is not installed, and off Windows maps both to the system's monospace font.
+- Cairo's own text path: `SW_PAINTER.font` takes the first of the theme's face, `mono_anchors` and `mono_system_faces` in which i and W advance alike (measured once per theme face, then remembered).
+- The theme's own face still leads wherever it is installed; nothing changes on such a machine.
 
 ### Added (0.56.0 - a notice with an action; shortcuts that yield to typing)
 

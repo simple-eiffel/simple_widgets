@@ -216,6 +216,8 @@ feature {NONE} -- Test runners
 			run_test (agent text_frame_tests.test_tab_stops_follow_tab_spaces_on_the_shaped_path, "tab_stops_follow_tab_spaces_on_the_shaped_path")
 			run_test (agent text_frame_tests.test_mono_role_gives_equal_advances_on_the_toy_path, "mono_role_gives_equal_advances_on_the_toy_path")
 			run_test (agent text_frame_tests.test_mono_role_gives_equal_advances_on_the_shaped_path, "mono_role_gives_equal_advances_on_the_shaped_path")
+			run_test (agent text_frame_tests.test_mono_role_survives_a_missing_face_on_the_toy_path, "mono_role_survives_a_missing_face_on_the_toy_path")
+			run_test (agent text_frame_tests.test_mono_role_survives_a_missing_face_on_the_shaped_path, "mono_role_survives_a_missing_face_on_the_shaped_path")
 			run_test (agent text_frame_tests.test_a_plain_box_keeps_its_frame, "a_plain_box_keeps_its_frame")
 			run_test (agent text_frame_tests.test_a_moved_frame_moves_the_hit_test_on_the_toy_path, "a_moved_frame_moves_the_hit_test_on_the_toy_path")
 			run_test (agent text_frame_tests.test_a_moved_frame_moves_the_hit_test_on_the_shaped_path, "a_moved_frame_moves_the_hit_test_on_the_shaped_path")
