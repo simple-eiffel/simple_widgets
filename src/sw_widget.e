@@ -716,9 +716,14 @@ feature -- Drawing
 			if opacity >= 1.0 then
 				draw (a_p)
 			elseif opacity > 0.0 then
+					-- the group is clipped to the widget (with room for a focus ring or a
+					-- shadow), so each frame allocates a widget-sized surface, not a window-sized one
+				a_p.context.save.do_nothing
+				a_p.context.clip_rectangle (x - Paint_margin, y - Paint_margin, width + 2.0 * Paint_margin, height + 2.0 * Paint_margin).do_nothing
 				a_p.context.push_group.do_nothing
 				draw (a_p)
 				a_p.context.pop_group_to_source.paint_alpha (opacity).do_nothing
+				a_p.context.restore.do_nothing
 			end
 		end
 
@@ -744,6 +749,10 @@ feature -- Opacity (1x)
 		ensure
 			set: opacity = a_opacity
 		end
+
+	Paint_margin: REAL_64 = 12.0
+			-- How far past its bounds a translucent widget's drawing may reach (focus ring,
+			-- shadow).
 
 	opacity_chosen: REAL_64
 			-- The opacity set last.
