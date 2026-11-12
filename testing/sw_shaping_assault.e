@@ -1267,6 +1267,8 @@ feature {NONE} -- GW-03 gates
 			bare_ink := ink_below_baseline (kit, a_theme, consonants_only (genesis_1_1_wlc), 14, False)
 			assert_true ("the points ink below the line", pointed_ink > (bare_ink * 3) // 2 + 20)
 			strong := ink_below_baseline (kit, a_theme, genesis_1_1_wlc, 14, True)
+			io.put_string ("    gw03 " + a_evidence + ": " + strong.out + " of " + pointed_ink.out
+				+ " mark pixels at 3:1 or better (" + ((strong * 100) // pointed_ink.max (1)).out + "%%, need 25%%)%N")
 			path := evidence_path (a_evidence)
 			if not path.is_empty then
 				write_specimen (kit, a_theme, path)
