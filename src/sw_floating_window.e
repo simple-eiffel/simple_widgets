@@ -294,7 +294,7 @@ feature -- Drawing
 			l_inset := content_inset
 			content.set_bounds (l_inset, l_inset, (client_width - 2.0 * l_inset).max (0.0), (client_height - 2.0 * l_inset).max (0.0))
 			content.arrange (painter)
-			content.draw (painter)
+			content.paint (painter)
 			if attached popup as al_m then
 				al_m.draw (painter)
 			end
@@ -403,6 +403,13 @@ feature {NONE} -- What it publishes (simple_shell#48)
 
 feature {NONE} -- Input internals
 
+	target_at (a_x, a_y: INTEGER): detachable SW_WIDGET
+			-- The widget under the point for input: skipping fully transparent ones (1x).
+		do
+			Result := reachable_target (content.widget_at (a_x, a_y))
+		end
+
+
 	handle_input (a_type, a_x, a_y: INTEGER)
 		local
 			l_keys: SW_KEYS
@@ -415,7 +422,7 @@ feature {NONE} -- Input internals
 			elseif a_type = Event_panel_press then
 				last_x := a_x
 				last_y := a_y
-				if attached content.widget_at (a_x, a_y) as al_target then
+				if attached target_at (a_x, a_y) as al_target then
 					if al_target.accepts_focus and then al_target /= focused then
 						move_focus (al_target)
 					end
@@ -433,12 +440,12 @@ feature {NONE} -- Input internals
 				end
 				owner.after_floating_input
 			elseif a_type = Event_panel_right_press then
-				if attached content.widget_at (a_x, a_y) as al_target then
+				if attached target_at (a_x, a_y) as al_target then
 					offer_context_menu (al_target, a_x, a_y)
 				end
 				owner.after_floating_input
 			elseif a_type = Event_panel_double then
-				if attached content.widget_at (a_x, a_y) as al_target then
+				if attached target_at (a_x, a_y) as al_target then
 					l_taker := spine_click (al_target, a_x, a_y, True)
 				end
 				owner.after_floating_input
@@ -455,7 +462,7 @@ feature {NONE} -- Input internals
 			elseif a_type = Event_panel_release then
 				release_capture (a_x, a_y)
 			elseif a_type = Event_panel_wheel then
-				if attached content.widget_at (last_x, last_y) as al_target then
+				if attached target_at (last_x, last_y) as al_target then
 					spine_wheel (al_target, a_x)
 					owner.after_floating_input
 				end
@@ -677,7 +684,7 @@ feature {NONE} -- Input internals
 		local
 			w: detachable SW_WIDGET
 		do
-			w := content.widget_at (a_x, a_y)
+			w := target_at (a_x, a_y)
 			if attached w as al_w then
 				al_w.set_hover_point (a_x, a_y)
 			end

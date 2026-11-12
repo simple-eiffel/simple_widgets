@@ -233,7 +233,7 @@ feature -- Drawing
 						l_before := True
 					end
 					if attached s.widget as al_w then
-						al_w.draw (a_p)
+						al_w.paint (a_p)
 					else
 						set_font (a_p)
 						if s.is_clickable then

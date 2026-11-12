@@ -1636,7 +1636,7 @@ feature {NONE} -- Cell editing
 			t := a_p.theme
 			if attached editor as al_editor and then is_editing then
 				place_editor
-				al_editor.draw (a_p)
+				al_editor.paint (a_p)
 			end
 			if not cell_note.is_empty and then note_model > 0 and then note_column >= 1 and then note_column <= columns.count then
 				l_pos := view_position_of (note_model)

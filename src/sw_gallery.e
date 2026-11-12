@@ -135,7 +135,7 @@ feature -- Drawing
 				a_p.set_color (t.surface_variant)
 				a_p.rrect_fill (cx, cy, Thumb_w, Thumb_h, 3.0)
 				images.i_th (i).set_bounds (cx + 2.0, cy + 2.0, Thumb_w - 4.0, Thumb_h - 4.0)
-				images.i_th (i).draw (a_p)
+				images.i_th (i).paint (a_p)
 				if i = selected_index then
 					a_p.set_color (t.accent)
 					a_p.rrect_stroke (cx - 0.5, cy - 0.5, Thumb_w + 1.0, Thumb_h + 1.0, 4.0)

@@ -407,7 +407,7 @@ feature {NONE} -- Layout implementation
 			-- The box over the edited block, else the block.
 		do
 			if a_i = editing_index and then attached editor as al_ed then
-				al_ed.draw (a_p)
+				al_ed.paint (a_p)
 			else
 				draw_block (a_p, a_i)
 			end

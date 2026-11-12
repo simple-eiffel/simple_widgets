@@ -1046,7 +1046,7 @@ feature -- Drawing
 			end
 			th := bh - 2.0 * pad_px - bands_above.i_th (a_i) - bands_below.i_th (a_i)
 			if a_i = editing_index and then attached editor as al_ed then
-				al_ed.draw (a_p)
+				al_ed.paint (a_p)
 			else
 				if marks_list.i_th (a_i).text_count /= geometries.i_th (a_i).count then
 					marks_list.i_th (a_i).clamp_to (geometries.i_th (a_i).count)

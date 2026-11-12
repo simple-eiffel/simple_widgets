@@ -276,10 +276,10 @@ feature -- Drawing
 		do
 			t := a_p.theme
 			if collapsed_pane /= 1 then
-				left_child.draw (a_p)
+				left_child.paint (a_p)
 			end
 			if collapsed_pane /= 2 then
-				right_child.draw (a_p)
+				right_child.paint (a_p)
 			end
 			if is_horizontal then
 				cy := y + (height - Divider_w) * ratio + Divider_w / 2.0

@@ -494,7 +494,7 @@ feature -- Buttons and the strip (0.46.0)
 				a_p.set_color (t.ink)
 				a_p.text (r.rx + tab_pad, r.ry + bar_text_y, host.panels.i_th (host.slid_out_panel).title)
 				a_p.push_clip (r.rx + 1.0, r.ry + 1.0, (r.rw - 2.0).max (0.0), (r.rh - 2.0).max (0.0))
-				host.panels.i_th (host.slid_out_panel).content.draw (a_p)
+				host.panels.i_th (host.slid_out_panel).content.paint (a_p)
 				a_p.pop_clip
 				a_p.set_color (t.outline)
 				a_p.rrect_stroke (r.rx + 0.5, r.ry + 0.5, r.rw - 1.0, r.rh - 1.0, 2.0)
@@ -1131,7 +1131,7 @@ feature {NONE} -- Implementation
 			-- than a narrow zone must not paint over the center.
 		do
 			a_p.push_clip (x + 1.0, y + 1.0, (width - 2.0).max (0.0), (height - 2.0).max (0.0))
-			a_content.draw (a_p)
+			a_content.paint (a_p)
 			a_p.pop_clip
 		end
 

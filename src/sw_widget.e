@@ -708,6 +708,58 @@ feature -- Drawing
 		deferred
 		end
 
+	paint (a_p: SW_PAINTER)
+			-- Draw this widget at its `opacity': as `draw' when opaque, not at all when
+			-- transparent, else drawn into a group composited at that alpha (1x). A
+			-- container paints its children with this, never `draw'.
+		do
+			if opacity >= 1.0 then
+				draw (a_p)
+			elseif opacity > 0.0 then
+					-- the group is clipped to the widget (with room for a focus ring or a
+					-- shadow), so each frame allocates a widget-sized surface, not a window-sized one
+				a_p.context.save.do_nothing
+				a_p.context.clip_rectangle (x - Paint_margin, y - Paint_margin, width + 2.0 * Paint_margin, height + 2.0 * Paint_margin).do_nothing
+				a_p.context.push_group.do_nothing
+				draw (a_p)
+				a_p.context.pop_group_to_source.paint_alpha (opacity).do_nothing
+				a_p.context.restore.do_nothing
+			end
+		end
+
+feature -- Opacity (1x)
+
+	opacity: REAL_64
+			-- How opaque it shows: 1 (the default) to 0, at which it takes no pointer input.
+		do
+			if is_opacity_set then
+				Result := opacity_chosen
+			else
+				Result := 1.0
+			end
+		end
+
+	set_opacity (a_opacity: REAL_64)
+			-- Show it at `a_opacity'.
+		require
+			in_range: a_opacity >= 0.0 and a_opacity <= 1.0
+		do
+			opacity_chosen := a_opacity
+			is_opacity_set := True
+		ensure
+			set: opacity = a_opacity
+		end
+
+	Paint_margin: REAL_64 = 12.0
+			-- How far past its bounds a translucent widget's drawing may reach (focus ring,
+			-- shadow).
+
+	opacity_chosen: REAL_64
+			-- The opacity set last.
+
+	is_opacity_set: BOOLEAN
+			-- Has `set_opacity' been called? (A REAL_64 attribute cannot start at 1 by itself.)
+
 feature -- Hit testing
 
 	widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET

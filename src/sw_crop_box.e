@@ -95,7 +95,7 @@ feature -- Drawing
 			a_p.set_color (t.surface)
 			a_p.rrect_fill (x, y, width, height, t.radius)
 			image.set_bounds (x + 2.0, y + 2.0, (width - 4.0).max (2.0), (height - 4.0).max (2.0))
-			image.draw (a_p)
+			image.paint (a_p)
 			if has_selection then
 				r := crop_rect
 				a_p.set_color_alpha (t.accent, 0.18)

@@ -160,7 +160,7 @@ feature -- Drawing
 			t := a_p.theme
 			a_p.push_clip (x, y, width, height)
 			if attached child as c then
-				c.draw (a_p)
+				c.paint (a_p)
 			end
 			a_p.pop_clip
 			bar.set_mode (styled_scroll_bars)

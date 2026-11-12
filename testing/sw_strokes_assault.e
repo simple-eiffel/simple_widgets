@@ -58,6 +58,47 @@ feature -- Strokes
 			sf.destroy
 		end
 
+feature -- Opacity (1x)
+
+	test_1x_opacity_paints_at_its_alpha_and_zero_takes_no_hit
+			-- A widget painted at opacity 1 covers its pixels, at 0.5 about half, at 0
+			-- not at all; at 0 a hit on it goes to its parent (no pointer input, as on
+			-- every platform).
+		local
+			sf: CAIRO_SURFACE
+			f: SW_TEST_FILL
+			col: SW_COLUMN
+			w: SW_WINDOW
+			l_full, l_half, l_none: NATURAL_32
+		do
+			create f.make
+			f.set_bounds (10.0, 10.0, 60.0, 30.0)
+			sf := surface (80, 50)
+			f.paint (painter_on (sf))
+			l_full := pixel (sf, 40, 25) |>> 24
+			sf.destroy
+			f.set_opacity (0.5)
+			sf := surface (80, 50)
+			f.paint (painter_on (sf))
+			l_half := pixel (sf, 40, 25) |>> 24
+			sf.destroy
+			f.set_opacity (0.0)
+			sf := surface (80, 50)
+			f.paint (painter_on (sf))
+			l_none := pixel (sf, 40, 25) |>> 24
+			sf.destroy
+			assert_true ("opaque covers: " + l_full.out, l_full = 255)
+			assert_true ("half lets half through: " + l_half.out, l_half >= 120 and l_half <= 136)
+			assert_true ("transparent draws nothing: " + l_none.out, l_none = 0)
+			create w.make ("hits", 0, 0, 300, 200, create {SW_THEME}.make_light)
+			create col.make
+			col.put (f)
+			w.set_root (col)
+			assert_true ("transparent: the hit goes to the parent", w.reachable_target (f) = col)
+			f.set_opacity (0.3)
+			assert_true ("translucent: it takes the hit", w.reachable_target (f) = f)
+		end
+
 feature -- Hatches
 
 	test_gw18_hatches_stay_inside_and_cross_carries_more

@@ -107,7 +107,7 @@ feature -- Drawing
 			across
 				children as c
 			loop
-				c.draw (a_p)
+				c.paint (a_p)
 			end
 		end
 

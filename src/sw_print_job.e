@@ -173,7 +173,7 @@ feature -- Drawing
 			lay_out_for_print (l_paper)
 			l_paper.push_clip (0.0, 0.0, l_w, l_slice)
 			l_paper.push_transform (0.0, -page_top (a_page), 1.0)
-			widget.draw (l_paper)
+			widget.paint (l_paper)
 			l_paper.pop_transform
 			l_paper.pop_clip
 			l_paper.pop_transform

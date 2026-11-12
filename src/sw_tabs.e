@@ -863,7 +863,7 @@ feature -- Drawing
 				end
 			end
 			if attached selected_page as pg then
-				pg.draw (a_p)
+				pg.paint (a_p)
 			end
 		end
 

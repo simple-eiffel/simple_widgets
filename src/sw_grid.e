@@ -197,7 +197,7 @@ feature -- Drawing
 					-- a cell with no area draws nothing (and cairo refuses an empty clip)
 				if not ic.is_hidden and ic.width > 0.0 and ic.height > 0.0 then
 					a_p.push_clip (ic.x, ic.y, ic.width, ic.height)
-					ic.draw (a_p)
+					ic.paint (a_p)
 					a_p.pop_clip
 				end
 			end
