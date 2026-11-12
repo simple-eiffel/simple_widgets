@@ -67,6 +67,11 @@ inherit
 
 	SW_POINTER_ROUTING
 
+	SW_ACCESSIBLE_TREE
+		redefine
+			extra_node_count, add_extra_nodes
+		end
+
 create
 	make
 
@@ -211,12 +216,6 @@ feature -- Element change
 
 feature -- Accessibility (GW-14)
 
-	accessibility: SW_ACCESSIBILITY
-			-- The UI Automation bridge this window publishes through.
-		once ("OBJECT")
-			create Result
-		end
-
 	is_accessible: BOOLEAN
 			-- Does the window publish its widget tree to screen readers? On
 			-- by default: a reader's user cannot turn it on from outside.
@@ -230,167 +229,18 @@ feature -- Accessibility (GW-14)
 			if not a_on then
 				accessibility.disable
 				accessible_widgets.wipe_out
+				across floating_windows as al_float loop
+					al_float.accessibility.disable
+					al_float.accessible_widgets.wipe_out
+				end
 			end
 		ensure
 			set: is_accessible = a_on
 		end
 
-	accessible_widgets: ARRAYED_LIST [SW_WIDGET]
-			-- The widgets published last, in tree order (node 0, the window
-			-- itself, is not among them).
-		attribute
-			create Result.make (64)
-		end
-
-	accessible_id_of (a_widget: SW_WIDGET): INTEGER
-			-- The node id `a_widget' is published under (its own, stable
-			-- `accessible_node_id'); 0 when it is not in the tree. A tree a
-			-- frame has outdated is published again first: with no client
-			-- listening (always, off Windows) frames do not publish, and a
-			-- section closed since would still answer (scan 13 on Linux).
-		do
-			if accessibility_is_stale and then is_accessible then
-				publish_accessibility
-			end
-			if accessible_widgets.has (a_widget) then
-				Result := a_widget.accessible_node_id
-			end
-		ensure
-			non_negative: Result >= 0
-		end
-
-	accessible_widget_with_id (a_id: INTEGER): detachable SW_WIDGET
-			-- The widget published last under node id `a_id', if any.
-		local
-			i: INTEGER
-		do
-			from
-				i := 1
-			until
-				i > accessible_widgets.count or Result /= Void
-			loop
-				if accessible_widgets.i_th (i).accessible_node_id = a_id then
-					Result := accessible_widgets.i_th (i)
-				end
-				i := i + 1
-			end
-		end
-
-	accessible_focus_tellings: INTEGER
-			-- How many times UI Automation has been told the focus moved.
-
-	publish_accessibility
-			-- Publish the widget tree: node 0 is the window (named by its
-			-- title), then every laid-out widget below the root in tree order
-			-- under its own stable id, each with its role, name, value,
-			-- bounds, focusability and enablement; then what floats above the
-			-- root - an open sheet's widgets, a dialog (its title, message and
-			-- buttons) and a popup menu's items (scan 13: none were reachable);
-			-- then the keyboard focus, when it moved. The window publishes when
-			-- it opens, on frames while a client listens, and when a client
-			-- asks (event 59).
-		local
-			l_parents: ARRAYED_LIST [INTEGER]
-			i: INTEGER
-			w: SW_WIDGET
-		do
-			accessibility_is_stale := False
-			accessible_widgets.wipe_out
-			create l_parents.make (64)
-			if attached root as al_root then
-				collect_accessible (al_root, 0, l_parents)
-			end
-			if attached sheet as al_sheet then
-				collect_accessible (al_sheet, 0, l_parents)
-			end
-			accessibility.begin_tree (accessible_widgets.count + 1 + floating_node_count + accessible_item_total)
-			accessibility.add_node (0, 0, {SW_ACCESSIBILITY}.Role_window, title, Void, 0.0, 0.0, win_w, win_h, False, True)
-			from
-				i := 1
-			until
-				i > accessible_widgets.count
-			loop
-				w := accessible_widgets.i_th (i)
-				accessibility.add_node (w.accessible_node_id, l_parents.i_th (i), w.accessible_role, w.accessible_name,
-					w.accessible_value, w.x, w.y, w.width, w.height, w.accepts_focus, w.is_enabled)
-				if not w.accessible_description.is_empty then
-					accessibility.describe_last_node (w.accessible_description)
-				end
-				w.publish_accessible_items (accessibility)
-				i := i + 1
-			end
-			add_floating_nodes
-			accessibility.commit (hwnd)
-			is_accessibility_published := True
-			tell_accessible_focus
-		ensure
-			published: is_accessibility_published
-			fresh: not accessibility_is_stale
-		end
-
-	describe_accessibility: STRING_32
-			-- The published tree as simple_gui's shared tests read it (W10): one line per
-			-- node, "role: name", indented two spaces per level, in the shared role names
-			-- (SW_ACCESSIBILITY.role_name, or a widget's `shared_role_name' where UI Automation
-			-- has no word for it); generic nodes (panes) are left out, as GTK's walk leaves them
-			-- out. Publishes first, so it is always current.
-		local
-			i, d: INTEGER
-			l_role: STRING_32
-			l_named: HASH_TABLE [STRING_32, INTEGER]
-		do
-			publish_accessibility
-			create l_named.make (16)
-			across accessible_widgets as ic loop
-				if attached ic.shared_role_name as al_name then
-					l_named.force (al_name, ic.accessible_node_id)
-				end
-			end
-			create Result.make (256)
-			from
-				i := 1
-			until
-				i > accessibility.served_rows
-			loop
-				l_role := accessibility.role_name (accessibility.served_role (i))
-				if attached l_named.item (accessibility.served_id (i)) as al_shared then
-					l_role := al_shared
-				end
-				if not l_role.same_string ("generic") then
-					from
-						d := accessibility.served_depth (i)
-					until
-						d = 0
-					loop
-						Result.append ("  ")
-						d := d - 1
-					end
-					Result.append (l_role)
-					Result.append (": ")
-					Result.append (accessibility.served_name (i))
-					Result.append_character ('%N')
-				end
-				i := i + 1
-			end
-		end
-
-	accessible_item_total: INTEGER
-			-- The non-widget nodes the collected widgets will publish (a list's rows).
-		do
-			across accessible_widgets as ic loop
-				Result := Result + ic.accessible_item_count
-			end
-		end
-
 	Floating_ids: INTEGER = 1_000_000_000
 			-- Node ids from here up name what has no widget: a dialog's parts,
 			-- a popup's items. Widget ids stay far below.
-
-	is_accessibility_published: BOOLEAN
-			-- Has the tree been published at least once?
-
-	accessibility_is_stale: BOOLEAN
-			-- Was a frame drawn since the tree was last published?
 
 feature -- Floating windows (GW-22)
 
@@ -588,6 +438,15 @@ feature {NONE} -- Floating window internals (GW-22)
 					al_float.blit
 				end
 			end
+		end
+
+	is_floating_accessibility_event (a_type, a_x, a_y: INTEGER): BOOLEAN
+			-- A UI Automation request a second window's procedure pushed: event
+			-- 58 with 1 in its second field, or 59 with 1 in its first, the
+			-- panel slot as the extra field (simple_shell#48)?
+		do
+			Result := (a_type = {SW_ACCESSIBILITY}.Event_focus_request and a_y = 1)
+				or (a_type = {SW_ACCESSIBILITY}.Event_refresh_request and a_x = 1)
 		end
 
 	is_floating_event (a_type: INTEGER): BOOLEAN
@@ -865,6 +724,12 @@ feature {NONE} -- Dispatch
 					-- GW-22: a framed panel's events belong to the floating
 					-- window that owns its slot, not to this window's tree
 				al_float.handle_event (a_type, a_x, a_y)
+			elseif is_floating_accessibility_event (a_type, a_x, a_y) then
+					-- simple_shell#48: a screen reader's request for a second
+					-- window; dropped when that window has closed since
+				if attached floating_at (event_extra) as al_float then
+					al_float.handle_accessibility_request (a_type, a_x)
+				end
 			else
 				dispatch_own (a_type, a_x, a_y)
 			end
@@ -1245,44 +1110,49 @@ feature {NONE} -- Accessibility internals (GW-14)
 	is_accessibility_off: BOOLEAN
 			-- Stored inverted: windows publish by default.
 
-	last_told_focus: detachable SW_WIDGET
-			-- The widget UI Automation was last told holds the focus.
-
-	collect_accessible (a_widget: SW_WIDGET; a_parent: INTEGER; a_parents: ARRAYED_LIST [INTEGER])
-			-- Append `a_widget' (under node `a_parent') and, below it, every
-			-- laid-out widget it shows; a widget with no size is skipped with
-			-- its subtree.
-		local
-			l_id: INTEGER
+	accessible_roots: ARRAYED_LIST [SW_WIDGET]
+			-- The root, then an open sheet.
 		do
-			if a_widget.width > 0.0 and a_widget.height > 0.0 then
-				accessible_widgets.extend (a_widget)
-				a_parents.extend (a_parent)
-				l_id := a_widget.accessible_node_id
-				across
-					a_widget.accessible_children as al_child
-				loop
-					collect_accessible (al_child, l_id, a_parents)
-				end
+			create Result.make (2)
+			if attached root as al_root then
+				Result.extend (al_root)
 			end
-		ensure
-			parallel: a_parents.count = accessible_widgets.count
+			if attached sheet as al_sheet then
+				Result.extend (al_sheet)
+			end
 		end
 
-	tell_accessible_focus
-			-- When the keyboard focus moved since UI Automation was last told,
-			-- tell it - only then (scan 13: every publish told it again).
-		local
-			l_id: INTEGER
+	accessible_title: READABLE_STRING_GENERAL
+			-- The window's title.
 		do
-			if is_accessibility_published and then focused /= last_told_focus then
-				last_told_focus := focused
-				if attached focused as al_focused then
-					l_id := accessible_id_of (al_focused)
-				end
-				accessibility.focus_changed (l_id)
-				accessible_focus_tellings := accessible_focus_tellings + 1
-			end
+			Result := title
+		end
+
+	accessible_width: REAL_64
+		do
+			Result := win_w
+		end
+
+	accessible_height: REAL_64
+		do
+			Result := win_h
+		end
+
+	accessible_window_handle: POINTER
+		do
+			Result := hwnd
+		end
+
+	extra_node_count: INTEGER
+			-- The dialog's and the popup menu's rows.
+		do
+			Result := floating_node_count
+		end
+
+	add_extra_nodes
+			-- A dialog and a popup menu (scan 13: none were reachable).
+		do
+			add_floating_nodes
 		end
 
 	floating_node_count: INTEGER

@@ -866,8 +866,14 @@ feature -- Input
 		end
 
 	set_enabled (a_enabled: BOOLEAN)
+			-- Accept input (`a_enabled') or not. Disabling a widget held down
+			-- releases it first (a button whose own click disables the window's
+			-- content, as Preview... does, is still pressed: 2026-11-12).
 		do
 			if is_disabled = a_enabled then
+				if not a_enabled and is_pressed then
+					set_pressed (False)
+				end
 				is_disabled := not a_enabled
 				if attached enabled_event as e then
 					e.call ([a_enabled])

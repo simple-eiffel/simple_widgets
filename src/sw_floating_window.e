@@ -13,8 +13,10 @@ note
 		While the owner shows a modal dialog, input here is ignored. Popups
 		open here too (1c): a menu bar's drop-downs and a widget's context
 		menu, drawn over the content and owning the pointer and the keys until
-		they close. Not yet: sheets and hover cards inside a floating window,
-		a per-widget pointer shape, publishing to screen readers.
+		they close. It publishes its own widget tree to screen readers, served
+		under its own native window (SW_ACCESSIBLE_TREE, simple_shell#48).
+		Not yet: sheets and hover cards inside a floating window, a
+		per-widget pointer shape, a popup menu's items in the published tree.
 	]"
 
 class
@@ -22,6 +24,8 @@ class
 
 inherit
 	SW_POINTER_ROUTING
+
+	SW_ACCESSIBLE_TREE
 
 	SHELL_EVENTS
 		export
@@ -154,6 +158,25 @@ feature -- Element change
 			set: on_close_request = a_action
 		end
 
+	handle_accessibility_request (a_type, a_x: INTEGER)
+			-- A UI Automation client's request for this window (simple_shell#48):
+			-- to move the focus to node `a_x' (event 58; never while a popup is
+			-- open), or for the tree (event 59).
+		require
+			open: is_open
+		do
+			if a_type = Event_focus_request then
+				if popup = Void and then attached accessible_widget_with_id (a_x) as al_target
+					and then al_target.accepts_focus and then al_target.is_enabled
+				then
+					give_focus (al_target)
+					owner.after_floating_input
+				end
+			elseif a_type = Event_refresh_request and then is_accessible then
+				publish_accessibility
+			end
+		end
+
 	show
 			-- Put it on screen where it was opened, without taking the focus.
 		require
@@ -169,6 +192,9 @@ feature -- Element change
 	close
 			-- Destroy the native window; `content' is left for its next home.
 		do
+				-- screen readers stop seeing it first (#48)
+			accessibility.disable
+			accessible_widgets.wipe_out
 			if panel.is_open then
 				panel.close
 			end
@@ -273,6 +299,19 @@ feature -- Drawing
 				al_m.draw (painter)
 			end
 			render_count := render_count + 1
+				-- screen readers (#48): as the main window does, publish when
+				-- first drawn, when the window changed, and on frames while a
+				-- client listens; otherwise the tree is marked stale
+			if is_accessible then
+				if not is_accessibility_published or else accessibility.served_window /= panel.handle
+					or else accessibility.clients_listening
+				then
+					publish_accessibility
+				else
+					accessibility_is_stale := True
+					tell_accessible_focus
+				end
+			end
 		ensure
 			counted: render_count = old render_count + 1
 		end
@@ -321,6 +360,45 @@ feature -- Drawing
 			l_copy.destroy
 			Result := l_image.write_png (a_path.to_string_32)
 			l_image.destroy
+		end
+
+feature {NONE} -- What it publishes (simple_shell#48)
+
+	is_accessible: BOOLEAN
+			-- As its owner: on unless the program turned it off.
+		do
+			Result := owner.is_accessible
+		end
+
+	accessible_roots: ARRAYED_LIST [SW_WIDGET]
+			-- Its content.
+		do
+			create Result.make (1)
+			Result.extend (content)
+		end
+
+	accessible_title: READABLE_STRING_GENERAL
+			-- Its title.
+		do
+			Result := panel.title
+		end
+
+	accessible_width: REAL_64
+		do
+			Result := client_width
+		end
+
+	accessible_height: REAL_64
+		do
+			Result := client_height
+		end
+
+	accessible_window_handle: POINTER
+			-- Its own native window.
+		do
+			if panel.is_open then
+				Result := panel.handle
+			end
 		end
 
 feature {NONE} -- Input internals

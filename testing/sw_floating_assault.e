@@ -180,6 +180,64 @@ feature -- Evidence
 
 feature -- Input
 
+	test_a_pressed_button_disabled_is_released
+			-- A button whose own click disables it (simple_gui's Preview... disables the
+			-- window's content, itself included, before its press ends) is released, not
+			-- left pressed and disabled (the invariant crashed the example, 2026-11-12).
+		local
+			l_button: SW_BUTTON
+		do
+			create l_button.make ("Preview", Void)
+			l_button.set_pressed (True)
+			l_button.set_enabled (False)
+			assert_false ("released", l_button.is_pressed)
+			assert_false ("and disabled", l_button.is_enabled)
+		end
+
+	test_a_floating_window_serves_its_own_tree
+			-- simple_shell#48: a second window (a print preview, say) publishes its own
+			-- widget tree, served under its own native window, and the main window's
+			-- tree stays its own. A screen reader's request to focus its canvas
+			-- (a preview's page) moves its focus; closed, it serves nothing.
+		local
+			w: SW_WINDOW
+			l_float: SW_FLOATING_WINDOW
+			l_box: SW_COLUMN
+			l_close: SW_BUTTON
+			l_page: SW_CANVAS
+			l_seen, l_main_seen: STRING_32
+		do
+			create w.make ("main", 0, 0, 900, 600, create {SW_THEME}.make_light)
+			w.set_root (create {SW_BUTTON}.make ("Preview", Void))
+			w.request_render
+			create l_box.make
+			l_box.put (create {SW_BUTTON}.make ("Previous", Void))
+			create l_close.make ("Close", Void)
+			l_box.put (l_close)
+			create l_page.make (120.0)
+				-- a canvas is focusable when it listens for keys, as a preview's page does
+			l_page.set_on_key (agent (a_vk: INTEGER; a_shift: BOOLEAN) do end)
+			l_box.put (l_page)
+			l_float := w.float_document (l_box, "Print preview", -3000, -3000, 400, 300)
+			assert_true ("open", l_float.is_open)
+			l_float.render
+			assert_true ("published when first drawn", l_float.is_accessibility_published)
+			assert_true ("served under its own native window", l_float.panel.handle /= default_pointer
+				and l_float.accessibility.served_window = l_float.panel.handle)
+			l_seen := l_float.describe_accessibility
+			assert ("its title and buttons: " + {UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_seen), l_seen.has_substring (": Print preview%N")
+				and l_seen.has_substring ("button: Previous") and l_seen.has_substring ("button: Close"))
+			assert ("not the main window's button: " + {UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_seen), not l_seen.has_substring ("button: Preview%N"))
+			l_main_seen := w.describe_accessibility
+			assert ("the main window's tree is its own: " + {UTF_CONVERTER}.string_32_to_utf_8_string_8 (l_main_seen),
+				l_main_seen.has_substring ("button: Preview") and not l_main_seen.has_substring ("button: Close"))
+			assert_true ("and the second window still serves", l_float.accessibility.is_serving)
+			l_float.handle_accessibility_request ({SHELL_EVENTS}.Event_focus_request, l_float.accessible_id_of (l_page))
+			assert_true ("a screen reader's request focused the page", l_float.focused = l_page)
+			l_float.close
+			assert_false ("closed, it serves nothing", l_float.accessibility.is_serving)
+		end
+
 	test_a_menu_bar_in_a_floating_window_drops_its_menu
 			-- 1c: a menu bar inside a floating document window opens its menu
 			-- there; Enter runs the highlighted item, Right steps to the next
