@@ -1035,6 +1035,7 @@ feature {NONE} -- Test runners
 			print ("%N=== GW-18 STROKES, HATCHES, GRADIENTS ===%N")
 			create strokes_tests
 			run_test (agent strokes_tests.test_1x_opacity_paints_at_its_alpha_and_zero_takes_no_hit, "1x_opacity_paints_at_its_alpha_and_zero_takes_no_hit")
+			run_test (agent strokes_tests.test_1x_reveal_takes_its_share_draws_in_its_slot_and_yields, "1x_reveal_takes_its_share_draws_in_its_slot_and_yields")
 			run_test (agent strokes_tests.test_gw18_dashes_break_and_solid_does_not, "gw18_dashes_break_and_solid_does_not")
 			run_test (agent strokes_tests.test_gw18_no_style_leaks, "gw18_no_style_leaks")
 			run_test (agent strokes_tests.test_gw18_hatches_stay_inside_and_cross_carries_more, "gw18_hatches_stay_inside_and_cross_carries_more")

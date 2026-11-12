@@ -444,7 +444,7 @@ feature -- Layout
 			measure (a_p)
 			Result := row_count * row_h
 			if attached shown_page as pg then
-				Result := Result.max (pg.clamped_height (pg.preferred_height (a_p, (a_width - list_w).max (1.0))))
+				Result := Result.max (pg.slot_height (pg.preferred_height (a_p, (a_width - list_w).max (1.0))))
 			end
 		end
 

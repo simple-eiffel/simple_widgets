@@ -262,7 +262,7 @@ feature {NONE} -- Implementation
 			create Result.make_filled (n)
 			across cells as ic loop
 				if ic.columns = 1 and not ic.widget.is_hidden then
-					Result.put_i_th (Result.i_th (ic.column).max (ic.widget.clamped_width (ic.widget.preferred_width (a_p))), ic.column)
+					Result.put_i_th (Result.i_th (ic.column).max (ic.widget.slot_width (ic.widget.preferred_width (a_p))), ic.column)
 				end
 			end
 			if has_homogeneous_columns then
@@ -317,7 +317,7 @@ feature {NONE} -- Implementation
 			create Result.make_filled (row_count)
 			across cells as ic loop
 				if ic.rows = 1 and not ic.widget.is_hidden then
-					Result.put_i_th (Result.i_th (ic.row).max (ic.widget.clamped_height (
+					Result.put_i_th (Result.i_th (ic.row).max (ic.widget.slot_height (
 						ic.widget.preferred_height (a_p, spanned (a_widths, ic.column, ic.columns, l_cg)))), ic.row)
 				end
 			end

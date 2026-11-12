@@ -709,23 +709,185 @@ feature -- Drawing
 		end
 
 	paint (a_p: SW_PAINTER)
-			-- Draw this widget at its `opacity': as `draw' when opaque, not at all when
-			-- transparent, else drawn into a group composited at that alpha (1x). A
+			-- Draw this widget at its `opacity' and `reveal' (1x): a fade multiplies the
+			-- opacity; a slide draws it at its full size moved in from its edge and clipped to
+			-- the share of its space it takes; a grow draws it scaled about its middle. A
 			-- container paints its children with this, never `draw'.
 		do
-			if opacity >= 1.0 then
+			if reveal_effect = 0 or else reveal >= 1.0 then
+				paint_at (a_p, opacity)
+			elseif reveal_effect = Reveal_fade then
+				paint_at (a_p, opacity * reveal)
+			elseif reveal >= Least_drawn_reveal then
+				paint_revealed (a_p)
+			end
+		end
+
+	paint_at (a_p: SW_PAINTER; a_alpha: REAL_64)
+			-- Draw this widget at alpha `a_alpha': as `draw' when opaque, not at all when
+			-- transparent, else drawn into a group composited at that alpha.
+		require
+			alpha_in_range: a_alpha >= 0.0 and a_alpha <= 1.0
+		do
+			if a_alpha >= 1.0 then
 				draw (a_p)
-			elseif opacity > 0.0 then
+			elseif a_alpha > 0.0 then
 					-- the group is clipped to the widget (with room for a focus ring or a
 					-- shadow), so each frame allocates a widget-sized surface, not a window-sized one
 				a_p.context.save.do_nothing
 				a_p.context.clip_rectangle (x - Paint_margin, y - Paint_margin, width + 2.0 * Paint_margin, height + 2.0 * Paint_margin).do_nothing
 				a_p.context.push_group.do_nothing
 				draw (a_p)
-				a_p.context.pop_group_to_source.paint_alpha (opacity).do_nothing
+				a_p.context.pop_group_to_source.paint_alpha (a_alpha).do_nothing
 				a_p.context.restore.do_nothing
 			end
 		end
+
+	paint_revealed (a_p: SW_PAINTER)
+			-- A slide or grow part way: laid out at its full size, placed as GtkRevealer
+			-- places it (a slide from the top shows its bottom part first, from the bottom its
+			-- top part; leading and trailing mirror under right-to-left), clipped to its slot.
+		require
+			sliding_or_growing: reveal_effect >= Reveal_slide_from_top and reveal_effect <= Reveal_grow
+			part_way: reveal > 0.0 and reveal < 1.0
+		local
+			sx, sy, sw, sh, fw, fh, ox, oy, cx, cy: REAL_64
+			l_from_left: BOOLEAN
+		do
+			sx := x
+			sy := y
+			sw := width
+			sh := height
+			fw := sw
+			fh := sh
+			if reveal_share_width < 1.0 then
+				fw := sw / reveal
+			end
+			if reveal_share_height < 1.0 then
+				fh := sh / reveal
+			end
+			ox := sx
+			oy := sy
+			inspect reveal_effect
+			when Reveal_slide_from_top then
+				oy := sy + sh - fh
+			when Reveal_slide_from_bottom then
+				oy := sy
+			when Reveal_slide_from_leading, Reveal_slide_from_trailing then
+				l_from_left := (reveal_effect = Reveal_slide_from_leading) xor mirrors_layout
+				if l_from_left then
+					ox := sx + sw - fw
+				end
+			else
+				ox := sx + (sw - fw) / 2.0
+				oy := sy + (sh - fh) / 2.0
+			end
+			a_p.context.save.do_nothing
+			a_p.context.clip_rectangle (sx, sy, sw, sh).do_nothing
+			if reveal_effect = Reveal_grow then
+				cx := sx + sw / 2.0
+				cy := sy + sh / 2.0
+				a_p.context.translate (cx, cy).scale (reveal, reveal).translate (- cx, - cy).do_nothing
+			end
+			set_bounds (ox, oy, fw, fh)
+			arrange (a_p)
+			paint_at (a_p, opacity)
+			set_bounds (sx, sy, sw, sh)
+			arrange (a_p)
+			a_p.context.restore.do_nothing
+		end
+
+feature -- Reveal (1x)
+
+	Reveal_fade: INTEGER = 1
+	Reveal_slide_from_top: INTEGER = 2
+	Reveal_slide_from_bottom: INTEGER = 3
+	Reveal_slide_from_leading: INTEGER = 4
+	Reveal_slide_from_trailing: INTEGER = 5
+	Reveal_grow: INTEGER = 6
+			-- The effects (simple_gui's GUI_WIDGET.Effect_ values).
+
+	Least_drawn_reveal: REAL_64 = 0.02
+			-- Below this a slide or grow draws nothing (its full size would be huge).
+
+	reveal: REAL_64
+			-- How much of it its show or hide effect lets show: 1 all (the default), 0 nothing.
+		do
+			if is_reveal_set then
+				Result := reveal_chosen
+			else
+				Result := 1.0
+			end
+		end
+
+	reveal_effect: INTEGER
+			-- The effect `reveal' is shown under; 0 none.
+
+	is_pointer_blocked: BOOLEAN
+			-- Does it take no pointer input (an animated hide)? A hit passes to its parent.
+
+	set_reveal (a_effect: INTEGER; a_fraction: REAL_64; a_takes_pointer: BOOLEAN)
+			-- Show `a_fraction' of it under `a_effect', taking pointer input or not.
+		require
+			known_effect: a_effect >= Reveal_fade and a_effect <= Reveal_grow
+			in_range: a_fraction >= 0.0 and a_fraction <= 1.0
+		do
+			reveal_effect := a_effect
+			reveal_chosen := a_fraction
+			is_reveal_set := True
+			is_pointer_blocked := not a_takes_pointer
+		ensure
+			effect_set: reveal_effect = a_effect
+			fraction_set: reveal = a_fraction
+			pointer_set: is_pointer_blocked = not a_takes_pointer
+		end
+
+	reveal_share_width: REAL_64
+			-- The share of its width it takes in a layout: `reveal' for the sideways slides
+			-- and grow, else all.
+		do
+			inspect reveal_effect
+			when Reveal_slide_from_leading, Reveal_slide_from_trailing, Reveal_grow then
+				Result := reveal
+			else
+				Result := 1.0
+			end
+		ensure
+			in_range: Result >= 0.0 and Result <= 1.0
+		end
+
+	reveal_share_height: REAL_64
+			-- The share of its height it takes in a layout: `reveal' for the up and down
+			-- slides and grow, else all.
+		do
+			inspect reveal_effect
+			when Reveal_slide_from_top, Reveal_slide_from_bottom, Reveal_grow then
+				Result := reveal
+			else
+				Result := 1.0
+			end
+		ensure
+			in_range: Result >= 0.0 and Result <= 1.0
+		end
+
+	slot_width (a_natural: REAL_64): REAL_64
+			-- The width a container gives it: `a_natural' pulled inside its anchors, times
+			-- the share its reveal takes.
+		do
+			Result := clamped_width (a_natural) * reveal_share_width
+		end
+
+	slot_height (a_natural: REAL_64): REAL_64
+			-- The height a container gives it: as `slot_width'.
+		do
+			Result := clamped_height (a_natural) * reveal_share_height
+		end
+
+	reveal_chosen: REAL_64
+			-- The reveal set last.
+
+	is_reveal_set: BOOLEAN
+			-- Has `set_reveal' been called? (A REAL_64 attribute cannot start at 1 by itself.)
 
 feature -- Opacity (1x)
 

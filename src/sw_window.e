@@ -155,6 +155,55 @@ feature -- Element change
 			set: root = a_root
 		end
 
+	yield_focus (a_w: SW_WIDGET)
+			-- When the keyboard focus is on `a_w' or inside it, move it on to the next widget in
+			-- the focus ring outside it, or to none (1x: an animated hide).
+		local
+			fs: ARRAYED_LIST [SW_WIDGET]
+			l_next: detachable SW_WIDGET
+			i, l_at: INTEGER
+		do
+			if attached focused as al_f and then is_within (al_f, a_w) then
+				create fs.make (8)
+				if attached active_root as r then
+					r.focusables (fs)
+				end
+				l_at := fs.index_of (al_f, 1)
+				from
+					i := 1
+				until
+					i > fs.count or l_next /= Void
+				loop
+					if attached fs.i_th (((l_at - 1 + i) \\ fs.count.max (1)) + 1) as al_c and then not is_within (al_c, a_w) then
+						l_next := al_c
+					end
+					i := i + 1
+				end
+				al_f.set_focused (False)
+				focused := l_next
+				if attached l_next as al_n then
+					al_n.set_focused (True)
+				end
+			end
+		ensure
+			left: not (attached focused as al_f and then is_within (al_f, a_w))
+		end
+
+	is_within (a_w, a_container: SW_WIDGET): BOOLEAN
+			-- Is `a_w' `a_container' or inside it?
+		local
+			l_w: detachable SW_WIDGET
+		do
+			from
+				l_w := a_w
+			until
+				l_w = Void or Result
+			loop
+				Result := l_w = a_container
+				l_w := l_w.parent
+			end
+		end
+
 	give_focus (a_w: SW_WIDGET)
 			-- Hand the keyboard focus to `a_w' - the programmatic twin of
 			-- the click-to-focus path, for hosts that swap roots and need

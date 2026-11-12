@@ -685,14 +685,14 @@ feature -- Layout
 				l_col := column_width (a_p, a_width)
 				Result := labels.count * (bar_h + tab_gap)
 				if attached selected_page as pg then
-					Result := Result.max (pg.clamped_height (pg.preferred_height (a_p, (a_width - l_col - 8.0).max (1.0))))
+					Result := Result.max (pg.slot_height (pg.preferred_height (a_p, (a_width - l_col - 8.0).max (1.0))))
 				end
 			else
 				if has_strip then
 					Result := bar_h + 8.0
 				end
 				if attached selected_page as pg then
-					Result := Result + pg.clamped_height (pg.preferred_height (a_p, a_width))
+					Result := Result + pg.slot_height (pg.preferred_height (a_p, a_width))
 				end
 			end
 		end

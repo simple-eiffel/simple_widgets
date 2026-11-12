@@ -99,6 +99,52 @@ feature -- Opacity (1x)
 			assert_true ("translucent: it takes the hit", w.reachable_target (f) = f)
 		end
 
+	test_1x_reveal_takes_its_share_draws_in_its_slot_and_yields
+			-- 1x-b: half revealed by a slide from the top, a widget takes half its height in a
+			-- layout and paints only inside its slot; a half-grown one too; a widget being
+			-- hidden passes hits to its parent; and the focus leaves a widget being hidden for
+			-- the next in the ring.
+		local
+			sf: CAIRO_SURFACE
+			f: SW_TEST_FILL
+			col: SW_COLUMN
+			w: SW_WINDOW
+			c1, c2: SW_CANVAS
+		do
+			create f.make
+			f.set_reveal (f.Reveal_slide_from_top, 0.5, True)
+			assert_true ("half its height in a layout", (f.slot_height (40.0) - 20.0).abs < 1.0e-9)
+			assert_true ("all its width", (f.slot_width (60.0) - 60.0).abs < 1.0e-9)
+			f.set_bounds (10.0, 10.0, 60.0, 15.0)
+			sf := surface (80, 50)
+			f.paint (painter_on (sf))
+			assert_true ("inside its slot", (pixel (sf, 40, 20) |>> 24) = 255)
+			assert_true ("nothing below its slot", (pixel (sf, 40, 32) |>> 24) = 0)
+			sf.destroy
+			f.set_reveal (f.Reveal_grow, 0.5, True)
+			f.set_bounds (20.0, 10.0, 30.0, 15.0)
+			sf := surface (80, 50)
+			f.paint (painter_on (sf))
+			assert_true ("grown: inside its slot", (pixel (sf, 35, 17) |>> 24) = 255)
+			assert_true ("grown: nothing outside it", (pixel (sf, 10, 5) |>> 24) = 0 and (pixel (sf, 60, 40) |>> 24) = 0)
+			sf.destroy
+			create w.make ("reveal", 0, 0, 300, 200, create {SW_THEME}.make_light)
+			create col.make
+			col.put (f)
+			create c1.make (40.0)
+			c1.set_on_key (agent (a_vk: INTEGER; a_shift: BOOLEAN) do end)
+			create c2.make (40.0)
+			c2.set_on_key (agent (a_vk: INTEGER; a_shift: BOOLEAN) do end)
+			col.put (c1)
+			col.put (c2)
+			w.set_root (col)
+			f.set_reveal (f.Reveal_fade, 0.5, False)
+			assert_true ("being hidden: the hit goes to the parent", w.reachable_target (f) = col)
+			w.give_focus (c1)
+			w.yield_focus (c1)
+			assert_true ("the focus left for the next", w.focused = c2)
+		end
+
 feature -- Hatches
 
 	test_gw18_hatches_stay_inside_and_cross_carries_more

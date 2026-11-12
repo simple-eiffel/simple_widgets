@@ -23,7 +23,8 @@ feature -- Pointer input (1x)
 
 	reachable_target (a_hit: detachable SW_WIDGET): detachable SW_WIDGET
 			-- `a_hit', or, when it or an ancestor is fully transparent (opacity 0 takes no
-			-- pointer input, as on every platform), the parent of the outermost such one.
+			-- pointer input, as on every platform) or blocked (an animated hide), the parent
+			-- of the outermost such one.
 		local
 			l_w: detachable SW_WIDGET
 		do
@@ -33,7 +34,7 @@ feature -- Pointer input (1x)
 			until
 				l_w = Void
 			loop
-				if l_w.opacity = 0.0 then
+				if l_w.opacity = 0.0 or l_w.is_pointer_blocked then
 					Result := l_w.parent
 				end
 				l_w := l_w.parent

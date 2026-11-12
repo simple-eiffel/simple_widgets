@@ -146,7 +146,7 @@ feature -- Layout
 			across
 				l_kids as c
 			loop
-				Result := Result.max (c.clamped_width (c.preferred_width (a_p)))
+				Result := Result.max (c.slot_width (c.preferred_width (a_p)))
 			end
 			Result := Result + 2.0 * pad + style_inset_width
 		end
@@ -164,7 +164,7 @@ feature -- Layout
 			across
 				l_kids as c
 			loop
-				Result := Result + c.preferred_height (a_p, inner)
+				Result := Result + c.preferred_height (a_p, inner) * c.reveal_share_height
 				n := n + 1
 			end
 			if n > 1 then
@@ -205,9 +205,9 @@ feature -- Layout
 				if c.cross_alignment = Place_fill then
 					widths.extend (inner)
 				else
-					widths.extend (c.clamped_width (c.preferred_width (a_p)).min (inner))
+					widths.extend (c.slot_width (c.preferred_width (a_p)).min (inner))
 				end
-				heights.extend (c.clamped_height (c.preferred_height (a_p, widths.last)))
+				heights.extend (c.slot_height (c.preferred_height (a_p, widths.last)))
 				natural := natural + heights.last
 				total_grow := total_grow + c.grow
 			end

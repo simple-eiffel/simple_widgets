@@ -111,7 +111,7 @@ feature -- Layout
 			across
 				l_kids as c
 			loop
-				Result := Result + c.clamped_width (c.preferred_width (a_p))
+				Result := Result + c.slot_width (c.preferred_width (a_p))
 			end
 			if l_kids.count > 1 then
 				Result := Result + effective_gap (a_p) * (l_kids.count - 1)
@@ -136,8 +136,8 @@ feature -- Layout
 				across
 					l_kids as c
 				loop
-					widths.extend (c.clamped_width (c.preferred_width (a_p)))
-					heights.extend (c.clamped_height (c.preferred_height (a_p, widths.last)))
+					widths.extend (c.slot_width (c.preferred_width (a_p)))
+					heights.extend (c.slot_height (c.preferred_height (a_p, widths.last)))
 				end
 				starts := wrap_starts (widths, effective_gap (a_p), l_width)
 				from
@@ -246,8 +246,8 @@ feature -- Layout
 			across
 				l_kids as c
 			loop
-				widths.extend (c.clamped_width (c.preferred_width (a_p)))
-				heights.extend (c.clamped_height (c.preferred_height (a_p, widths.last)))
+				widths.extend (c.slot_width (c.preferred_width (a_p)))
+				heights.extend (c.slot_height (c.preferred_height (a_p, widths.last)))
 			end
 			starts := wrap_starts (widths, gp, width)
 			cy := y
@@ -308,7 +308,7 @@ feature -- Layout
 			across
 				l_kids as c
 			loop
-				widths.extend (c.clamped_width (c.preferred_width (a_p)))
+				widths.extend (c.slot_width (c.preferred_width (a_p)))
 				natural := natural + widths.last
 				total_grow := total_grow + c.grow
 			end
