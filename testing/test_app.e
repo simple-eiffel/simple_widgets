@@ -290,6 +290,8 @@ feature {NONE} -- Test runners
 			run_test (agent layout_grid_tests.test_a_cell_with_no_area_draws_nothing, "a_cell_with_no_area_draws_nothing")
 			run_test (agent layout_grid_tests.test_a_grown_window_writes_its_own_size, "a_grown_window_writes_its_own_size")
 			run_test (agent floating_tests.test_a_menu_bar_in_a_floating_window_drops_its_menu, "a_menu_bar_in_a_floating_window_drops_its_menu")
+			run_test (agent floating_tests.test_a_floating_window_serves_its_own_tree, "a_floating_window_serves_its_own_tree")
+			run_test (agent floating_tests.test_a_pressed_button_disabled_is_released, "a_pressed_button_disabled_is_released")
 			run_test (agent stage2_tests.test_splitter_goes_down_to_a_minimum_pane, "splitter_goes_down_to_a_minimum_pane")
 			run_test (agent stage2_tests.test_tree_arrows_follow_the_reading_direction, "tree_arrows_follow_the_reading_direction")
 			run_test (agent stage2_tests.test_expand_all_is_reported, "expand_all_is_reported")
