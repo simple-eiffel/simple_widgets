@@ -135,6 +135,18 @@ feature -- Access
 
 feature -- Element change
 
+	give_focus (a_w: SW_WIDGET)
+			-- Hand the keyboard focus to `a_w', as SW_WINDOW's `give_focus' does: the
+			-- programmatic twin of the click-to-focus path, so keys reach `a_w' before any
+			-- pointer lands (a print preview's canvas takes Escape and Page Up as it opens).
+		require
+			focusable: a_w.accepts_focus
+		do
+			move_focus (a_w)
+		ensure
+			holds: focused = a_w
+		end
+
 	set_on_close_request (a_action: PROCEDURE)
 		do
 			on_close_request := a_action
