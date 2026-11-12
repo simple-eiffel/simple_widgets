@@ -124,7 +124,7 @@ feature -- Drawing
 				images.i_th (current_index).set_bounds
 					(x + 30.0, y + 6.0, (width - 60.0).max (10.0),
 					(height - Dot_zone_h - 12.0).max (10.0))
-				images.i_th (current_index).draw (a_p)
+				images.i_th (current_index).paint (a_p)
 					-- edge chevrons
 				a_p.font ({SW_PAINTER}.Role_ui, 20.0, True)
 				a_p.set_color (t.ink_muted)

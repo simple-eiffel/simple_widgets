@@ -80,7 +80,7 @@ feature -- Export (GW-21)
 				al_hover.set_hover_signal (False)
 			end
 			a_widget.arrange (l_painter)
-			a_widget.draw (l_painter)
+			a_widget.paint (l_painter)
 			if attached l_hover as al_hover then
 				al_hover.set_hover_signal (not l_was_silenced)
 			end

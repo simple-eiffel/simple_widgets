@@ -220,7 +220,7 @@ feature -- Drawing
 				a_p.text (x + 28.0, cy + Header_h / 2.0 + t.size_label / 2.0 - 2.0, sections.i_th (i).title)
 				cy := cy + Header_h + 2.0
 				if sections.i_th (i).is_open then
-					sections.i_th (i).content.draw (a_p)
+					sections.i_th (i).content.paint (a_p)
 					cy := cy + sections.i_th (i).content.height + 10.0
 				end
 				i := i + 1

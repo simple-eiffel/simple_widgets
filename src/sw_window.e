@@ -2254,7 +2254,7 @@ feature {NONE} -- Hover card internals (GW-09)
 			painter.set_color (theme.outline)
 			painter.rrect_stroke (hover_card_px + 0.5, hover_card_py + 0.5, hover_card_pw - 1.0, hover_card_ph - 1.0, theme.radius + 2.0)
 			painter.push_clip (hover_card_px + 1.0, hover_card_py + 1.0, hover_card_pw - 2.0, hover_card_ph - 2.0)
-			a_card.content.draw (painter)
+			a_card.content.paint (painter)
 			painter.pop_clip
 		end
 
@@ -3275,7 +3275,7 @@ feature {NONE} -- Rendering
 					(win_w - gutter_left - gutter_right - 2.0 * content_border).max (0.0),
 					(win_h - gutter_top - gutter_bottom - 2.0 * content_border).max (0.0))
 				r.arrange (painter)
-				r.draw (painter)
+				r.paint (painter)
 			end
 			if attached pick_pebble as pb then
 				draw_pick_trajectory (pb)
@@ -3368,7 +3368,7 @@ feature {NONE} -- Rendering
 				end
 				s.arrange (painter)
 				painter.push_clip (sheet_px + 1.0, sheet_py + 1.0, sheet_pw - 2.0, sheet_ph - 2.0)
-				s.draw (painter)
+				s.paint (painter)
 				painter.pop_clip
 				if is_drawer_mode then
 						-- the pushpin, left of the drawer's own close X:
@@ -4593,6 +4593,7 @@ feature -- Drawer tab (peek and pin)
 			elseif attached root as r then
 				Result := r.widget_at (a_x, a_y)
 			end
+			Result := reachable_target (Result)
 		end
 
 	dialog: detachable SW_DIALOG

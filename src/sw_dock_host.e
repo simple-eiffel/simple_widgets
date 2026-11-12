@@ -1551,13 +1551,13 @@ feature -- Drawing
 			r: TUPLE [rx, ry, rw, rh: REAL_64]
 		do
 			if maximized_panel > 0 then
-				zone_widget (panels.i_th (maximized_panel).zone).draw (a_p)
+				zone_widget (panels.i_th (maximized_panel).zone).paint (a_p)
 			else
-				west_zone.draw (a_p)
-				east_zone.draw (a_p)
-				south_zone.draw (a_p)
-				north_zone.draw (a_p)
-				center.draw (a_p)
+				west_zone.paint (a_p)
+				east_zone.paint (a_p)
+				south_zone.paint (a_p)
+				north_zone.paint (a_p)
+				center.paint (a_p)
 				if slid_out_panel > 0 then
 					zone_widget (panels.i_th (slid_out_panel).zone).draw_slid_out (a_p)
 				end

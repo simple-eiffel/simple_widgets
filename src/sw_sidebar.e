@@ -557,7 +557,7 @@ feature -- Drawing
 				draw_collapse_button (a_p)
 			end
 			if attached shown_page as pg then
-				pg.draw (a_p)
+				pg.paint (a_p)
 			end
 		end
 
