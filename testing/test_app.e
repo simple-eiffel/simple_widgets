@@ -626,6 +626,7 @@ feature {NONE} -- Test runners
 			run_test (agent deepening_tests.test_placeholder_shows_only_while_empty, "placeholder_shows_only_while_empty")
 			run_test (agent deepening_tests.test_a_closed_window_lets_go_of_its_back_buffer, "a_closed_window_lets_go_of_its_back_buffer")
 			run_test (agent deepening_tests.test_a_panel_floats_after_the_main_window_closes, "a_panel_floats_after_the_main_window_closes")
+			run_test (agent deepening_tests.test_closed_windows_give_their_memory_back, "closed_windows_give_their_memory_back")
 			run_test (agent deepening_tests.test_textbox_undo_redo, "textbox_undo_redo")
 			run_test (agent deepening_tests.test_select_option_enablement, "select_option_enablement")
 			run_test (agent deepening_tests.test_radio_vertical_and_enablement, "radio_vertical_and_enablement")

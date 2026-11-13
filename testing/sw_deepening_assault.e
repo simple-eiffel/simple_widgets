@@ -82,19 +82,45 @@ feature -- A closed window lets go of its memory
 			-- A closed window frees its back buffer: a CAIRO_SURFACE is freed only by `destroy',
 			-- never by the collector (2026-11-12: every closed window kept its full buffer, a few
 			-- megabytes at 4K, and a suite opening hundreds grew past 2 GB). A hidden, off-screen
-			-- window closes itself on its first tick; its owner then releases the buffer.
+			-- window closes itself on its first tick; destroyed, it gives the buffer back itself.
 		local
 			w: SW_WINDOW
 		do
 			create w.make ("back buffer probe", -3000, -3000, 640, 480, create {SW_THEME}.make_light)
 			w.set_starts_hidden (True)
 			w.set_root (create {SW_COLUMN}.make)
-			assert_true ("a full buffer while open", w.frame_surface.width >= 640 and w.frame_surface.height >= 480)
+			assert_true ("a full buffer before it opens", w.frame_surface.width >= 640 and w.frame_surface.height >= 480)
 			w.set_on_tick (agent (a_w: SW_WINDOW) do a_w.close end (w))
 			w.run
-			assert_true ("the last frame is still there after run", w.frame_surface.width >= 640)
-			w.release_back_buffer
-			assert_true ("only a 1 by 1 surface once released", w.frame_surface.width = 1 and w.frame_surface.height = 1)
+			assert_true ("only a 1 by 1 surface once destroyed", w.frame_surface.width = 1 and w.frame_surface.height = 1)
+		end
+
+	test_closed_windows_give_their_memory_back
+			-- Open and close 30 hidden, off-screen windows, each with a floating window: memory stays
+			-- flat (2026-11-13: each kept its back buffer and its float's frame, about 4 MB a window,
+			-- in every program built on simple_widgets).
+		local
+			i: INTEGER
+			l_warm, l_after: NATURAL_64
+			l_memory: MEMORY
+		do
+			create l_memory
+			from i := 1 until i > 5 loop
+				open_and_close_a_window_with_a_float
+				i := i + 1
+			end
+			l_memory.full_collect
+			l_warm := commit_bytes
+			from i := 1 until i > 30 loop
+				open_and_close_a_window_with_a_float
+				i := i + 1
+			end
+			l_memory.full_collect
+			l_after := commit_bytes
+			print ("  memory: " + (l_warm // 1048576).out + " MB after 5 windows, " + (l_after // 1048576).out + " MB after 30 more%N")
+			assert_true ("the system reports memory", l_warm > 0 and l_after > 0)
+			assert_true ("flat: 30 windows grew it " + ((l_after.to_integer_64 - l_warm.to_integer_64) // 1048576).out + " MB",
+				l_after.to_integer_64 - l_warm.to_integer_64 < 24 * 1048576)
 		end
 
 	test_a_panel_floats_after_the_main_window_closes
@@ -110,7 +136,6 @@ feature -- A closed window lets go of its memory
 			w.set_root (create {SW_COLUMN}.make)
 			w.set_on_tick (agent (a_w: SW_WINDOW) do a_w.close end (w))
 			w.run
-			w.release_back_buffer
 			create l_next.make ("floats after", 0, 0, 400, 300, create {SW_THEME}.make_light)
 			l_next.set_root (create {SW_LABEL}.make_ui ("main"))
 			l_float := l_next.float_widget (create {SW_LABEL}.make_ui ("notes"), "Notes", -3000, -3000, 300, 200)
@@ -1395,6 +1420,34 @@ feature -- The pretty map (Natural Earth 110m, generated)
 			end
 			assert_integers_equal ("open Atlantic answers solar -3",
 				-3, zp.selected_offset)
+		end
+
+feature {NONE} -- Memory
+
+	open_and_close_a_window_with_a_float
+			-- A hidden 1200 by 800 window at -3000 that floats a label on its first tick, then closes.
+		local
+			w: SW_WINDOW
+		do
+			create w.make ("memory probe", -3000, -3000, 1200, 800, create {SW_THEME}.make_light)
+			w.set_starts_hidden (True)
+			w.set_root (create {SW_COLUMN}.make)
+			w.set_on_tick (agent (a_w: SW_WINDOW)
+				do
+					if a_w.floating_windows.is_empty then
+						a_w.float_widget (create {SW_LABEL}.make_ui ("notes"), "Notes", -3000, -3000, 500, 300).do_nothing
+					end
+					a_w.close
+				end (w))
+			w.run
+		end
+
+	commit_bytes: NATURAL_64
+			-- The process's own memory (testing/Clib/sw_test_memory.h); 0 when unavailable.
+		external
+			"C inline use %"sw_test_memory.h%""
+		alias
+			"return (EIF_NATURAL_64) sw_test_commit_bytes ();"
 		end
 
 end

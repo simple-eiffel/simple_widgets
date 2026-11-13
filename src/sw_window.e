@@ -58,7 +58,7 @@ class
 inherit
 	SHELL_WINDOW
 		redefine
-			on_shell_open,
+			on_shell_open, window_destroyed,
 			arm_dwell_timer, cancel_dwell_timer, is_dwell_timer_armed,
 			set_cursor_kind, event_extra
 		end
@@ -646,6 +646,7 @@ feature -- Operation
 			if hwnd = default_pointer then
 				log_line ("sw: window creation FAILED")
 			else
+				let_go_of_frames
 				log_line ("sw: window closed")
 			end
 		end
@@ -916,9 +917,8 @@ feature -- Memory
 	release_back_buffer
 			-- Keep only a 1 by 1 drawing surface now the window is closed (2026-11-12: every
 			-- closed window kept its full back buffer - a CAIRO_SURFACE is freed only by
-			-- `destroy', never by the garbage collector). A program that opens and closes windows
-			-- (simple_gui's loop, with `shell_turn') calls it after `close'; `run' does not, as a
-			-- program may still read a window's last frame after its `run' ends.
+			-- `destroy', never by the garbage collector). A window destroyed for good does it
+			-- itself (`let_go_of_frames'); a program may also call it on a window never opened.
 			-- Opened again, the window grows a full buffer (`on_shell_open').
 		require
 			closed: not is_window_open
@@ -935,6 +935,33 @@ feature -- Memory
 			end
 		ensure
 			released: alloc_w = 1 and alloc_h = 1
+		end
+
+feature {NONE} -- Memory
+
+	window_destroyed
+			-- The native window is gone (destroyed, not hidden): let go of its frames too.
+		do
+			Precursor
+			let_go_of_frames
+		end
+
+	let_go_of_frames
+			-- The native window was destroyed: give back its back buffer, and the frames of its
+			-- floating windows, which Windows destroys with their owner (2026-11-13: every closed
+			-- window kept them, so any program that opened and closed windows grew).
+		require
+			closed: not is_window_open
+		do
+			across floating_windows as ic loop
+				if not ic.is_frame_released then
+					ic.close
+				end
+			end
+			release_back_buffer
+		ensure
+			released: alloc_w = 1 and alloc_h = 1
+			floats_released: across floating_windows as ic all ic.is_frame_released end
 		end
 
 feature -- Hosting (1i: drawn inside another toolkit's window)
