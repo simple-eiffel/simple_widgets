@@ -66,6 +66,43 @@ feature -- Tests
 			assert ("nothing red drawn", not is_red (pixel_at (surf, 25, 15)))
 		end
 
+	test_a_tabs_switch_draws_both_pages
+			-- simple_gui 1x-c: part way through a switch a crossfade blends the two pages, and a
+			-- slide shows the old page leaving on one side and the new one coming in on the
+			-- other (forward: from the trailing side); at the end only the new page shows.
+		local
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			l_tabs: SW_TABS
+			l_px: NATURAL_32
+		do
+			create th.make_light
+			create surf.make (200, 100)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create l_tabs.make
+			l_tabs.set_strip_position (l_tabs.Position_none)
+			l_tabs.add_page ("Red", solid_canvas (0xFF0000))
+			l_tabs.add_page ("Blue", solid_canvas (0x0000FF))
+			l_tabs.set_bounds (0.0, 0.0, 200.0, 100.0)
+			l_tabs.select_tab (2)
+			l_tabs.show_transition (1, l_tabs.Transition_crossfade, 0.5)
+			draw_tabs (l_tabs, ctx, p, surf)
+			l_px := pixel_at (surf, 100, 50)
+			assert ("crossfade: half red, half blue: " + l_px.to_hex_string,
+				channel (l_px, 16) >= 0x60 and channel (l_px, 16) <= 0xA0 and channel (l_px, 0) >= 0x60 and channel (l_px, 0) <= 0xA0)
+			l_tabs.show_transition (1, l_tabs.Transition_slide, 0.5)
+			draw_tabs (l_tabs, ctx, p, surf)
+			assert ("slide: the old page leaves on the left", is_red (pixel_at (surf, 50, 50)))
+			assert ("slide: the new page comes in on the right", pixel_at (surf, 150, 50).bit_and (0xFFFFFF) = 0x0000FF)
+			l_tabs.show_transition (1, l_tabs.Transition_slide, 1.0)
+			assert ("ended", l_tabs.transition_from = 0 and l_tabs.transition_fraction = 1.0)
+			draw_tabs (l_tabs, ctx, p, surf)
+			assert ("only the new page", pixel_at (surf, 50, 50).bit_and (0xFFFFFF) = 0x0000FF)
+		end
+
 	test_pointer_events_carry_kind_button_and_modifiers
 		local
 			c: SW_CANVAS
@@ -184,6 +221,35 @@ feature {NONE} -- Pixels
 	is_red (a_pixel: NATURAL_32): BOOLEAN
 		do
 			Result := a_pixel.bit_and (0xFFFFFF) = 0xFF0000
+		end
+
+	channel (a_pixel: NATURAL_32; a_shift: INTEGER): NATURAL_32
+			-- The 8-bit channel `a_shift' bits up (16 red, 8 green, 0 blue).
+		do
+			Result := (a_pixel |>> a_shift).bit_and (0xFF)
+		end
+
+	solid_canvas (a_rgb: NATURAL_32): SW_CANVAS
+			-- A canvas showing a 200 by 100 image all of `a_rgb'.
+		local
+			l_image: CAIRO_SURFACE
+			l_ctx: CAIRO_CONTEXT
+		do
+			create l_image.make (200, 100)
+			create l_ctx.make (l_image)
+			l_ctx.set_color_rgb (channel (a_rgb, 16).to_real_64 / 255.0, channel (a_rgb, 8).to_real_64 / 255.0, channel (a_rgb, 0).to_real_64 / 255.0).paint.do_nothing
+			l_image.flush.do_nothing
+			create Result.make (100.0)
+			Result.present_image (l_image, 1.0)
+		end
+
+	draw_tabs (a_tabs: SW_TABS; a_ctx: CAIRO_CONTEXT; a_p: SW_PAINTER; a_surface: CAIRO_SURFACE)
+			-- White, then `a_tabs' laid out and drawn.
+		do
+			a_ctx.set_color_rgb (1.0, 1.0, 1.0).paint.do_nothing
+			a_tabs.arrange (a_p)
+			a_tabs.draw (a_p)
+			a_surface.flush.do_nothing
 		end
 
 end

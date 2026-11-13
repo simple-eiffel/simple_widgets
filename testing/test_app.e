@@ -264,6 +264,7 @@ feature {NONE} -- Test runners
 			create canvas_present_tests
 			run_test (agent canvas_present_tests.test_a_presented_image_is_drawn_one_to_one, "a_presented_image_is_drawn_one_to_one")
 			run_test (agent canvas_present_tests.test_a_forgotten_image_is_no_longer_drawn, "a_forgotten_image_is_no_longer_drawn")
+			run_test (agent canvas_present_tests.test_a_tabs_switch_draws_both_pages, "a_tabs_switch_draws_both_pages")
 			run_test (agent canvas_present_tests.test_pointer_events_carry_kind_button_and_modifiers, "pointer_events_carry_kind_button_and_modifiers")
 			run_test (agent canvas_present_tests.test_a_drag_that_ends_outside_still_releases_the_canvas, "a_drag_that_ends_outside_still_releases_the_canvas")
 			run_test (agent canvas_present_tests.test_resize_is_told_when_the_size_changes, "resize_is_told_when_the_size_changes")
