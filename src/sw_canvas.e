@@ -170,6 +170,17 @@ feature -- Presented image (W7)
 			kept: image = a_image and image_scale = a_scale
 		end
 
+	forget_image
+			-- Show no presented image: its host is about to free it (simple_gui's Windows backend,
+			-- when the canvas's window closes for good, 2026-11-13).
+		do
+			image := Void
+			image_scale := 1.0
+		ensure
+			forgotten: image = Void
+			scale_reset: image_scale = 1.0
+		end
+
 feature -- Pointer and size (W7)
 
 	on_pointer: detachable PROCEDURE [INTEGER, REAL_64, REAL_64, INTEGER, INTEGER]
