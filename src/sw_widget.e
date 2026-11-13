@@ -717,10 +717,23 @@ feature -- Drawing
 			if reveal_effect = 0 or else reveal >= 1.0 then
 				paint_at (a_p, opacity)
 			elseif reveal_effect = Reveal_fade then
-				paint_at (a_p, opacity * reveal)
+				paint_at (a_p, painted_opacity)
 			elseif reveal >= Least_drawn_reveal then
 				paint_revealed (a_p)
 			end
+		end
+
+	painted_opacity: REAL_64
+			-- The alpha `paint' draws this widget at: its `opacity', times a fade's share while
+			-- one runs (1x).
+		do
+			if reveal_effect = Reveal_fade and reveal < 1.0 then
+				Result := opacity * reveal
+			else
+				Result := opacity
+			end
+		ensure
+			in_range: Result >= 0.0 and Result <= 1.0
 		end
 
 	paint_at (a_p: SW_PAINTER; a_alpha: REAL_64)
