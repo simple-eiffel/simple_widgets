@@ -263,6 +263,7 @@ feature {NONE} -- Test runners
 			run_test (agent stage2_tests.test_tabs_grid_and_tree_read_their_parts, "tabs_grid_and_tree_read_their_parts")
 			create canvas_present_tests
 			run_test (agent canvas_present_tests.test_a_presented_image_is_drawn_one_to_one, "a_presented_image_is_drawn_one_to_one")
+			run_test (agent canvas_present_tests.test_a_forgotten_image_is_no_longer_drawn, "a_forgotten_image_is_no_longer_drawn")
 			run_test (agent canvas_present_tests.test_a_tabs_switch_draws_both_pages, "a_tabs_switch_draws_both_pages")
 			run_test (agent canvas_present_tests.test_pointer_events_carry_kind_button_and_modifiers, "pointer_events_carry_kind_button_and_modifiers")
 			run_test (agent canvas_present_tests.test_a_drag_that_ends_outside_still_releases_the_canvas, "a_drag_that_ends_outside_still_releases_the_canvas")
@@ -624,6 +625,9 @@ feature {NONE} -- Test runners
 			create deepening_tests
 			run_test (agent deepening_tests.test_enter_activates_a_single_line_box, "enter_activates_a_single_line_box")
 			run_test (agent deepening_tests.test_placeholder_shows_only_while_empty, "placeholder_shows_only_while_empty")
+			run_test (agent deepening_tests.test_a_closed_window_lets_go_of_its_back_buffer, "a_closed_window_lets_go_of_its_back_buffer")
+			run_test (agent deepening_tests.test_a_panel_floats_after_the_main_window_closes, "a_panel_floats_after_the_main_window_closes")
+			run_test (agent deepening_tests.test_closed_windows_give_their_memory_back, "closed_windows_give_their_memory_back")
 			run_test (agent deepening_tests.test_textbox_undo_redo, "textbox_undo_redo")
 			run_test (agent deepening_tests.test_select_option_enablement, "select_option_enablement")
 			run_test (agent deepening_tests.test_radio_vertical_and_enablement, "radio_vertical_and_enablement")

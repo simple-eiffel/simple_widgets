@@ -37,6 +37,35 @@ feature -- Tests
 			assert ("not past 10 units down", not is_red (pixel_at (surf, 25, 22)))
 		end
 
+	test_a_forgotten_image_is_no_longer_drawn
+			-- `forget_image' before the host frees the image: the canvas draws without it.
+		local
+			th: SW_THEME
+			surf, img: CAIRO_SURFACE
+			ctx, ictx: CAIRO_CONTEXT
+			p: SW_PAINTER
+			c: SW_CANVAS
+		do
+			create th.make_light
+			create surf.make (200, 100)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create img.make (40, 20)
+			create ictx.make (img)
+			ictx.set_color_rgb (1.0, 0.0, 0.0).paint.do_nothing
+			img.flush.do_nothing
+			create c.make (60.0)
+			c.set_bounds (10.0, 10.0, 100.0, 60.0)
+			c.present_image (img, 2.0)
+			c.forget_image
+			ictx.destroy
+			img.destroy
+			c.draw (p)
+			surf.flush.do_nothing
+			assert ("no image kept", c.image = Void and c.image_scale = 1.0)
+			assert ("nothing red drawn", not is_red (pixel_at (surf, 25, 15)))
+		end
+
 	test_a_tabs_switch_draws_both_pages
 			-- simple_gui 1x-c: part way through a switch a crossfade blends the two pages, and a
 			-- slide shows the old page leaving on one side and the new one coming in on the
