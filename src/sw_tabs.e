@@ -583,6 +583,7 @@ feature -- Closing and moving
 			l_page: SW_WIDGET
 			l_was_selected: BOOLEAN
 		do
+			transition_from := 0
 			l_page := pages.i_th (a_i)
 			l_was_selected := a_i = selected_index
 			labels.go_i_th (a_i)
@@ -629,6 +630,7 @@ feature -- Closing and moving
 		local
 			i: INTEGER
 		do
+			transition_from := 0
 			if a_from < a_to then
 				from
 					i := a_from
@@ -755,9 +757,17 @@ feature -- Layout
 					l_py := y + bar_h + 8.0
 				end
 			end
+			page_x := l_px
+			page_y := l_py
+			page_w := l_pw
+			page_h := l_ph
 			if attached selected_page as pg then
 				pg.set_bounds (l_px, l_py, l_pw, l_ph)
 				pg.arrange (a_p)
+			end
+			if attached leaving_page as al_leaving then
+				al_leaving.set_bounds (l_px, l_py, l_pw, l_ph)
+				al_leaving.arrange (a_p)
 			end
 		ensure then
 			placed: is_placed
@@ -862,9 +872,71 @@ feature -- Drawing
 					a_p.glyph ({SW_PAINTER}.Glyph_chevron_down, chevron_left + chevron_w / 2.0, strip_top + bar_h / 2.0, close_size * 0.8)
 				end
 			end
-			if attached selected_page as pg then
+			if attached leaving_page as al_old and then attached selected_page as al_new then
+				paint_switch (a_p, al_old, al_new)
+			elseif attached selected_page as pg then
 				pg.paint (a_p)
 			end
+		end
+
+feature -- Page transition (simple_gui 1x-c)
+
+	Transition_crossfade: INTEGER = 1
+			-- The old page fades out as the new one fades in.
+
+	Transition_slide: INTEGER = 2
+			-- Both pages move together, the new one coming in from its side.
+
+	transition_from: INTEGER
+			-- The page leaving while a switch shows; 0 when none does.
+
+	transition_kind: INTEGER
+			-- The switch's transition.
+
+	transition_fraction: REAL_64
+			-- How far the switch shown has got: 0 all the old page, 1 all the selected one (1
+			-- when none shows).
+		do
+			if transition_from = 0 then
+				Result := 1.0
+			else
+				Result := transition_shown
+			end
+		ensure
+			in_range: 0.0 <= Result and Result <= 1.0
+		end
+
+	show_transition (a_from, a_kind: INTEGER; a_fraction: REAL_64)
+			-- Show the switch from page `a_from' to the selected page at `a_fraction', under
+			-- `a_kind'. A slide moves toward the new page's side: a later page comes in from
+			-- the trailing side, an earlier one from the leading side, mirrored under right to
+			-- left. Only the selected page takes input. At 1, or from the selected page
+			-- itself, the selected page shows alone. The host steps the fraction (simple_gui's
+			-- shared clock) and asks for the redraw.
+		require
+			from_valid: a_from >= 1 and a_from <= pages.count
+			known_kind: a_kind = Transition_crossfade or a_kind = Transition_slide
+			in_range: a_fraction >= 0.0 and a_fraction <= 1.0
+		do
+			if a_fraction >= 1.0 or a_from = selected_index then
+				transition_from := 0
+			else
+				ensure_built (a_from)
+				transition_from := a_from
+				transition_kind := a_kind
+				transition_shown := a_fraction
+			end
+		ensure
+			ended: (a_fraction >= 1.0 or a_from = selected_index) implies transition_from = 0
+			showing: (a_fraction < 1.0 and a_from /= selected_index) implies (transition_from = a_from and transition_fraction = a_fraction)
+		end
+
+	end_transition
+			-- Show the selected page alone: a switch cut short (simple_gui selects at once).
+		do
+			transition_from := 0
+		ensure
+			ended: transition_from = 0 and transition_fraction = 1.0
 		end
 
 feature -- Under a pick (0.55.0)
@@ -1051,6 +1123,67 @@ feature -- Input
 					select_tab (selected_index + 1)
 				end
 				Result := True
+			end
+		end
+
+feature {NONE} -- Page transition
+
+	transition_shown: REAL_64
+			-- The fraction `show_transition' set.
+
+	page_x, page_y, page_w, page_h: REAL_64
+			-- Where the selected page goes, from the last `arrange'.
+
+	leaving_page: detachable SW_WIDGET
+			-- The page leaving while a switch shows.
+		do
+			if transition_from >= 1 and transition_from <= pages.count and transition_from /= selected_index then
+				Result := pages.i_th (transition_from)
+			end
+		end
+
+	paint_switch (a_p: SW_PAINTER; a_old, a_new: SW_WIDGET)
+			-- Both pages part way through the switch: a crossfade draws each at its share of
+			-- alpha; a slide draws both inside the page area, moved together toward the old
+			-- page's side.
+		local
+			f, l_sign: REAL_64
+		do
+			f := transition_shown
+			if transition_kind = Transition_crossfade then
+					-- a true crossfade: the two pages are added at their shares in one group
+					-- (painted one over the other, the old one would show through the new)
+				a_p.context.save.do_nothing
+				a_p.context.clip_rectangle (page_x, page_y, page_w, page_h).do_nothing
+				a_p.context.push_group.do_nothing
+				a_old.paint_at (a_p, a_old.painted_opacity * (1.0 - f))
+				a_p.context.push_group.do_nothing
+				a_new.paint (a_p)
+				a_p.context.pop_group_to_source.do_nothing
+				a_p.context.save.do_nothing
+				a_p.context.set_operator ({CAIRO_CONTEXT}.Operator_add).paint_alpha (a_new.painted_opacity * f).do_nothing
+				a_p.context.restore.do_nothing
+				a_p.context.pop_group_to_source.paint.do_nothing
+				a_p.context.restore.do_nothing
+			else
+					-- forward (a later page) comes in from the trailing side: from the right,
+					-- or from the left under right to left
+				if (selected_index > transition_from) xor mirrors_layout then
+					l_sign := 1.0
+				else
+					l_sign := -1.0
+				end
+				a_p.context.save.do_nothing
+				a_p.context.clip_rectangle (page_x, page_y, page_w, page_h).do_nothing
+				a_p.context.save.do_nothing
+				a_p.context.translate (- l_sign * page_w * f, 0.0).do_nothing
+				a_old.paint (a_p)
+				a_p.context.restore.do_nothing
+				a_p.context.save.do_nothing
+				a_p.context.translate (l_sign * page_w * (1.0 - f), 0.0).do_nothing
+				a_new.paint (a_p)
+				a_p.context.restore.do_nothing
+				a_p.context.restore.do_nothing
 			end
 		end
 
@@ -1413,6 +1546,7 @@ invariant
 	selection_in_range: selected_index >= 0 and selected_index <= pages.count
 	selected_when_populated: pages.count > 0 implies selected_index >= 1
 	first_in_range: first_visible >= 0 and first_visible <= pages.count
+	transition_in_range: transition_from >= 0 and transition_from <= pages.count
 	first_when_populated: pages.count > 0 implies first_visible >= 1
 	drag_in_range: drag_index >= 0 and drag_index <= pages.count
 	dragging_a_tab: is_dragging implies drag_index >= 1
