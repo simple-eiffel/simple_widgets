@@ -76,6 +76,48 @@ feature -- Placeholder and Enter (W5, for simple_gui)
 		alias "return memcmp($a, $b, (size_t) $n) == 0 ? EIF_TRUE : EIF_FALSE;"
 		end
 
+feature -- A closed window lets go of its memory
+
+	test_a_closed_window_lets_go_of_its_back_buffer
+			-- A closed window frees its back buffer: a CAIRO_SURFACE is freed only by `destroy',
+			-- never by the collector (2026-11-12: every closed window kept its full buffer, a few
+			-- megabytes at 4K, and a suite opening hundreds grew past 2 GB). A hidden, off-screen
+			-- window closes itself on its first tick; its owner then releases the buffer.
+		local
+			w: SW_WINDOW
+		do
+			create w.make ("back buffer probe", -3000, -3000, 640, 480, create {SW_THEME}.make_light)
+			w.set_starts_hidden (True)
+			w.set_root (create {SW_COLUMN}.make)
+			assert_true ("a full buffer while open", w.frame_surface.width >= 640 and w.frame_surface.height >= 480)
+			w.set_on_tick (agent (a_w: SW_WINDOW) do a_w.close end (w))
+			w.run
+			assert_true ("the last frame is still there after run", w.frame_surface.width >= 640)
+			w.release_back_buffer
+			assert_true ("only a 1 by 1 surface once released", w.frame_surface.width = 1 and w.frame_surface.height = 1)
+		end
+
+	test_a_panel_floats_after_the_main_window_closes
+			-- A floating window opens after a main window has come and gone (2026-11-13: the shell
+			-- kept the dead window's handle and named it the owner of the next float, and Windows
+			-- refused to create it; GTK and AppKit already dropped theirs).
+		local
+			w, l_next: SW_WINDOW
+			l_float: SW_FLOATING_WINDOW
+		do
+			create w.make ("gone first", -3000, -3000, 300, 200, create {SW_THEME}.make_light)
+			w.set_starts_hidden (True)
+			w.set_root (create {SW_COLUMN}.make)
+			w.set_on_tick (agent (a_w: SW_WINDOW) do a_w.close end (w))
+			w.run
+			w.release_back_buffer
+			create l_next.make ("floats after", 0, 0, 400, 300, create {SW_THEME}.make_light)
+			l_next.set_root (create {SW_LABEL}.make_ui ("main"))
+			l_float := l_next.float_widget (create {SW_LABEL}.make_ui ("notes"), "Notes", -3000, -3000, 300, 200)
+			assert_true ("the float opens", l_float.is_open)
+			l_float.close
+		end
+
 feature -- Text box undo (the most-missed feature)
 
 	test_textbox_undo_redo

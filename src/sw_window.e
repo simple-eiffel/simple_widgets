@@ -656,6 +656,10 @@ feature -- Operation
 			-- there is a window to serve (scan 13: the first publish, before
 			-- it existed, named no window).
 		do
+			if win_w > alloc_w or win_h > alloc_h then
+					-- opened again after `release_back_buffer'
+				fit_back_buffer
+			end
 			if is_accessible then
 				publish_accessibility
 			end
@@ -905,6 +909,32 @@ feature {NONE} -- Dispatch
 					sh.call (a_type, a_x, a_y)
 				end
 			end
+		end
+
+feature -- Memory
+
+	release_back_buffer
+			-- Keep only a 1 by 1 drawing surface now the window is closed (2026-11-12: every
+			-- closed window kept its full back buffer - a CAIRO_SURFACE is freed only by
+			-- `destroy', never by the garbage collector). A program that opens and closes windows
+			-- (simple_gui's loop, with `shell_turn') calls it after `close'; `run' does not, as a
+			-- program may still read a window's last frame after its `run' ends.
+			-- Opened again, the window grows a full buffer (`on_shell_open').
+		require
+			closed: not is_window_open
+		do
+			if alloc_w > 1 or alloc_h > 1 then
+				ctx.destroy
+				offscreen.destroy
+				alloc_w := 1
+				alloc_h := 1
+				offscreen := cairo.create_surface (1, 1)
+				create ctx.make (offscreen)
+				create painter.make (ctx, theme)
+				painter.set_shaping (shaping)
+			end
+		ensure
+			released: alloc_w = 1 and alloc_h = 1
 		end
 
 feature -- Hosting (1i: drawn inside another toolkit's window)
@@ -3082,6 +3112,23 @@ feature {NONE} -- Popup lifecycle
 			-- The guard that keeps any future reentry (sent messages,
 			-- callbacks) from rebuilding cairo under a live render.
 
+
+	fit_back_buffer
+			-- A new offscreen surface big enough for the window, in 256-pixel steps so a drag
+			-- reallocates rarely.
+		do
+			alloc_w := ((win_w // 256) + 1) * 256
+			alloc_h := ((win_h // 256) + 1) * 256
+			ctx.destroy
+			offscreen.destroy
+			offscreen := cairo.create_surface (alloc_w, alloc_h)
+			create ctx.make (offscreen)
+			create painter.make (ctx, theme)
+			painter.set_shaping (shaping)
+		ensure
+			fits: win_w <= alloc_w and win_h <= alloc_h
+		end
+
 	resize_surface (a_w, a_h: INTEGER)
 			-- The user resized the frame: re-layout always; a NEW
 			-- offscreen only when the window outgrows the allocation,
@@ -3092,14 +3139,7 @@ feature {NONE} -- Popup lifecycle
 				win_w := a_w
 				win_h := a_h
 				if win_w > alloc_w or win_h > alloc_h then
-					alloc_w := ((win_w // 256) + 1) * 256
-					alloc_h := ((win_h // 256) + 1) * 256
-					ctx.destroy
-					offscreen.destroy
-					offscreen := cairo.create_surface (alloc_w, alloc_h)
-					create ctx.make (offscreen)
-					create painter.make (ctx, theme)
-					painter.set_shaping (shaping)
+					fit_back_buffer
 				end
 				if attached dialog as d then
 					d.measure (painter, win_w, win_h)
