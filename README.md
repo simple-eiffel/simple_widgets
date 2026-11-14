@@ -8,7 +8,7 @@
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
 ![DBC: Contracts](https://img.shields.io/badge/DBC-Contracts-green.svg)
 ![Tests](https://img.shields.io/badge/tests-695%2F695-brightgreen.svg)
-![Windows: 695 of 695](https://img.shields.io/badge/Windows-695%2F695-0078D6?logo=windows&logoColor=white) ![macOS: 691 of 695](https://img.shields.io/badge/macOS-691%2F695-000000?logo=apple&logoColor=white) ![Linux: 687 of 695](https://img.shields.io/badge/Linux-687%2F695-FCC624?logo=linux&logoColor=black)
+![Windows: 832 of 832](https://img.shields.io/badge/Windows-832%2F832-0078D6?logo=windows&logoColor=white) ![macOS: 832 of 832](https://img.shields.io/badge/macOS-832%2F832-000000?logo=apple&logoColor=white) ![Linux: 832 of 832](https://img.shields.io/badge/Linux-832%2F832-FCC624?logo=linux&logoColor=black)
 
 A drawn widget toolkit for Eiffel — no Vision2, no native controls. Every pixel is
 the toolkit's own, drawn with cairo. The platform layer is
@@ -42,13 +42,13 @@ simple_shell:
 
 And for simple_gui 0.2: hooks on `SW_DATA_GRID`, `SW_TREE`, `SW_SPLITTER` and `SW_TABS`.
 
-The suite, 695 tests (2026-11-08):
+The suite, 832 tests (2026-11-14, clean builds of main):
 
-| Platform | Passes | The ones that do not |
+| Platform | Passes | Notes |
 |---|---|---|
-| Windows | 695 of 695 | |
-| macOS (simple_shell's AppKit half) | 691 of 695 | Windows drive letters (3), and the screen-reader test, which needs a listening screen reader |
-| Linux (simple_shell's GTK 4 half; Ubuntu 24.04 under WSL) | 687 of 695 | the same four, the screen grab (Wayland allows it only through its portal), and three text tests being looked at: two expect an emoji to draw nothing on the plain text path, where Linux finds a fallback font, and one highlight wash |
+| Windows | 832 of 832 | 831 on a hidden desktop, and the screen grab on the real one |
+| macOS (simple_shell's AppKit half) | 832 of 832 | Apple Silicon, macOS 15 |
+| Linux (simple_shell's GTK 4 half; Ubuntu 24.04 under WSL) | 832 of 832 | on a hidden X display (Xvfb) |
 
 Not yet: screen readers for the drawn controls off Windows (VoiceOver, Orca), which come
 last; and on Linux, printing, spelling and the tray.
