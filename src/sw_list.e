@@ -146,17 +146,20 @@ feature -- Element change (bounds)
 			-- Supplies the pebble a given row offers to pick-and-drop.
 
 	row_at (a_py: REAL_64): INTEGER
-			-- The row index under viewport y `a_py'; 0 outside content.
+			-- The row index under viewport y `a_py'; 0 outside content or on a section header.
+		local
+			s, p: INTEGER
 		do
 			if shown_count > 0 and then a_py >= y then
 					-- the guard matters: truncation rounds toward zero,
 					-- so a point just ABOVE the list would otherwise
 					-- alias to row 1 - the assault suite's first catch.
-				Result := ((a_py - y + scroll_y) / row_height).truncated_to_integer + 1
-				if Result < 1 or Result > shown_count then
-					Result := 0
-				else
-					Result := model_at (Result)
+				s := ((a_py - y + scroll_y) / row_height).truncated_to_integer + 1
+				if s >= 1 and s <= sections.slot_count then
+					p := sections.position_at_slot (s)
+					if p > 0 then
+						Result := model_at (p)
+					end
 				end
 			end
 		ensure
@@ -178,8 +181,9 @@ feature -- Element change (bounds)
 		end
 
 	content_height: REAL_64
+			-- The shown rows and their sections' headers, a row height each.
 		do
-			Result := shown_count * row_height
+			Result := sections.slot_count * row_height
 		ensure
 			non_negative: Result >= 0.0
 		end
@@ -193,7 +197,7 @@ feature -- Element change (bounds)
 			-- Position (among the shown rows) of the first row intersecting the viewport.
 		do
 			if shown_count > 0 then
-				Result := ((scroll_y / row_height).truncated_to_integer + 1)
+				Result := (sections.rows_through_slot ((scroll_y / row_height).truncated_to_integer) + 1)
 					.max (1).min (shown_count)
 			end
 		ensure
@@ -204,8 +208,8 @@ feature -- Element change (bounds)
 			-- Position of the last row intersecting the viewport.
 		do
 			if shown_count > 0 then
-				Result := (((scroll_y + height) / row_height).truncated_to_integer + 1)
-					.max (1).min (shown_count)
+				Result := sections.rows_through_slot (((scroll_y + height) / row_height).truncated_to_integer + 1)
+					.max (first_visible).min (shown_count)
 			end
 		ensure
 			ordered: Result >= first_visible or shown_count = 0
@@ -218,6 +222,7 @@ feature -- Element change
 			non_negative: a_n >= 0
 		do
 			row_count := a_n
+			section_layout.mark_stale
 			if attached view as al_view then
 				from al_view.finish until al_view.before or else al_view.item <= a_n loop
 					al_view.remove
@@ -379,16 +384,26 @@ feature -- Element change
 			in_range: a_i >= 1 and a_i <= row_count
 		local
 			l_pos: INTEGER
+			l_top, l_cover: REAL_64
 		do
 			l_pos := position_of (a_i)
 			if l_pos = 0 then
 					-- a row the filter hides has no place to scroll to
-			elseif height <= 0.0 then
-				scroll_y := (l_pos - 1) * row_height
-			elseif (l_pos - 1) * row_height < scroll_y then
-				scroll_y := (l_pos - 1) * row_height
-			elseif l_pos * row_height > scroll_y + height then
-				scroll_y := (l_pos * row_height - height).max (0.0)
+			else
+				l_top := position_top (l_pos)
+				if height >= 2.0 * row_height and then sections.is_sticky
+					and then sections.section_at_position (l_pos) > 0
+				then
+						-- its section's header is pinned over the top slot (1y-e)
+					l_cover := row_height
+				end
+				if height <= 0.0 then
+					scroll_y := l_top
+				elseif l_top - l_cover < scroll_y then
+					scroll_y := (l_top - l_cover).max (0.0)
+				elseif l_top + row_height > scroll_y + height then
+					scroll_y := (l_top + row_height - height).max (0.0)
+				end
 			end
 		ensure
 			visible_once_laid_out: (height > 0.0 and position_of (a_i) > 0) implies
@@ -413,8 +428,9 @@ feature -- Drawing
 			-- Only the visible band of rows is rendered.
 		local
 			t: SW_THEME
-			i, p: INTEGER
+			i, s, k, l_last: INTEGER
 			ry, inner_w, rx: REAL_64
+			l_sections: SW_ROW_SECTIONS
 		do
 			t := a_p.theme
 			bar_theme := t
@@ -429,24 +445,38 @@ feature -- Drawing
 			inner_w := width - bar.bar_width - 4.0
 			rx := rows_x
 			if shown_count > 0 and then attached row_renderer as rr then
+				l_sections := sections
 				from
-					p := first_visible
+						-- slot by slot: a section's header (1y-e) or a row
+					s := (scroll_y / row_height).truncated_to_integer + 1
+					l_last := (((scroll_y + height) / row_height).truncated_to_integer + 1).min (l_sections.slot_count)
 				until
-					p > last_visible
+					s > l_last
 				loop
-					i := model_at (p)
-					ry := y + (p - 1) * row_height - scroll_y
-					if is_row_selected (i) then
-						a_p.set_color (styled_selection (t.wash_accent))
-						a_p.fill_rect (rx, ry, inner_w, row_height)
-					elseif shows_hover and then not bar.contains (hover_px, hover_py)
-						and then hover_py >= ry and then hover_py < ry + row_height
-					then
-						a_p.set_color (t.surface_variant)
-						a_p.fill_rect (rx, ry, inner_w, row_height)
+					ry := y + (s - 1) * row_height - scroll_y
+					k := l_sections.header_at_slot (s)
+					if k > 0 then
+						l_sections.draw_header (a_p, l_sections.header_section (k), rx, ry, inner_w, row_height, mirrors_layout)
+					else
+						i := model_at (l_sections.position_at_slot (s))
+						if is_row_selected (i) then
+							a_p.set_color (styled_selection (t.wash_accent))
+							a_p.fill_rect (rx, ry, inner_w, row_height)
+						elseif shows_hover and then not bar.contains (hover_px, hover_py)
+							and then hover_py >= ry and then hover_py < ry + row_height
+						then
+							a_p.set_color (t.surface_variant)
+							a_p.fill_rect (rx, ry, inner_w, row_height)
+						end
+						rr.call (a_p, i, rx, ry, inner_w, row_height)
 					end
-					rr.call (a_p, i, rx, ry, inner_w, row_height)
-					p := p + 1
+					s := s + 1
+				end
+					-- the top section's header pinned over the rows, pushed up by the next
+				k := l_sections.pinned_header (scroll_y, row_height)
+				if k > 0 then
+					l_sections.draw_header (a_p, l_sections.header_section (k), rx,
+						y + l_sections.pinned_offset (k, scroll_y, row_height), inner_w, row_height, mirrors_layout)
 				end
 			end
 			a_p.pop_clip
@@ -625,10 +655,88 @@ feature -- Accessibility (GW-14)
 					end
 					a_accessibility.add_node (Item_ids + (accessible_node_id \\ 200_000) * Item_block + (i - l_first + 1),
 						accessible_node_id, {SW_ACCESSIBILITY}.Role_list_item, l_name, l_value,
-						x, y + (i - 1) * row_height - scroll_y, width, row_height, False, is_enabled)
+						x, y + position_top (i) - scroll_y, width, row_height, False, is_enabled)
 					i := i + 1
 				end
 			end
+		end
+
+feature -- Sections (simple_gui 1y-e)
+
+	sections: SW_ROW_SECTIONS
+			-- The rows' sections, laid out over the rows shown now. Headers are not rows: row
+			-- numbers, the selection and `shown_count' stay the rows'.
+		do
+			if section_layout.is_stale or section_layout.laid_out_count /= shown_count then
+				section_layout.lay_out (shown_count, agent model_at)
+			end
+			Result := section_layout
+		ensure
+			fresh: not Result.is_stale and Result.laid_out_count = shown_count
+		end
+
+	set_sections (a_starts: ARRAYED_LIST [INTEGER]; a_titles: ARRAYED_LIST [STRING_32])
+			-- The whole section layout, replacing the last: section i begins at model row
+			-- `a_starts [i]' and is titled `a_titles [i]'. A start past the last row waits for
+			-- that row; a section with no shown row shows no header.
+		require
+			one_title_each: a_starts.count = a_titles.count
+			positive: across a_starts as ic all ic >= 1 end
+			ascending: across 2 |..| a_starts.count as ic all a_starts [ic - 1] < a_starts [ic] end
+		do
+			section_layout.set_sections (a_starts, a_titles)
+			scroll_y := scroll_y.min (max_scroll)
+			bar.set_extent (height, content_height)
+		ensure
+			counted: sections.count = a_starts.count
+			same_rows: shown_count = old shown_count
+		end
+
+	set_sticky_headers (a_on: BOOLEAN)
+			-- Pin the header of the section at the top of the visible rows (`a_on'), or let the
+			-- headers scroll away with their rows.
+		do
+			section_layout.set_sticky (a_on)
+		ensure
+			set: sections.is_sticky = a_on
+		end
+
+	pinned_section: INTEGER
+			-- The section whose header is drawn pinned at the top of the rows now; 0 for none.
+		local
+			k: INTEGER
+		do
+			k := sections.pinned_header (scroll_y, row_height)
+			if k > 0 then
+				Result := sections.header_section (k)
+			end
+		ensure
+			in_range: 0 <= Result and Result <= sections.count
+		end
+
+	pinned_offset: REAL_64
+			-- How far the pinned header is pushed up from the top of the rows: 0 when pinned,
+			-- negative while the next section's header pushes it up.
+		local
+			k: INTEGER
+		do
+			k := sections.pinned_header (scroll_y, row_height)
+			if k > 0 then
+				Result := sections.pinned_offset (k, scroll_y, row_height)
+			end
+		ensure
+			not_positive: Result <= 0.0
+		end
+
+	position_top (a_pos: INTEGER): REAL_64
+			-- The top of shown position `a_pos' from the top of the content (unscrolled), below
+			-- the headers above it.
+		require
+			in_range: a_pos >= 1 and a_pos <= shown_count
+		do
+			Result := (sections.slot_of_position (a_pos) - 1) * row_height
+		ensure
+			not_above_its_place: Result >= (a_pos - 1) * row_height
 		end
 
 feature -- Filtering (simple_gui 1s)
@@ -705,11 +813,20 @@ feature -- Filtering (simple_gui 1s)
 				across al_models as ic all ic >= 1 and ic <= row_count end
 		do
 			view := a_models
+			section_layout.mark_stale
 			scroll_y := scroll_y.min (max_scroll)
 			bar.set_extent (height, content_height)
 			drop_hidden_selection
 		ensure
 			set: view = a_models
+		end
+
+feature {NONE} -- Sections (simple_gui 1y-e)
+
+	section_layout: SW_ROW_SECTIONS
+			-- The sections, as last laid out (`sections' lays them out again when stale).
+		attribute
+			create Result.make
 		end
 
 feature {NONE} -- Row parts and removal (simple_gui 1s)

@@ -314,6 +314,7 @@ feature -- Element change
 					-- a pinned row may belong ahead of the place the sort gave it
 				rebuild_view
 			end
+			section_layout.mark_stale
 			sync_bar
 		ensure
 			grew: rows.count = old rows.count + 1
@@ -343,8 +344,9 @@ feature -- Element change
 			l_first, l_last: INTEGER
 		do
 			if view.count > 0 and height > Header_h then
-				l_first := ((scroll_y / Row_h).truncated_to_integer + 1).max (1).min (view.count)
-				l_last := (((scroll_y + height - Header_h) / Row_h).truncated_to_integer + 1).min (view.count)
+				l_first := (sections.rows_through_slot ((scroll_y / Row_h).truncated_to_integer) + 1).max (1).min (view.count)
+				l_last := sections.rows_through_slot (((scroll_y + height - Header_h) / Row_h).truncated_to_integer + 1)
+					.max (l_first).min (view.count)
 			end
 			Result := [l_first, l_last]
 		ensure
@@ -357,11 +359,20 @@ feature -- Element change
 			-- bottom when it is below, nothing when it shows.
 		require
 			valid: a_pos >= 1 and a_pos <= view.count
+		local
+			l_top, l_cover: REAL_64
 		do
-			if (a_pos - 1) * Row_h < scroll_y then
-				scroll_y := (a_pos - 1) * Row_h
-			elseif a_pos * Row_h > scroll_y + height - Header_h then
-				scroll_y := (a_pos * Row_h - (height - Header_h)).max (0.0)
+			l_top := position_top (a_pos)
+			if height - Header_h >= 2.0 * Row_h and then sections.is_sticky
+				and then sections.section_at_position (a_pos) > 0
+			then
+					-- its section's header is pinned over the top slot (1y-e)
+				l_cover := Row_h
+			end
+			if l_top - l_cover < scroll_y then
+				scroll_y := (l_top - l_cover).max (0.0)
+			elseif l_top + Row_h > scroll_y + height - Header_h then
+				scroll_y := (l_top + Row_h - (height - Header_h)).max (0.0)
 			end
 			sync_bar
 		end
@@ -411,7 +422,7 @@ feature -- Element change
 					Result := al_provider.item ([rows.i_th (view.i_th (r)), c])
 					if attached Result as al_card then
 						cx := column_lefts.i_th (c)
-						al_card.set_anchor (cx, y + Header_h + (r - 1) * Row_h - scroll_y, shown_width (c), Row_h)
+						al_card.set_anchor (cx, y + Header_h + position_top (r) - scroll_y, shown_width (c), Row_h)
 					end
 				end
 			end
@@ -588,13 +599,15 @@ feature -- Layout
 		end
 
 	view_row_at (a_py: REAL_64): INTEGER
-			-- The view row under widget-space y; 0 outside (the sign
+			-- The view row under widget-space y; 0 outside or on a section header (the sign
 			-- guard matters: truncation rounds toward zero).
+		local
+			l_slot: INTEGER
 		do
 			if a_py >= y + Header_h then
-				Result := (((a_py - y - Header_h + scroll_y) / Row_h).truncated_to_integer + 1)
-				if Result < 1 or Result > view.count then
-					Result := 0
+				l_slot := (((a_py - y - Header_h + scroll_y) / Row_h).truncated_to_integer + 1)
+				if l_slot >= 1 and l_slot <= sections.slot_count then
+					Result := sections.position_at_slot (l_slot)
 				end
 			end
 		ensure
@@ -657,10 +670,10 @@ feature -- Drawing
 	draw (a_p: SW_PAINTER)
 		local
 			t: SW_THEME
-			first_v, last_v, i, ci: INTEGER
-			ry, cx, l_mark_x, l_text_x, l_arrow_x: REAL_64
+			l_slot, l_last, k, ci: INTEGER
+			ry, cx, l_arrow_x: REAL_64
+			l_sections: SW_ROW_SECTIONS
 			col: SW_GRID_COLUMN [G]
-			s: STRING_32
 			l_lefts: ARRAYED_LIST [REAL_64]
 		do
 			t := a_p.theme
@@ -672,82 +685,28 @@ feature -- Drawing
 			a_p.push_clip (x, y, width, height)
 				-- rows (visible band only)
 			if view.count > 0 then
-				first_v := ((scroll_y / Row_h).truncated_to_integer + 1).max (1).min (view.count)
-				last_v := (((scroll_y + height - Header_h) / Row_h).truncated_to_integer + 1).min (view.count)
-				a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+				l_sections := sections
 				from
-					i := first_v
+						-- slot by slot: a section's header (1y-e) or a row
+					l_slot := (scroll_y / Row_h).truncated_to_integer + 1
+					l_last := (((scroll_y + height - Header_h) / Row_h).truncated_to_integer + 1).min (l_sections.slot_count)
 				until
-					i > last_v
+					l_slot > l_last
 				loop
-					ry := y + Header_h + ((i - 1) * Row_h - scroll_y)
-					if is_row_selected (view.i_th (i)) then
-						a_p.set_color (styled_selection (t.wash_accent))
-						a_p.fill_rect (x, ry, width, Row_h)
-					elseif i \\ 2 = 0 then
-						a_p.set_color (t.surface_variant)
-						a_p.fill_rect (x, ry, width, Row_h)
+					ry := y + Header_h + ((l_slot - 1) * Row_h - scroll_y)
+					k := l_sections.header_at_slot (l_slot)
+					if k > 0 then
+						l_sections.draw_header (a_p, l_sections.header_section (k), x, ry, width, Row_h, mirrors_layout)
+					else
+						draw_row (a_p, l_sections.position_at_slot (l_slot), ry, l_lefts)
 					end
-					if view.i_th (i) = context_model then
-						a_p.set_color (t.accent)
-						a_p.rrect_stroke (x + 1.5, ry + 0.5, width - 3.0, Row_h - 1.0, 2.0)
-					end
-					from
-						ci := 1
-					until
-						ci > columns.count
-					loop
-						cx := l_lefts.i_th (ci)
-						col := columns.i_th (ci)
-						s := cell_text (view.i_th (i), ci)
-						a_p.push_clip (cx + 1.0, ry, shown_width (ci) - 2.0, Row_h)
-							-- a star or glyph sits on the leading side: the left, or the right when mirrored
-						if mirrors_layout then
-							l_mark_x := cx + shown_width (ci) - 15.0
-							l_text_x := cx
-						else
-							l_mark_x := cx + 15.0
-							l_text_x := cx + 16.0
-						end
-						if column_editor (ci) = Edit_check then
-								-- a check cell: a box, ticked when the text reads 1
-							if mirrors_layout then
-								l_mark_x := cx + shown_width (ci) - 22.0
-							else
-								l_mark_x := cx + 8.0
-							end
-							draw_check_box (a_p, l_mark_x + 7.0, ry + Row_h / 2.0, s.same_string ("1"))
-						elseif col.is_starred (rows.i_th (view.i_th (i))) then
-								-- a favorite (0.50.0): the star, then the text past it
-							a_p.set_color (t.star)
-							a_p.glyph ({SW_PAINTER}.Glyph_star, l_mark_x, ry + Row_h / 2.0, 12.0)
-							a_p.set_color (t.ink)
-							a_p.text (cell_left (a_p, s, col.alignment, l_text_x, shown_width (ci) - 16.0), ry + Row_h - 8.0, s)
-						elseif col.glyph_of (rows.i_th (view.i_th (i))) > 0 then
-								-- a glyph (0.54.0), muted, then the text past it
-							a_p.set_color (t.ink_muted)
-							a_p.glyph (col.glyph_of (rows.i_th (view.i_th (i))), l_mark_x, ry + Row_h / 2.0, 13.0)
-							a_p.set_color (t.ink)
-							a_p.text (cell_left (a_p, s, col.alignment, l_text_x, shown_width (ci) - 16.0), ry + Row_h - 8.0, s)
-						else
-							a_p.set_color (t.ink)
-							a_p.text (cell_left (a_p, s, col.alignment, cx, shown_width (ci)), ry + Row_h - 8.0, s)
-						end
-						if column_editor (ci) = Edit_choice then
-								-- a choice cell: a chevron at its trailing edge
-							a_p.set_color (t.ink_muted)
-							if mirrors_layout then
-								l_arrow_x := cx + 6.0
-							else
-								l_arrow_x := cx + shown_width (ci) - 16.0
-							end
-							a_p.line (l_arrow_x, ry + Row_h / 2.0 - 2.0, l_arrow_x + 4.0, ry + Row_h / 2.0 + 2.0, 1.5)
-							a_p.line (l_arrow_x + 4.0, ry + Row_h / 2.0 + 2.0, l_arrow_x + 8.0, ry + Row_h / 2.0 - 2.0, 1.5)
-						end
-						a_p.pop_clip
-						ci := ci + 1
-					end
-					i := i + 1
+					l_slot := l_slot + 1
+				end
+					-- the top section's header pinned below the column titles, pushed up by the next
+				k := l_sections.pinned_header (scroll_y, Row_h)
+				if k > 0 then
+					l_sections.draw_header (a_p, l_sections.header_section (k), x,
+						y + Header_h + l_sections.pinned_offset (k, scroll_y, Row_h), width, Row_h, mirrors_layout)
 				end
 			end
 			draw_editing (a_p)
@@ -801,6 +760,89 @@ feature -- Drawing
 			a_p.pop_clip
 			a_p.set_color (t.outline)
 			a_p.rrect_stroke (x + 0.5, y + 0.5, width - 1.0, height - 1.0, t.radius)
+		end
+
+	draw_row (a_p: SW_PAINTER; a_pos: INTEGER; a_ry: REAL_64; a_lefts: ARRAYED_LIST [REAL_64])
+			-- The row at view position `a_pos', its top at `a_ry', the columns' left edges `a_lefts'.
+		require
+			valid: a_pos >= 1 and a_pos <= view.count
+			one_left_each: a_lefts.count = columns.count
+		local
+			t: SW_THEME
+			l_model, ci: INTEGER
+			cx, l_mark_x, l_text_x, l_arrow_x: REAL_64
+			col: SW_GRID_COLUMN [G]
+			s: STRING_32
+		do
+			t := a_p.theme
+			l_model := view.i_th (a_pos)
+			a_p.font ({SW_PAINTER}.Role_ui, t.size_label, False)
+			if is_row_selected (l_model) then
+				a_p.set_color (styled_selection (t.wash_accent))
+				a_p.fill_rect (x, a_ry, width, Row_h)
+			elseif a_pos \\ 2 = 0 then
+				a_p.set_color (t.surface_variant)
+				a_p.fill_rect (x, a_ry, width, Row_h)
+			end
+			if l_model = context_model then
+				a_p.set_color (t.accent)
+				a_p.rrect_stroke (x + 1.5, a_ry + 0.5, width - 3.0, Row_h - 1.0, 2.0)
+			end
+			from
+				ci := 1
+			until
+				ci > columns.count
+			loop
+				cx := a_lefts.i_th (ci)
+				col := columns.i_th (ci)
+				s := cell_text (l_model, ci)
+				a_p.push_clip (cx + 1.0, a_ry, shown_width (ci) - 2.0, Row_h)
+					-- a star or glyph sits on the leading side: the left, or the right when mirrored
+				if mirrors_layout then
+					l_mark_x := cx + shown_width (ci) - 15.0
+					l_text_x := cx
+				else
+					l_mark_x := cx + 15.0
+					l_text_x := cx + 16.0
+				end
+				if column_editor (ci) = Edit_check then
+						-- a check cell: a box, ticked when the text reads 1
+					if mirrors_layout then
+						l_mark_x := cx + shown_width (ci) - 22.0
+					else
+						l_mark_x := cx + 8.0
+					end
+					draw_check_box (a_p, l_mark_x + 7.0, a_ry + Row_h / 2.0, s.same_string ("1"))
+				elseif col.is_starred (rows.i_th (l_model)) then
+						-- a favorite (0.50.0): the star, then the text past it
+					a_p.set_color (t.star)
+					a_p.glyph ({SW_PAINTER}.Glyph_star, l_mark_x, a_ry + Row_h / 2.0, 12.0)
+					a_p.set_color (t.ink)
+					a_p.text (cell_left (a_p, s, col.alignment, l_text_x, shown_width (ci) - 16.0), a_ry + Row_h - 8.0, s)
+				elseif col.glyph_of (rows.i_th (l_model)) > 0 then
+						-- a glyph (0.54.0), muted, then the text past it
+					a_p.set_color (t.ink_muted)
+					a_p.glyph (col.glyph_of (rows.i_th (l_model)), l_mark_x, a_ry + Row_h / 2.0, 13.0)
+					a_p.set_color (t.ink)
+					a_p.text (cell_left (a_p, s, col.alignment, l_text_x, shown_width (ci) - 16.0), a_ry + Row_h - 8.0, s)
+				else
+					a_p.set_color (t.ink)
+					a_p.text (cell_left (a_p, s, col.alignment, cx, shown_width (ci)), a_ry + Row_h - 8.0, s)
+				end
+				if column_editor (ci) = Edit_choice then
+						-- a choice cell: a chevron at its trailing edge
+					a_p.set_color (t.ink_muted)
+					if mirrors_layout then
+						l_arrow_x := cx + 6.0
+					else
+						l_arrow_x := cx + shown_width (ci) - 16.0
+					end
+					a_p.line (l_arrow_x, a_ry + Row_h / 2.0 - 2.0, l_arrow_x + 4.0, a_ry + Row_h / 2.0 + 2.0, 1.5)
+					a_p.line (l_arrow_x + 4.0, a_ry + Row_h / 2.0 + 2.0, l_arrow_x + 8.0, a_ry + Row_h / 2.0 - 2.0, 1.5)
+				end
+				a_p.pop_clip
+				ci := ci + 1
+			end
 		end
 
 feature -- Input
@@ -1168,6 +1210,92 @@ feature {NONE} -- Keys
 			else
 			end
 			scroll_selection_into_view
+		end
+
+feature -- Sections (simple_gui 1y-e)
+
+	sections: SW_ROW_SECTIONS
+			-- The rows' sections, laid out over the view as it is now. Headers are not rows:
+			-- model rows, the view, the selection and `shown_count' stay the rows'.
+		do
+			if section_layout.is_stale or section_layout.laid_out_count /= view.count then
+				section_layout.lay_out (view.count, agent view.i_th)
+			end
+			Result := section_layout
+		ensure
+			fresh: not Result.is_stale and Result.laid_out_count = view.count
+		end
+
+	set_sections (a_starts: ARRAYED_LIST [INTEGER]; a_titles: ARRAYED_LIST [STRING_32])
+			-- The whole section layout, replacing the last: section i begins at model row
+			-- `a_starts [i]' and is titled `a_titles [i]'. A start past the last row waits for
+			-- that row; a section with no shown row shows no header.
+		require
+			one_title_each: a_starts.count = a_titles.count
+			positive: across a_starts as ic all ic >= 1 end
+			ascending: across 2 |..| a_starts.count as ic all a_starts [ic - 1] < a_starts [ic] end
+		do
+			section_layout.set_sections (a_starts, a_titles)
+			sync_bar
+			scroll_y := scroll_y.min (bar.max_scroll).max (0.0)
+		ensure
+			counted: sections.count = a_starts.count
+			same_view: view.count = old view.count
+		end
+
+	set_sticky_headers (a_on: BOOLEAN)
+			-- Pin the header of the section at the top of the visible rows, below the column
+			-- titles (`a_on'), or let the headers scroll away with their rows.
+		do
+			section_layout.set_sticky (a_on)
+		ensure
+			set: sections.is_sticky = a_on
+		end
+
+	pinned_section: INTEGER
+			-- The section whose header is drawn pinned below the column titles now; 0 for none.
+		local
+			k: INTEGER
+		do
+			k := sections.pinned_header (scroll_y, Row_h)
+			if k > 0 then
+				Result := sections.header_section (k)
+			end
+		ensure
+			in_range: 0 <= Result and Result <= sections.count
+		end
+
+	pinned_offset: REAL_64
+			-- How far the pinned header is pushed up from just below the column titles: 0 when
+			-- pinned, negative while the next section's header pushes it up.
+		local
+			k: INTEGER
+		do
+			k := sections.pinned_header (scroll_y, Row_h)
+			if k > 0 then
+				Result := sections.pinned_offset (k, scroll_y, Row_h)
+			end
+		ensure
+			not_positive: Result <= 0.0
+		end
+
+	position_top (a_pos: INTEGER): REAL_64
+			-- The top of view position `a_pos' from the top of the rows (unscrolled), below the
+			-- headers above it.
+		require
+			valid: a_pos >= 1 and a_pos <= view.count
+		do
+			Result := (sections.slot_of_position (a_pos) - 1) * Row_h
+		ensure
+			not_above_its_place: Result >= (a_pos - 1) * Row_h
+		end
+
+feature {NONE} -- Sections (simple_gui 1y-e)
+
+	section_layout: SW_ROW_SECTIONS
+			-- The sections, as last laid out (`sections' lays them out again when stale).
+		attribute
+			create Result.make
 		end
 
 feature -- Editing cells (simple_gui 1s)
@@ -1589,7 +1717,11 @@ feature {NONE} -- Cell editing
 	cell_top_of (a_model: INTEGER): REAL_64
 			-- Top edge of model row `a_model' on screen (the view position's row).
 		do
-			Result := y + Header_h + (view_position_of (a_model) - 1) * Row_h - scroll_y
+			if view_position_of (a_model) > 0 then
+				Result := y + Header_h + position_top (view_position_of (a_model)) - scroll_y
+			else
+				Result := y + Header_h - Row_h - scroll_y
+			end
 		end
 
 	place_editor
@@ -1867,11 +1999,7 @@ feature {NONE} -- Engine
 		do
 			pos := selected_view_position
 			if pos > 0 then
-				if (pos - 1) * Row_h < scroll_y then
-					scroll_y := (pos - 1) * Row_h
-				elseif pos * Row_h > scroll_y + height - Header_h then
-					scroll_y := pos * Row_h - (height - Header_h)
-				end
+				scroll_to_position (pos)
 			end
 		end
 
@@ -1904,6 +2032,7 @@ feature {NONE} -- Engine
 			if is_editing and then view_position_of (editing_model) = 0 then
 				cancel_edit
 			end
+			section_layout.mark_stale
 			scroll_y := scroll_y.max (0.0)
 			sync_bar
 		ensure
@@ -1913,7 +2042,7 @@ feature {NONE} -- Engine
 	sync_bar
 			-- Tell the bar how much the rows show of how much there is.
 		do
-			bar.set_extent ((height - Header_h).max (0.0), view.count * Row_h)
+			bar.set_extent ((height - Header_h).max (0.0), sections.slot_count * Row_h)
 		end
 
 
@@ -1968,7 +2097,7 @@ feature -- Accessibility (GW-14)
 					c := c + 1
 				end
 				a_accessibility.add_node (accessible_item_id (k), accessible_node_id, {SW_ACCESSIBILITY}.Role_data_item,
-					l_name, Void, x, y + Header_h + (i - 1) * Row_h - scroll_y, width, Row_h, False, is_enabled)
+					l_name, Void, x, y + Header_h + position_top (i) - scroll_y, width, Row_h, False, is_enabled)
 				i := i + 1
 			end
 		end

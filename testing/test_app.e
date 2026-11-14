@@ -26,6 +26,9 @@ feature {NONE} -- Initialization
 			print ("%N=== LIST MATH ===%N")
 			run_list_tests
 
+			print ("%N=== 1Y-E SECTIONS AND STICKY ===%N")
+			run_sticky_tests
+
 			print ("%N=== 1V-A GRID VIEW ===%N")
 			run_grid_view_tests
 
@@ -121,6 +124,17 @@ feature {NONE} -- Test runners
 	engine_tests: SW_ENGINE_ASSAULT
 
 	list_tests: SW_LIST_ASSAULT
+
+	sticky_tests: SW_STICKY_ASSAULT
+
+	run_sticky_tests
+			-- simple_gui 1y-e: sections, pinned headers and sticky children.
+		do
+			create sticky_tests
+			run_test (agent sticky_tests.test_list_headers_take_slots_not_rows, "list_headers_take_slots_not_rows")
+			run_test (agent sticky_tests.test_grid_headers_pin_below_the_titles, "grid_headers_pin_below_the_titles")
+			run_test (agent sticky_tests.test_scroll_area_sticky_child, "scroll_area_sticky_child")
+		end
 
 	grid_view_tests: SW_GRID_VIEW_ASSAULT
 
