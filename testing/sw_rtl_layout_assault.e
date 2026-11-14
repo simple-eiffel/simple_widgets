@@ -126,6 +126,47 @@ feature -- Tests
 			assert ("the second to its left", b.x + b.width <= a.x)
 		end
 
+	test_an_overlay_places_its_layers_and_passes_input
+			-- 1y-c: the base fills the overlay; a layer sits at its place, margin and offset, a
+			-- trailing one goes to the left under right-to-left, and a layer that passes input lets
+			-- a hit through to the base.
+		local
+			w: SW_WINDOW
+			o: SW_OVERLAY
+			l_base, l_veil: SW_LABEL
+			l_badge: SW_BADGE
+			l_button: SW_BUTTON
+			cx, cy: REAL_64
+		do
+			create w.make ("overlay", 0, 0, 600, 300, create {SW_THEME}.make_light)
+			create o.make
+			create l_base.make_ui ("The picture")
+			create l_veil.make_ui ("Loading")
+			create l_badge.make_count (3)
+			create l_button.make ("Add", agent do end)
+			o.set_base (l_base)
+			o.put_layer (l_veil, o.Layer_fill)
+			o.put_layer (l_badge, o.Layer_top_trailing)
+			o.put_layer (l_button, o.Layer_bottom_leading)
+			o.set_layer_place (l_button, o.Layer_bottom_leading, 10.0)
+			o.set_layer_offset (l_button, 5.0, -5.0)
+			o.set_layer_passes_input (l_veil, True)
+			w.set_root (o)
+			w.request_render
+			assert ("the base fills it", (l_base.x - o.x).abs < 0.5 and (l_base.width - o.width).abs < 0.5)
+			assert ("the badge at the top trailing corner", (l_badge.x + l_badge.width - (o.x + o.width)).abs < 0.5 and (l_badge.y - o.y).abs < 0.5)
+			assert ("the button at its margin and offset", (l_button.x - (o.x + 15.0)).abs < 0.5
+				and (l_button.y + l_button.height - (o.y + o.height - 15.0)).abs < 0.5)
+			cx := o.x + o.width / 2.0
+			cy := o.y + o.height / 2.0
+			assert ("the veil lets the hit through", o.widget_at (cx, cy) /= l_veil)
+			o.set_layer_passes_input (l_veil, False)
+			assert ("until it takes input", o.widget_at (cx, cy) = l_veil)
+			o.set_layout_direction ({SW_WIDGET}.Layout_right_to_left)
+			w.request_render
+			assert ("trailing is the left under right-to-left", (l_badge.x - o.x).abs < 0.5)
+		end
+
 	test_a_start_aligned_button_moves_to_the_right_edge
 			-- MACMINI's test: start is the left in left-to-right and the right in right-to-left.
 		local
