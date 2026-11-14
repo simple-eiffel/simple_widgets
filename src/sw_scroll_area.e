@@ -4,6 +4,12 @@ note
 		laid out at its natural height and shifted by the scroll
 		offset; the painter clips to the viewport so overflow never
 		paints. Mouse wheel scrolls; the drawn scrollbar thumb drags.
+
+		Sticky children (simple_gui 1y-e, CSS's `position: sticky'): a
+		child of a content column set sticky keeps its place in the
+		column but is drawn at the top of the viewport while its part
+		of the column is in view, over what scrolls under it; the next
+		sticky child pushes it up as it arrives.
 	]"
 
 class
@@ -74,11 +80,18 @@ feature -- Access
 feature -- Element change
 
 	set_child (a_child: SW_WIDGET)
+			-- Show `a_child'; a new child has no sticky children.
 		do
+			across sticky_children as ic loop
+				ic.set_lifted (False)
+			end
+			sticky_children.wipe_out
+			stuck.wipe_out
 			child := a_child
 			a_child.set_parent (Current)
 		ensure
 			adopted: a_child.parent = Current
+			no_sticky_children: sticky_children.is_empty
 		end
 
 	scroll_to (a_y: REAL_64)
@@ -140,6 +153,7 @@ feature -- Layout
 				scroll_x := scroll_x.min (max_scroll_x)
 				c.set_bounds (x - scroll_x, y - scroll_y, content_width, content_height)
 				c.arrange (a_p)
+				place_sticky_children (a_p)
 			end
 			bar.set_extent (height, content_height)
 		end
@@ -161,6 +175,12 @@ feature -- Drawing
 			a_p.push_clip (x, y, width, height)
 			if attached child as c then
 				c.paint (a_p)
+					-- the sticky children over what scrolls under them, a later one over an earlier
+				across stuck as ic loop
+					if ic.widget.is_lifted then
+						ic.widget.paint_lifted (a_p)
+					end
+				end
 			end
 			a_p.pop_clip
 			bar.set_mode (styled_scroll_bars)
@@ -191,7 +211,10 @@ feature -- Hit testing
 				then
 					Result := Current
 				elseif attached child as c then
-					Result := c.widget_at (a_px, a_py)
+					Result := sticky_widget_at (a_px, a_py)
+					if Result = Void then
+						Result := c.widget_at (a_px, a_py)
+					end
 				end
 				if Result = Void then
 					Result := Current
@@ -246,6 +269,148 @@ feature -- Input
 			dragging_horizontal := False
 		ensure then
 			released: not bar.is_dragging and not dragging_horizontal
+		end
+
+feature -- Sticky children (simple_gui 1y-e)
+
+	sticky_children: ARRAYED_LIST [SW_WIDGET]
+			-- The content column's children kept at the top of the viewport while their part is
+			-- in view, in the order set.
+		attribute
+			create Result.make (2)
+		end
+
+	is_sticky (a_widget: SW_WIDGET): BOOLEAN
+			-- Is `a_widget' one of `sticky_children'?
+		do
+			Result := sticky_children.has (a_widget)
+		end
+
+	is_in_content_column (a_widget: SW_WIDGET): BOOLEAN
+			-- Is `a_widget' a child of the column that is the content?
+		do
+			Result := attached {SW_COLUMN} child as al_c and then al_c.children.has (a_widget)
+		end
+
+	set_sticky (a_widget: SW_WIDGET; a_on: BOOLEAN)
+			-- Keep `a_widget' at the top of the viewport while its part of the content column is
+			-- in view (`a_on'), or let it scroll. It keeps its place in the column and is drawn at
+			-- the lower of that place and the top of the viewport, but never past the end of its
+			-- part: the place of the next sticky child, or the end of the column, so the next one
+			-- pushes it up as it arrives. It is drawn over what scrolls under it, takes the
+			-- pointer where it is drawn, and gets no background of its own.
+		require
+			in_content_column: is_in_content_column (a_widget)
+		do
+			if a_on and not is_sticky (a_widget) then
+				sticky_children.extend (a_widget)
+			elseif not a_on then
+				sticky_children.prune_all (a_widget)
+			end
+			a_widget.set_lifted (a_on)
+		ensure
+			set: is_sticky (a_widget) = a_on
+			lifted: a_widget.is_lifted = a_on
+		end
+
+	pinned_sticky: detachable SW_WIDGET
+			-- The sticky child pinned at the top of the viewport now: the last whose own place in
+			-- the column has reached the top (places as last arranged); Void for none.
+		do
+			across stuck as ic loop
+				if is_sticky (ic.widget) and ic.top <= scroll_y + Place_tolerance then
+					Result := ic.widget
+				end
+			end
+		ensure
+			sticky: attached Result as al_r implies is_sticky (al_r)
+		end
+
+	pinned_offset: REAL_64
+			-- The top of `pinned_sticky' from the top of the viewport: 0 while pinned, negative
+			-- while the next sticky child pushes it up.
+		do
+			across stuck as ic loop
+				if is_sticky (ic.widget) and ic.top <= scroll_y + Place_tolerance then
+					Result := (drawn_top (ic, scroll_y) - scroll_y).min (0.0)
+				end
+			end
+		ensure
+			not_positive: Result <= 0.0
+		end
+
+feature {NONE} -- Sticky children
+
+	Place_tolerance: REAL_64 = 0.5
+			-- How near the top a place counts as having reached it.
+
+	stuck: ARRAYED_LIST [TUPLE [widget: SW_WIDGET; top, height, part_end: REAL_64]]
+			-- Each shown sticky child's place in the column as last arranged, from the content's
+			-- top, in column order, with its height and the end of its part.
+		attribute
+			create Result.make (2)
+		end
+
+	drawn_top (a_place: like stuck.item; a_scroll: REAL_64): REAL_64
+			-- Where the child of `a_place' is drawn, from the content's top, with the content
+			-- scrolled up by `a_scroll': at the top of the viewport, but neither above its own
+			-- place nor so low that it passes the end of its part.
+		do
+			Result := a_scroll.min (a_place.part_end - a_place.height).max (a_place.top)
+		ensure
+			not_above_its_place: Result >= a_place.top
+		end
+
+	place_sticky_children (a_p: SW_PAINTER)
+			-- After the content is arranged: note each shown sticky child's place in the content
+			-- column and the end of its part, then move it to where it is drawn.
+		local
+			l_place: like stuck.item
+			i: INTEGER
+		do
+			stuck.wipe_out
+			if attached {SW_COLUMN} child as al_c and then not sticky_children.is_empty then
+				across sticky_children as ic loop
+						-- one taken out of the column is drawn by its new container again
+					ic.set_lifted (al_c.children.has (ic))
+				end
+				across al_c.children as ic loop
+					if is_sticky (ic) and ic.is_visible then
+						stuck.extend ([ic, ic.y - al_c.y, ic.height, al_c.height])
+					end
+				end
+				from
+					i := 1
+				until
+					i >= stuck.count
+				loop
+					l_place := stuck.i_th (i)
+					l_place.part_end := stuck.i_th (i + 1).top
+					i := i + 1
+				end
+				across stuck as ic loop
+					ic.widget.set_bounds (ic.widget.x, al_c.y + drawn_top (ic, scroll_y), ic.widget.width, ic.widget.height)
+					ic.widget.arrange (a_p)
+				end
+			end
+		end
+
+	sticky_widget_at (a_px, a_py: REAL_64): detachable SW_WIDGET
+			-- The widget a sticky child, where it is drawn, has under the point; a later one over
+			-- an earlier; Void for none.
+		local
+			i: INTEGER
+		do
+			from
+				i := stuck.count
+			until
+				i < 1 or Result /= Void
+			loop
+				if stuck.i_th (i).widget.is_lifted then
+					Result := stuck.i_th (i).widget.widget_at (a_px, a_py)
+				end
+				i := i - 1
+			end
 		end
 
 feature {NONE} -- Drag state

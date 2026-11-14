@@ -712,7 +712,38 @@ feature -- Drawing
 			-- Draw this widget at its `opacity' and `reveal' (1x): a fade multiplies the
 			-- opacity; a slide draws it at its full size moved in from its edge and clipped to
 			-- the share of its space it takes; a grow draws it scaled about its middle. A
-			-- container paints its children with this, never `draw'.
+			-- container paints its children with this, never `draw'. A lifted widget is left
+			-- out: its owner draws it over the rest (`paint_lifted').
+		do
+			if not is_lifted then
+				paint_in_place (a_p)
+			end
+		end
+
+	is_lifted: BOOLEAN
+			-- Does its owner draw this widget over its container's other children, after them,
+			-- instead of the container's own pass (simple_gui 1y-e: a scroll area's sticky child)?
+
+	set_lifted (a_on: BOOLEAN)
+			-- Let the owner draw this widget over the rest (`a_on'), or its container in its turn.
+		do
+			is_lifted := a_on
+		ensure
+			set: is_lifted = a_on
+		end
+
+	paint_lifted (a_p: SW_PAINTER)
+			-- The owner's pass: draw this lifted widget as `paint' would draw it in its turn.
+		require
+			lifted: is_lifted
+		do
+			paint_in_place (a_p)
+		end
+
+feature {NONE} -- Drawing in place
+
+	paint_in_place (a_p: SW_PAINTER)
+			-- Draw this widget at its `opacity' and `reveal', lifted or not.
 		do
 			if reveal_effect = 0 or else reveal >= 1.0 then
 				paint_at (a_p, opacity)
@@ -722,6 +753,8 @@ feature -- Drawing
 				paint_revealed (a_p)
 			end
 		end
+
+feature -- Drawing
 
 	painted_opacity: REAL_64
 			-- The alpha `paint' draws this widget at: its `opacity', times a fade's share while
