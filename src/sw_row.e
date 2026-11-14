@@ -131,13 +131,12 @@ feature -- Layout
 			l_kids := laid_out
 			l_width := unframed_width (a_width)
 			if is_wrapping then
-				create widths.make (l_kids.count)
+				widths := wrapped_widths (a_p, l_kids)
 				create heights.make (l_kids.count)
 				across
 					l_kids as c
 				loop
-					widths.extend (c.slot_width (c.preferred_width (a_p)))
-					heights.extend (c.slot_height (c.preferred_height (a_p, widths.last)))
+					heights.extend (c.slot_height (c.preferred_height (a_p, widths.i_th (heights.count + 1))))
 				end
 				starts := wrap_starts (widths, effective_gap (a_p), l_width)
 				from
@@ -163,7 +162,7 @@ feature -- Layout
 					end
 					Result := Result + line_h
 					if li > 1 then
-						Result := Result + effective_gap (a_p)
+						Result := Result + line_gap (a_p)
 					end
 					li := li + 1
 				end
@@ -241,13 +240,12 @@ feature -- Layout
 		do
 			l_kids := laid_out
 			gp := effective_gap (a_p)
-			create widths.make (l_kids.count)
+			widths := wrapped_widths (a_p, l_kids)
 			create heights.make (l_kids.count)
 			across
 				l_kids as c
 			loop
-				widths.extend (c.slot_width (c.preferred_width (a_p)))
-				heights.extend (c.slot_height (c.preferred_height (a_p, widths.last)))
+				heights.extend (c.slot_height (c.preferred_height (a_p, widths.i_th (heights.count + 1))))
 			end
 			starts := wrap_starts (widths, gp, width)
 			cy := y
@@ -288,7 +286,7 @@ feature -- Layout
 					cx := cx + widths.i_th (i) + gp
 					i := i + 1
 				end
-				cy := cy + line_h + gp
+				cy := cy + line_h + line_gap (a_p)
 				li := li + 1
 			end
 		end
@@ -337,6 +335,28 @@ feature -- Layout
 				cx := cx + cw + gp
 				i := i + 1
 			end
+		end
+
+	wrapped_widths (a_p: SW_PAINTER; a_kids: ARRAYED_LIST [SW_WIDGET]): ARRAYED_LIST [REAL_64]
+			-- The width each of `a_kids' takes on a wrapped line: its natural one. SW_FLOW_BOX can
+			-- make them all the widest's.
+		do
+			create Result.make (a_kids.count)
+			across
+				a_kids as c
+			loop
+				Result.extend (c.slot_width (c.preferred_width (a_p)))
+			end
+		ensure
+			one_each: Result.count = a_kids.count
+		end
+
+	line_gap (a_p: SW_PAINTER): REAL_64
+			-- The space between wrapped lines: the gap between siblings. SW_FLOW_BOX can set its own.
+		do
+			Result := effective_gap (a_p)
+		ensure
+			non_negative: Result >= 0.0
 		end
 
 	vertical_offset (a_child: SW_WIDGET; a_line_h, a_h: REAL_64): REAL_64
