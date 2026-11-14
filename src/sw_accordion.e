@@ -160,14 +160,19 @@ feature -- Layout
 			loop
 				Result := Result + Header_h + 2.0
 				if s.is_open then
-					Result := Result + s.content.preferred_height (a_p, a_width - 16.0) + 10.0
+						-- a content sliding in or out (1x reveal) takes its share, padding too
+					Result := Result + s.content.slot_height (s.content.preferred_height (a_p, a_width - 16.0))
+						+ 10.0 * s.content.reveal_share_height
 				end
 			end
 		end
 
 	arrange (a_p: SW_PAINTER)
+			-- Each open section's content below its header, in the share of its height its
+			-- reveal takes (all of it unless it is sliding in or out); `paint_revealed' draws
+			-- it at its full size, clipped.
 		local
-			cy: REAL_64
+			cy, l_h: REAL_64
 		do
 			cy := y
 			across
@@ -175,10 +180,10 @@ feature -- Layout
 			loop
 				cy := cy + Header_h + 2.0
 				if s.is_open then
-					s.content.set_bounds (x + 8.0, cy + 2.0, width - 16.0,
-						s.content.preferred_height (a_p, width - 16.0))
+					l_h := s.content.preferred_height (a_p, width - 16.0)
+					s.content.set_bounds (x + 8.0, cy + 2.0, width - 16.0, s.content.slot_height (l_h))
 					s.content.arrange (a_p)
-					cy := cy + s.content.height + 10.0
+					cy := cy + s.content.slot_height (l_h) + 10.0 * s.content.reveal_share_height
 				end
 			end
 		end

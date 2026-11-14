@@ -59,6 +59,35 @@ feature -- Accordion
 			assert ("opening grows the accordion", open_h > shut)
 		end
 
+	test_accordion_content_slide_takes_its_share
+			-- 1x-e: an open section whose content slides in from the top (a 1x reveal) takes that
+			-- share of the opening, padding too, and is laid out in it; at none, none.
+		local
+			a: SW_ACCORDION
+			p: SW_PAINTER
+			l_content: SW_SKELETON
+			shut, open_h, half_h: REAL_64
+		do
+			p := headless_painter
+			create a.make
+			create l_content.make (4)
+			a.add_section ("One", l_content)
+			shut := a.preferred_height (p, 400.0)
+			a.toggle_section (1)
+			open_h := a.preferred_height (p, 400.0)
+			l_content.set_reveal (l_content.Reveal_slide_from_top, 0.5, True)
+			half_h := a.preferred_height (p, 400.0)
+			assert ("half the opening: " + (half_h - shut).out + " of " + (open_h - shut).out,
+				((half_h - shut) - (open_h - shut) / 2.0).abs < 1.0e-6)
+			a.set_bounds (0.0, 0.0, 400.0, half_h)
+			a.arrange (p)
+			assert ("laid out in half its height", (l_content.height - l_content.preferred_height (p, 384.0) / 2.0).abs < 1.0e-6)
+			l_content.set_reveal (l_content.Reveal_slide_from_top, 0.0, False)
+			assert ("none at none", (a.preferred_height (p, 400.0) - shut).abs < 1.0e-6)
+			l_content.set_reveal (l_content.Reveal_slide_from_top, 1.0, True)
+			assert ("whole again", (a.preferred_height (p, 400.0) - open_h).abs < 1.0e-6)
+		end
+
 feature -- Stepper
 
 	test_stepper_starts_and_clamps
