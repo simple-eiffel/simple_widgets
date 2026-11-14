@@ -273,6 +273,7 @@ feature {NONE} -- Test runners
 			run_test (agent rtl_layout_tests.test_a_row_places_from_the_right, "a_row_places_from_the_right")
 			run_test (agent rtl_layout_tests.test_a_wrapping_row_starts_each_line_at_the_right, "a_wrapping_row_starts_each_line_at_the_right")
 			run_test (agent rtl_layout_tests.test_a_start_aligned_button_moves_to_the_right_edge, "a_start_aligned_button_moves_to_the_right_edge")
+			run_test (agent rtl_layout_tests.test_an_overlay_places_its_layers_and_passes_input, "an_overlay_places_its_layers_and_passes_input")
 			run_test (agent rtl_layout_tests.test_a_grid_mirrors_its_columns, "a_grid_mirrors_its_columns")
 			run_test (agent rtl_layout_tests.test_direction_is_inherited_unless_set, "direction_is_inherited_unless_set")
 			run_test (agent rtl_layout_tests.test_a_row_child_can_sit_at_the_bottom, "a_row_child_can_sit_at_the_bottom")
