@@ -1055,6 +1055,66 @@ feature -- Batch 5: layout
 			assert_reals_equal ("and rewinds to the left edge", 0.0, b3.x, 0.000_1)
 		end
 
+	test_flow_box_limits_each_line
+			-- 1y-b: a flow box cuts a line after `maximum_per_line' children, and the
+			-- limit counts again on each line.
+		local
+			f: SW_FLOW_BOX
+			ws: ARRAYED_LIST [REAL_64]
+			starts: ARRAYED_LIST [INTEGER]
+			i: INTEGER
+		do
+			create f.make
+			assert ("wraps", f.is_wrapping)
+			create ws.make (5)
+			from i := 1 until i > 5 loop
+				ws.extend (10.0)
+				i := i + 1
+			end
+			starts := f.wrap_starts (ws, 2.0, 1000.0)
+			assert_integers_equal ("no limit: one line", 1, starts.count)
+			f.set_maximum_per_line (2)
+			starts := f.wrap_starts (ws, 2.0, 1000.0)
+			assert_integers_equal ("two a line: three lines", 3, starts.count)
+			assert_integers_equal ("second line starts at the third", 3, starts.i_th (2))
+			assert_integers_equal ("third at the fifth", 5, starts.i_th (3))
+			starts := f.wrap_starts (ws, 2.0, 34.0)
+			assert_integers_equal ("width cuts first (three fit), then the limit", 3, starts.count)
+		end
+
+	test_flow_box_homogeneous_widths_and_line_gap
+			-- 1y-b: homogeneous children all take the widest one's width, and the gap between
+			-- lines is its own.
+		local
+			f: SW_FLOW_BOX
+			b1, b2, b3: SW_BADGE
+			th: SW_THEME
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			p: SW_PAINTER
+		do
+			create th.make_dark
+			create surf.make (8, 8)
+			create ctx.make (surf)
+			create p.make (ctx, th)
+			create f.make
+			create b1.make_dot
+			create b2.make_count (128)
+			create b3.make_dot
+			f.put (b1)
+			f.put (b2)
+			f.put (b3)
+			f.set_homogeneous (True)
+			f.set_gaps (20.0, 4.0)
+			f.set_maximum_per_line (2)
+			f.set_bounds (0.0, 0.0, 400.0, 200.0)
+			f.arrange (p)
+			assert_reals_equal ("the dot as wide as the count", b2.width, b1.width, 0.000_1)
+			assert_reals_equal ("first two share a line (centered in it)", b1.y + b1.height / 2.0, b2.y + b2.height / 2.0, 0.000_1)
+			assert ("the third on the next line, 20 below the first", b3.y >= b2.y + b2.height + 19.9)
+			assert_reals_equal ("next to each other by the sibling gap", b1.x + b1.width + 4.0, b2.x, 0.000_1)
+		end
+
 	test_splitter_horizontal_and_dblclick_reset
 		local
 			sp: SW_SPLITTER
