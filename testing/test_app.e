@@ -415,6 +415,7 @@ feature {NONE} -- Test runners
 			run_test (agent disclosure_tests.test_accordion_exclusive_law, "accordion_exclusive_law")
 			run_test (agent disclosure_tests.test_accordion_multi_mode, "accordion_multi_mode")
 			run_test (agent disclosure_tests.test_accordion_height_follows_disclosure, "accordion_height_follows_disclosure")
+			run_test (agent disclosure_tests.test_accordion_content_slide_takes_its_share, "accordion_content_slide_takes_its_share")
 			run_test (agent disclosure_tests.test_stepper_starts_and_clamps, "stepper_starts_and_clamps")
 			run_test (agent disclosure_tests.test_stepper_only_done_ground_is_clickable, "stepper_done_ground_only")
 			run_test (agent disclosure_tests.test_timeline_row_math, "timeline_row_math")
