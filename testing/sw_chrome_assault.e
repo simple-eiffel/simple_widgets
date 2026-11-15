@@ -308,7 +308,7 @@ feature -- GW-11: status-bar sections
 			root.put (create {SW_LABEL}.make_ui ("body"))
 			root.put (bar)
 			w.set_root (root)
-			bar.set_left ("Gen 1:1 · WLC")
+			bar.set_left ("Gen 1:1 %/183/ WLC")
 			l_links := bar.add_text ("Links: Default", False)
 			l_note := bar.add_text ("LXX Ps 22:1 = MT Ps 23:1", False)
 			l_ed := bar.add_text ("Edition 2026.10", True)
