@@ -627,6 +627,7 @@ feature {NONE} -- Test runners
 			run_test (agent media_tests.test_carousel_pages_wrap, "carousel_pages_wrap")
 			run_test (agent media_tests.test_gallery_flow_math, "gallery_flow_math")
 			run_test (agent media_tests.test_transport_clock_and_seek, "transport_clock_and_seek")
+			run_test (agent media_tests.test_media_bar_zones_and_agents, "media_bar_zones_and_agents")
 			run_test (agent media_tests.test_crop_normalizes_any_direction, "crop_normalizes_any_direction")
 			run_test (agent media_tests.test_chat_thread_roles_and_streaming, "chat_thread_roles_and_streaming")
 			run_test (agent media_tests.test_prompt_view_round_trip, "prompt_view_round_trip")

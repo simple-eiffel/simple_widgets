@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — Wave 3 in progress
 
+### Added (SW_MEDIA_BAR, the drawn transport bar of simple_gui's media player)
+
+- `SW_MEDIA_BAR`: play and pause, a seek bar, the time, mute, the volume and full screen, left to right. simple_gui 1z-b shows it under its Media Foundation player on Windows, where a drawn window has no native media controls. It inherits `SW_MEDIA_TRANSPORT` (its clock, seek arithmetic and play agents) and adds `on_volume`, `on_mute`, `on_full_screen` and the silent setters the host reports back through (`set_duration`, `clear_duration`, `set_playing`, `set_volume`, `set_muted`, `set_full_screen`). Until a length is known the clock reads 0:00 and the seek bar does nothing; mute and full screen ask, and show the new state once the host says it came. To screen readers it is a toolbar named "Media controls" whose value reads the state ("Paused, 0:07 of 0:10, volume 50 percent").
+- Test: `media_bar_zones_and_agents`.
+
 ### Fixed (the screen grab test asks whether the desktop can be read)
 
 - `screen_grab_marries_cairo` asks `can_grab` (simple_shell 1.41.0, inherited by `SW_SCREEN`): a surface only where the session offers a way to read the desktop, none where it offers none. The test had failed on every Linux run under WSLg, a Wayland session without a Screenshot portal. Linux now runs 799 passed, 0 failed. Needs simple_shell 1.41.0.

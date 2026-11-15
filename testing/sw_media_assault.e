@@ -123,6 +123,57 @@ feature -- Media
 			assert ("now playing", tr.is_playing)
 		end
 
+	test_media_bar_zones_and_agents
+			-- SW_MEDIA_BAR (simple_gui 1z-b): each zone does its own thing, the setters are silent,
+			-- and mute and full screen ask rather than show.
+		local
+			b: SW_MEDIA_BAR
+			l_seeks, l_volumes: ARRAYED_LIST [REAL_64]
+			l_mutes, l_fulls: ARRAYED_LIST [BOOLEAN]
+			l_plays: CELL [INTEGER]
+		do
+			create b.make
+			create l_seeks.make (2)
+			create l_volumes.make (2)
+			create l_mutes.make (2)
+			create l_fulls.make (2)
+			create l_plays.put (0)
+			b.set_on_seek (agent l_seeks.extend)
+			b.set_on_volume (agent l_volumes.extend)
+			b.set_on_mute (agent l_mutes.extend)
+			b.set_on_full_screen (agent l_fulls.extend)
+			b.set_on_play (agent (c: CELL [INTEGER]) do c.put (c.item + 1) end (l_plays))
+			b.set_bounds (0.0, 0.0, 600.0, b.Bar_height)
+			assert ("no length yet", not b.has_duration)
+			assert ("a click on the seek bar with no length seeks nowhere",
+				b.handle_click (b.bar_x + b.bar_w / 2.0, 20.0) and l_seeks.is_empty)
+			b.set_duration (10.0)
+			assert ("the middle of the seek bar", b.handle_click (b.bar_x + b.bar_w / 2.0, 20.0))
+			assert_integers_equal ("one seek", 1, l_seeks.count)
+			assert_reals_equal ("to the middle second", 5.0, l_seeks.first, 0.000_1)
+			assert ("the button plays", b.handle_click (b.x + 10.0, 20.0) and b.is_playing and l_plays.item = 1)
+			assert ("the clock does nothing", b.handle_click (b.time_x + 10.0, 20.0) and l_seeks.count = 1 and l_plays.item = 1)
+			assert ("mute asks for silence", b.handle_click (b.mute_x + 10.0, 20.0) and b.is_muted)
+			assert ("and says so", l_mutes.count = 1 and l_mutes.first)
+			assert ("the volume bar's end is full", b.handle_click (b.volume_x + b.volume_w, 20.0))
+			assert_reals_equal ("full", 1.0, l_volumes.last, 0.000_1)
+			b.handle_drag (b.volume_x + b.volume_w / 4.0, 20.0)
+			assert_reals_equal ("a drag along it sets a quarter", 0.25, b.volume, 0.000_1)
+			assert ("full screen asks", b.handle_click (b.full_screen_x + 20.0, 20.0) and l_fulls.count = 1 and l_fulls.first)
+			assert ("but shows it only when told", not b.is_full_screen)
+			b.set_full_screen (True)
+			b.set_playing (False)
+			b.set_position (7.5)
+			b.set_volume (0.5)
+			b.set_muted (False)
+			assert ("the setters call no agent", l_fulls.count = 1 and l_mutes.count = 1 and l_volumes.count = 2 and l_seeks.count = 1 and l_plays.item = 1)
+			assert ("the bar asks to come back", b.handle_click (b.full_screen_x + 20.0, 20.0) and not l_fulls.last)
+			assert ("it reads its state", attached b.accessible_value as al_value
+				and then al_value.same_string ({STRING_32} "Paused, 0:07 of 0:10, volume 50 percent"))
+			b.clear_duration
+			assert ("a new medium starts over", not b.has_duration and b.position_s = 0.0)
+		end
+
 	test_crop_normalizes_any_direction
 		local
 			cb: SW_CROP_BOX
