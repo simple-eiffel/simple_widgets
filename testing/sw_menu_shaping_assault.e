@@ -512,46 +512,12 @@ feature {NONE} -- Locating things on disk
 		end
 
 	evidence_path (a_name: STRING): STRING_32
-			-- `<repo>/evidence/<a_name>', where `<repo>' is the first
-			-- ancestor of the working directory or of the exe's own folder
-			-- that holds `simple_widgets.ecf'. Empty when the repository is
-			-- not underfoot, which simply means no evidence file is written.
+			-- Where evidence file `a_name' is written (see SW_TEST_EVIDENCE: a temporary folder,
+			-- or the repository's evidence/ with SW_UPDATE_EVIDENCE set).
 		require
 			name_not_empty: not a_name.is_empty
-		local
-			env: EXECUTION_ENVIRONMENT
-			starts: ARRAYED_LIST [PATH]
-			base, marker, dir: PATH
-			d: DIRECTORY
-			i, step: INTEGER
-			found: BOOLEAN
 		do
-			create Result.make_empty
-			create env
-			create starts.make (2)
-			starts.extend (env.current_working_path)
-			starts.extend ((create {PATH}.make_from_string (env.arguments.command_name)).parent)
-			from i := 1 until i > starts.count or found loop
-				base := starts [i]
-				from step := 0 until step > 6 or found loop
-					marker := base.extended ("simple_widgets.ecf")
-					if file_exists (marker.name) then
-						dir := base.extended ("evidence")
-						if not directory_exists (dir.name) then
-							create d.make_with_path (dir)
-							d.recursive_create_dir
-						end
-						if directory_exists (dir.name) then
-							Result := dir.extended (a_name).name.to_string_32
-						end
-						found := True
-					else
-						base := base.parent
-					end
-					step := step + 1
-				end
-				i := i + 1
-			end
+			Result := (create {SW_TEST_EVIDENCE}).path (a_name)
 		end
 
 	directory_exists (a_path: READABLE_STRING_32): BOOLEAN
