@@ -67,6 +67,11 @@ feature {NONE} -- Initialization
 			entries_list.set_on_select (agent on_entry_selected)
 			entries_list.set_on_activate (agent on_entry_activated)
 			name_box.set_spellcheck (False)
+				-- simple_widgets #75: in a window too short for the dialog, the file list gives the
+				-- height back (down to two rows), so the name box and Save and Cancel stay inside
+			fitting.do_nothing
+			entries_list.set_grow (1.0)
+			entries_list.with_min_size (0.0, 56.0).do_nothing
 			put (title_label)
 			put (path_label.as_muted)
 			build_drives_row

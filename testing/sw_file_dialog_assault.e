@@ -13,6 +13,38 @@ inherit
 
 feature -- Tests
 
+	test_a_short_window_keeps_the_buttons_in_reach
+			-- simple_widgets #75: laid out shorter than its natural height (a sheet in a small
+			-- window), the dialog's list gives the height back, so every child, the name box and
+			-- the Save and Cancel row included, stays inside it; a 560 sheet in a 440 window is
+			-- given a width that fits.
+		local
+			fd: SW_FILE_DIALOG
+			w: SW_WINDOW
+			l_short, l_bottom: REAL_64
+		do
+			build_fixture
+			create fd.make_save (fixture_root, "report.pdf")
+			fd.set_bounds (0.0, 0.0, 400.0, 1000.0)
+			fd.arrange (headless_painter)
+			l_short := fd.children.last.y + fd.children.last.height - 200.0
+			assert ("natural height is more than the short box", l_short > 0.0)
+				-- #75's case: a 440 by 450 window; a centered sheet's content gets 450 - 160
+			fd.set_bounds (0.0, 0.0, 400.0, 290.0)
+			fd.arrange (headless_painter)
+			across fd.children as c loop
+				l_bottom := c.y + c.height
+				assert ("inside: " + c.generating_type.name.to_string_8 + " ends at " + l_bottom.out, l_bottom <= 290.0 + 0.5)
+			end
+			fd.set_bounds (0.0, 0.0, 400.0, 1.0)
+			fd.arrange (headless_painter)
+			print ("    the dialog's least height: " + (fd.children.last.y + fd.children.last.height).out + "%N")
+			create w.make ("small", 0, 0, 440, 200, create {SW_THEME}.make_light)
+			assert ("a 560 sheet fits a 440 window: " + w.sheet_content_width (560.0).out, w.sheet_content_width (560.0) + 32.0 <= 440.0)
+			assert ("a wide window keeps the width asked", w.sheet_content_width (300.0) = 300.0)
+			drop_fixture
+		end
+
 	test_listing_order_and_kinds
 		local
 			fd: SW_FILE_DIALOG
@@ -259,6 +291,22 @@ feature {NONE} -- Fixture
 	record_accept (a_path: STRING_32)
 		do
 			accepted := a_path
+		end
+
+
+feature {NONE} -- Painting
+
+	headless_painter: SW_PAINTER
+			-- A painter on an off-screen surface, for laying widgets out.
+		local
+			surf: CAIRO_SURFACE
+			ctx: CAIRO_CONTEXT
+			th: SW_THEME
+		once
+			create surf.make (800, 600)
+			create ctx.make (surf)
+			create th.make_light
+			create Result.make (ctx, th)
 		end
 
 end
