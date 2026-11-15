@@ -13,6 +13,7 @@ feature {NONE} -- Initialization
 	make
 			-- Assault the toolkit's model layer under full DBC.
 		do
+			hold_activity
 			print ("simple_widgets contract assault (F_code -keep, all assertions live)%N%N")
 				-- The real keyboard must not steer a test: nothing is held
 				-- unless a test simulates it (SW_KEYS.simulate).
@@ -117,6 +118,14 @@ feature {NONE} -- Initialization
 			else
 				print ("ALL TESTS PASSED%N")
 			end
+		end
+
+feature {NONE} -- Pace (#90)
+
+	hold_activity
+			-- Keep this run at full speed: on macOS, out of App Nap (testing/Clib/sw_test_activity.h).
+		external "C inline use %"sw_test_activity.h%""
+		alias "sw_test_hold_activity ();"
 		end
 
 feature {NONE} -- Test runners
