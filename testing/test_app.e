@@ -899,6 +899,7 @@ feature {NONE} -- Test runners
 		do
 			create fd_tests
 			run_test (agent fd_tests.test_listing_order_and_kinds, "listing_order_and_kinds")
+			run_test (agent fd_tests.test_a_short_window_keeps_the_buttons_in_reach, "a_short_window_keeps_the_buttons_in_reach")
 			run_test (agent fd_tests.test_extension_filter, "extension_filter")
 			run_test (agent fd_tests.test_navigation_down_and_up, "navigation_down_and_up")
 			run_test (agent fd_tests.test_drive_roots_and_hop, "drive_roots_and_hop")

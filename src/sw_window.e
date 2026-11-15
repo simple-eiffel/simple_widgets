@@ -1627,6 +1627,23 @@ feature -- Sheets
 			set: on_tick = a_action
 		end
 
+	sheet_content_width (a_requested: REAL_64): REAL_64
+			-- The width a centered sheet's content gets when `a_requested' is asked for: no
+			-- wider than the window allows with the sheet's frame and a margin each side, so the
+			-- sheet never runs past the window's edges (simple_widgets #75: a 560 sheet in a 440
+			-- window put half its content out of reach).
+		require
+			positive: a_requested > 0.0
+		do
+			Result := a_requested.min (win_w - 32.0 - 2.0 * Sheet_side_margin).max (1.0)
+		ensure
+			positive: Result > 0.0
+			no_wider_than_asked: Result <= a_requested
+		end
+
+	Sheet_side_margin: REAL_64 = 8.0
+			-- Space kept between a centered sheet and the window's sides.
+
 	show_sheet (a_content: SW_WIDGET; a_width: REAL_64)
 			-- Present `a_content' modally, centered on a dimmed
 			-- backdrop: the sheet becomes the input root until
@@ -3404,7 +3421,7 @@ feature {NONE} -- Rendering
 					if sheet_user_w > 0.0 then
 						sheet_cw := sheet_user_w
 					else
-						sheet_cw := sheet_width
+						sheet_cw := sheet_content_width (sheet_width)
 					end
 					if sheet_user_h > 0.0 then
 						sheet_ch := sheet_user_h
